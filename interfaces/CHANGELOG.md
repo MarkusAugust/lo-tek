@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.39.0 (2026-11-01)
+
 ### Added
 
 - **The classes for the parts a template writes itself are in the manifest,
