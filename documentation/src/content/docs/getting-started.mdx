@@ -104,7 +104,7 @@ Without build tools, point at the built file:
 </script>
 ```
 
-The call should happen as early as possible, before anything renders and never in a `useEffect`. An element that is in the page before registration is a plain `HTMLElement` with no behaviour, and a method call on it in that gap fails. The helpers `showToast`, `reportFailure`, `reportSuccess`, `extendSession` and `resetSession` instead wait for the registration and make the call when it arrives. The registration pulls in the code for all nine. If you use one of them, call its own function instead, like `defineLtField()` from `@lo-tek/interfaces/field`.
+The call should happen as early as possible, before anything renders and never in a `useEffect`. An element that is in the page before registration is a plain `HTMLElement` with no behaviour, and a method call on it in that gap fails. The helpers `showToast`, `reportFailure`, `reportSuccess`, `extendSession` and `resetSession` instead wait for the registration and make the call when it arrives. A property set in that gap, such as `dialog.open = true`, is written through the setter once the element is upgraded. The registration pulls in the code for all nine. If you use one of them, call its own function instead, like `defineLtField()` from `@lo-tek/interfaces/field`.
 
 Calling them more than once is harmless, because the functions check themselves whether the element is registered. They also do nothing on a server, where there is no `customElements` to register in, so they can sit in a file that runs in both places.
 

@@ -12,12 +12,108 @@
  * without `customElements` nothing is registered, and without registration
  * the browser never creates an instance. It only exists so the module can
  * load.
+ *
+ * In the browser the base does one thing: it adopts the properties a script
+ * set before the registration, see `adoptPropertiesSetBeforeUpgrade()`.
  */
 
 export const HostElement =
   typeof HTMLElement === "undefined"
     ? (class {} as unknown as typeof HTMLElement)
-    : HTMLElement
+    : (class extends HTMLElement {
+        constructor() {
+          super()
+          // Here the own properties are exactly what a script set before the
+          // upgrade: the component's own fields are assigned after `super()`
+          // returns. An element created after the registration has none, and
+          // costs nothing.
+          const names = Object.getOwnPropertyNames(this)
+          if (names.length === 0) return
+          const pending = holdPropertiesSetBeforeUpgrade(this, names)
+          if (pending.size === 0) return
+          // Written in a microtask, not here: the field initialisers run
+          // after `super()`, and a setter that notes something on the
+          // instance, as `<lt-popover>` does with `open`, would have been
+          // overwritten by them. By the microtask the whole constructor and
+          // the upgrade's `connectedCallback` are done.
+          queueMicrotask(() => {
+            for (const [name, value] of pending) {
+              Reflect.deleteProperty(this, name)
+              ;(this as unknown as Record<string, unknown>)[name] = value
+            }
+          })
+        }
+      } as unknown as typeof HTMLElement)
+
+/**
+ * Takes the properties a script set on the element before it was upgraded out
+ * of the way, so they can be written through the component's setters.
+ *
+ * `dialog.open = true` from a script that runs before `defineLt()` lands on a
+ * plain `HTMLElement`, and becomes an own data property. When the element is
+ * upgraded, that property shadows the accessor on the prototype: the
+ * attribute is never set, and every later write, `dialog.open = false`
+ * included, goes to the shadow and never reaches the setter. Tested against
+ * `dist` on 2026-11-01: the setters were dead for the rest of the element's
+ * life.
+ *
+ * Each such property is replaced by a stand-in for the time until the
+ * microtask that writes the value. A read goes to the getter, so the
+ * component's first `sync()` sees the attribute and not the script's value:
+ * when it saw the value, it opened a dialog the script closed again right
+ * after the registration, and the write of `false` then removed an attribute
+ * that was never there, so nothing closed the dialog (found by GitHub's
+ * review). A write goes to the setter and cancels the adoption, so the last
+ * write wins. The values returned are what the microtask writes.
+ *
+ * Only a property with a setter somewhere on the prototype chain is taken;
+ * anything else a script put on the element stays as it is. A property set
+ * after the upgrade is never an own property, so there is nothing to do for
+ * an element created once the registration is there. A property someone made
+ * non-configurable cannot be moved out of the way, and is left shadowing the
+ * setter, as before. (Documented: the "lazy properties" pattern in Google's
+ * custom elements best practices.)
+ */
+function holdPropertiesSetBeforeUpgrade(
+  element: HTMLElement,
+  names: readonly string[],
+): Map<string, unknown> {
+  const pending = new Map<string, unknown>()
+  for (const name of names) {
+    const own = Object.getOwnPropertyDescriptor(element, name)
+    if (!own || !("value" in own) || !own.configurable) continue
+    const accessor = accessorOnPrototype(element, name)
+    if (!accessor?.set) continue
+    const { get, set } = accessor
+    pending.set(name, own.value)
+    Object.defineProperty(element, name, {
+      configurable: true,
+      enumerable: true,
+      get: () => get?.call(element),
+      set: (value: unknown) => {
+        pending.delete(name)
+        Reflect.deleteProperty(element, name)
+        set.call(element, value)
+      },
+    })
+  }
+  return pending
+}
+
+function accessorOnPrototype(
+  element: object,
+  name: string,
+): PropertyDescriptor | undefined {
+  for (
+    let proto = Object.getPrototypeOf(element);
+    proto !== null;
+    proto = Object.getPrototypeOf(proto)
+  ) {
+    const descriptor = Object.getOwnPropertyDescriptor(proto, name)
+    if (descriptor) return descriptor
+  }
+  return undefined
+}
 
 /*
  * The types of the events, such as `dialog-toggle` with `detail.open`. Every
