@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  defineLtDialog,
+  type LtDialog,
+} from "./components/frame/dialog/lt-dialog"
+import {
   defineLtPopover,
   type LtPopover,
 } from "./components/frame/popover/lt-popover"
@@ -8,7 +12,6 @@ import { defineLtToast, LtToast } from "./components/standalone/toast/lt-toast"
 import * as pkg from "./index"
 import { defineLt } from "./register"
 import { waitForPaint } from "./testing/a11y"
-import "./components/frame/popover/popover.css"
 
 /*
  * The tag names come from the main entry point, not from `register.ts`. Then
@@ -162,6 +165,51 @@ describe("a property set before the registration", () => {
 
     region.duration = 99
     expect(region.getAttribute("duration")).toBe("99")
+  })
+
+  it("takes the last write when the script writes again right after", async () => {
+    document.body.innerHTML = `<lt-toast-rewritten></lt-toast-rewritten>`
+    const region = document.querySelector("lt-toast-rewritten") as LtToast
+    region.duration = 1234
+
+    defineLtToast("lt-toast-rewritten")
+    region.duration = 99
+    await Promise.resolve()
+
+    expect(region.getAttribute("duration")).toBe("99")
+    expect(region.duration).toBe(99)
+  })
+
+  it("opens a dialog the script opened before the registration", async () => {
+    document.body.innerHTML = `
+      <lt-dialog-early>
+        <dialog class="lt-dialog">
+          <h2>The decision has been registered</h2>
+          <form method="dialog">
+            <button class="lt-button" value="close">Close</button>
+          </form>
+        </dialog>
+      </lt-dialog-early>`
+    const box = document.querySelector("lt-dialog-early") as LtDialog
+    const dialog = box.querySelector("dialog") as HTMLDialogElement
+    box.open = true
+
+    defineLtDialog("lt-dialog-early")
+    await Promise.resolve()
+    await waitForPaint()
+
+    expect(box.hasAttribute("open")).toBe(true)
+    expect(dialog.matches(":modal")).toBe(true)
+
+    // `close` is a queued task, so wait for the event rather than a frame.
+    const closed = new Promise<void>((resolve) => {
+      dialog.addEventListener("close", () => resolve(), { once: true })
+    })
+    box.open = false
+    await closed
+    await waitForPaint()
+    expect(dialog.matches(":modal")).toBe(false)
+    expect(box.hasAttribute("open")).toBe(false)
   })
 
   it("holds for a setter that notes something on the instance", async () => {

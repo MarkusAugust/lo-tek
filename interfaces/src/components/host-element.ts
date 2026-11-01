@@ -23,12 +23,23 @@ export const HostElement =
     : (class extends HTMLElement {
         constructor() {
           super()
-          // In a microtask, not here: the component's own field initialisers
-          // run after `super()` returns, and a setter that notes something on
-          // the instance, as `<lt-popover>` does with `open`, would have been
-          // overwritten by them. By the microtask the whole constructor and
-          // the upgrade's `connectedCallback` are done.
-          queueMicrotask(() => adoptPropertiesSetBeforeUpgrade(this))
+          // Here the own properties are exactly what a script set before the
+          // upgrade: the component's own fields are assigned after `super()`
+          // returns. An element created after the registration has none, and
+          // costs nothing.
+          const names = Object.getOwnPropertyNames(this)
+          if (names.length === 0) return
+          // In a microtask, not here: the field initialisers run after
+          // `super()`, and a setter that notes something on the instance, as
+          // `<lt-popover>` does with `open`, would have been overwritten by
+          // them. By the microtask the whole constructor and the upgrade's
+          // `connectedCallback` are done. Until then the property still
+          // shadows the getter, so the component's first `sync()` reads the
+          // script's value and acts on it, and the attribute follows one
+          // microtask later, before the browser paints. The values are read
+          // then, not now, so a write between the registration and the
+          // microtask wins.
+          queueMicrotask(() => adoptPropertiesSetBeforeUpgrade(this, names))
         }
       } as unknown as typeof HTMLElement)
 
@@ -44,18 +55,23 @@ export const HostElement =
  * `dist` on 2026-11-01: the setters were dead for the rest of the element's
  * life.
  *
- * Only a property with a setter somewhere on the prototype chain is adopted.
- * The component's own fields have none, and are left as they are. A property
- * set after the upgrade is never an own property, so there is nothing to do
- * for an element created once the registration is there. (Documented: the
- * "lazy properties" pattern in Google's custom elements best practices.)
+ * Only a property with a setter somewhere on the prototype chain is adopted;
+ * anything else a script put on the element stays as it is. A property set
+ * after the upgrade is never an own property, so there is nothing to do for
+ * an element created once the registration is there. A property someone made
+ * non-configurable cannot be moved out of the way, and is left shadowing the
+ * setter, as before. (Documented: the "lazy properties" pattern in Google's
+ * custom elements best practices.)
  */
-function adoptPropertiesSetBeforeUpgrade(element: HTMLElement): void {
+function adoptPropertiesSetBeforeUpgrade(
+  element: HTMLElement,
+  names: readonly string[],
+): void {
   const record = element as unknown as Record<string, unknown>
-  for (const name of Object.keys(element)) {
+  for (const name of names) {
     const own = Object.getOwnPropertyDescriptor(element, name)
     if (!own || !("value" in own) || !hasSetter(element, name)) continue
-    delete record[name]
+    if (!Reflect.deleteProperty(element, name)) continue
     record[name] = own.value
   }
 }

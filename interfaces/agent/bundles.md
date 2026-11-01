@@ -306,7 +306,9 @@ defineLtField()
 The call is in the module, not in `mounted`, `onMount` or an effect. A hook
 runs after the first paint, so the elements in the markup are plain
 `HTMLElement`s when the framework renders them, and a call to `show()` or
-`reportFailure()` before the hook fails with "is not a function".
+`reportFailure()` before the hook fails with "is not a function". A property
+set before the registration, such as `open`, is written through the setter
+once the element is upgraded.
 
 The markup is ordinary HTML, in whatever template your framework uses:
 

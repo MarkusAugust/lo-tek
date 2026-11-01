@@ -301,10 +301,11 @@ defineLt()
 The call is at the top of the module, not in a `useEffect`. An effect runs
 after the first paint, so the elements are plain `HTMLElement`s when React
 renders them, and a call to `show()` or `reportFailure()` before the effect
-fails with "is not a function". The function does nothing on a server, so it
-can sit in a root module that runs in both places. If you use only one
-component, it has its own function, such as `defineLtTabs()` in
-`@lo-tek/interfaces/tabs`.
+fails with "is not a function". A property set before the registration, such
+as `open`, is written through the setter once the element is upgraded. The
+function does nothing on a server, so it can sit in a root module that runs in
+both places. If you use only one component, it has its own function, such as
+`defineLtTabs()` in `@lo-tek/interfaces/tabs`.
 
 ```ts
 // src/lotek.d.ts, gives the web components types in JSX

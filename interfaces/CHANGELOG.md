@@ -31,9 +31,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `defineLt()` became a plain property on the element. Once the element was
   upgraded, that property shadowed the setter: the attribute was never set,
   and no later write reached the setter either, `dialog.open = false`
-  included. The components now write such a property through the setter as
-  soon as they are upgraded. This is the same gap `whenUpgraded()` closes for
-  the methods.
+  included. The components now write such a property through the setter in
+  the microtask after the upgrade, and a write made in between wins. This is
+  the same gap `whenUpgraded()` closes for the methods.
 
 ## 0.38.0 (2026-10-31)
 
