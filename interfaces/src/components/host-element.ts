@@ -29,23 +29,25 @@ export const HostElement =
           // costs nothing.
           const names = Object.getOwnPropertyNames(this)
           if (names.length === 0) return
-          // In a microtask, not here: the field initialisers run after
-          // `super()`, and a setter that notes something on the instance, as
-          // `<lt-popover>` does with `open`, would have been overwritten by
-          // them. By the microtask the whole constructor and the upgrade's
-          // `connectedCallback` are done. Until then the property still
-          // shadows the getter, so the component's first `sync()` reads the
-          // script's value and acts on it, and the attribute follows one
-          // microtask later, before the browser paints. The values are read
-          // then, not now, so a write between the registration and the
-          // microtask wins.
-          queueMicrotask(() => adoptPropertiesSetBeforeUpgrade(this, names))
+          const pending = holdPropertiesSetBeforeUpgrade(this, names)
+          if (pending.size === 0) return
+          // Written in a microtask, not here: the field initialisers run
+          // after `super()`, and a setter that notes something on the
+          // instance, as `<lt-popover>` does with `open`, would have been
+          // overwritten by them. By the microtask the whole constructor and
+          // the upgrade's `connectedCallback` are done.
+          queueMicrotask(() => {
+            for (const [name, value] of pending) {
+              Reflect.deleteProperty(this, name)
+              ;(this as unknown as Record<string, unknown>)[name] = value
+            }
+          })
         }
       } as unknown as typeof HTMLElement)
 
 /**
- * Writes the properties a script set on the element before it was upgraded
- * through the component's setters.
+ * Takes the properties a script set on the element before it was upgraded out
+ * of the way, so they can be written through the component's setters.
  *
  * `dialog.open = true` from a script that runs before `defineLt()` lands on a
  * plain `HTMLElement`, and becomes an own data property. When the element is
@@ -55,7 +57,16 @@ export const HostElement =
  * `dist` on 2026-11-01: the setters were dead for the rest of the element's
  * life.
  *
- * Only a property with a setter somewhere on the prototype chain is adopted;
+ * Each such property is replaced by a stand-in for the time until the
+ * microtask that writes the value. A read goes to the getter, so the
+ * component's first `sync()` sees the attribute and not the script's value:
+ * when it saw the value, it opened a dialog the script closed again right
+ * after the registration, and the write of `false` then removed an attribute
+ * that was never there, so nothing closed the dialog (found by GitHub's
+ * review). A write goes to the setter and cancels the adoption, so the last
+ * write wins. The values returned are what the microtask writes.
+ *
+ * Only a property with a setter somewhere on the prototype chain is taken;
  * anything else a script put on the element stays as it is. A property set
  * after the upgrade is never an own property, so there is nothing to do for
  * an element created once the registration is there. A property someone made
@@ -63,29 +74,45 @@ export const HostElement =
  * setter, as before. (Documented: the "lazy properties" pattern in Google's
  * custom elements best practices.)
  */
-function adoptPropertiesSetBeforeUpgrade(
+function holdPropertiesSetBeforeUpgrade(
   element: HTMLElement,
   names: readonly string[],
-): void {
-  const record = element as unknown as Record<string, unknown>
+): Map<string, unknown> {
+  const pending = new Map<string, unknown>()
   for (const name of names) {
     const own = Object.getOwnPropertyDescriptor(element, name)
-    if (!own || !("value" in own) || !hasSetter(element, name)) continue
-    if (!Reflect.deleteProperty(element, name)) continue
-    record[name] = own.value
+    if (!own || !("value" in own) || !own.configurable) continue
+    const accessor = accessorOnPrototype(element, name)
+    if (!accessor?.set) continue
+    const { get, set } = accessor
+    pending.set(name, own.value)
+    Object.defineProperty(element, name, {
+      configurable: true,
+      enumerable: true,
+      get: () => get?.call(element),
+      set: (value: unknown) => {
+        pending.delete(name)
+        Reflect.deleteProperty(element, name)
+        set.call(element, value)
+      },
+    })
   }
+  return pending
 }
 
-function hasSetter(element: object, name: string): boolean {
+function accessorOnPrototype(
+  element: object,
+  name: string,
+): PropertyDescriptor | undefined {
   for (
     let proto = Object.getPrototypeOf(element);
     proto !== null;
     proto = Object.getPrototypeOf(proto)
   ) {
     const descriptor = Object.getOwnPropertyDescriptor(proto, name)
-    if (descriptor) return typeof descriptor.set === "function"
+    if (descriptor) return descriptor
   }
-  return false
+  return undefined
 }
 
 /*

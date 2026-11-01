@@ -212,6 +212,34 @@ describe("a property set before the registration", () => {
     expect(box.hasAttribute("open")).toBe(false)
   })
 
+  it("leaves a dialog closed when the script closes it right after", async () => {
+    // GitHub's review found this: the upgrade's `connectedCallback` read the
+    // shadowing property and opened the dialog, the script then wrote `false`
+    // into the same shadow, and the adoption removed an attribute that was
+    // never there, so nothing closed the dialog again.
+    document.body.innerHTML = `
+      <lt-dialog-reclosed>
+        <dialog class="lt-dialog">
+          <h2>The decision has been registered</h2>
+          <form method="dialog">
+            <button class="lt-button" value="close">Close</button>
+          </form>
+        </dialog>
+      </lt-dialog-reclosed>`
+    const box = document.querySelector("lt-dialog-reclosed") as LtDialog
+    const dialog = box.querySelector("dialog") as HTMLDialogElement
+    box.open = true
+
+    defineLtDialog("lt-dialog-reclosed")
+    box.open = false
+    await Promise.resolve()
+    await waitForPaint()
+
+    expect(box.open).toBe(false)
+    expect(box.hasAttribute("open")).toBe(false)
+    expect(dialog.matches(":modal")).toBe(false)
+  })
+
   it("holds for a setter that notes something on the instance", async () => {
     // `<lt-popover>` remembers in `set open` that the user wanted it open, in
     // a field the component initialises after `super()`. Adopting the property
