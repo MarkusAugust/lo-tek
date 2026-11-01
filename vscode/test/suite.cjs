@@ -254,14 +254,14 @@ async function suite() {
   )
   // The first tab stop is the form's id, the second the field's, mirrored in `for`.
   await vscode.commands.executeCommand("jumpToNextSnippetPlaceholder")
-  await vscode.commands.executeCommand("type", { text: "email" })
+  await vscode.commands.executeCommand("type", { text: "codename" })
   const text = third.getText()
   assert.ok(
-    text.includes('id="email"') && text.includes('for="email"'),
+    text.includes('id="codename"') && text.includes('for="codename"'),
     `id and for do not follow each other in the snippet: ${text}`,
   )
   assert.ok(
-    text.includes('id="contact-form"'),
+    text.includes('id="order-form"'),
     `the first tab stop should have been left untouched: ${text}`,
   )
   assert.ok(
