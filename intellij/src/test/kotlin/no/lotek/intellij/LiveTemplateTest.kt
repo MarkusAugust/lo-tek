@@ -21,10 +21,10 @@ class LiveTemplateTest : BasePlatformTestCase() {
         val template = TemplateSettings.getInstance().getTemplate("lt-field", "LO-TEK")
         assertNotNull("lt-field is missing", template)
         val text = template!!.string
-        assertTrue("the id should be a variable: $text", text.contains("id=\"\$name\$\""))
-        assertTrue("for should mirror it: $text", text.contains("for=\"\$name\$\""))
+        assertTrue("the id should be a variable: $text", text.contains("id=\"\$codename\$\""))
+        assertTrue("for should mirror it: $text", text.contains("for=\"\$codename\$\""))
         // The form around the field has its own id, and it is a variable too.
-        assertTrue("the variables were ${template.variables.map { it.name }}", template.variables.map { it.name }.contains("name"))
+        assertTrue("the variables were ${template.variables.map { it.name }}", template.variables.map { it.name }.contains("codename"))
     }
 
     fun `test the template expands in an HTML file`() {
@@ -33,7 +33,7 @@ class LiveTemplateTest : BasePlatformTestCase() {
         val template = TemplateSettings.getInstance().getTemplate("lt-field", "LO-TEK")!!
         TemplateManager.getInstance(project).startTemplate(myFixture.editor, template)
         val text = myFixture.editor.document.text
-        assertTrue("the markup should be there: $text", text.contains("<lt-field>") && text.contains("id=\"name\""))
-        assertFalse("the variable should be replaced: $text", text.contains("\$name\$"))
+        assertTrue("the markup should be there: $text", text.contains("<lt-field>") && text.contains("id=\"codename\""))
+        assertFalse("the variable should be replaced: $text", text.contains("\$codename\$"))
     }
 }
