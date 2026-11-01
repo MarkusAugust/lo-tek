@@ -239,6 +239,13 @@
           "returns": {
             "$ref": "#/$defs/returns"
           },
+          "classes": {
+            "type": "object",
+            "description": "The classes the builder function carries for the parts the template writes itself, as lt.card.title in TypeScript: the name on the function and the class. Only the parts no set of the function's own answer writes.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "table": {
             "description": "When the options act independently: the base set and what each option adds, derived from the results and checked against every builder case. Another language can build the builder function from it alone.",
             "oneOf": [

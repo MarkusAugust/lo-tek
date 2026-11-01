@@ -214,10 +214,13 @@ class ManifestReaderTest {
             m["of"]?.let { shapesIn(it) }
             m["fields"]?.map()?.values?.forEach { shapesIn(it) }
         }
+        var withClasses = 0
         for ((i, b) in builders.withIndex()) {
             val expected = b.map()
             val read = Lotek.manifest.builders[i]
-            known(b, "name", "options", "returns", "table", at = read.name)
+            known(b, "name", "options", "returns", "table", "classes", at = read.name)
+            assertEquals(expected["classes"] ?: emptyMap<String, String>(), read.classes, "${read.name} classes")
+            if (read.classes.isNotEmpty()) withClasses += 1
             val rawOptions = expected["options"] as List<*>
             assertEquals(rawOptions.size, read.options.size, read.name)
             for ((j, o) in rawOptions.withIndex()) {
@@ -236,6 +239,7 @@ class ManifestReaderTest {
             if (group != null) assertEquals(group.keys.toList(), (read.returns as Returns.Group).fields.keys.toList(), "${read.name} the order of the fields")
         }
         assertTrue(options > 0, "No builder function had options, so the comparison said nothing.")
+        assertTrue(withClasses > 0, "No builder function had classes for its parts, so that branch of the reader is untested.")
         assertEquals(setOf("values", "flag", "text", "number", "textList"), kinds, "every option type must be in the manifest, otherwise a branch in the reader is untested")
         // No builder function returns plain text today, so that branch is tested below, with a rewritten manifest.
         assertTrue(shapes.containsAll(setOf("attributes", "values", "list", "group")), "the shapes in the manifest were $shapes, so a branch in the reader is untested")

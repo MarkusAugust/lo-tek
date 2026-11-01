@@ -1913,6 +1913,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "content": "lt-accordion__content"
       }
     },
     {
@@ -1961,6 +1964,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "title": "lt-alert__title"
       }
     },
     {
@@ -2023,6 +2029,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "stack": "lt-avatar-stack"
       }
     },
     {
@@ -2189,6 +2198,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "title": "lt-card__title"
       }
     },
     {
@@ -2233,6 +2245,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "row": "lt-checkbox-row"
       }
     },
     {
@@ -2900,6 +2915,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "list": "lt-file-upload-list"
       }
     },
     {
@@ -3309,6 +3327,9 @@
           },
           "options": {}
         }
+      },
+      "classes": {
+        "gap": "lt-pagination__gap"
       }
     },
     {
@@ -3651,6 +3672,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "row": "lt-radio-row"
       }
     },
     {
@@ -3695,6 +3719,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "row": "lt-search-row"
       }
     },
     {
@@ -4354,6 +4381,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "row": "lt-switch-row"
       }
     },
     {
@@ -4408,6 +4438,9 @@
             }
           }
         }
+      },
+      "classes": {
+        "scroll": "lt-table-scroll"
       }
     },
     {
@@ -4742,6 +4775,9 @@
           },
           "options": {}
         }
+      },
+      "classes": {
+        "option": "lt-toggle-group__option"
       }
     },
     {
@@ -4758,6 +4794,9 @@
           },
           "options": {}
         }
+      },
+      "classes": {
+        "bubble": "lt-tooltip__bubble"
       }
     }
   ],

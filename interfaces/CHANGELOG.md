@@ -24,6 +24,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **The classes for the parts a template writes itself are in the manifest,
+  and in Kotlin.** `lt.card.title` and `lt.toggleGroup.option` were string
+  constants on the TypeScript functions alone, so a Kotlin template had to
+  write `lt-card__title` as text. Every such constant is now `classes` on the
+  builder function in `manifest.json`, and `Lt` has the same names:
+  `Lt.card.title`, `Lt.toggleGroup.option` and the rest, each a set with the
+  class, so it goes where every other answer goes.
+
 ### Fixed
 
 - **A property set on a web component before its registration now reaches

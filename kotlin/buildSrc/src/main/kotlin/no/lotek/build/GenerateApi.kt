@@ -112,6 +112,7 @@ class Generator(manifest: Map<String, Any?>) {
         "Values.kt" to valuesFile(),
         "Lt.kt" to ltFile(),
         "Parts.kt" to partsFile(),
+        "Classes.kt" to classesFile(),
         "Dispatch.kt" to dispatchFile(),
         "WebJar.kt" to webJarFile(),
     )
@@ -219,6 +220,12 @@ class Generator(manifest: Map<String, Any?>) {
                 out.append("        )\n")
             }
             out.append("    }\n\n")
+            if (classesOf(b).isNotEmpty()) {
+                val type = classesType(name)
+                val list = classesOf(b).keys.joinToString(", ") { "`Lt.$name.$it`" }
+                out.append("    /** The parts of `lt.$name` the template writes itself: $list, as in TypeScript. */\n")
+                out.append("    val ${identifier(name)}: $type = $type\n\n")
+            }
         }
         out.setLength(out.length - 1)
         out.append("}\n")
@@ -334,12 +341,53 @@ class Generator(manifest: Map<String, Any?>) {
         return if (f["optional"] == true) "$base?" else base
     }
 
+    /** The classes a builder function carries for the parts the template writes itself, `lt.card.title` and the like. */
+    @Suppress("UNCHECKED_CAST")
+    private fun classesOf(b: Map<String, Any?>): Map<String, String> =
+        b["classes"] as Map<String, String>? ?: emptyMap()
+
+    private fun classesType(builder: String): String = pascal(builder) + "Classes"
+
+    /**
+     * One object per builder function with class constants. Each constant is
+     * a set with the class, so it goes where every other answer goes:
+     * `h3 { lt(Lt.card.title) }` in kotlinx.html, `Lt.card.title.toHtml()` in
+     * a string. In TypeScript the same constant is the class as text.
+     */
+    private fun classesFile(): String {
+        val out = StringBuilder(header).append("package no.lotek\n")
+        for (b in builders) {
+            val classes = classesOf(b)
+            if (classes.isEmpty()) continue
+            val name = b["name"] as String
+            out.append("\n/** The classes `lt.$name` carries for the parts the template writes itself. Reached as `Lt.$name`. */\n")
+            out.append("object ${classesType(name)} {\n")
+            for ((part, className) in classes) {
+                out.append("    /** `lt.$name.$part` in TypeScript: the class `$className`. */\n")
+                out.append("    val ${identifier(part)}: Attributes = Attributes(linkedMapOf(\"class\" to ${literal(className)}))\n\n")
+            }
+            out.setLength(out.length - 1)
+            out.append("}\n")
+        }
+        return out.toString()
+    }
+
     private fun dispatchFile(): String {
         val out = StringBuilder(header).append("package no.lotek\n\n")
         out.append("/**\n * Calls a builder function with options read from JSON. Used by the tests that\n")
         out.append(" * compare every build case with the result from TypeScript.\n */\n")
         out.append("internal object Dispatch {\n")
         out.append("    val names: List<String> = listOf(${builders.joinToString(", ") { literal(it["name"] as String) }})\n\n")
+        out.append("    /** The class constants, by builder function and part, for the test against the manifest. */\n")
+        out.append("    val classes: Map<String, Map<String, Attributes>> = mapOf(\n")
+        for (b in builders) {
+            val classes = classesOf(b)
+            if (classes.isEmpty()) continue
+            val name = b["name"] as String
+            val entries = classes.keys.joinToString(", ") { "${literal(it)} to Lt.${identifier(name)}.${identifier(it)}" }
+            out.append("        ${literal(name)} to mapOf($entries),\n")
+        }
+        out.append("    )\n\n")
         out.append("    fun call(name: String, o: Map<String, Any?>): Any = when (name) {\n")
         for (b in builders) {
             val name = b["name"] as String

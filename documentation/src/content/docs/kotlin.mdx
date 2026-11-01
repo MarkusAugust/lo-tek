@@ -76,6 +76,16 @@ val field = Lt.field(id = "email", required = RequiredMarker.TEXT, help = true, 
 
 A flag such as `hidden` has the empty text as its value, and is written as the name alone.
 
+The parts a template writes itself, such as the heading in a card or an option in a toggle group, have their classes on the builder function, with the same names as in TypeScript. Each is a set with the class, so it goes where every other answer goes:
+
+```kotlin
+"""
+<div ${Lt.card().toHtml()}>
+  <h3 ${Lt.card.title.toHtml()}>Application 2024/1187</h3>
+</div>
+"""
+```
+
 ### Same answers as in TypeScript
 
 The builder functions are generated from the manifest LO-TEK writes from the TypeScript code, and the few where the options interact, such as `field` and `tabs`, are written by hand. All are tested against more than a thousand build cases with the answer from TypeScript. If one builder function gives one attribute differently, the package is not released.

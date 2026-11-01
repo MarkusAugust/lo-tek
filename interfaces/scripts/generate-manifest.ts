@@ -62,7 +62,10 @@ const version: string = JSON.parse(
   readFileSync(`${PACKAGE}package.json`, "utf8"),
 ).version
 
-type BuilderFunction = Base & { table?: Tables }
+type BuilderFunction = Base & {
+  table?: Tables
+  classes?: Record<string, string>
+}
 
 const builderFunctions: BuilderFunction[] = readBuilderFunctions()
 
@@ -377,6 +380,32 @@ function apply(
 for (const b of builderFunctions) {
   const t = tables(b)
   if (t) b.table = t
+}
+
+/*
+ * The classes a builder function carries for the parts the template writes
+ * itself: `lt.card.title`, `lt.toggleGroup.option`. In TypeScript they are
+ * string constants hung on the function, and another language could not
+ * reach them, so a Kotlin template wrote `lt-card__title` as text. A
+ * constant whose class a set of the function's own answer writes, as
+ * `lt.dialog.title`, is left out: there the set is the way.
+ */
+for (const b of builderFunctions) {
+  const written = new Set(
+    cases
+      .filter((t) => t.builder === b.name && t.expected)
+      .flatMap((t) => setsOf(t.expected))
+      .flatMap(([, set]) => String(set.class ?? "").split(/\s+/)),
+  )
+  const constants = Object.entries(
+    lt[b.name as keyof typeof lt] as unknown as Record<string, unknown>,
+  ).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[1] === "string" &&
+      entry[1].startsWith("lt-") &&
+      !written.has(entry[1]),
+  )
+  if (constants.length > 0) b.classes = Object.fromEntries(constants)
 }
 
 /*

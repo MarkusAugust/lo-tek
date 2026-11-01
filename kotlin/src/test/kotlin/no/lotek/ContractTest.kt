@@ -47,6 +47,22 @@ class ContractTest {
     }
 
     @Test
+    fun `the class constants are the ones in the manifest`() {
+        // `lt.card.title` and the like: a string on the function in TypeScript, a
+        // set with the class here, with the same names on `Lt`.
+        val expected = Lotek.manifest.builders.filter { it.classes.isNotEmpty() }.associate { it.name to it.classes }
+        assertTrue(expected.isNotEmpty(), "No builder function has class constants, so the comparison said nothing.")
+        assertEquals(expected.keys, Dispatch.classes.keys)
+        for ((builder, classes) in expected) {
+            assertEquals(
+                classes.mapValues { (_, className) -> Attributes(mapOf("class" to className)) },
+                Dispatch.classes.getValue(builder),
+                builder,
+            )
+        }
+    }
+
+    @Test
     fun `the attributes are written as HTML`() {
         val field = Lt.field(id = "email", invalid = true, error = true)
         assertEquals("""id="email-error"""", field.error.toHtml())
