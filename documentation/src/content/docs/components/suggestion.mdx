@@ -210,7 +210,7 @@ const suggestion = lt.suggestion({ id: "breaker", keys: ["LDG-117", "LDG-042"], 
 
   <p class="lt-suggestion__empty" hidden>No matches</p>
   <span class="lt-sr-only" id="breaker-status" role="status"></span>
-  <p class="lt-help-text" id="breaker-help">EB 100 a night. Every night late costs the same again.</p>
+  <p class="lt-help-text" id="breaker-help">We show who has the breaker now, and when it is due back.</p>
 </lt-suggestion>
 ```
 
@@ -239,7 +239,7 @@ The field always shows the text of the option the user chose. If the form should
 
 The component writes the code in the hidden field when the user chooses, and clears it again when the user changes the text, so the form never submits the code for Crowbar with "Needle" in the field. When the form is reset, the text goes back to what the server sent, and the code follows the text: the code the server sent when the text is the server's, otherwise the chosen one, otherwise the option with that text, otherwise none. The field gets `input` and `change` when the code is written, so `data-bind` sees it; the events do not bubble, so a `data-on:input` on `<lt-suggestion>` that fetches suggestions is not triggered by them. An update from the server that clears the hidden field gets the code back as long as the text is the chosen one. `suggestion-select` has both: `evt.detail.label` is the text and `evt.detail.value` the code.
 
-Without JavaScript the text is submitted with an empty field for the code, and the server looks up the code itself. If the text is ambiguous, like Needle, which the catalogue has two of, the server answers with a page where the user chooses. The code is then in two places, in `data-value` and in the hidden field, and that is a deliberate choice: HTML has no element that shows one text and submits another value when the user can also type freely. `lt.suggestion()` gives the hidden field as `suggestion.value`; you write `name` yourself.
+Without JavaScript the text is submitted with an empty field for the code, and the server looks up the code itself. If the text is ambiguous, as when the catalogue has two versions of Needle, the server answers with a page where the user chooses. The code is then in two places, in `data-value` and in the hidden field, and that is a deliberate choice: HTML has no element that shows one text and submits another value when the user can also type freely. `lt.suggestion()` gives the hidden field as `suggestion.value`; you write `name` yourself.
 
 ## When someone else filters
 
@@ -253,7 +253,7 @@ If you filter on exactly the same thing, that the text contains the search term,
 
 | Your filter | What happens without `prefiltered` |
 | --- | --- |
-| Search on a street name, `spike` finds `Needle` | The component hides Needle, and the list looks empty |
+| Search on an alias, `spike` finds `Needle` | The component hides Needle, and the list looks empty |
 | Search on a code that is not shown, `LDG-117` | The same |
 | Fuzzy search, `lokjaw` finds `Lockjaw` | The matches the component does not recognise disappear |
 | Asynchronous search | The list flickers while the answer is on its way |
@@ -263,8 +263,8 @@ If you render only the matches, and your filter is narrower than the component's
 This applies as much in React as in Datastar. In React it is easy to miss, because no server is involved:
 
 ```tsx
-// Search on the street names too. The component's own filter would hide Needle again.
-const matches = breakers.filter((b) => [b.name, ...b.streetNames].some((n) => n.toLowerCase().includes(query.toLowerCase())))
+// Search on the code too. The component's own filter would hide Crowbar again.
+const matches = breakers.filter((b) => [b.name, b.code].some((n) => n.toLowerCase().includes(query.toLowerCase())))
 const suggestion = lt.suggestion({ id: "breaker", keys: matches.map((b) => b.code) })
 
 <lt-suggestion prefiltered>

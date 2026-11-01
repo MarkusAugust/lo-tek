@@ -28,7 +28,7 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 - **The examples come from the world LO-TEK belongs to, not from a housing
   benefit application.** Every recipe, demo, snippet, live template and
-  rulebook now shows a system Trace and Rook delivered to a client: the job
+  rulebook now shows a system LO-TEK delivered to a client: the job
   console on floor 222, the operations console of Meridian Lattice, a claim
   at Aster & Vale, and others. Each component page shows one client, and the
   pages on accessibility stay neutral. The markup, the classes and the

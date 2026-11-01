@@ -70,8 +70,8 @@ describe("lt-label accessibility", () => {
       <label class="lt-label" data-required="symbol" for="a11y-fixer">Fixer's address</label>
       <input class="lt-input" id="a11y-fixer" type="email" required />
 
-      <label class="lt-label" data-required="text" for="a11y-budget">Budget</label>
-      <input class="lt-input" id="a11y-budget" type="text" required />
+      <label class="lt-label" data-required="text" for="a11y-contact">Contact number</label>
+      <input class="lt-input" id="a11y-contact" type="tel" required />
 
       <label class="lt-label" data-optional="" for="a11y-entry">Entry point</label>
       <input class="lt-input" id="a11y-entry" type="text" />

@@ -153,7 +153,7 @@ const VERSIONS: Record<string, string> = {
   // A bare field and a bare list: the component writes the rest.
   recipe: HOST,
   // The server answered a search the component cannot do (`spike`, the
-  // street name for Needle) and sent only that match, with the empty message hidden.
+  // alias for Needle) and sent only that match, with the empty message hidden.
   prefiltered: swap(
     withList(withHost(HOST, "prefiltered"), li(SECOND)),
     EMPTY_TAG,
