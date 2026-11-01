@@ -17,7 +17,7 @@ describe("lt-sr-only", () => {
   beforeEach(() => {
     mount(`
       <button class="lt-button" type="button">
-        Delete<span id="hidden" class="lt-sr-only"> the application from 4 March</span>
+        Delete<span id="hidden" class="lt-sr-only"> the report from 4 March</span>
       </button>
     `)
   })
@@ -36,7 +36,7 @@ describe("lt-sr-only", () => {
     // The text must be part of the name the screen reader reads out. With
     // display: none or visibility: hidden it would be gone here too.
     expect(button.textContent?.replace(/\s+/g, " ").trim()).toBe(
-      "Delete the application from 4 March",
+      "Delete the report from 4 March",
     )
   })
 

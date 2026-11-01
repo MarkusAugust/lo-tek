@@ -33,7 +33,7 @@ export type AvatarAttributes = {
  * picture stands alone, it must have a text that says who it is.
  *
  * ```ts
- * <span {...avatar({ size: "small" })} aria-hidden="true">ON</span>
+ * <span {...avatar({ size: "small" })} aria-hidden="true">DP</span>
  * ```
  */
 export const avatar = Object.assign(

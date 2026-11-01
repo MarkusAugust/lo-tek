@@ -3,31 +3,31 @@
   "page": [
     {
       "start": 12,
-      "end": 17,
+      "end": 23,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "for=\"hjelp\" points at a <p>, which cannot have a label. for must point at the field itself: <input>, <select>, <textarea> or a button. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "for=\"budget-help\" points at a <p>, which cannot have a label. for must point at the field itself: <input>, <select>, <textarea> or a button. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
     },
     {
-      "start": 103,
-      "end": 104,
+      "start": 98,
+      "end": 99,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "The help text is not wired to any field: its id \"hjelp\" is not in aria-describedby on any field. A screen reader does not announce it together with the field. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "The help text is not wired to any field: its id \"budget-help\" is not in aria-describedby on any field. A screen reader does not announce it together with the field. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
     },
     {
-      "start": 157,
-      "end": 158,
+      "start": 166,
+      "end": 167,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The error text is not wired to any field: it has no id, so no aria-describedby can point at it. A screen reader does not announce it together with the field. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
     },
     {
-      "start": 286,
-      "end": 299,
+      "start": 301,
+      "end": 311,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/error-summary/",
-      "message": "The link in the error summary goes to \"#fodselsnummer\", which does not exist on the page. It must go to the field that failed, so the user lands where the error can be fixed."
+      "message": "The link in the error summary goes to \"#the-budget\", which does not exist on the page. It must go to the field that failed, so the user lands where the error can be fixed."
     }
   ]
 }

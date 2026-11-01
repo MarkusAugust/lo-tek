@@ -24,6 +24,18 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Changed
+
+- **The examples come from the world LO-TEK belongs to, not from a housing
+  benefit application.** Every recipe, demo, snippet, live template and
+  rulebook now shows a system Trace and Rook delivered to a client: the job
+  console on floor 222, the operations console of Meridian Lattice, a claim
+  at Aster & Vale, and others. Each component page shows one client, and the
+  pages on accessibility stay neutral. The markup, the classes and the
+  attributes are the same as before; only the text, the ids and the values
+  in the examples have changed. The warning `<lt-tabs>` gives for a tab list
+  without a name suggests `aria-label="Parts of the claim"`.
+
 ## 0.39.0 (2026-11-01)
 
 ### Added

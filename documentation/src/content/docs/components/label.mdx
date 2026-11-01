@@ -11,20 +11,20 @@ The right typography on `<label>`, and one consistent way to mark required and o
 
 <Example imports={["tokens.css", "label.css", "input.css"]}
   styles={["label", "input"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" for="name">Full name</label>
-<input class="lt-input" id="name" type="text" />
+<label class="lt-label" for="codename">Codename</label>
+<input class="lt-input" id="codename" type="text" />
 
-<label class="lt-label" data-required="symbol" for="email">Email address</label>
-<input class="lt-input" id="email" type="email" required />
+<label class="lt-label" data-required="symbol" for="fixer">Fixer's address</label>
+<input class="lt-input" id="fixer" type="email" required />
 
-<label class="lt-label" data-required="text" for="phone">Phone number</label>
-<input class="lt-input" id="phone" type="tel" required />
+<label class="lt-label" data-required="text" for="budget">Budget</label>
+<input class="lt-input" id="budget" type="text" inputmode="numeric" required />
 
-<label class="lt-label" data-optional="" for="address">Address</label>
-<input class="lt-input" id="address" type="text" />
+<label class="lt-label" data-optional="" for="entry">Entry point</label>
+<input class="lt-input" id="entry" type="text" />
 
-<label class="lt-label" aria-disabled="true" for="org-number">Organisation number</label>
-<input class="lt-input" id="org-number" type="text" disabled />
+<label class="lt-label" aria-disabled="true" for="reference">Reference</label>
+<input class="lt-input" id="reference" type="text" disabled />
 `}>
 <Fragment slot="ts">
 
@@ -35,8 +35,8 @@ The right typography on `<label>`, and one consistent way to mark required and o
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<label {...lt.label()} htmlFor="name">Full name</label>
-<input {...lt.input({ type: "text" })} id="name" />
+<label {...lt.label()} htmlFor="codename">Codename</label>
+<input {...lt.input({ type: "text" })} id="codename" />
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -46,11 +46,11 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const label = document.querySelector<HTMLLabelElement>("#email-label")
+const label = document.querySelector<HTMLLabelElement>("#fixer-label")
 if (!label) throw new Error("element not found")
 
 lt.setAttributes(label, lt.label({ required: "symbol" }))
-label.htmlFor = "email"
+label.htmlFor = "fixer"
 ```
 
 You set `for` yourself. The function returns only LO-TEK's own attributes.
@@ -58,9 +58,9 @@ You set `for` yourself. The function returns only LO-TEK's own attributes.
 If you are setting up a whole field, [`lt.field`](../field/) does both the marking and the wiring to the control:
 
 ```ts
-const input = document.querySelector<HTMLInputElement>("#email")
+const input = document.querySelector<HTMLInputElement>("#fixer")
 
-const field = lt.field({ id: "email", required: "symbol" })
+const field = lt.field({ id: "fixer", required: "symbol" })
 
 lt.setAttributes(label, field.label)
 lt.setAttributes(input, lt.input({ type: "email" }), field.control)
@@ -87,9 +87,9 @@ Choose one of `data-required` and `data-optional` and stick to it throughout the
 `for` has to match the `id` of the field. Without the wiring the label is not read out when the field gets focus, and a click on the text does not move focus there.
 
 <Example styles={["label", "input", "help-text"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" data-required="symbol" for="email">Email address</label>
-<input class="lt-input" id="email" type="email" required aria-describedby="email-help" />
-<p class="lt-help-text" id="email-help">We use the address to send you a receipt.</p>
+<label class="lt-label" data-required="symbol" for="fixer">Fixer's address</label>
+<input class="lt-input" id="fixer" type="email" required aria-describedby="fixer-help" />
+<p class="lt-help-text" id="fixer-help">The board writes to the fixer, never to the crew.</p>
 `} />
 
 ## Classes you can style

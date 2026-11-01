@@ -1,20 +1,20 @@
 {
   "markup": [
     {
-      "start": 195,
-      "end": 214,
+      "start": 198,
+      "end": 218,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/tag/",
-      "message": "data-variant cannot be \"feil\" on tag. Valid values: filled, and outline without the attribute."
+      "message": "data-variant cannot be \"wrong\" on tag. Valid values: filled, and outline without the attribute."
     }
   ],
   "page": [
     {
-      "start": 195,
-      "end": 214,
+      "start": 198,
+      "end": 218,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/tag/",
-      "message": "data-variant cannot be \"feil\" on tag. Valid values: filled, and outline without the attribute."
+      "message": "data-variant cannot be \"wrong\" on tag. Valid values: filled, and outline without the attribute."
     }
   ]
 }

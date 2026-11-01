@@ -35,16 +35,16 @@ describe("lt-error-summary", () => {
       <lt-error-summary ${attr(ERRORS.host)}>
         <h2 ${attr(ERRORS.title)}>The form has two errors</h2>
         <ul>
-          <li><a href="#email" id="email-link">Enter a valid email address</a></li>
-          <li><a href="#date-of-birth">Enter a date that exists</a></li>
+          <li><a href="#email" id="email-link">Enter a valid address</a></li>
+          <li><a href="#deliver-by">Enter a date that exists</a></li>
         </ul>
       </lt-error-summary>
 
-      <label class="lt-label" for="email">Email address</label>
+      <label class="lt-label" for="email">Fixer's address</label>
       <input class="lt-input" id="email" type="email" aria-invalid="true" data-state="invalid" />
 
-      <label class="lt-label" for="date-of-birth">Date of birth</label>
-      <input class="lt-input" id="date-of-birth" aria-invalid="true" data-state="invalid" />
+      <label class="lt-label" for="deliver-by">Deliver by</label>
+      <input class="lt-input" id="deliver-by" aria-invalid="true" data-state="invalid" />
     `)
     await settle()
   })
@@ -118,12 +118,12 @@ describe("lt-error-summary", () => {
     // ones were kept in memory.
     const list = document.querySelector("lt-error-summary ul") as HTMLElement
     list.innerHTML =
-      '<li><a href="#date-of-birth" id="new-link">Enter a date that exists</a></li>'
+      '<li><a href="#deliver-by" id="new-link">Enter a date that exists</a></li>'
     await settle()
 
     ;(document.getElementById("new-link") as HTMLElement).click()
 
-    expect(document.activeElement?.id).toBe("date-of-birth")
+    expect(document.activeElement?.id).toBe("deliver-by")
   })
 
   it("gives focus to the field itself when a link is followed", () => {
@@ -141,11 +141,11 @@ describe("lt-error-summary", () => {
     const box = document.querySelector("lt-error-summary") as HTMLElement
     const list = box.querySelector("ul") as HTMLElement
 
-    list.innerHTML = `<li><a href="#date-of-birth" id="new-link">Enter a date that exists</a></li>`
+    list.innerHTML = `<li><a href="#deliver-by" id="new-link">Enter a date that exists</a></li>`
     await settle()
     ;(document.getElementById("new-link") as HTMLElement).click()
 
-    expect(document.activeElement?.id).toBe("date-of-birth")
+    expect(document.activeElement?.id).toBe("deliver-by")
   })
 
   it("has no accessibility violations", async () => {
@@ -303,8 +303,8 @@ describe("lt-error-summary when the form fails again", () => {
       <lt-error-summary ${attr(ERRORS.host)} hidden>
         <h2 ${attr(ERRORS.title)}>The form has two errors</h2>
         <ul>
-          <li><a href="#email">Enter a valid email address</a></li>
-          <li><a href="#date-of-birth">Enter a date that exists</a></li>
+          <li><a href="#email">Enter a valid address</a></li>
+          <li><a href="#deliver-by">Enter a date that exists</a></li>
         </ul>
       </lt-error-summary>
       <input id="email" />
@@ -352,7 +352,7 @@ describe("lt-error-summary moves focus where it can actually land", () => {
       <div id="panel" hidden>
         <lt-error-summary ${attr(ERRORS.host)}>
           <h2 ${attr(ERRORS.title)}>The form has one error</h2>
-          <ul><li><a href="#email">Enter a valid email address</a></li></ul>
+          <ul><li><a href="#email">Enter a valid address</a></li></ul>
         </lt-error-summary>
       </div>
       <input id="email" />
@@ -365,7 +365,7 @@ describe("lt-error-summary moves focus where it can actually land", () => {
     const panel = document.getElementById("panel") as HTMLElement
     panel.hidden = false
     ;(box.querySelector("ul") as HTMLElement).innerHTML =
-      `<li><a href="#email">Enter a valid email address</a></li>`
+      `<li><a href="#email">Enter a valid address</a></li>`
     await settle()
 
     expect(document.activeElement).toBe(box)
@@ -379,7 +379,7 @@ describe("lt-error-summary moves focus where it can actually land", () => {
       <div id="panel" hidden>
         <lt-error-summary ${attr(ERRORS.host)}>
           <h2 ${attr(ERRORS.title)}>The form has one error</h2>
-          <ul><li><a href="#email">Enter a valid email address</a></li></ul>
+          <ul><li><a href="#email">Enter a valid address</a></li></ul>
         </lt-error-summary>
       </div>
       <input id="email" />
@@ -446,7 +446,7 @@ describe("lt-error-summary moves focus where it can actually land", () => {
     mount(`
       <lt-error-summary ${attr(ERRORS.host)} data-autofocus="false">
         <h2 ${attr(ERRORS.title)}>The form has one error</h2>
-        <ul><li><a href="#name-label" id="name-link">Enter your name</a></li></ul>
+        <ul><li><a href="#name-label" id="name-link">Enter a codename</a></li></ul>
       </lt-error-summary>
       <label id="name-label">Name <input id="name" /></label>
     `)
@@ -470,11 +470,11 @@ describe("lt-error-summary wires from bare structure", () => {
       <lt-error-summary id="bare-summary">
         <h2>The form has one error</h2>
         <ul>
-          <li><a href="#bare-email">Enter a valid email address</a></li>
+          <li><a href="#bare-email">Enter a valid address</a></li>
         </ul>
       </lt-error-summary>
 
-      <label class="lt-label" for="bare-email">Email address</label>
+      <label class="lt-label" for="bare-email">Fixer's address</label>
       <input class="lt-input" id="bare-email" type="email" />
     `)
     await settle()
@@ -502,7 +502,7 @@ describe("lt-error-summary wires from bare structure", () => {
     mount(`
       <lt-error-summary id="bare-summary" role="status">
         <h2>The form has one error</h2>
-        <ul><li><a href="#bare-email">Enter a valid email address</a></li></ul>
+        <ul><li><a href="#bare-email">Enter a valid address</a></li></ul>
       </lt-error-summary>
       <input class="lt-input" id="bare-email" type="email" />
     `)
@@ -604,9 +604,9 @@ describe("lt-error-summary and a percent-encoded link", () => {
       mount(
         `<lt-error-summary ${attr(ERRORS.host)} data-autofocus="false">
           <h2 ${attr(ERRORS.title)}>The form has one error</h2>
-          <ul><li><a href="#f%C3%B8dselsdato">Enter a date that exists</a></li></ul>
+          <ul><li><a href="#d%C3%A9lai">Enter a date that exists</a></li></ul>
         </lt-error-summary>
-        <label for="fødselsdato">Date of birth</label><input id="fødselsdato" />`,
+        <label for="délai">Deliver by</label><input id="délai" />`,
       )
       await settle()
       await waitForPaint()
@@ -615,7 +615,7 @@ describe("lt-error-summary and a percent-encoded link", () => {
       expect(warnings.filter((a) => a.includes("the link points"))).toEqual([])
 
       ;(document.querySelector("lt-error-summary a") as HTMLElement).click()
-      expect(document.activeElement?.id).toBe("fødselsdato")
+      expect(document.activeElement?.id).toBe("délai")
     } finally {
       console.warn = original
     }
@@ -636,8 +636,8 @@ describe("lt-error-summary under another tag name", () => {
       <other-summary ${attr(ERRORS.host)} hidden>
         <h2 ${attr(ERRORS.title)}>The form has two errors</h2>
         <ul>
-          <li><a href="#email">Enter a valid email address</a></li>
-          <li><a href="#date-of-birth">Enter a date that exists</a></li>
+          <li><a href="#email">Enter a valid address</a></li>
+          <li><a href="#deliver-by">Enter a date that exists</a></li>
         </ul>
       </other-summary>
       <input id="email" />
@@ -672,12 +672,12 @@ describe("lt-error-summary when a framework gives focus back", () => {
   const box = () => `
     <lt-error-summary ${attr(R.host)} hidden>
       <h2 ${attr(R.title)}>The form has one error</h2>
-      <ul><li><a href="#email-r">Enter the email address</a></li></ul>
+      <ul><li><a href="#email-r">Enter the fixer's address</a></li></ul>
     </lt-error-summary>`
 
   it("takes focus back when the box is shown", async () => {
     mount(
-      `<form>${box()}<input id="email-r"><button type="submit" id="submit-r">Send</button></form>`,
+      `<form>${box()}<input id="email-r"><button type="submit" id="submit-r">Order the job</button></form>`,
     )
     await settle()
     const submit = document.getElementById("submit-r") as HTMLButtonElement
@@ -693,7 +693,7 @@ describe("lt-error-summary when a framework gives focus back", () => {
 
   it("takes focus back when the box is inserted", async () => {
     mount(
-      `<form id="form-r"><input id="email-r"><button type="submit" id="submit-r">Send</button></form>`,
+      `<form id="form-r"><input id="email-r"><button type="submit" id="submit-r">Order the job</button></form>`,
     )
     await settle()
     const submit = document.getElementById("submit-r") as HTMLButtonElement
@@ -713,7 +713,7 @@ describe("lt-error-summary when a framework gives focus back", () => {
     const host = document.createElement("div")
     document.body.append(host)
     const root = host.attachShadow({ mode: "open" })
-    root.innerHTML = `${box()}<input id="email-r"><button type="submit" id="submit-r">Send</button>`
+    root.innerHTML = `${box()}<input id="email-r"><button type="submit" id="submit-r">Order the job</button>`
     await settle()
     const submit = root.getElementById("submit-r") as HTMLButtonElement
     const email = root.getElementById("email-r") as HTMLInputElement
@@ -734,7 +734,7 @@ describe("lt-error-summary when a framework gives focus back", () => {
 
   it("leaves focus where a script moved it in the same turn as the box was shown", async () => {
     mount(
-      `<form>${box()}<input id="email-r"><button type="submit" id="submit-r">Send</button></form>`,
+      `<form>${box()}<input id="email-r"><button type="submit" id="submit-r">Order the job</button></form>`,
     )
     await settle()
     const submit = document.getElementById("submit-r") as HTMLButtonElement
@@ -750,7 +750,7 @@ describe("lt-error-summary when a framework gives focus back", () => {
 
   it("leaves focus where it is when a script has moved it elsewhere", async () => {
     mount(
-      `<form>${box()}<input id="email-r"><button type="submit" id="submit-r">Send</button></form>`,
+      `<form>${box()}<input id="email-r"><button type="submit" id="submit-r">Order the job</button></form>`,
     )
     await settle()
     const submit = document.getElementById("submit-r") as HTMLButtonElement

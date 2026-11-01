@@ -15,19 +15,19 @@ import "./table.css"
 describe("lt-table", () => {
   beforeEach(() => {
     mount(`
-      <div class="lt-table-scroll" tabindex="0" role="region" aria-label="Invoices">
+      <div class="lt-table-scroll" tabindex="0" role="region" aria-label="Appraisal">
         <table class="lt-table" data-variant="striped" id="table">
-          <caption>Invoices in 2026</caption>
+          <caption>Appraisal LR-2079-0112</caption>
           <thead>
             <tr>
-              <th scope="col">Invoice number</th>
-              <th scope="col">Due</th>
-              <th scope="col" data-align="end">Amount</th>
+              <th scope="col">Item</th>
+              <th scope="col">Condition</th>
+              <th scope="col" data-align="end">Offer</th>
             </tr>
           </thead>
           <tbody>
-            <tr><th scope="row">2026-0481</th><td>4 March</td><td data-align="end">£1,240</td></tr>
-            <tr id="second"><th scope="row">2026-0482</th><td>4 April</td><td data-align="end">£980</td></tr>
+            <tr><th scope="row">Smartgun link, left eye</th><td>Removed intact</td><td data-align="end">EB 1,800</td></tr>
+            <tr id="second"><th scope="row">Subdermal plating, torso</th><td>Dented</td><td data-align="end">EB 950</td></tr>
           </tbody>
         </table>
       </div>
@@ -83,7 +83,7 @@ describe("sortable columns", () => {
           </tr>
         </thead>
         <tbody>
-          <tr><td id="${id}-cell">4 March</td><td>£1,240</td><td data-align="end">3</td></tr>
+          <tr><td id="${id}-cell">4 March</td><td>EB 1,800</td><td data-align="end">3</td></tr>
         </tbody>
       </table>
     `

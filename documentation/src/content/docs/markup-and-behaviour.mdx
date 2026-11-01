@@ -22,11 +22,11 @@ Yes, and that is worth saying plainly, because the split above is easy to read a
 If you have a React app with no server at all, React creates all the markup in the browser. Then you call the builder functions where you render, exactly as you would on a server:
 
 ```tsx
-const field = lt.field({ id: "email", help: true, invalid })
+const field = lt.field({ id: "fixer", help: true, invalid })
 
-<label {...field.label}>Email address</label>
+<label {...field.label}>Fixer's address</label>
 <input {...lt.input({ type: "email" })} {...field.control} />
-<p {...lt.helpText()} {...field.help}>We send the receipt here.</p>
+<p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>
 ```
 
 The builder functions are pure functions as long as you give them the ids they ask for. Then they do not care where they run.
@@ -68,8 +68,8 @@ The builder functions are TypeScript. If the code that creates the HTML can call
 Arrow keys, focus and position are not something a function can give you. They come from the component, whoever wrote the wiring.
 
 ```ts
-const tabs = lt.tabs({ id: "case", keys: ["application", "attachments"], label: "Parts of the case" }) // the markup
-defineLtTabs()                                                                                         // the arrow keys
+const tabs = lt.tabs({ id: "file", keys: ["claim", "attachments"], label: "Parts of the claim" }) // the markup
+defineLtTabs()                                                                                      // the arrow keys
 ```
 
 | Component | The builder function gives you | The component gives you |
@@ -99,7 +99,7 @@ This is not theoretical. We tested it, with real Datastar and an earlier version
 | `class` on the label | `lt-label` | gone |
 | Error message hidden | yes | no, it is shown |
 
-The last row is the worst. A hidden error message became visible, so the user got "The email address is missing @" on a field that was filled in correctly. And nothing came back, because nothing triggered a new round in the component.
+The last row is the worst. A hidden error message became visible, so the user got "The fixer's address is missing @" on a field that was filled in correctly. And nothing came back, because nothing triggered a new round in the component.
 
 The reason is in Datastar's own source code. This is how attributes are synchronised during a morph, where `r` is the element in the page and `s` is the one the server sent:
 
@@ -237,13 +237,13 @@ HTML as before, and the morph sets the page back.
 #### The simplest solution: send only what changed
 
 Datastar lets you point out what to update, with `selector` and
-`mode: inner`. If the scoreboard has changed, send the scoreboard:
+`mode: inner`. If the list of open jobs has changed, send the list:
 
 ```
 event: datastar-patch-elements
-data: selector #scoreboard
+data: selector #open-jobs
 data: mode inner
-data: elements <tr><td>Maya</td><td>34</td></tr>
+data: elements <tr><td>222-0481</td><td>Open</td></tr>
 ```
 
 Then the tabs and the form are not touched at all, and nothing can be
@@ -261,9 +261,9 @@ The component writes the rest. This is everything the server sends:
 
 ```html
 <lt-field>
-  <label class="lt-label" for="email" data-required="symbol">Email</label>
-  <input class="lt-input" id="email" type="email">
-  <p class="lt-help-text">We never send spam.</p>
+  <label class="lt-label" for="fixer" data-required="symbol">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" name="fixer">
+  <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
   <p class="lt-error-text">Enter a valid address.</p>
 </lt-field>
 ```
@@ -274,8 +274,8 @@ The component does the rest, and this is what the page has afterwards:
 
 ```
 label.class         lt-label
-label.for           email
-input.id            email
+label.for           fixer
+input.id            fixer
 aria-describedby    lt-field-help-1k0quej lt-field-error-dibhi29
 aria-invalid        true
 data-state          invalid
@@ -350,8 +350,8 @@ and there the server writes them:
 | `<lt-suggestion>` | the field, with `for` on the label (or the label around the field) |
 | `<lt-popover>` | the panel |
 
-The builder functions already do this: `lt.tabs({ id: "case", keys: ["attachments"], label })`
-writes `case-attachments` on the panel and `case-attachments-heading` on the heading, and
+The builder functions already do this: `lt.tabs({ id: "file", keys: ["claim", "attachments"], label })`
+writes `file-attachments` on the panel and `file-attachments-heading` on the heading, and
 the Kotlin binding does the same. If you write the template by hand,
 you write the ids yourself, and they must be the same on every render.
 

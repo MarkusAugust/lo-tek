@@ -3,14 +3,14 @@
   "page": [
     {
       "start": 12,
-      "end": 23,
+      "end": 26,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "for=\"finnes-ikke\" points at the id \"finnes-ikke\", which does not exist on the page. The screen reader loses the label. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "for=\"does-not-exist\" points at the id \"does-not-exist\", which does not exist on the page. The screen reader loses the label. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
     },
     {
-      "start": 48,
-      "end": 53,
+      "start": 44,
+      "end": 49,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/input/",
       "message": "<input> has no label: no <label for> pointing at it, no <label> around it, and no aria-label or aria-labelledby. A screen reader announces the field without a name. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it.",
@@ -18,27 +18,27 @@
         "title": "Add a label",
         "edits": [
           {
-            "start": 47,
-            "end": 47,
-            "text": "<label for=\"fnr\">Label</label>\n"
+            "start": 43,
+            "end": 43,
+            "text": "<label for=\"budget\">Label</label>\n"
           }
         ],
         "preferred": true
       }
     },
     {
-      "start": 104,
-      "end": 111,
+      "start": 109,
+      "end": 116,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "aria-describedby=\"hjelp mangler\" points at the id \"mangler\", which does not exist on the page. The screen reader loses the description. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "aria-describedby=\"budget-help nowhere\" points at the id \"nowhere\", which does not exist on the page. The screen reader loses the description. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
     },
     {
-      "start": 175,
-      "end": 180,
+      "start": 194,
+      "end": 205,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "id=\"hjelp\" appears more than once on the page. for and aria-describedby then point at the first element, and the wiring to this one is broken. Every id must be unique."
+      "message": "id=\"budget-help\" appears more than once on the page. for and aria-describedby then point at the first element, and the wiring to this one is broken. Every id must be unique."
     }
   ]
 }

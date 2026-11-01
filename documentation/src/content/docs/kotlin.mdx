@@ -64,12 +64,12 @@ The result is an `Attributes`, which is an ordinary `Map<String, String>`. It ca
 The builder functions that give several sets give a data class with one field per set. `Lt.field` wires the label, control, help text and error text:
 
 ```kotlin
-val field = Lt.field(id = "email", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
+val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
 
 """
-<label ${field.label.toHtml()}>Email address</label>
+<label ${field.label.toHtml()}>Fixer's address</label>
 <input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>
-<p ${(Lt.helpText() + field.help).toHtml()}>We send the receipt here.</p>
+<p ${(Lt.helpText() + field.help).toHtml()}>The board writes to the fixer, never to the crew.</p>
 <p ${(Lt.errorText() + field.error).toHtml()}>Enter a valid address.</p>
 """
 ```
@@ -81,7 +81,7 @@ The parts a template writes itself, such as the heading in a card or an option i
 ```kotlin
 """
 <div ${Lt.card().toHtml()}>
-  <h3 ${Lt.card.title.toHtml()}>Application 2024/1187</h3>
+  <h3 ${Lt.card.title.toHtml()}>Job 222-0481</h3>
 </div>
 """
 ```
@@ -100,11 +100,11 @@ import no.lotek.*
 import no.lotek.InputType
 import no.lotek.html.lt
 
-fun FlowContent.emailField(invalid: Boolean) {
-    val field = Lt.field(id = "email", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
-    label { lt(field.label); +"Email address" }
-    input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "email" }
-    p { lt(Lt.helpText(), field.help); +"We send the receipt here." }
+fun FlowContent.fixerField(invalid: Boolean) {
+    val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
+    label { lt(field.label); +"Fixer's address" }
+    input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "fixer" }
+    p { lt(Lt.helpText(), field.help); +"The board writes to the fixer, never to the crew." }
     p { lt(Lt.errorText(), field.error); +"Enter a valid address." }
 }
 ```
@@ -116,13 +116,13 @@ Several sets are applied in order, and a later one wins, like `{...a} {...b}` in
 ```kotlin
 routing {
     staticResources("/webjars", "META-INF/resources/webjars")
-    get("/application") {
+    get("/jobs") {
         call.respondHtml {
             head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
             body {
-                form(action = "/application", method = FormMethod.post) {
-                    emailField(invalid = false)
-                    button { lt(Lt.button()); +"Send" }
+                form(action = "/jobs", method = FormMethod.post) {
+                    fixerField(invalid = false)
+                    button { lt(Lt.button()); +"Order the job" }
                 }
                 script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
             }
@@ -137,9 +137,9 @@ A template cannot call `Lt` for every value, and then the check is what keeps wa
 
 ```kotlin
 @Test
-fun `the application is correct markup`() {
+fun `the order form is correct markup`() {
     val out = StringOutput()
-    templateEngine.render("application.kte", mapOf("invalid" to true), out)
+    templateEngine.render("order.kte", mapOf("invalid" to true), out)
     assertLotek(out.toString())
 }
 ```
@@ -159,7 +159,7 @@ fun `the form is wired correctly`() {
 
 ```text
 LO-TEK found 2 findings:
-12:30: error: for="email" points to the id "email", which does not exist on the page. … [id-not-found]
+12:30: error: for="fixer" points to the id "fixer", which does not exist on the page. … [id-not-found]
 18:9: warning: The class "lt-buton" does not exist in LO-TEK. Did you mean lt-button? [unknown-class]
 ```
 
@@ -249,7 +249,7 @@ lotek {
 > Task :lotekCheck FAILED
 The markup does not match LO-TEK:
 
-src/main/jte/application.jte:14:18: warning: The class "lt-buton" does not exist in LO-TEK. Did you mean lt-button?
+src/main/jte/order.jte:14:18: warning: The class "lt-buton" does not exist in LO-TEK. Did you mean lt-button?
 ```
 
 `rendered = true` checks the files as whole pages, with the wiring, like `--rendered`. If you have taken over a component with [`lotek takeover`](../command-line/#takeover), you put the fragment in `manifests`, so the markup for the copy is checked too, and the copy is included in `build/lotek/manifest.json`:

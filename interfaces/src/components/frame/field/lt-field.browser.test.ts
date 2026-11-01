@@ -176,17 +176,17 @@ describe("lt-field", () => {
        * component took the server's word for its own echo and removed it.
        */
       const form = (invalid: string, error: string) => `
-        <form id="contact"><lt-field>
-          <label class="lt-label" for="name">Full name</label>
-          <input class="lt-input" id="name" type="text"${invalid} />
-          <p class="lt-error-text"${error}>Enter your name.</p>
+        <form id="order"><lt-field>
+          <label class="lt-label" for="codename">Codename</label>
+          <input class="lt-input" id="codename" type="text"${invalid} />
+          <p class="lt-error-text"${error}>Enter a codename.</p>
         </lt-field></form>`
       document.body.innerHTML = form("", "")
       await waitForPaint()
-      const input = document.getElementById("name") as HTMLInputElement
+      const input = document.getElementById("codename") as HTMLInputElement
       expect(input.getAttribute("aria-invalid")).toBe("true")
 
-      replace(way, "contact", form(' aria-invalid="true"', " hidden"))
+      replace(way, "order", form(' aria-invalid="true"', " hidden"))
       await waitForPaint()
 
       expect(input.getAttribute("aria-invalid")).toBe("true")
@@ -269,7 +269,7 @@ describe("lt-field", () => {
     document.body.innerHTML = `
       <lt-field>
         <label>Email <input class="lt-input" type="email" /></label>
-        <p class="lt-help-text">We send the receipt here.</p>
+        <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
       </lt-field>
     `
     await waitForPaint()
@@ -315,14 +315,14 @@ describe("lt-field accessibility", () => {
   it("has no violations for a field with help text and error text", async () => {
     mount(`
       <lt-field>
-        <label for="email" data-required="symbol">Email address</label>
-        <input id="email" class="lt-input" type="email" value="sam@" required />
-        <p class="lt-help-text">We send a receipt to this address.</p>
-        <p class="lt-error-text">Enter an email address with an @ sign.</p>
+        <label for="email" data-required="symbol">Fixer's address</label>
+        <input id="email" class="lt-input" type="email" value="fixer@" required />
+        <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
+        <p class="lt-error-text">Enter a valid address.</p>
       </lt-field>
 
       <lt-field optional>
-        <label for="message">Message to the case officer</label>
+        <label for="message">Note for the fixer</label>
         <textarea id="message" class="lt-textarea" rows="3"></textarea>
         <p class="lt-help-text">You can write up to 500 characters.</p>
       </lt-field>
@@ -335,7 +335,7 @@ describe("lt-field accessibility", () => {
   it("has no violations for a field without help text", async () => {
     mount(`
       <lt-field>
-        <label>Full name <input class="lt-input" type="text" /></label>
+        <label>Codename <input class="lt-input" type="text" /></label>
       </lt-field>
     `)
 
@@ -348,7 +348,7 @@ describe("lt-field label", () => {
   it("gives the label lt-label, so the required marker actually shows", async () => {
     mount(`
       <lt-field>
-        <label for="email" data-required="text">Email address</label>
+        <label for="email" data-required="text">Fixer's address</label>
         <input id="email" class="lt-input" type="email" />
       </lt-field>
     `)
@@ -404,9 +404,9 @@ describe("lt-field does not fight the server", () => {
 
     mount(`
       <lt-field>
-        <label ${attr(field.label)}>Email address</label>
+        <label ${attr(field.label)}>Fixer's address</label>
         <input class="lt-input" type="email" ${attr(field.control)} />
-        <p class="lt-help-text" ${attr(field.help)}>We send the receipt here.</p>
+        <p class="lt-help-text" ${attr(field.help)}>The board writes to the fixer, never to the crew.</p>
         <p class="lt-error-text" ${attr(field.error)}>Enter a valid address.</p>
       </lt-field>
     `)
@@ -430,7 +430,7 @@ describe("lt-field does not fight the server", () => {
     // attribute the server does not write gives a hydration error in React.
     mount(`
       <lt-field>
-        <label for="email">Email address</label>
+        <label for="email">Fixer's address</label>
         <input id="email" class="lt-input" type="email" />
         <p class="lt-error-text" hidden>Enter a valid address.</p>
       </lt-field>

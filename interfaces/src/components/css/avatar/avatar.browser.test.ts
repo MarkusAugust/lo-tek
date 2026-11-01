@@ -17,11 +17,11 @@ import "./avatar.css"
 describe("lt-avatar", () => {
   beforeEach(() => {
     mount(`
-      <span class="lt-avatar" data-size="small" id="small" aria-hidden="true">ON</span>
-      <span class="lt-avatar" id="regular" aria-hidden="true">ON</span>
-      <span class="lt-avatar" data-size="large" id="large" aria-hidden="true">ON</span>
-      <span class="lt-avatar" data-variant="square" id="square" aria-hidden="true">KB</span>
-      <p>Olivia Nolan</p>
+      <span class="lt-avatar" data-size="small" id="small" aria-hidden="true">DP</span>
+      <span class="lt-avatar" id="regular" aria-hidden="true">DP</span>
+      <span class="lt-avatar" data-size="large" id="large" aria-hidden="true">DP</span>
+      <span class="lt-avatar" data-variant="square" id="square" aria-hidden="true">NS</span>
+      <p>Dead Pixel</p>
     `)
   })
 
@@ -75,7 +75,7 @@ describe("lt-avatar as a button", () => {
   it("shows the focus ring and not the ring around the image", () => {
     mount(`
       <style>${avatarCss.replaceAll(":focus-visible", "[data-focus]")}</style>
-      <button class="lt-avatar" id="profile" aria-label="Profile">ON</button>
+      <button class="lt-avatar" id="profile" aria-label="Profile">DP</button>
     `)
     const button = document.getElementById("profile") as HTMLButtonElement
     expect(getComputedStyle(button).outlineWidth).toBe("1px")

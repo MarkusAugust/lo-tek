@@ -64,7 +64,7 @@ const RECIPE = (() => {
 const BOX = RECIPE.match(/<lt-error-summary[\s\S]*?<\/lt-error-summary>/)?.[0]
 if (!BOX) throw new Error("no <lt-error-summary> in the recipe")
 
-const LINKS = `<li><a href="#email">Enter an email address with an @</a></li>`
+const LINKS = `<li><a href="#fixer">Enter the fixer's address with an @</a></li>`
 
 /** `text` with `from` replaced, which must be there: a recipe that changed would otherwise test nothing. */
 function swap(text: string, from: string | RegExp, to: string): string {
@@ -115,8 +115,8 @@ const VERSIONS: Record<
     named: true,
   },
   heading: {
-    html: filled("Check the email address"),
-    heading: "Check the email address",
+    html: filled("Check the fixer's address"),
+    heading: "Check the fixer's address",
     named: true,
   },
   // A server error by design: the box is named after an element that never
@@ -156,20 +156,20 @@ const VERSIONS: Record<
     html: swap(
       filled("There is 1 problem"),
       'aria-labelledby="errors-title"',
-      'aria-label="Problems in the application"',
+      'aria-label="Problems in the order"',
     ),
     heading: "There is 1 problem",
     named: true,
   },
 }
 
-type Step = { send: string; way: Replacement } | { focus: "email" }
+type Step = { send: string; way: Replacement } | { focus: "fixer" }
 
 const STEPS: Step[] = [
   ...Object.keys(VERSIONS).flatMap((send) =>
     REPLACEMENTS.map((way) => ({ send, way })),
   ),
-  { focus: "email" },
+  { focus: "fixer" },
 ]
 
 function apply(step: Step): void {
@@ -178,7 +178,7 @@ function apply(step: Step): void {
 }
 
 const label = (step: Step) =>
-  "focus" in step ? "focus the email field" : `${step.send} by ${step.way}`
+  "focus" in step ? "focus the fixer field" : `${step.send} by ${step.way}`
 
 let core: AccessibilityCore
 

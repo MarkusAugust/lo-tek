@@ -11,10 +11,10 @@ A round surface with a picture or initials. The component says nothing about who
 
 <Example imports={["tokens.css", "avatar.css"]}
   styles={["avatar"]} code={`
-<span class="lt-avatar" data-size="small" aria-hidden="true">JS</span>
-<span class="lt-avatar" aria-hidden="true">JS</span>
-<span class="lt-avatar" data-size="large" aria-hidden="true">JS</span>
-<span class="lt-avatar" data-variant="square" aria-hidden="true">KB</span>
+<span class="lt-avatar" data-size="small" aria-hidden="true">DP</span>
+<span class="lt-avatar" aria-hidden="true">DP</span>
+<span class="lt-avatar" data-size="large" aria-hidden="true">DP</span>
+<span class="lt-avatar" data-variant="square" aria-hidden="true">NS</span>
 `}>
 <Fragment slot="ts">
 
@@ -25,7 +25,7 @@ A round surface with a picture or initials. The component says nothing about who
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<span {...lt.avatar({ size: "small" })} aria-hidden="true">JS</span>
+<span {...lt.avatar({ size: "small" })} aria-hidden="true">DP</span>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -35,7 +35,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const picture = document.querySelector<HTMLElement>("#profile")
+const picture = document.querySelector<HTMLElement>("#owner")
 
 lt.setAttributes(picture, lt.avatar({ size: "large" }))
 ```
@@ -44,7 +44,7 @@ The list that lets the pictures overlap has no attributes, only a class, and it 
 
 ```tsx
 <ul className={lt.avatar.stack}>
-  <li><span {...lt.avatar({ size: "small" })} aria-hidden="true">JS</span></li>
+  <li><span {...lt.avatar({ size: "small" })} aria-hidden="true">DP</span></li>
 </ul>
 ```
 
@@ -61,11 +61,11 @@ The list that lets the pictures overlap has no attributes, only a class, and it 
 ## With a name next to it
 
 <Example styles={["avatar"]} code={`
-<span class="lt-avatar" data-size="small" aria-hidden="true">JS</span>
-<span>Jane Smith</span>
+<span class="lt-avatar" data-size="small" aria-hidden="true">DP</span>
+<span>Dead Pixel</span>
 `} />
 
-When the name is already there, the picture is decoration. `aria-hidden="true"` stops the initials being read out as "J S" before the name.
+When the name is already there, the picture is decoration. `aria-hidden="true"` stops the initials being read out as "S M" before the name.
 
 The picture and the name are two elements side by side. How they are laid out is the app's layout, not the component's: a flex row with `gap`, a table cell, or whatever else the page uses.
 
@@ -73,7 +73,7 @@ When the picture stands alone, it has to say who it is:
 
 ```html
 <span class="lt-avatar">
-  <img src="/images/jane.jpg" alt="Jane Smith" />
+  <img src="/images/dead-pixel.jpg" alt="Dead Pixel" />
 </span>
 ```
 
@@ -81,11 +81,11 @@ When the picture stands alone, it has to say who it is:
 
 <Example styles={["avatar"]} layout="stack" maxWidth="30rem" code={`
 <ul class="lt-avatar-stack">
-  <li><span class="lt-avatar" data-size="small" aria-hidden="true">JS</span></li>
-  <li><span class="lt-avatar" data-size="small" aria-hidden="true">KB</span></li>
-  <li><span class="lt-avatar" data-size="small" aria-hidden="true">MH</span></li>
+  <li><span class="lt-avatar" data-size="small" aria-hidden="true">DP</span></li>
+  <li><span class="lt-avatar" data-size="small" aria-hidden="true">NV</span></li>
+  <li><span class="lt-avatar" data-size="small" aria-hidden="true">CK</span></li>
 </ul>
-<p>Jane Smith, Kate Brown and Mark Hill are following the case</p>
+<p>Dead Pixel, Nine Volt and Cold Kettle have decks in the queue</p>
 `} />
 
 The order is reversed in CSS: the first element in the markup sits furthest to the right in the stack. The names have to be somewhere, as in the text below: initials are not identification.

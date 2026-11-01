@@ -21,7 +21,7 @@ export type BreadcrumbsAttributes = {
  * <nav aria-label="You are here">
  *   <ol {...breadcrumbs()}>
  *     <li><a href="/">Home</a></li>
- *     <li><a href="/cases" aria-current="page">My cases</a></li>
+ *     <li><a href="/claims" aria-current="page">My claims</a></li>
  *   </ol>
  * </nav>
  * ```

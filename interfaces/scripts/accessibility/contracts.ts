@@ -13,17 +13,17 @@ const dialog: Contract = {
     {
       name: "focus-opener",
       do: [{ focus: "#open-confirm" }],
-      focus: { role: "button", name: "Delete the application" },
+      focus: { role: "button", name: "Cancel the job" },
     },
     {
       // HTML: showModal() runs the dialog focusing steps, so the first
       // focusable element gets focus, and the dialog is modal.
       name: "open",
       do: [{ press: "Enter" }],
-      focus: { role: "button", name: "Cancel" },
+      focus: { role: "button", name: "Keep the job" },
       within: {
         role: "dialog",
-        name: "Delete the application?",
+        name: "Cancel job 222-0481?",
         states: ["modal"],
       },
     },
@@ -32,7 +32,7 @@ const dialog: Contract = {
       // when it was opened.
       name: "close",
       do: [{ press: "Escape" }],
-      focus: { role: "button", name: "Delete the application" },
+      focus: { role: "button", name: "Cancel the job" },
     },
   ],
   mutations: [
@@ -60,10 +60,10 @@ const field: Contract = {
       // AccName: the label's `::after` content is part of the name, so the
       // required marker " *" is read with it.
       name: "focus-field",
-      do: [{ focus: "#name" }],
+      do: [{ focus: "#codename" }],
       focus: {
         role: "textbox",
-        name: "Full name *",
+        name: "Codename *",
         states: ["required"],
         notStates: ["invalid"],
       },
@@ -75,8 +75,8 @@ const field: Contract = {
       do: [{ press: "Enter" }],
       focus: {
         role: "textbox",
-        name: "Full name *",
-        description: "Enter your name.",
+        name: "Codename *",
+        description: "Enter a codename.",
         states: ["required", "invalid"],
       },
       // The focus stays in the field, so only these events tell the screen
@@ -89,7 +89,7 @@ const field: Contract = {
       // Not `for`: the component writes it when the field has an id and the
       // label does not wrap it. The text is the name, so that is the mutation.
       name: "the label without its text",
-      replace: [">Full name</label>", "></label>"],
+      replace: [">Codename</label>", "></label>"],
       failsAt: "focus-field",
       lotekCheck: "without-name",
     },
@@ -106,15 +106,15 @@ const suggestion: Contract = {
   steps: [
     {
       name: "focus-field",
-      do: [{ focus: "#airport" }],
-      focus: { role: "combobox", name: "Airport" },
+      do: [{ focus: "#breaker" }],
+      focus: { role: "combobox", name: "Breaker" },
     },
     {
       // The count is announced when the list changes, and only when the
-      // number does: "B" leaves one match, and "e" and "r" leave it at one.
+      // number does: "C" leaves one match, and "r" and "o" leave it at one.
       name: "type",
-      do: [{ type: "Ber" }],
-      focus: { role: "combobox", name: "Airport", states: ["expanded"] },
+      do: [{ type: "Cro" }],
+      focus: { role: "combobox", name: "Breaker", states: ["expanded"] },
       announce: { politeness: "polite", text: DEFAULT_TEXTS.suggestionOne },
     },
     {
@@ -122,14 +122,14 @@ const suggestion: Contract = {
       // while DOM focus stays in the field.
       name: "arrow-to-option",
       do: [{ press: "ArrowDown" }],
-      focus: { role: "option", name: "Bergen", states: ["selected"] },
-      within: { role: "listbox", name: "Airport" },
+      focus: { role: "option", name: "Crowbar", states: ["selected"] },
+      within: { role: "listbox", name: "Breaker" },
       quiet: true,
     },
     {
       name: "choose",
       do: [{ press: "Enter" }],
-      focus: { role: "combobox", name: "Airport", notStates: ["expanded"] },
+      focus: { role: "combobox", name: "Breaker", notStates: ["expanded"] },
     },
   ],
   mutations: [
@@ -140,7 +140,7 @@ const suggestion: Contract = {
     },
     {
       name: "the label without its text",
-      replace: [">Airport</label>", "></label>"],
+      replace: [">Breaker</label>", "></label>"],
       failsAt: "focus-field",
       lotekCheck: "without-name",
     },
@@ -153,15 +153,15 @@ const tabs: Contract = {
     {
       // The component makes the links tabs and selects the first.
       name: "focus-first-tab",
-      do: [{ focus: 'a[href="#application"]' }],
-      focus: { role: "tab", name: "Application", states: ["selected"] },
-      within: { role: "tablist", name: "Parts of the case" },
+      do: [{ focus: 'a[href="#claim"]' }],
+      focus: { role: "tab", name: "Claim", states: ["selected"] },
+      within: { role: "tablist", name: "Parts of the claim" },
     },
     {
       name: "arrow-to-second-tab",
       do: [{ press: "ArrowRight" }],
       focus: { role: "tab", name: "Attachments", states: ["selected"] },
-      within: { role: "tablist", name: "Parts of the case" },
+      within: { role: "tablist", name: "Parts of the claim" },
     },
     {
       // Tab goes into the selected panel, which has its name from the heading
@@ -174,7 +174,7 @@ const tabs: Contract = {
   mutations: [
     {
       name: "the tab list without a name",
-      replace: [' aria-label="Parts of the case"', ""],
+      replace: [' aria-label="Parts of the claim"', ""],
       failsAt: "focus-first-tab",
       lotekCheck: "without-name",
     },
@@ -314,15 +314,15 @@ const tabNames: Contract[] = TAB_NAMES.map((v) => {
         ],
         ["<h2>Attachments</h2>", v.heading],
         [
-          '<lt-tabs id="case-tabs">',
-          `${v.outside ?? ""}<lt-tabs id="case-tabs">`,
+          '<lt-tabs id="claim-tabs">',
+          `${v.outside ?? ""}<lt-tabs id="claim-tabs">`,
         ],
       ],
     },
     steps: [
       {
         name: "select-the-second-tab",
-        do: [{ focus: 'a[href="#application"]' }, { press: "ArrowRight" }],
+        do: [{ focus: 'a[href="#claim"]' }, { press: "ArrowRight" }],
         focus: { role: "tab", name: v.name, states: ["selected"] },
       },
       {
@@ -340,8 +340,8 @@ const errorSummary: Contract = {
   steps: [
     {
       name: "focus-field",
-      do: [{ focus: "#email" }],
-      focus: { role: "textbox", name: "Email address" },
+      do: [{ focus: "#fixer" }],
+      focus: { role: "textbox", name: "Fixer's address" },
     },
     {
       // The component moves focus to the box as soon as hidden is removed.
@@ -352,13 +352,13 @@ const errorSummary: Contract = {
     {
       name: "tab-to-the-message",
       do: [{ press: "Tab" }],
-      focus: { role: "link", name: "Enter an email address with an @" },
+      focus: { role: "link", name: "Enter the fixer's address with an @" },
     },
     {
       // The link moves focus to the field it names.
       name: "follow-the-message",
       do: [{ press: "Enter" }],
-      focus: { role: "textbox", name: "Email address" },
+      focus: { role: "textbox", name: "Fixer's address" },
     },
   ],
   mutations: [
@@ -399,7 +399,7 @@ const popover: Contract = {
     {
       name: "into-the-panel",
       do: [{ press: "Tab" }],
-      focus: { role: "button", name: "Archive the case" },
+      focus: { role: "button", name: "Mark LDG-117 returned" },
     },
     {
       // Escape closes the panel and returns focus to the button.
@@ -426,29 +426,32 @@ const toast: Contract = {
   component: "toast",
   steps: [
     {
-      name: "focus-save",
-      do: [{ focus: "#save" }],
-      focus: { role: "button", name: "Save application" },
+      name: "focus-restart",
+      do: [{ focus: "#restart" }],
+      focus: { role: "button", name: "Restart relay 14" },
     },
     {
-      // The recipe's save() is a placeholder that is not defined, so the
-      // click takes the error path. A message never takes the focus.
-      name: "save-fails",
+      // The recipe's restartRelay() is a placeholder that is not defined, so
+      // the click takes the error path. A message never takes the focus.
+      name: "restart-fails",
       do: [{ press: "Enter" }],
-      focus: { role: "button", name: "Save application" },
-      announce: { politeness: "polite", text: "Could not save. Try again." },
+      focus: { role: "button", name: "Restart relay 14" },
+      announce: {
+        politeness: "polite",
+        text: "Relay 14 did not answer. Try again.",
+      },
     },
     {
       name: "show-success",
       do: [
         {
-          run: 'document.getElementById("messages").show("Your application has been saved", { color: "success" })',
+          run: 'document.getElementById("messages").show("Relay 14 is back", { color: "success" })',
         },
       ],
-      focus: { role: "button", name: "Save application" },
+      focus: { role: "button", name: "Restart relay 14" },
       announce: {
         politeness: "polite",
-        text: "Your application has been saved",
+        text: "Relay 14 is back",
       },
     },
   ],
@@ -458,26 +461,26 @@ const toast: Contract = {
       // server's "off" stands, and nothing is announced.
       name: "the region switched off",
       replace: ['aria-live="polite"', 'aria-live="off"'],
-      failsAt: "save-fails",
+      failsAt: "restart-fails",
     },
     {
       // The count itself is under test: one change seen at several levels
       // is one announcement, and this must still be two.
       name: "the same message shown twice",
       replace: [
-        'messages.show("Could not save. Try again.", { color: "danger", duration: 0 })',
-        'messages.show("Could not save. Try again.", { color: "danger", duration: 0 }); messages.show("Could not save. Try again.", { color: "danger", duration: 0 })',
+        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })',
+        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 }); messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })',
       ],
-      failsAt: "save-fails",
+      failsAt: "restart-fails",
     },
     {
       // And two frames apart: the count is by event, not by text.
       name: "the same message shown again a frame later",
       replace: [
-        'messages.show("Could not save. Try again.", { color: "danger", duration: 0 })',
-        'messages.show("Could not save. Try again.", { color: "danger", duration: 0 }); requestAnimationFrame(() => requestAnimationFrame(() => messages.show("Could not save. Try again.", { color: "danger", duration: 0 })))',
+        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })',
+        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 }); requestAnimationFrame(() => requestAnimationFrame(() => messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })))',
       ],
-      failsAt: "save-fails",
+      failsAt: "restart-fails",
     },
   ],
 }
@@ -491,18 +494,18 @@ const sessionTimeout: Contract = {
       // first button.
       name: "warn",
       do: [{ clock: 1_500_000 }],
-      focus: { role: "button", name: "Stay logged in" },
-      within: { role: "alertdialog", name: "You will soon be logged out" },
+      focus: { role: "button", name: "Stay connected" },
+      within: { role: "alertdialog", name: "Your session is ending" },
     },
     {
       // The countdown is announced at 2 minutes, 1 minute, 30 and 10 seconds,
       // as the paragraph with the number in words.
       name: "two-minutes-left",
       do: [{ clock: 180_000 }],
-      focus: { role: "button", name: "Stay logged in" },
+      focus: { role: "button", name: "Stay connected" },
       announce: {
         politeness: "polite",
-        text: "We will log you out in 2 minutes to protect your information.",
+        text: "Your session on the Lattice ends in 2 minutes. Unsaved routes will be lost.",
       },
     },
   ],
@@ -572,22 +575,26 @@ const input: Contract = {
   steps: [
     {
       name: "focus-field",
-      do: [{ focus: "#email" }],
-      focus: { role: "textbox", name: "Email address", notStates: ["invalid"] },
+      do: [{ focus: "#fixer" }],
+      focus: {
+        role: "textbox",
+        name: "Fixer's address",
+        notStates: ["invalid"],
+      },
     },
     {
       name: "focus-invalid-field",
       do: [{ focus: "#backup" }],
-      focus: { role: "textbox", name: "Backup email", states: ["invalid"] },
+      focus: { role: "textbox", name: "Backup fixer", states: ["invalid"] },
     },
   ],
   mutations: [
     {
       name: "the label not pointing at the field",
-      replace: [' for="email"', ""],
+      replace: [' for="fixer"', ""],
       failsAt: "focus-field",
     },
-    // No "invalid only in colour" here: type="email" with the value "alex@"
+    // No "invalid only in colour" here: type="email" with the value "fixer@"
     // is invalid to the browser itself, so a screen reader is told so
     // without aria-invalid. The mutation is on the textarea, where only
     // aria-invalid says it.
@@ -600,19 +607,19 @@ const textarea: Contract = {
   steps: [
     {
       name: "focus-field",
-      do: [{ focus: "#reason" }],
-      focus: { role: "textbox", name: "Reason", notStates: ["invalid"] },
+      do: [{ focus: "#objective" }],
+      focus: { role: "textbox", name: "Objective", notStates: ["invalid"] },
     },
     {
       name: "focus-invalid-field",
-      do: [{ focus: "#answer" }],
-      focus: { role: "textbox", name: "Detailed answer", states: ["invalid"] },
+      do: [{ focus: "#terms" }],
+      focus: { role: "textbox", name: "Terms", states: ["invalid"] },
     },
   ],
   mutations: [
     {
       name: "the label not pointing at the field",
-      replace: [' for="reason"', ""],
+      replace: [' for="objective"', ""],
       failsAt: "focus-field",
     },
     {
@@ -636,19 +643,19 @@ const select: Contract = {
       // HTML-AAM: a <select> without multiple and with a size of one or less
       // is a combobox.
       name: "focus-field",
-      do: [{ focus: "#country" }],
-      focus: { role: "combobox", name: "Country", notStates: ["invalid"] },
+      do: [{ focus: "#building" }],
+      focus: { role: "combobox", name: "Building", notStates: ["invalid"] },
     },
     {
       name: "focus-invalid-field",
-      do: [{ focus: "#city" }],
-      focus: { role: "combobox", name: "City", states: ["invalid"] },
+      do: [{ focus: "#floor" }],
+      focus: { role: "combobox", name: "Floor", states: ["invalid"] },
     },
   ],
   mutations: [
     {
       name: "the label not pointing at the field",
-      replace: [' for="country"', ""],
+      replace: [' for="building"', ""],
       failsAt: "focus-field",
       lotekCheck: "without-name",
     },
@@ -661,10 +668,10 @@ const checkbox: Contract = {
   steps: [
     {
       name: "focus-box",
-      do: [{ focus: "#terms" }],
+      do: [{ focus: "#seasonal" }],
       focus: {
         role: "checkbox",
-        name: "I accept the terms",
+        name: "I accept that floors below 12 are seasonal.",
         notStates: ["checked"],
       },
     },
@@ -674,7 +681,7 @@ const checkbox: Contract = {
       do: [{ press: "Space" }],
       focus: {
         role: "checkbox",
-        name: "I accept the terms",
+        name: "I accept that floors below 12 are seasonal.",
         states: ["checked"],
       },
       changes: { states: ["checked"] },
@@ -684,7 +691,7 @@ const checkbox: Contract = {
       do: [{ focus: "#confirm" }],
       focus: {
         role: "checkbox",
-        name: "I confirm that the information is correct",
+        name: "I confirm that I have read the lease",
         states: ["invalid"],
       },
     },
@@ -692,7 +699,7 @@ const checkbox: Contract = {
   mutations: [
     {
       name: "the label not pointing at the box",
-      replace: [' for="terms"', ""],
+      replace: [' for="seasonal"', ""],
       failsAt: "focus-box",
       lotekCheck: "without-name",
     },
@@ -707,15 +714,15 @@ const radio: Contract = {
       // HTML-AAM: fieldset is a group, named by its legend, and the legend's
       // required marker is part of the name, as on a label.
       name: "focus-checked-option",
-      do: [{ focus: "#reply-digital" }],
+      do: [{ focus: "#lease-1" }],
       focus: {
         role: "radio",
-        name: "In your digital mailbox",
+        name: "One month",
         states: ["checked"],
       },
       within: {
         role: "group",
-        name: "How do you want to receive the answer? *",
+        name: "Lease length *",
       },
     },
     {
@@ -725,12 +732,12 @@ const radio: Contract = {
       do: [{ press: "ArrowDown" }],
       focus: {
         role: "radio",
-        name: "As a letter in the post",
+        name: "Six months",
         states: ["checked"],
       },
       within: {
         role: "group",
-        name: "How do you want to receive the answer? *",
+        name: "Lease length *",
       },
     },
   ],
@@ -738,7 +745,7 @@ const radio: Contract = {
     {
       name: "the group without a legend",
       replace: [
-        '<legend class="lt-legend" data-required="symbol">How do you want to receive the answer?</legend>',
+        '<legend class="lt-legend" data-required="symbol">Lease length</legend>',
         "",
       ],
       failsAt: "focus-checked-option",
@@ -754,14 +761,14 @@ const toggleGroup: Contract = {
     {
       // The legend is visually hidden, and still the group's name.
       name: "focus-checked-option",
-      do: [{ focus: 'input[value="list"]' }],
-      focus: { role: "radio", name: "List", states: ["checked"] },
+      do: [{ focus: 'input[value="dry"]' }],
+      focus: { role: "radio", name: "Dry", states: ["checked"] },
       within: { role: "group", name: "View" },
     },
     {
       name: "arrow-to-next-option",
       do: [{ press: "ArrowRight" }],
-      focus: { role: "radio", name: "Map", states: ["checked"] },
+      focus: { role: "radio", name: "Seasonal", states: ["checked"] },
       within: { role: "group", name: "View" },
     },
   ],
@@ -780,10 +787,10 @@ const switchControl: Contract = {
   steps: [
     {
       name: "focus-switch",
-      do: [{ focus: "#notifications" }],
+      do: [{ focus: "#auto-renew" }],
       focus: {
         role: "switch",
-        name: "Notify me by email",
+        name: "Auto-renew",
         notStates: ["checked"],
       },
     },
@@ -794,7 +801,7 @@ const switchControl: Contract = {
       do: [{ press: "Space" }],
       focus: {
         role: "switch",
-        name: "Notify me by email",
+        name: "Auto-renew",
         notStates: ["checked"],
       },
       announce: { politeness: "polite", text: "Could not save. Try again." },
@@ -804,8 +811,8 @@ const switchControl: Contract = {
     {
       name: "no status element",
       replace: [
-        '<p class="lt-help-text" id="notifications-status" role="status"></p>',
-        '<p class="lt-help-text" id="notifications-status"></p>',
+        '<p class="lt-help-text" id="auto-renew-status" role="status"></p>',
+        '<p class="lt-help-text" id="auto-renew-status"></p>',
       ],
       failsAt: "turn-on-and-fail",
     },
@@ -829,18 +836,18 @@ const icon: Contract = {
     {
       name: "focus-text-button",
       do: [{ focus: "button:nth-of-type(1)" }],
-      focus: { role: "button", name: "New application" },
+      focus: { role: "button", name: "New ticket" },
     },
     {
       name: "focus-icon-button",
       do: [{ focus: "button:nth-of-type(2)" }],
-      focus: { role: "button", name: "Delete the application" },
+      focus: { role: "button", name: "Delete ticket #0331" },
     },
   ],
   mutations: [
     {
       name: "the icon button without aria-label",
-      replace: [' aria-label="Delete the application"', ""],
+      replace: [' aria-label="Delete ticket #0331"', ""],
       failsAt: "focus-icon-button",
       lotekCheck: "without-name",
     },
@@ -853,19 +860,19 @@ const iconWithTitle: Contract = {
     name: "a title in the svg",
     replace: [
       [
-        ' aria-label="Delete the application">\n  <svg class="lt-icon" aria-hidden="true"',
+        ' aria-label="Delete ticket #0331">\n  <svg class="lt-icon" aria-hidden="true"',
         '>\n  <svg class="lt-icon"',
       ],
       [
         '<path d="M4 7h16',
-        '<title>Delete the application</title><path d="M4 7h16',
+        '<title>Delete ticket #0331</title><path d="M4 7h16',
       ],
     ],
   },
   mutations: [
     {
       name: "the title taken out",
-      replace: ["<title>Delete the application</title>", ""],
+      replace: ["<title>Delete ticket #0331</title>", ""],
       failsAt: "focus-icon-button",
       lotekCheck: "without-name",
     },

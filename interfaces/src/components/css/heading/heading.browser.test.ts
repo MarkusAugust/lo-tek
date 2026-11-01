@@ -15,8 +15,8 @@ import "./heading.css"
 describe("lt-heading", () => {
   beforeEach(() => {
     mount(`
-      <h1 class="lt-heading" data-size="mega" id="mega">Housing benefit application</h1>
-      <h2 class="lt-heading" id="standard">About the applicant</h2>
+      <h1 class="lt-heading" data-size="mega" id="mega">Runner's policy terms</h1>
+      <h2 class="lt-heading" id="standard">About the policyholder</h2>
       <h3 class="lt-heading" data-size="s" id="small">Attachments</h3>
     `)
   })

@@ -4,22 +4,22 @@ import Preview from "./Preview.astro"
 
 <Preview id="demo-field" styles={["field"]} layout="stack" maxWidth="34rem">
 	<lt-field>
-		<label class="lt-label" for="demo-email-input" data-required="text">Email address</label>
+		<label class="lt-label" for="demo-fixer-input" data-required="text">Fixer's address</label>
 		<input
-			id="demo-email-input"
+			id="demo-fixer-input"
 			class="lt-input"
 			type="email"
-			placeholder="jo@example.com"
+			placeholder="fixer@relay.example"
 			required
 		/>
-		<p class="lt-help-text">We send the receipt to this address.</p>
-		<p class="lt-error-text" id="demo-email-error" hidden>Enter an email address with an @ sign.</p>
+		<p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
+		<p class="lt-error-text" id="demo-fixer-error" hidden>Enter a valid address.</p>
 	</lt-field>
 
 	<lt-field optional="">
-		<label for="demo-message">Message to the caseworker</label>
-		<textarea id="demo-message" class="lt-textarea" rows="3" placeholder="Write a short message"></textarea>
-		<p class="lt-help-text">You can write up to 500 characters.</p>
+		<label for="demo-note">Note for the fixer</label>
+		<textarea id="demo-note" class="lt-textarea" rows="3" placeholder="No method. Objective only."></textarea>
+		<p class="lt-help-text">Up to 500 characters. The fixer reads no more.</p>
 	</lt-field>
 </Preview>
 
@@ -31,8 +31,8 @@ import Preview from "./Preview.astro"
 	// The preview sits in a shadow root, so document.getElementById does
 	// not reach inside. We go through the host element.
 	const surface = document.getElementById("demo-field")?.shadowRoot
-	const errorText = surface?.getElementById("demo-email-error")
-	const input = surface?.getElementById("demo-email-input") as HTMLInputElement | null
+	const errorText = surface?.getElementById("demo-fixer-error")
+	const input = surface?.getElementById("demo-fixer-input") as HTMLInputElement | null
 
 	if (errorText && input) {
 		const isValid = () =>

@@ -22,8 +22,8 @@ describe("lt-breadcrumbs", () => {
       <nav aria-label="You are here">
         <ol class="lt-breadcrumbs">
           <li><a href="#">Home</a></li>
-          <li><a href="#">My cases</a></li>
-          <li><a href="#" aria-current="page" id="here">Application 2026-0481</a></li>
+          <li><a href="#">My claims</a></li>
+          <li><a href="#" aria-current="page" id="here">Claim AV-2079-0481</a></li>
         </ol>
       </nav>
     `)

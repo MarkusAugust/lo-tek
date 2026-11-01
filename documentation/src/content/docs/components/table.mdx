@@ -3,33 +3,47 @@ title: Table
 description: A table for data in rows and columns. CSS component with two classes and no JavaScript.
 ---
 
+import Epigraph from "../../../components/Epigraph.astro"
 import Example from "../../../components/Example.astro"
 
-The class goes on a real `<table>`. It is `<th>` with `scope` that lets screen readers say "Amount, £1,240" when the user is in a cell. If you build the table from `<div>` elements, that connection does not exist, and the numbers have no meaning.
+<Epigraph source="Lastrite, appraisal">
+  “Recovery reference LR-2079-0112. Next of kin: not found.”
+</Epigraph>
+
+The class goes on a real `<table>`. It is `<th>` with `scope` that lets screen readers say "Offer, EB 1,800" when the user is in a cell. If you build the table from `<div>` elements, that connection does not exist, and the numbers have no meaning.
 
 ## How to use it
 
 <Example imports={["tokens.css", "table.css"]}
   styles={["table"]} layout="stack" maxWidth="34rem" code={`
 <table class="lt-table" data-variant="striped">
-  <caption>Invoices in 2026</caption>
+  <caption>Appraisal LR-2079-0112</caption>
   <thead>
     <tr>
-      <th scope="col">Invoice</th>
-      <th scope="col">Due</th>
-      <th scope="col" data-align="end">Amount</th>
+      <th scope="col">Item</th>
+      <th scope="col">Grade</th>
+      <th scope="col">Condition</th>
+      <th scope="col" data-align="end">Offer</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th scope="row">2026-0481</th>
-      <td>4 March</td>
-      <td data-align="end">£1,240</td>
+      <th scope="row">Smartgun link, left eye</th>
+      <td>B</td>
+      <td>Removed intact</td>
+      <td data-align="end">EB 1,800</td>
     </tr>
     <tr>
-      <th scope="row">2026-0482</th>
-      <td>4 April</td>
-      <td data-align="end">£980</td>
+      <th scope="row">Subdermal plating, torso</th>
+      <td>C</td>
+      <td>Dented</td>
+      <td data-align="end">EB 950</td>
+    </tr>
+    <tr>
+      <th scope="row">Boosted reflexes</th>
+      <td>A</td>
+      <td>Still running</td>
+      <td data-align="end">EB 4,400</td>
     </tr>
   </tbody>
 </table>
@@ -43,11 +57,11 @@ The class goes on a real `<table>`. It is `<th>` with `scope` that lets screen r
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<div className={lt.table.scroll} tabIndex={0} role="region" aria-label="Invoices">
+<div className={lt.table.scroll} tabIndex={0} role="region" aria-label="Appraisal">
   <table {...lt.table({ variant: "striped" })}>
-    <caption>Invoices in 2026</caption>
-    <thead><tr><th scope="col">Case</th></tr></thead>
-    <tbody><tr><th scope="row">2024/1187</th></tr></tbody>
+    <caption>Appraisal LR-2079-0112</caption>
+    <thead><tr><th scope="col">Item</th></tr></thead>
+    <tbody><tr><th scope="row">Boosted reflexes</th></tr></tbody>
   </table>
 </div>
 ```
@@ -59,7 +73,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const table = document.querySelector<HTMLTableElement>("#invoices")
+const table = document.querySelector<HTMLTableElement>("#appraisal")
 
 lt.setAttributes(table, lt.table({ variant: "striped", hoverable: true }))
 ```
@@ -83,28 +97,28 @@ A column that can be sorted has a button in its header, and the direction it is 
 
 <Example styles={["table", "sr-only"]} layout="stack" maxWidth="30rem" code={`
 <table class="lt-table">
-  <caption>Invoices in 2026<span class="lt-sr-only">, columns with a button can be sorted</span></caption>
+  <caption>Recovery orders<span class="lt-sr-only">, columns with a button can be sorted</span></caption>
   <thead>
     <tr>
       <th scope="col">
-        <button type="button" class="lt-table__sort">Invoice</button>
+        <button type="button" class="lt-table__sort">Reference</button>
       </th>
       <th scope="col" aria-sort="descending">
-        <button type="button" class="lt-table__sort">Due</button>
+        <button type="button" class="lt-table__sort">Recovered</button>
       </th>
-      <th scope="col" data-align="end">Amount</th>
+      <th scope="col" data-align="end">Offer</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th scope="row">2026-0482</th>
+      <th scope="row">LR-2079-0113</th>
       <td>4 April</td>
-      <td data-align="end">£980</td>
+      <td data-align="end">EB 2,750</td>
     </tr>
     <tr>
-      <th scope="row">2026-0481</th>
+      <th scope="row">LR-2079-0112</th>
       <td>4 March</td>
-      <td data-align="end">£1,240</td>
+      <td data-align="end">EB 7,150</td>
     </tr>
   </tbody>
 </table>
@@ -116,10 +130,10 @@ A column that can be sorted has a button in its header, and the direction it is 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-const due = lt.tableSort({ direction: "descending" })
+const recovered = lt.tableSort({ direction: "descending" })
 
-<th scope="col" {...due.header}>
-  <button {...due.button} onClick={() => sortBy("due")}>Due</button>
+<th scope="col" {...recovered.header}>
+  <button {...recovered.button} onClick={() => sortBy("recovered")}>Recovered</button>
 </th>
 ```
 
@@ -128,7 +142,7 @@ Without `direction` the cell gets no `aria-sort`. `lt.tableSort.isDirection()` c
 </Fragment>
 </Example>
 
-The sorting itself is up to you. In React the app keeps the column and the direction in state and redraws the rows. If the server sends HTML, in Datastar or a template, it sorts and writes `aria-sort` on the right header. Without JavaScript the button can be a link, `<a class="lt-table__sort" href="?sort=due&direction=ascending">`, and the server sorts on the next page load. The link gets the class alone, since `lt.tableSort().button` also gives `type="button"`.
+The sorting itself is up to you. In React the app keeps the column and the direction in state and redraws the rows. If the server sends HTML, in Datastar or a template, it sorts and writes `aria-sort` on the right header. Without JavaScript the button can be a link, `<a class="lt-table__sort" href="?sort=recovered&direction=ascending">`, and the server sorts on the next page load. The link gets the class alone, since `lt.tableSort().button` also gives `type="button"`.
 
 If you redraw the table after a click, put focus back on the button the user pressed. Otherwise it ends up on `<body>`. [List with filters](../../patterns/list/) does this in its demo.
 
@@ -137,7 +151,7 @@ If you redraw the table after a click, put focus back on the button the user pre
 A table wider than the screen must be scrollable sideways, and that area must be reachable with the keyboard:
 
 ```html
-<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Invoices">
+<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Appraisal">
   <table class="lt-table">…</table>
 </div>
 ```
@@ -168,21 +182,21 @@ If you need more rows on screen, it is the space in the cells that should go dow
 }
 `} code={`
 <table class="lt-table compact">
-  <caption>Invoices in 2026</caption>
+  <caption>Appraisal LR-2079-0112</caption>
   <thead>
     <tr>
-      <th scope="col">Invoice</th>
-      <th scope="col" data-align="end">Amount</th>
+      <th scope="col">Item</th>
+      <th scope="col" data-align="end">Offer</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <th scope="row">2026-0481</th>
-      <td data-align="end">£1,240</td>
+      <th scope="row">Smartgun link, left eye</th>
+      <td data-align="end">EB 1,800</td>
     </tr>
     <tr>
-      <th scope="row">2026-0482</th>
-      <td data-align="end">£980</td>
+      <th scope="row">Subdermal plating, torso</th>
+      <td data-align="end">EB 950</td>
     </tr>
   </tbody>
 </table>

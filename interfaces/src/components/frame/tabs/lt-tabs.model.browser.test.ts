@@ -110,7 +110,7 @@ const hideFirst = (html: string) =>
 
 // What `lt.tabs()` writes, on a server that runs JavaScript: links, ids and
 // classes, with a stem of its own, so the panels' ids differ from the recipe's.
-const STEM = "case"
+const STEM = "file"
 const BUILT = tabs({ id: STEM, keys: KEYS, label: LABEL })
 const BUILDER = `${HOST_TAG}<ul ${attr(BUILT.list)}>${BUILT.tabs.map((t, i) => `<li><a ${attr(t)}>${NAMES[i]}</a></li>`).join("")}</ul>${BUILT.panels.map((p, i) => `<section ${attr(p)}><h2 ${attr(BUILT.headings[i])}>${NAMES[i]}</h2>${CONTENT[i]}</section>`).join("")}</lt-tabs>`
 

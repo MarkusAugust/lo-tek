@@ -53,7 +53,7 @@ export type ShowOptions = {
  * focus is in the message.
  *
  * ```ts
- * document.querySelector("lt-toast").show("Application sent", {
+ * document.querySelector("lt-toast").show("Relay 14 is back", {
  *   color: "success",
  * })
  * ```

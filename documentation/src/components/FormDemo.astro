@@ -20,7 +20,7 @@ import Preview from "./Preview.astro"
 		/* The layout is the app's choice, not the system's. LO-TEK provides
 		   the fields, while the spacing between them belongs to the form that
 		   puts them together. Two fields stuck together read as one. */
-		#demo-application {
+		#demo-order {
 			display: flex;
 			flex-direction: column;
 			gap: var(--lt-spacing-5);
@@ -33,7 +33,7 @@ import Preview from "./Preview.astro"
 		}
 	`}
 >
-	<form id="demo-application" novalidate>
+	<form id="demo-order" novalidate>
 		<lt-error-summary
 			id="demo-errors"
 			aria-labelledby="demo-errors-title"
@@ -48,36 +48,36 @@ import Preview from "./Preview.astro"
 		</lt-error-summary>
 
 		<div>
-			<label class="lt-label" data-required="symbol" for="demo-email">Email address</label>
+			<label class="lt-label" data-required="symbol" for="demo-fixer">Fixer's address</label>
 			<input
 				class="lt-input"
-				id="demo-email"
-				name="email"
+				id="demo-fixer"
+				name="fixer"
 				type="email"
 				required
-				aria-describedby="demo-email-help"
+				aria-describedby="demo-fixer-help"
 			/>
-			<p class="lt-help-text" id="demo-email-help">We send the receipt here.</p>
-			<p class="lt-error-text" id="demo-email-error" hidden></p>
+			<p class="lt-help-text" id="demo-fixer-help">The board writes to the fixer, never to the crew.</p>
+			<p class="lt-error-text" id="demo-fixer-error" hidden></p>
 		</div>
 
 		<div>
-			<label class="lt-label" data-required="symbol" for="demo-birth-date">Date of birth</label>
+			<label class="lt-label" data-required="symbol" for="demo-deliver-by">Deliver by</label>
 			<input
 				class="lt-input"
-				id="demo-birth-date"
-				name="birth-date"
+				id="demo-deliver-by"
+				name="deliver-by"
 				type="date"
 				data-variant="date"
 				required
-				min="1900-01-01"
-				max="2026-12-31"
+				min="2079-01-01"
+				max="2079-12-31"
 			/>
-			<p class="lt-error-text" id="demo-birth-date-error" hidden></p>
+			<p class="lt-error-text" id="demo-deliver-by-error" hidden></p>
 		</div>
 
 		<div class="demo-button-row">
-			<button class="lt-button" type="submit">Send the application</button>
+			<button class="lt-button" type="submit">Order the job</button>
 		</div>
 
 		<p class="lt-sr-only" role="status" id="demo-status"></p>
@@ -91,7 +91,7 @@ import Preview from "./Preview.astro"
 
 	// The preview sits in a shadow root, so we go through the host element.
 	const surface = document.getElementById("demo-form")?.shadowRoot
-	const form = surface?.getElementById("demo-application") as HTMLFormElement | null
+	const form = surface?.getElementById("demo-order") as HTMLFormElement | null
 	const summary = surface?.getElementById("demo-errors")
 	const status = surface?.getElementById("demo-status")
 	const fields = form ? [...form.querySelectorAll("input")] : []
@@ -103,24 +103,24 @@ import Preview from "./Preview.astro"
 	/**
 	 * The messages are our own, not the browser's default texts.
 	 *
-	 * The email address is checked in addition to `type="email"`. The browser
-	 * accepts `jo@example`, with no top-level domain, since that is a valid
-	 * address on an internal network. In a form that sends a receipt by email
+	 * The fixer's address is checked in addition to `type="email"`. The browser
+	 * accepts `fixer@relay`, with no top-level domain, since that is a valid
+	 * address on an internal network. In a form that writes to the fixer by email
 	 * it is almost always a typo.
 	 */
 	const ADDRESS = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/
 
 	function messageFor(field: HTMLInputElement): string {
 		if (field.value === "") {
-			return field.name === "email"
-				? "Enter your email address"
-				: "Enter your date of birth"
+			return field.name === "fixer"
+				? "Enter the fixer's address"
+				: "Enter the delivery date"
 		}
 
-		if (field.name === "email") {
+		if (field.name === "fixer") {
 			return field.checkValidity() && ADDRESS.test(field.value)
 				? ""
-				: "Enter the full email address, for example jo@example.com"
+				: "Enter the full address, for example fixer@relay.example"
 		}
 
 		return field.checkValidity() ? "" : "Enter a date that exists"
@@ -243,7 +243,7 @@ import Preview from "./Preview.astro"
 		const count = summarise(true)
 
 		if (status) {
-			status.textContent = count === 0 ? "The application has been sent." : ""
+			status.textContent = count === 0 ? "Job 222-0481 has been ordered." : ""
 		}
 
 		// The box has `data-autofocus="false"`, since it is also built when a

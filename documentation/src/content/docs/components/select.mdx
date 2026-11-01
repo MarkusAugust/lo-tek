@@ -12,22 +12,22 @@ The same appearance and states as [Input](../input/), on a real `<select>`. The 
 
 <Example imports={["tokens.css", "select.css", "label.css"]}
   styles={["select", "label"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" for="country">Country</label>
-<select class="lt-select" id="country" name="country">
-  <option value="">Choose a country</option>
-  <option>Canada</option>
-  <option selected>Ireland</option>
-  <option>United Kingdom</option>
+<label class="lt-label" for="building">Building</label>
+<select class="lt-select" id="building" name="building">
+  <option value="">Choose a building</option>
+  <option>Breakwater House</option>
+  <option selected>Saltline Tower</option>
+  <option>The Lantern Block</option>
 </select>
 
-<label class="lt-label" for="city">City</label>
-<select class="lt-select" id="city" data-state="invalid" aria-invalid="true">
-  <option value="" selected>Choose a city</option>
+<label class="lt-label" for="floor">Floor</label>
+<select class="lt-select" id="floor" data-state="invalid" aria-invalid="true">
+  <option value="" selected>Choose a floor</option>
 </select>
 
-<label class="lt-label" for="registered">Registered country</label>
-<select class="lt-select" id="registered" disabled>
-  <option selected>Ireland</option>
+<label class="lt-label" for="landlord">Landlord</label>
+<select class="lt-select" id="landlord" disabled>
+  <option selected>Tidewall Holdings</option>
 </select>
 `}>
 <Fragment slot="ts">
@@ -39,9 +39,9 @@ The same appearance and states as [Input](../input/), on a real `<select>`. The 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<select {...lt.select({ picker: "styled" })} id="country" name="country">
-  <option value="">Choose a country</option>
-  <option value="ireland">Ireland</option>
+<select {...lt.select({ picker: "styled" })} id="building" name="building">
+  <option value="">Choose a building</option>
+  <option value="saltline">Saltline Tower</option>
 </select>
 ```
 
@@ -52,7 +52,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt, type FieldState } from "@lo-tek/interfaces"
 
-const field = document.querySelector<HTMLSelectElement>("#country")
+const field = document.querySelector<HTMLSelectElement>("#building")
 if (!field) throw new Error("element not found")
 
 field.addEventListener("change", () => {
@@ -82,12 +82,12 @@ The first `<option>` should have an empty `value` when the field is required. Th
 The list that pops up is normally a window from the operating system, and no CSS reaches into it. With `data-picker="styled"` the field asks the browser to draw the list inside the page instead, so it gets the system's colours, spacing and shadow.
 
 <Example styles={["select", "label"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" for="case">Application type</label>
-<select class="lt-select" data-picker="styled" id="case" name="case">
-  <option value="">Choose an application type</option>
-  <option value="building" selected>Building permit</option>
-  <option value="subdivision">Subdivision of property</option>
-  <option value="discharge">Discharge permit</option>
+<label class="lt-label" for="floor-type">Floor type</label>
+<select class="lt-select" data-picker="styled" id="floor-type" name="floor-type">
+  <option value="">Choose a floor type</option>
+  <option value="dry" selected>Dry, floor 12 and up</option>
+  <option value="seasonal">Seasonal, below floor 12</option>
+  <option value="roof">Roof, open to the weather</option>
 </select>
 `} />
 
@@ -141,7 +141,7 @@ See [Customising](../../customising/) for how the variables and the layer work.
 
 <ScreenReaderContract component="select" />
 
-- An `<option>` that says "Choose a country" is a label in disguise, not a replacement for `<label>`.
+- An `<option>` that says "Choose a building" is a label in disguise, not a replacement for `<label>`.
 - If the list has more than about seven options that belong together logically, group them with `<optgroup label="…">`.
 - Do not submit the form automatically on change. Keyboard users move through the options with the arrow keys and would submit the form on the first one they pass.
 - If you need search, multiple selection or icons in the list, `<select>` is the wrong tool. Build it as a standalone component instead of restyling this element.

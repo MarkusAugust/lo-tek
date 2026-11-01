@@ -12,7 +12,7 @@ import com.dylibso.chicory.runtime.Instance
  * Maven dependency, with no JNI and nothing to install.
  *
  * ```kotlin
- * val html = client.get("/application").bodyAsText()
+ * val html = client.get("/jobs/222-0481").bodyAsText()
  * assertEquals(emptyList(), Lotek.diagnosePage(html))
  * ```
  *

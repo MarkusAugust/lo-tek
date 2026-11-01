@@ -29,7 +29,7 @@ export type AlertAttributes = {
  *
  * ```ts
  * <div {...alert({ color: "warning" })}>
- *   <p class={alert.title}>The application has not been sent</p>
+ *   <p class={alert.title}>Your routes have not been saved</p>
  * </div>
  * ```
  */

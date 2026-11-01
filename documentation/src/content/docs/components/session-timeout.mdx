@@ -7,7 +7,7 @@ import { TabItem, Tabs } from "@astrojs/starlight/components"
 import SessionTimeoutDemo from "../../../components/SessionTimeoutDemo.astro"
 import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
 
-This is the thing every large organisation builds itself, and gets wrong. Either no warning comes, and the user loses a half-completed application form. Or the dialog steals focus in the middle of a sentence. Or the screen reader reads the countdown every single second.
+This is the thing every large organisation builds itself, and gets wrong. Either no warning comes, and the user loses a half-completed form. Or the dialog steals focus in the middle of a sentence. Or the screen reader reads the countdown every single second.
 
 You write the dialog and the text yourself, in the language the app uses. The component tracks activity, opens the dialog, fills in the number and announces the countdown.
 
@@ -38,15 +38,15 @@ defineLtSessionTimeout()
     <lt-session-timeout class="lt-session-timeout" warn-at="1500" expires-at="1800"
                         data-ignore-morph>
       <dialog class="lt-session-timeout__dialog" role="alertdialog" aria-labelledby="session-title">
-        <h2 class="lt-session-timeout__title" id="session-title">You will soon be logged out</h2>
+        <h2 class="lt-session-timeout__title" id="session-title">Your session is ending</h2>
         <p class="lt-session-timeout__text">
-          We will log you out in <span class="lt-session-timeout__count" aria-hidden="true"></span>
-          to protect your information.
+          Your session on the Lattice ends in <span class="lt-session-timeout__count" aria-hidden="true"></span>.
+          Unsaved routes will be lost.
         </p>
         <span class="lt-sr-only" role="status"></span>
         <form method="dialog" class="lt-session-timeout__actions">
-          <button class="lt-button" value="extend">Stay logged in</button>
-          <button class="lt-button" data-variant="secondary" value="logout">Log out now</button>
+          <button class="lt-button" value="extend">Stay connected</button>
+          <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
         </form>
       </dialog>
     </lt-session-timeout>
@@ -109,14 +109,14 @@ defineLtSessionTimeout()
       return (
         <lt-session-timeout ref={ref} {...session.host}>
           <dialog {...session.dialog}>
-            <h2 {...session.title}>You will soon be logged out</h2>
+            <h2 {...session.title}>Your session is ending</h2>
             <p {...session.text}>
-              We will log you out in <span {...session.count} /> to protect your information.
+              Your session on the Lattice ends in <span {...session.count} />. Unsaved routes will be lost.
             </p>
             <span {...session.live} />
             <form {...session.actions}>
-              <button {...session.extend}>Stay logged in</button>
-              <button {...session.logout}>Log out now</button>
+              <button {...session.extend}>Stay connected</button>
+              <button {...session.logout}>Log out</button>
             </form>
           </dialog>
         </lt-session-timeout>
@@ -151,15 +151,15 @@ defineLtSessionTimeout()
                         data-on:session-extend="@post('/api/extend-session')"
                         data-on:session-expired="window.location = '/log-in?reason=expired'">
       <dialog class="lt-session-timeout__dialog" role="alertdialog" aria-labelledby="session-title">
-        <h2 class="lt-session-timeout__title" id="session-title">You will soon be logged out</h2>
+        <h2 class="lt-session-timeout__title" id="session-title">Your session is ending</h2>
         <p class="lt-session-timeout__text">
-          We will log you out in <span class="lt-session-timeout__count" aria-hidden="true"></span>
-          to protect your information.
+          Your session on the Lattice ends in <span class="lt-session-timeout__count" aria-hidden="true"></span>.
+          Unsaved routes will be lost.
         </p>
         <span class="lt-sr-only" role="status"></span>
         <form method="dialog" class="lt-session-timeout__actions">
-          <button class="lt-button" value="extend">Stay logged in</button>
-          <button class="lt-button" data-variant="secondary" value="logout">Log out now</button>
+          <button class="lt-button" value="extend">Stay connected</button>
+          <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
         </form>
       </dialog>
     </lt-session-timeout>

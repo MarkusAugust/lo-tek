@@ -15,7 +15,7 @@ import "./skeleton.css"
 describe("lt-skeleton", () => {
   beforeEach(() => {
     mount(`
-      <p role="status">Loading your applications</p>
+      <p role="status">Loading the sector map</p>
       <div class="lt-skeleton" data-variant="circle" id="circle" aria-hidden="true"></div>
       <div class="lt-skeleton" data-variant="text" id="text" aria-hidden="true"></div>
       <div class="lt-skeleton" id="block" aria-hidden="true"></div>

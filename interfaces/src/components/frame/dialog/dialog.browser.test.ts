@@ -26,15 +26,15 @@ import "../../css/button/button.css"
 describe(".lt-dialog", () => {
   beforeEach(() => {
     mount(`
-      <button class="lt-button" id="open-button" type="button">Delete the application</button>
+      <button class="lt-button" id="open-button" type="button">Cancel the job</button>
       <dialog class="lt-dialog" id="dialog" aria-labelledby="dialog-title">
-        <h2 class="lt-dialog__title" id="dialog-title">Delete the application?</h2>
+        <h2 class="lt-dialog__title" id="dialog-title">Cancel job 222-0481?</h2>
         <div class="lt-dialog__body">
-          <p>The application and its attachments will be gone. This cannot be undone.</p>
+          <p>The crew keeps the advance. This cannot be undone.</p>
         </div>
         <div class="lt-dialog__footer">
-          <button class="lt-button" data-variant="secondary" id="cancel" type="button">Cancel</button>
-          <button class="lt-button" data-variant="danger" id="delete" type="button">Delete the application</button>
+          <button class="lt-button" data-variant="secondary" id="keep" type="button">Keep the job</button>
+          <button class="lt-button" data-variant="danger" id="delete" type="button">Cancel the job</button>
         </div>
       </dialog>
     `)
@@ -185,7 +185,7 @@ describe("lt-dialog", () => {
       <lt-dialog ${attr(box.host)}>
         <dialog ${attr(box.dialog)}>
           <h2 ${attr(box.title)}>The decision has been registered</h2>
-          <div ${attr(box.body)}><p>The case has been processed.</p></div>
+          <div ${attr(box.body)}><p>Job 222-0481 is open to crews.</p></div>
           <form method="dialog" ${attr(box.footer)}>
             <button class="lt-button" id="close" value="close">Close</button>
           </form>
@@ -754,7 +754,7 @@ describe("the dialog before it is modal", () => {
     },
     {
       name: "with content taller than the screen",
-      content: `<div class="lt-dialog__body">${"<p>The terms apply from the date the application is registered.</p>".repeat(40)}</div>`,
+      content: `<div class="lt-dialog__body">${"<p>The terms apply from the date a crew takes the job.</p>".repeat(40)}</div>`,
     },
   ]) {
     it(`does not move when it becomes modal, ${name}`, async () => {
@@ -823,7 +823,7 @@ describe("the dialog before it is modal", () => {
       <lt-dialog>
         <dialog class="lt-dialog" open>
           <h2 class="lt-dialog__title">Terms</h2>
-          <div class="lt-dialog__body">${"<p>The terms apply from the date the application is registered.</p>".repeat(40)}</div>
+          <div class="lt-dialog__body">${"<p>The terms apply from the date a crew takes the job.</p>".repeat(40)}</div>
           <div class="lt-dialog__footer">
             <button class="lt-button" type="button">Close</button>
           </div>
@@ -879,9 +879,9 @@ describe("the dialog before it is modal", () => {
     } = await inFrameWithoutScript(`
       <lt-dialog>
         <dialog class="lt-dialog">
-          <h2 class="lt-dialog__title">Delete the application?</h2>
+          <h2 class="lt-dialog__title">Cancel job 222-0481?</h2>
           <div class="lt-dialog__body">
-            <p>The application and its attachments will be gone.</p>
+            <p>The crew keeps the advance.</p>
           </div>
         </dialog>
       </lt-dialog>`)
@@ -921,7 +921,7 @@ describe("the dialog before it is modal", () => {
       <lt-dialog>
         <dialog class="lt-dialog" open>
           <h2 class="lt-dialog__title">Terms</h2>
-          ${"<p>The terms apply from the date the application is registered.</p>".repeat(40)}
+          ${"<p>The terms apply from the date a crew takes the job.</p>".repeat(40)}
         </dialog>
       </lt-dialog>`,
       390,
@@ -951,7 +951,7 @@ describe("the dialog before it is modal", () => {
       <dialog class="lt-dialog" popover id="help">
         <h2 class="lt-dialog__title">What does this mean?</h2>
         <div class="lt-dialog__body">
-          <p>The application is registered, but not processed.</p>
+          <p>The order is placed, but no crew has taken it.</p>
         </div>
       </dialog>`)
 
@@ -985,7 +985,7 @@ describe("the dialog before it is modal", () => {
       <lt-dialog>
         <dialog class="lt-dialog" open>
           <h2 class="lt-dialog__title">Terms</h2>
-          <p>The terms apply from the date the application is registered.</p>
+          <p>The terms apply from the date a crew takes the job.</p>
           <button class="lt-button" type="button">Close</button>
         </dialog>
       </lt-dialog>`)
@@ -1020,7 +1020,7 @@ describe("the dialog before it is modal", () => {
         <dialog class="lt-dialog" open>
           <form method="dialog">
             <h2 class="lt-dialog__title">Terms</h2>
-            <div class="lt-dialog__body">${"<p>The terms apply from the date the application is registered.</p>".repeat(40)}</div>
+            <div class="lt-dialog__body">${"<p>The terms apply from the date a crew takes the job.</p>".repeat(40)}</div>
           </form>
         </dialog>
       </lt-dialog>`,
@@ -1239,11 +1239,11 @@ describe("the dialog with a coloured header", () => {
     const withHeader = dialog({ titleId: "short-title" })
     mount(`
       <dialog ${attr(withHeader.dialog)} open id="with">
-        <div ${attr(withHeader.header)}><h2 ${attr(withHeader.title)}>Delete?</h2></div>
+        <div ${attr(withHeader.header)}><h2 ${attr(withHeader.title)}>Cancel?</h2></div>
         <form method="dialog" ${attr(withHeader.footer)}><button class="lt-button" value="yes">Yes</button></form>
       </dialog>
       <dialog ${attr(dialog({ titleId: "short-title-2" }).dialog)} open id="without">
-        <h2 class="lt-dialog__title" id="short-title-2">Delete?</h2>
+        <h2 class="lt-dialog__title" id="short-title-2">Cancel?</h2>
         <form method="dialog" class="lt-dialog__footer"><button class="lt-button" value="yes">Yes</button></form>
       </dialog>
     `)
@@ -1307,10 +1307,10 @@ describe("lt-dialog wires from bare structure", () => {
   const BARE = `
     <lt-dialog>
       <dialog>
-        <h2>Delete the application?</h2>
-        <div class="lt-dialog__body"><p>The application and its attachments will be gone.</p></div>
+        <h2>Cancel job 222-0481?</h2>
+        <div class="lt-dialog__body"><p>The crew keeps the advance.</p></div>
         <form method="dialog" class="lt-dialog__footer">
-          <button class="lt-button" value="cancel">Cancel</button>
+          <button class="lt-button" value="keep">Keep the job</button>
         </form>
       </dialog>
     </lt-dialog>`
@@ -1338,11 +1338,11 @@ describe("lt-dialog wires from bare structure", () => {
     // The heading is then not the title, and should get neither an id nor the
     // class that styles it as one.
     const { d, title } = await mountBare(
-      BARE.replace("<dialog>", '<dialog aria-label="Delete the application">'),
+      BARE.replace("<dialog>", '<dialog aria-label="Cancel the job">'),
     )
 
     expect(d.hasAttribute("aria-labelledby")).toBe(false)
-    expect(d.getAttribute("aria-label")).toBe("Delete the application")
+    expect(d.getAttribute("aria-label")).toBe("Cancel the job")
     expect(title.id).toBe("")
     expect(title.classList.contains("lt-dialog__title")).toBe(false)
   })
@@ -1350,8 +1350,8 @@ describe("lt-dialog wires from bare structure", () => {
   it("gives the class to the heading the server pointed to", async () => {
     const { d } = await mountBare(
       BARE.replace("<dialog>", '<dialog aria-labelledby="own-title">').replace(
-        "<h2>Delete the application?</h2>",
-        '<p id="own-title">Delete the application?</p><h2>Attachments</h2>',
+        "<h2>Cancel job 222-0481?</h2>",
+        '<p id="own-title">Cancel job 222-0481?</p><h2>Attachments</h2>',
       ),
     )
     const own = document.getElementById("own-title") as HTMLElement
@@ -1366,14 +1366,14 @@ describe("lt-dialog wires from bare structure", () => {
     // The heading in the body belongs to the content. The title is the first
     // heading outside the body, also when it comes after the body.
     const { d } = await mountBare(
-      BARE.replace("<h2>Delete the application?</h2>", "")
+      BARE.replace("<h2>Cancel job 222-0481?</h2>", "")
         .replace(
-          "<p>The application and its attachments will be gone.</p>",
-          "<h3>The attachments</h3><p>The application and its attachments will be gone.</p>",
+          "<p>The crew keeps the advance.</p>",
+          "<h3>The attachments</h3><p>The crew keeps the advance.</p>",
         )
         .replace(
           '<form method="dialog"',
-          '<h2>Delete the application?</h2><form method="dialog"',
+          '<h2>Cancel job 222-0481?</h2><form method="dialog"',
         ),
     )
     const h3 = d.querySelector("h3") as HTMLElement
@@ -1389,10 +1389,10 @@ describe("lt-dialog wires from bare structure", () => {
     // The nested dialog's heading comes first in document order, and is
     // still not the outer dialog's title. The heading after it is.
     const { d } = await mountBare(
-      BARE.replace("<h2>Delete the application?</h2>", "").replace(
+      BARE.replace("<h2>Cancel job 222-0481?</h2>", "").replace(
         '<form method="dialog"',
         '<dialog id="inner"><h2>Are you sure?</h2></dialog>' +
-          '<h2 id="outer">Delete the application?</h2><form method="dialog"',
+          '<h2 id="outer">Cancel job 222-0481?</h2><form method="dialog"',
       ),
     )
     const inner = d.querySelector("#inner h2") as HTMLElement
@@ -1518,7 +1518,7 @@ describe("lt-dialog wires from bare structure", () => {
       <lt-dialog ${attr(box.host)}>
         <dialog ${attr(box.dialog)}>
           <h2 ${attr(box.title)}>The decision has been registered</h2>
-          <div ${attr(box.body)}><p>The case has been processed.</p></div>
+          <div ${attr(box.body)}><p>Job 222-0481 is open to crews.</p></div>
         </dialog>
       </lt-dialog>`
     const host = wrapper.querySelector("lt-dialog") as HTMLElement
@@ -1586,7 +1586,7 @@ describe("lt-dialog when React writes the property", () => {
      */
     const box = dialog({ titleId: "title" })
     mount(
-      `<lt-dialog><dialog ${attr(box.dialog)}><h2 ${attr(box.title)}>Delete?</h2></dialog></lt-dialog>`,
+      `<lt-dialog><dialog ${attr(box.dialog)}><h2 ${attr(box.title)}>Cancel?</h2></dialog></lt-dialog>`,
     )
     await customElements.whenDefined("lt-dialog")
     const host = document.querySelector("lt-dialog") as HTMLElement & {

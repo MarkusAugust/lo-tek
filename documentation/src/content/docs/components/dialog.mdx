@@ -39,17 +39,17 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
 
     ```html
     <button class="lt-button" data-variant="danger" id="open-confirm" type="button">
-      Delete the application
+      Cancel the job
     </button>
 
     <dialog class="lt-dialog" id="confirm" aria-labelledby="confirm-title">
-      <h2 class="lt-dialog__title" id="confirm-title">Delete the application?</h2>
+      <h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2>
       <div class="lt-dialog__body">
-        <p>The application and its attachments will be gone. This cannot be undone.</p>
+        <p>The crew keeps the advance. This cannot be undone.</p>
       </div>
       <form method="dialog" class="lt-dialog__footer">
-        <button class="lt-button" data-variant="secondary" value="cancel">Cancel</button>
-        <button class="lt-button" data-variant="danger" value="delete">Delete the application</button>
+        <button class="lt-button" data-variant="secondary" value="keep">Keep the job</button>
+        <button class="lt-button" data-variant="danger" value="cancel">Cancel the job</button>
       </form>
     </dialog>
 
@@ -63,8 +63,8 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
       })
 
       dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "delete") {
-          // Delete the application here
+        if (dialog.returnValue === "cancel") {
+          // Cancel the job here
         }
       })
     </script>
@@ -80,7 +80,7 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
     import "@lo-tek/interfaces/dialog.css"
     import "@lo-tek/interfaces/button.css"
 
-    export function DeleteApplication({ remove }: { remove: () => void }) {
+    export function CancelJob({ cancel }: { cancel: () => void }) {
       const dialog = useRef<HTMLDialogElement>(null)
       const box = lt.dialog({ titleId: "confirm-title" })
 
@@ -96,23 +96,23 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
               dialog.current.showModal()
             }}
           >
-            Delete the application
+            Cancel the job
           </button>
 
           <dialog
             {...box.dialog}
             ref={dialog}
             onClose={(e) => {
-              if (e.currentTarget.returnValue === "delete") remove()
+              if (e.currentTarget.returnValue === "cancel") cancel()
             }}
           >
-            <h2 {...box.title}>Delete the application?</h2>
+            <h2 {...box.title}>Cancel job 222-0481?</h2>
             <div {...box.body}>
-              <p>The application and its attachments will be gone. This cannot be undone.</p>
+              <p>The crew keeps the advance. This cannot be undone.</p>
             </div>
             <form method="dialog" {...box.footer}>
-              <button {...lt.button({ variant: "secondary" })} value="cancel">Cancel</button>
-              <button {...lt.button({ variant: "danger" })} value="delete">Delete the application</button>
+              <button {...lt.button({ variant: "secondary" })} value="keep">Keep the job</button>
+              <button {...lt.button({ variant: "danger" })} value="cancel">Cancel the job</button>
             </form>
           </dialog>
         </>
@@ -135,17 +135,17 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
     ---
 
     <button {...lt.button({ variant: "danger" })} type="button" id="open-confirm">
-      Delete the application
+      Cancel the job
     </button>
 
     <dialog {...box.dialog} id="confirm">
-      <h2 {...box.title}>Delete the application?</h2>
+      <h2 {...box.title}>Cancel job 222-0481?</h2>
       <div {...box.body}>
-        <p>The application and its attachments will be gone. This cannot be undone.</p>
+        <p>The crew keeps the advance. This cannot be undone.</p>
       </div>
       <form method="dialog" {...box.footer}>
-        <button {...lt.button({ variant: "secondary" })} value="cancel">Cancel</button>
-        <button {...lt.button({ variant: "danger" })} value="delete">Delete the application</button>
+        <button {...lt.button({ variant: "secondary" })} value="keep">Keep the job</button>
+        <button {...lt.button({ variant: "danger" })} value="cancel">Cancel the job</button>
       </form>
     </dialog>
 
@@ -159,8 +159,8 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
       })
 
       dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "delete") {
-          // Delete the application here
+        if (dialog.returnValue === "cancel") {
+          // Cancel the job here
         }
       })
     </script>
@@ -201,15 +201,15 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
          opens anything. -->
     <lt-dialog id="confirm" open>
       <dialog class="lt-dialog" open>
-        <h2>Delete the application?</h2>
+        <h2>Cancel job 222-0481?</h2>
         <div class="lt-dialog__body">
-          <p>The application and its attachments will be gone. This cannot be undone.</p>
+          <p>The crew keeps the advance. This cannot be undone.</p>
         </div>
         <form method="dialog" class="lt-dialog__footer">
-          <button class="lt-button" data-variant="secondary" value="cancel"
-                  data-on:click="@post('/cancel')">Cancel</button>
-          <button class="lt-button" data-variant="danger" value="delete"
-                  data-on:click="@post('/delete')">Delete the application</button>
+          <button class="lt-button" data-variant="secondary" value="keep"
+                  data-on:click="@post('/jobs/222-0481/keep')">Keep the job</button>
+          <button class="lt-button" data-variant="danger" value="cancel"
+                  data-on:click="@post('/jobs/222-0481/cancel')">Cancel the job</button>
         </form>
       </dialog>
     </lt-dialog>
@@ -243,14 +243,14 @@ Without `showModal()` the markup is a box on the page. That is the state the ser
     .lt-dialog { position: static; }
   `}
   code={`
-<dialog class="lt-dialog" aria-labelledby="delete-title" open>
-  <h2 class="lt-dialog__title" id="delete-title">Delete the application?</h2>
+<dialog class="lt-dialog" aria-labelledby="cancel-title" open>
+  <h2 class="lt-dialog__title" id="cancel-title">Cancel job 222-0481?</h2>
   <div class="lt-dialog__body">
-    <p>The application and its attachments will be gone. This cannot be undone.</p>
+    <p>The crew keeps the advance. This cannot be undone.</p>
   </div>
   <div class="lt-dialog__footer">
-    <button class="lt-button" data-variant="secondary" type="button">Cancel</button>
-    <button class="lt-button" data-variant="danger" type="button">Delete the application</button>
+    <button class="lt-button" data-variant="secondary" type="button">Keep the job</button>
+    <button class="lt-button" data-variant="danger" type="button">Cancel the job</button>
   </div>
 </dialog>
 `} />
@@ -270,9 +270,9 @@ defineLtDialog()
 ```html
 <lt-dialog open>
   <dialog class="lt-dialog" open>
-    <h2>The decision is registered</h2>
+    <h2>The order is placed</h2>
     <div class="lt-dialog__body">
-      <p>The case is closed and has been sent to the archive.</p>
+      <p>Job 222-0481 is open to crews.</p>
     </div>
     <form method="dialog" class="lt-dialog__footer">
       <button class="lt-button" value="close">Close</button>
@@ -285,7 +285,7 @@ Inside `<lt-dialog>` the component names the dialog from the first heading outsi
 
 **Give the button that closes the dialog a `value`.** Without JavaScript the dialog is a box on the page, and `<form method="dialog">` closes it before any script has run. The component recognises what has already happened from `returnValue`, which the browser sets to the button's value. If it is empty, the component sees a host that says "open" and a closed dialog, and opens it again.
 
-When the user closes the dialog, with Escape or with a button in `<form method="dialog">`, the component removes `open` from `<lt-dialog>` again, so the markup says the same as the screen. A click on the backdrop does not close it; neither does it on a plain `<dialog>`. The component reports with the `dialog-toggle` event, which has `detail.open` and `detail.returnValue`, the value of the button that closed it. That is how you tell "Cancel" from "Delete". The component clears the value every time it opens the dialog, so a dialog closed without a button, with Escape or from the server, reports an empty value and not the one from last time.
+When the user closes the dialog, with Escape or with a button in `<form method="dialog">`, the component removes `open` from `<lt-dialog>` again, so the markup says the same as the screen. A click on the backdrop does not close it; neither does it on a plain `<dialog>`. The component reports with the `dialog-toggle` event, which has `detail.open` and `detail.returnValue`, the value of the button that closed it. That is how you tell "Keep the job" from "Cancel the job". The component clears the value every time it opens the dialog, so a dialog closed without a button, with Escape or from the server, reports an empty value and not the one from last time.
 
 The two `open` attributes in the example are not the same:
 
@@ -318,12 +318,12 @@ import "@lo-tek/interfaces/react-jsx"
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-const box = lt.dialog({ titleId: "receipt-title", open: true })
+const box = lt.dialog({ titleId: "order-title", open: true })
 
 <lt-dialog {...box.host}>
   <dialog {...box.dialog}>
-    <h2 {...box.title}>The decision is registered</h2>
-    <div {...box.body}>The case is closed and has been sent to the archive.</div>
+    <h2 {...box.title}>The order is placed</h2>
+    <div {...box.body}>Job 222-0481 is open to crews.</div>
     <form method="dialog" {...box.footer}>
       <button {...lt.button()} value="close">Close</button>
     </form>
@@ -354,12 +354,12 @@ When the dialog should say how things went before the reader has read a word, it
 
 ```astro
 ---
-const box = lt.dialog({ titleId: "result-title", color: "success" })
+const box = lt.dialog({ titleId: "delivered-title", color: "success" })
 ---
 <dialog {...box.dialog}>
   <div {...box.header}>
-    <h2 {...box.title}>Full marks</h2>
-    <p {...box.subtitle}>25 of 25 points</p>
+    <h2 {...box.title}>Job 222-0481 delivered</h2>
+    <p {...box.subtitle}>Clean, before the deadline</p>
   </div>
   <div {...box.body}>…</div>
   <form method="dialog" {...box.footer}>…</form>
@@ -369,10 +369,10 @@ const box = lt.dialog({ titleId: "result-title", color: "success" })
 Without the builder function it is the same classes, written out:
 
 ```html
-<dialog class="lt-dialog" data-color="success" aria-labelledby="result-title">
+<dialog class="lt-dialog" data-color="success" aria-labelledby="delivered-title">
   <div class="lt-dialog__header">
-    <h2 class="lt-dialog__title" id="result-title">Full marks</h2>
-    <p class="lt-dialog__subtitle">25 of 25 points</p>
+    <h2 class="lt-dialog__title" id="delivered-title">Job 222-0481 delivered</h2>
+    <p class="lt-dialog__subtitle">Clean, before the deadline</p>
   </div>
   <div class="lt-dialog__body">…</div>
   <form method="dialog" class="lt-dialog__footer">…</form>
@@ -421,8 +421,8 @@ See [Customising](../../customising/) for how the variables and the layer work.
 <ScreenReaderContract component="dialog" />
 
 - The dialog needs a name. `lt.dialog({ titleId })` writes `aria-labelledby` pointing at the heading, and inside `<lt-dialog>` the component sets it from the first heading outside the body when it is missing. If you have no heading, use `aria-label`.
-- The heading should ask the question: "Delete the application?", not "Confirm".
-- The button text should say what happens. "Delete the application" is clearer than "OK", especially for someone who hears the button without seeing the heading.
+- The heading should ask the question: "Cancel job 222-0481?", not "Confirm".
+- The button text should say what happens. "Cancel the job" is clearer than "OK", especially for someone who hears the button without seeing the heading.
 - After the dialog closes, the browser returns focus to the button that opened it. If you move focus yourself in the meantime, you have to put it back.
 - Do not use a dialog for something that could have been on the page. It takes over the whole screen for someone using magnification.
 - `<lt-dialog>` always opens modally. A `show()` would give a box that looks the same, but does not trap focus and does not close on Escape. The difference is `:modal`, and it is tested in all three browser engines.

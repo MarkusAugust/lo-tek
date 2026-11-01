@@ -121,9 +121,9 @@ describe("lt from /react", () => {
      */
     // `label` because `lt.tabs()` requires a name for the tab list and throws without one.
     const extra: Record<string, unknown>[] = [
-      { id: "case" },
+      { id: "job" },
       {
-        id: "case",
+        id: "job",
         count: 2,
         keys: ["a", "b"],
         label: "Parts",
@@ -140,7 +140,7 @@ describe("lt from /react", () => {
       for (const value of values)
         extra.push({
           [option]: value,
-          id: "case",
+          id: "job",
           count: 2,
           keys: ["a", "b"],
           label: "Parts",

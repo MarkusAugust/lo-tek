@@ -69,11 +69,11 @@ describe("lt-textarea", () => {
 describe("lt-textarea accessibility", () => {
   it("has enough contrast and a label in every state", async () => {
     mount(`
-      <label class="lt-label" for="a11y-message">Message to the caseworker</label>
-      <textarea class="lt-textarea" id="a11y-message" rows="3"></textarea>
+      <label class="lt-label" for="a11y-note">Note for the fixer</label>
+      <textarea class="lt-textarea" id="a11y-note" rows="3"></textarea>
 
-      <label class="lt-label" for="a11y-reason">Reason</label>
-      <textarea class="lt-textarea" id="a11y-reason" rows="3" data-state="invalid" aria-invalid="true">Too short</textarea>
+      <label class="lt-label" for="a11y-objective">Objective</label>
+      <textarea class="lt-textarea" id="a11y-objective" rows="3" data-state="invalid" aria-invalid="true">Too short</textarea>
     `)
 
     await waitForPaint()
@@ -85,7 +85,7 @@ describe("lt-textarea without a CSS reset", () => {
   it("stays inside its box", () => {
     const { box } = mountIsolated(
       textareaCss,
-      `<textarea class="lt-textarea" rows="3">I am moving on 1 June.</textarea>`,
+      `<textarea class="lt-textarea" rows="3">The floor plans follow by the usual drop.</textarea>`,
     )
 
     expect(findOverflow(box)).toEqual([])

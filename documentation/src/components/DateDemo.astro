@@ -4,20 +4,20 @@ import Preview from "./Preview.astro"
 
 <Preview id="demo-date" styles={["field", "button", "paragraph"]} maxWidth="26rem" layout="column">
 	<lt-field>
-		<label class="lt-label" for="demo-date-born">Date of birth</label>
+		<label class="lt-label" for="demo-deliver-by">Deliver by</label>
 		<input
 			class="lt-input"
 			data-variant="date"
-			id="demo-date-born"
-			name="birth-date"
+			id="demo-deliver-by"
+			name="deliver-by"
 			type="date"
-			min="1900-01-01"
-			max="2026-12-31"
+			min="2079-01-01"
+			max="2079-12-31"
 		/>
-		<p class="lt-help-text">Type the date as 31/05/2026, or pick it in the calendar.</p>
+		<p class="lt-help-text">Type the date as 31/05/2079, or pick it in the calendar.</p>
 	</lt-field>
 
-	<p class="lt-paragraph" id="demo-date-answer">No date chosen yet.</p>
+	<p class="lt-paragraph" id="demo-date-answer">No date set. The board waits.</p>
 </Preview>
 
 <script>
@@ -27,13 +27,13 @@ import Preview from "./Preview.astro"
 
 	// The preview sits in a shadow root, so we go through the host element.
 	const surface = document.getElementById("demo-date")?.shadowRoot
-	const field = surface?.getElementById("demo-date-born") as HTMLInputElement | null
+	const field = surface?.getElementById("demo-deliver-by") as HTMLInputElement | null
 	const answer = surface?.getElementById("demo-date-answer")
 
 	field?.addEventListener("change", () => {
 		if (!answer) return
 		answer.textContent = field.value
 			? `The server receives ${field.value}, whatever the date looks like in the field.`
-			: "No date chosen yet."
+			: "No date set. The board waits."
 	})
 </script>

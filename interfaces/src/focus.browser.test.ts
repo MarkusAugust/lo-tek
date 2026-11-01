@@ -49,20 +49,20 @@ const PAGE = `
   <a class="lt-skip-link" href="#main">Skip to content</a>
 
   <nav class="lt-breadcrumbs" aria-label="You are here">
-    <ol><li><a href="#start">Start</a></li><li><a href="#case">Your case</a></li></ol>
+    <ol><li><a href="#start">Start</a></li><li><a href="#claim">Your claim</a></li></ol>
   </nav>
 
   <a class="lt-link" href="#terms">Read the terms</a>
-  <button class="lt-button" type="button">Send application</button>
+  <button class="lt-button" type="button">Order the job</button>
 
-  <label class="lt-label" for="email">Email address</label>
-  <input class="lt-input" id="email" type="email" />
+  <label class="lt-label" for="fixer">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" />
 
   <label class="lt-label" for="message">Message</label>
   <textarea class="lt-textarea" id="message"></textarea>
 
-  <label class="lt-label" for="county">County</label>
-  <select class="lt-select" id="county"><option>Yorkshire</option></select>
+  <label class="lt-label" for="building">Building</label>
+  <select class="lt-select" id="building"><option>Saltline Tower</option></select>
 
   <label class="lt-label" for="consent">I consent</label>
   <input class="lt-checkbox" id="consent" type="checkbox" />
@@ -76,9 +76,9 @@ const PAGE = `
   <label class="lt-label" for="attachment">Attachment</label>
   <input class="lt-file-upload" id="attachment" type="file" />
 
-  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Approved</button>
+  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Cutter</button>
 
-  <a class="lt-card" data-interactive href="#your-case">Your case</a>
+  <a class="lt-card" data-interactive href="#your-claim">Your claim</a>
 
   <details class="lt-accordion"><summary>What does this mean?</summary><p>The answer.</p></details>
 

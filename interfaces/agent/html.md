@@ -301,14 +301,14 @@ None of them uses shadow DOM. The content is in plain DOM, so `querySelector`,
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.39.0/dist/lotek.css">
 
-<form id="contact-form" novalidate>
+<form id="job-order" novalidate>
   <lt-field>
-    <label class="lt-label" for="name" data-required="symbol">Full name</label>
-    <input class="lt-input" id="name" type="text" name="name" required />
-    <p class="lt-error-text" hidden>Enter your name.</p>
+    <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+    <input class="lt-input" id="codename" type="text" name="codename" required />
+    <p class="lt-error-text" hidden>Enter a codename.</p>
   </lt-field>
 
-  <button class="lt-button" type="submit">Send</button>
+  <button class="lt-button" type="submit">Order the job</button>
 </form>
 
 <script type="module">
@@ -322,10 +322,10 @@ None of them uses shadow DOM. The content is in plain DOM, so `querySelector`,
 The field becomes invalid when the error text shows, not by switching a class:
 
 ```js
-const name = document.getElementById("name")
-const error = name.closest("lt-field").querySelector(".lt-error-text")
+const codename = document.getElementById("codename")
+const error = codename.closest("lt-field").querySelector(".lt-error-text")
 
-error.hidden = name.value.trim() !== ""
+error.hidden = codename.value.trim() !== ""
 ```
 
 TypeScript does not belong in a `<script type="module">`. The browser runs the

@@ -1,15 +1,15 @@
 {
   "markup": [
     {
-      "start": 125,
-      "end": 130,
+      "start": 126,
+      "end": 131,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "<lt-field> has the part \"control\" more than once. The web component only uses the first one, and this one is left out. The control the field wires: an <input>, <textarea> or <select> with its <option>s."
     },
     {
-      "start": 800,
-      "end": 807,
+      "start": 813,
+      "end": 820,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/table/",
       "message": "lt-table has the part \"caption\" more than once. It must appear once. The name of the table."
@@ -17,15 +17,15 @@
   ],
   "page": [
     {
-      "start": 125,
-      "end": 130,
+      "start": 126,
+      "end": 131,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "<lt-field> has the part \"control\" more than once. The web component only uses the first one, and this one is left out. The control the field wires: an <input>, <textarea> or <select> with its <option>s."
     },
     {
-      "start": 800,
-      "end": 807,
+      "start": 813,
+      "end": 820,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/table/",
       "message": "lt-table has the part \"caption\" more than once. It must appear once. The name of the table."

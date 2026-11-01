@@ -18,11 +18,11 @@ import "./tabs.css"
 const BARE = `
   <lt-tabs>
     <ul class="lt-tabs__list">
-      <li><a href="#application">Application</a></li>
+      <li><a href="#claim">Claim</a></li>
       <li><a href="#attachments">Attachments</a></li>
       <li><a href="#messages">Messages</a></li>
     </ul>
-    <section class="lt-tabs__panel" id="application">Application</section>
+    <section class="lt-tabs__panel" id="claim">Claim</section>
     <section class="lt-tabs__panel" id="attachments">Attachments <p id="in-attachments">Inside</p></section>
     <section class="lt-tabs__panel" id="messages">Messages</section>
   </lt-tabs>`
@@ -69,12 +69,7 @@ describe("tabs.css before the component is registered", () => {
   })
 
   it("lets the server's hidden decide which panel is the first visible one", async () => {
-    mount(
-      BARE.replace(
-        'id="application">Application',
-        'id="application" hidden>Application',
-      ),
-    )
+    mount(BARE.replace('id="claim">Claim', 'id="claim" hidden>Claim'))
     await waitForPaint()
 
     expect(displays()).toEqual(["none", "block", "none"])
@@ -122,8 +117,8 @@ describe("tabs.css before the component is registered", () => {
   it("puts the server's hidden before the address", async () => {
     mount(
       BARE.replace('id="messages">', 'id="messages" hidden>').replace(
-        'id="application">',
-        'id="application" hidden>',
+        'id="claim">',
+        'id="claim" hidden>',
       ),
     )
     await goTo("#messages")

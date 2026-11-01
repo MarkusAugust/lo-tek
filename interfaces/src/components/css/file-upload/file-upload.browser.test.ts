@@ -18,28 +18,28 @@ import "../button/button.css"
 describe("lt-file-upload", () => {
   beforeEach(() => {
     mount(`
-      <label class="lt-label" for="attachments">Upload attachments</label>
-      <input class="lt-file-upload" type="file" id="attachments" multiple
-        accept=".pdf,.jpg" aria-describedby="attachments-help" />
-      <p class="lt-help-text" id="attachments-help">PDF or image, up to 10 MB per file.</p>
+      <label class="lt-label" for="firmware">Upload firmware</label>
+      <input class="lt-file-upload" type="file" id="firmware" multiple
+        accept=".bin" aria-describedby="firmware-help" />
+      <p class="lt-help-text" id="firmware-help">Deck firmware (.bin, up to 64 MB). Dump it before I open anything.</p>
 
       <ul class="lt-file-upload-list">
-        <li>birth-certificate.pdf <button class="lt-button" data-variant="ghost" type="button">Remove birth-certificate.pdf</button></li>
+        <li>firmware-0331.bin <button class="lt-button" data-variant="ghost" type="button">Remove firmware-0331.bin</button></li>
       </ul>
     `)
   })
 
   it("is a plain file input", () => {
-    const input = document.getElementById("attachments") as HTMLInputElement
+    const input = document.getElementById("firmware") as HTMLInputElement
 
     expect(input.type).toBe("file")
     expect(input.multiple).toBe(true)
-    expect(input.accept).toBe(".pdf,.jpg")
+    expect(input.accept).toBe(".bin")
   })
 
   it("styles the browser's own button inside the input", () => {
     const button = getComputedStyle(
-      document.getElementById("attachments") as Element,
+      document.getElementById("firmware") as Element,
       "::file-selector-button",
     )
 
@@ -49,12 +49,12 @@ describe("lt-file-upload", () => {
   it("sets the attributes from the builder function", () => {
     expect(fileUpload()).toEqual({ class: "lt-file-upload", type: "file" })
     expect(
-      fileUpload({ multiple: true, accept: ".pdf", state: "invalid" }),
+      fileUpload({ multiple: true, accept: ".bin", state: "invalid" }),
     ).toEqual({
       class: "lt-file-upload",
       type: "file",
       multiple: true,
-      accept: ".pdf",
+      accept: ".bin",
       "data-state": "invalid",
       "aria-invalid": "true",
     })

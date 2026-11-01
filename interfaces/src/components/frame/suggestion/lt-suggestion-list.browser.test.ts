@@ -27,16 +27,16 @@ import "../../../tokens/tokens.css"
 import "./suggestion.css"
 import "../../css/sr-only/sr-only.css"
 
-const CITIES = ["Bristol", "Leeds", "London", "York"]
-const KEYS = ["bristol", "leeds", "london", "york"]
+const BREAKERS = ["Crowbar", "Glasscutter", "Lockjaw", "Needle"]
+const KEYS = ["crowbar", "glasscutter", "lockjaw", "needle"]
 
 /** The way a template writes it without the builder function: no roles, no name on the list. */
 const BARE = `
   <lt-suggestion>
-    <label class="lt-label" for="city">City</label>
-    <input class="lt-input" id="city" name="city">
+    <label class="lt-label" for="breaker">Breaker</label>
+    <input class="lt-input" id="breaker" name="breaker">
     <ul class="lt-suggestion__list">
-      ${CITIES.map((k) => `<li>${k}</li>`).join("")}
+      ${BREAKERS.map((k) => `<li>${k}</li>`).join("")}
     </ul>
     <span class="lt-sr-only" role="status"></span>
   </lt-suggestion>`
@@ -44,21 +44,21 @@ const BARE = `
 /** The label around the field, with no id on anything. */
 const WRAPPED = `
   <lt-suggestion>
-    <label class="lt-label">City <input class="lt-input" name="city"></label>
+    <label class="lt-label">Breaker <input class="lt-input" name="breaker"></label>
     <ul class="lt-suggestion__list">
-      ${CITIES.map((k) => `<li>${k}</li>`).join("")}
+      ${BREAKERS.map((k) => `<li>${k}</li>`).join("")}
     </ul>
     <span class="lt-sr-only" role="status"></span>
   </lt-suggestion>`
 
 function fromBuilderFunction(choices: { pending?: boolean } = {}) {
-  const f = suggestion({ id: "city", keys: KEYS, ...choices })
+  const f = suggestion({ id: "breaker", keys: KEYS, ...choices })
   return `
   <lt-suggestion>
-    <label ${attr(f.label)}>City</label>
-    <input ${attr(f.control)} name="city">
+    <label ${attr(f.label)}>Breaker</label>
+    <input ${attr(f.control)} name="breaker">
     <ul ${attr(f.list)}>
-      ${f.options.map((o, i) => `<li ${attr(o)}>${CITIES[i]}</li>`).join("")}
+      ${f.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("")}
     </ul>
     <p ${attr(f.empty)}>No matches</p>
     <span ${attr(f.status)}></span>
@@ -94,7 +94,7 @@ describe("the list has a name", () => {
   it("from the label, when the markup came without one", async () => {
     mount(BARE)
     await paint()
-    expect(wiredName(list())).toBe("City")
+    expect(wiredName(list())).toBe("Breaker")
   })
 
   it("from the label around the field, with no id on the label or the field", async () => {
@@ -102,29 +102,29 @@ describe("the list has a name", () => {
     // label, and the field in it. The name is then the text, without the value.
     mount(WRAPPED)
     await paint()
-    field().value = "Lon"
+    field().value = "Loc"
     field().dispatchEvent(new Event("input", { bubbles: true }))
     await paint()
-    expect(wiredName(list())).toBe("City")
+    expect(wiredName(list())).toBe("Breaker")
     expect(document.querySelector("label")?.hasAttribute("id")).toBe(false)
     expect(field().hasAttribute("id")).toBe(false)
   })
 
   it("from the builder function, without the component writing anything", async () => {
     mount(fromBuilderFunction())
-    expect(list().getAttribute("aria-labelledby")).toBe("city-label")
-    expect(document.querySelector("label")?.id).toBe("city-label")
+    expect(list().getAttribute("aria-labelledby")).toBe("breaker-label")
+    expect(document.querySelector("label")?.id).toBe("breaker-label")
   })
 
   it("leaves a name the server wrote alone", async () => {
     mount(
       BARE.replace(
         '<ul class="lt-suggestion__list">',
-        '<ul class="lt-suggestion__list" aria-label="Cities in the region">',
+        '<ul class="lt-suggestion__list" aria-label="Breakers in stock">',
       ),
     )
     await paint()
-    expect(list().getAttribute("aria-label")).toBe("Cities in the region")
+    expect(list().getAttribute("aria-label")).toBe("Breakers in stock")
     expect(list().hasAttribute("aria-labelledby")).toBe(false)
   })
 

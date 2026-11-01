@@ -5,32 +5,32 @@ description: A message about the whole page or the whole form. CSS component wit
 
 import Example from "../../../components/Example.astro"
 
-A box that says something about the whole: that the application was sent, that the service is down, that the deadline is approaching. If the message is about one field, it belongs under the field as an [Error Text](../error-text/) or a [Help Text](../help-text/).
+A box that says something about the whole: that a route was saved, that a sector is dark, that a maintenance window is approaching. If the message is about one field, it belongs under the field as an [Error Text](../error-text/) or a [Help Text](../help-text/).
 
 ## How to use it
 
 <Example imports={["tokens.css", "alert.css"]}
   styles={["alert"]} layout="stack" maxWidth="34rem" code={`
 <div class="lt-alert">
-  <p class="lt-alert__title">Your case has been registered</p>
-  <p>You will get a reply within three weeks.</p>
+  <p class="lt-alert__title">Incident LAT-0412 has been logged</p>
+  <p>The duty crew reports back within the hour.</p>
 </div>
 
 <div class="lt-alert" data-color="info">
-  <p>We have updated the service. You need to sign in again.</p>
+  <p>The console has been updated. You need to sign in again.</p>
 </div>
 
 <div class="lt-alert" data-color="success">
-  <p>Your application has been sent. A receipt is on its way to your email.</p>
+  <p>Relay 14 is back. Traffic for sector 9 runs through it again.</p>
 </div>
 
 <div class="lt-alert" data-color="warning">
-  <p>The application deadline is in three days.</p>
+  <p>Someone is on the wire in sector 3.</p>
 </div>
 
 <div class="lt-alert" data-color="danger">
-  <p class="lt-alert__title">Your application was not sent</p>
-  <p>The network did not respond. Try again in a moment.</p>
+  <p class="lt-alert__title">Sector 9 is dark</p>
+  <p>Crews are on the way.</p>
 </div>
 `}>
 <Fragment slot="ts">
@@ -43,7 +43,7 @@ A box that says something about the whole: that the application was sent, that t
 import { lt } from "@lo-tek/interfaces/react"
 
 <div {...lt.alert({ color: "success" })}>
-  <p>Your application has been sent. A receipt is on its way to your email.</p>
+  <p>Relay 14 is back. Traffic for sector 9 runs through it again.</p>
 </div>
 ```
 
@@ -90,8 +90,8 @@ The role is not part of `data-color`, because it depends on *when* the message a
 
 ```html
 <div class="lt-alert" data-color="danger" role="alert">
-  <p class="lt-alert__title">Your application was not sent</p>
-  <p>The network did not respond. Try again in a moment.</p>
+  <p class="lt-alert__title">Your routes were not saved</p>
+  <p>The wire did not respond. Try again in a moment.</p>
 </div>
 ```
 

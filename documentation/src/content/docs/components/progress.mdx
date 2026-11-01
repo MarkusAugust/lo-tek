@@ -13,13 +13,13 @@ If you do not know how far it has got, [Spinner](../spinner/) is the better fit.
 
 <Example imports={["tokens.css", "progress.css"]}
   styles={["progress"]} layout="stack" maxWidth="26rem" code={`
-<progress class="lt-progress" value="3" max="7"
-          aria-label="Application progress" aria-valuetext="Step 3 of 7"></progress>
+<progress class="lt-progress" value="27" max="30"
+          aria-label="Subscription CM-2079-0090" aria-valuetext="Your walls expire in 3 days."></progress>
 
 <progress class="lt-progress" value="100" max="100" data-color="success"
-          aria-label="Upload complete"></progress>
+          aria-label="Renewal paid"></progress>
 
-<progress class="lt-progress" aria-label="Fetching your applications"></progress>
+<progress class="lt-progress" aria-label="Checking your walls"></progress>
 `}>
 <Fragment slot="ts">
 
@@ -30,17 +30,17 @@ If you do not know how far it has got, [Spinner](../spinner/) is the better fit.
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<progress {...lt.progress({ value: 3, max: 7, label: "Application progress", valueText: "Step 3 of 7" })} />
+<progress {...lt.progress({ value: 27, max: 30, label: "Subscription CM-2079-0090", valueText: "Your walls expire in 3 days." })} />
 ```
 
-`valueText` becomes `aria-valuetext`, and the screen reader reads it instead of the percentage. `max` is rarely announced, so "43 percent" is all the user gets without it; "Step 3 of 7" says how many steps are left.
+`valueText` becomes `aria-valuetext`, and the screen reader reads it instead of the percentage. `max` is rarely announced, so "90 percent" is all the user gets without it; "Your walls expire in 3 days." says how many days are left.
 
 The import goes to `/react` here, since the block is JSX. From there the keys are called `className` and `htmlFor`. In Astro and anything else without React you import `@lo-tek/interfaces` and get `class` and `for`.
 
 **If you update the number while something is in progress,** you set the property on the element. That is the browser's own API, and it is faster than rebuilding the attributes for every step:
 
 ```ts
-const bar = document.querySelector<HTMLProgressElement>("#upload")
+const bar = document.querySelector<HTMLProgressElement>("#update")
 
 if (bar) bar.value = 64
 ```
@@ -67,7 +67,7 @@ That bar is full, not 40 percent, and nothing tells you. If you write the markup
 If you leave out `value`, the bar becomes indeterminate, and a stripe sweeps across it. It says "something is in progress" without promising a number:
 
 ```html
-<progress class="lt-progress" aria-label="Fetching your applications"></progress>
+<progress class="lt-progress" aria-label="Checking your walls"></progress>
 ```
 
 That is the same thing [Spinner](../spinner/) says. Choose one of them in a given place, otherwise the page reports the same wait twice.
@@ -76,16 +76,16 @@ That is the same thing [Spinner](../spinner/) says. Choose one of them in a give
 
 <Example styles={["progress"]} layout="stack" maxWidth="26rem" code={`
 <progress class="lt-progress" value="72" max="100"
-          aria-label="Uploading attachment"></progress>
+          aria-label="Installing the ICE update"></progress>
 
 <progress class="lt-progress" value="100" max="100" data-color="success"
-          aria-label="Upload complete"></progress>
+          aria-label="Renewal paid"></progress>
 
 <progress class="lt-progress" value="88" max="100" data-color="warning"
-          aria-label="Storage is almost full"></progress>
+          aria-label="The intrusion log is almost full"></progress>
 
 <progress class="lt-progress" value="18" max="100" data-color="danger"
-          aria-label="Upload stopped"></progress>
+          aria-label="The ICE update stopped"></progress>
 `} />
 
 | `data-color` | Used for |
@@ -124,10 +124,10 @@ An example. A bar under a field should often be thinner and without corners:
 }
 `} code={`
 <progress class="lt-progress" value="60" max="100"
-          aria-label="Default"></progress>
+          aria-label="Scanning the perimeter"></progress>
 
 <progress class="lt-progress thin-bar" value="60" max="100"
-          aria-label="Uploading attachment"></progress>
+          aria-label="Installing the ICE update"></progress>
 `} />
 
 See [Customising](../../customising/) for how the variables and the layer work.

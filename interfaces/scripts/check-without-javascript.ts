@@ -37,18 +37,18 @@ const axeSource = await Bun.file(
   createRequire(import.meta.url).resolve("axe-core/axe.min.js"),
 ).text()
 
-const NAMES = ["Application", "Attachments", "Messages"]
-const KEYS = ["application", "attachments", "messages"]
+const NAMES = ["Claim", "Attachments", "Messages"]
+const KEYS = ["claim", "attachments", "messages"]
 
 const HANDWRITTEN = `
   <lt-tabs>
-    <ul class="lt-tabs__list" aria-label="Parts of the case">
+    <ul class="lt-tabs__list" aria-label="Parts of the claim">
       ${NAMES.map((n, i) => `<li><a href="#${KEYS[i]}">${n}</a></li>`).join("")}
     </ul>
     ${NAMES.map((n, i) => `<section class="lt-tabs__panel" id="${KEYS[i]}"><h2>${n}</h2><p>The contents of ${n.toLowerCase()}.</p></section>`).join("")}
   </lt-tabs>`
 
-const tabSet = tabs({ id: "case", keys: KEYS, label: "Parts of the case" })
+const tabSet = tabs({ id: "file", keys: KEYS, label: "Parts of the claim" })
 const fromBuilder = tabSet as unknown as {
   list: Record<string, unknown>
   item?: Record<string, unknown>
@@ -68,7 +68,7 @@ const SOURCES = { "written by hand": HANDWRITTEN, "lt.tabs()": FROM_BUILDER }
 
 function pageFor(markup: string, style = css): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Without JavaScript</title>
-<style>${style}</style></head><body><main><h1>The case</h1>${markup}</main></body></html>`
+<style>${style}</style></head><body><main><h1>The claim</h1>${markup}</main></body></html>`
 }
 
 function markupFor(source: string): string {
@@ -110,7 +110,7 @@ async function check(engine: string, page: Page, source: string) {
     if (!p.visible || p.height === 0 || !p.text)
       report("A1", `the panel "${p.id}" is not shown without JavaScript.`)
   // In order: every panel below the previous one, in the order of the links.
-  const order = panels.map((p) => p.id.replace(/^case-/, "")).join(" ")
+  const order = panels.map((p) => p.id.replace(/^file-/, "")).join(" ")
   if (order !== KEYS.join(" "))
     report(
       "A1",
@@ -157,7 +157,7 @@ async function check(engine: string, page: Page, source: string) {
     if (href) visited.push(href)
   }
   const expected = KEYS.map((n) =>
-    source === "lt.tabs()" ? `#case-${n}` : `#${n}`,
+    source === "lt.tabs()" ? `#file-${n}` : `#${n}`,
   )
   if (visited.join(" ") !== expected.join(" "))
     report(

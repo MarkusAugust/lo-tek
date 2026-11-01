@@ -12,20 +12,20 @@ A confirmation is an interruption. It is worth it when the action cannot be undo
 ## The markup
 
 ```html
-<button class="lt-button" data-variant="danger" id="delete" type="button">
-  Delete the application
+<button class="lt-button" data-variant="danger" id="cancel-job" type="button">
+  Cancel the job
 </button>
 
 <dialog class="lt-dialog" id="confirm" aria-labelledby="confirm-title">
-  <h2 class="lt-dialog__title" id="confirm-title">Delete the application?</h2>
+  <h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2>
 
   <div class="lt-dialog__body">
-    <p>The application and its attachments will be gone. This cannot be undone.</p>
+    <p>The crew keeps the advance. This cannot be undone.</p>
   </div>
 
   <form method="dialog" class="lt-dialog__footer">
-    <button class="lt-button" data-variant="secondary" value="cancel">Cancel</button>
-    <button class="lt-button" data-variant="danger" value="delete">Delete the application</button>
+    <button class="lt-button" data-variant="secondary" value="keep">Keep the job</button>
+    <button class="lt-button" data-variant="danger" value="cancel">Cancel the job</button>
   </form>
 </dialog>
 
@@ -40,17 +40,17 @@ A confirmation is an interruption. It is worth it when the action cannot be undo
   const dialog = document.getElementById("confirm")
   const messages = document.getElementById("messages")
 
-  document.getElementById("delete").addEventListener("click", () => {
+  document.getElementById("cancel-job").addEventListener("click", () => {
     // Escape and close() without a value leave the previous value in place.
     dialog.returnValue = ""
     dialog.showModal()
   })
 
   dialog.addEventListener("close", async () => {
-    if (dialog.returnValue !== "delete") return
+    if (dialog.returnValue !== "cancel") return
 
-    await deleteApplication()
-    messages.show("The application has been deleted", { color: "success" })
+    await cancelJob()
+    messages.show("Job 222-0481 has been cancelled", { color: "success" })
   })
 </script>
 ```
@@ -63,9 +63,9 @@ A confirmation is an interruption. It is worth it when the action cannot be undo
 
 | Where | Write | Do not write |
 | --- | --- | --- |
-| The heading | The question: "Delete the application?" | "Are you sure?", "Confirm" |
-| The body text | What happens: "The application and its attachments will be gone." | "This action cannot be undone." on its own |
-| The button | The action: "Delete the application" | "OK", "Yes" |
+| The heading | The question: "Cancel job 222-0481?" | "Are you sure?", "Confirm" |
+| The body text | What happens: "The crew keeps the advance." | "This action cannot be undone." on its own |
+| The button | The action: "Cancel the job" | "OK", "Yes" |
 
 The button text matters most. Someone who hears the dialog without seeing the heading hears only the buttons. "OK" says nothing about what is about to happen.
 
@@ -74,13 +74,13 @@ The button text matters most. Someone who hears the dialog without seeing the he
 The action is done, and the user needs to know. A toast in the corner is enough for something that went well:
 
 ```js
-messages.show("The application has been deleted", { color: "success" })
+messages.show("Job 222-0481 has been cancelled", { color: "success" })
 ```
 
 But the toast disappears. So:
 
 - **The undo button does not belong there.** If the action should be undoable, the button belongs in the page, and then perhaps a confirmation was not what you needed.
-- **Nor does an error.** If the deletion failed, that is an [Alert](../../components/alert/) in the page, or a toast with `duration: 0` that stays.
+- **Nor does an error.** If the cancellation failed, that is an [Alert](../../components/alert/) in the page, or a toast with `duration: 0` that stays.
 - **Focus has to go somewhere.** The browser returns focus to the button that opened the dialog. If that button is gone, because the row it was in has been deleted, you have to move focus yourself, for example to the heading of the list.
 
 ## When not to confirm
@@ -90,7 +90,7 @@ If the action can be undone, undo is better than confirmation. An extra click ev
 Confirmation is right when:
 
 - something disappears for good
-- something is sent to others, such as an application or a message
+- something is sent to others, such as an order or a message
 - something costs money
 
 Confirmation is wrong when the action is merely inconvenient to redo. Then you create a dialog everyone clicks away without reading, and the next time it matters, they do the same.

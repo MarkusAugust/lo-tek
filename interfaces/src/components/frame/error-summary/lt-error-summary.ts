@@ -49,7 +49,7 @@ export const LT_ERROR_SUMMARY_PARTS = {
  * <lt-error-summary>
  *   <h2>The form has two errors</h2>
  *   <ul class="lt-list">
- *     <li><a href="#email">Enter a valid email address</a></li>
+ *     <li><a href="#fixer">Enter a valid address</a></li>
  *   </ul>
  * </lt-error-summary>
  * ```

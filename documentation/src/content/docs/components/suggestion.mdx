@@ -6,6 +6,11 @@ description: Field with a suggestion list that narrows as the user types. Frame 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
 import SuggestionDemo from "../../../components/SuggestionDemo.astro"
 import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
+import Epigraph from "../../../components/Epigraph.astro"
+
+<Epigraph source="Ledger">
+  “Everything comes back. Late, or in pieces, but it comes back.”
+</Epigraph>
 
 The server writes the field and the list. The component filters as the user types, handles the arrow keys, and announces the number of matches to screen readers.
 
@@ -43,12 +48,12 @@ defineLtSuggestion()
     <!-- You write for and id, so the field has a name without JavaScript. The
          component sets the roles and the wiring to the list. You write the
          status element: that is where the number of matches is announced. -->
-    <lt-suggestion id="airport-search">
-      <label class="lt-label" for="airport">Airport</label>
-      <input class="lt-input" id="airport" name="airport" type="text">
+    <lt-suggestion id="breaker-search">
+      <label class="lt-label" for="breaker">Breaker</label>
+      <input class="lt-input" id="breaker" name="breaker" type="text">
       <ul class="lt-suggestion__list">
-        <li>Bergen</li>
-        <li>Malmö</li>
+        <li>Crowbar</li>
+        <li>Needle</li>
       </ul>
       <p class="lt-suggestion__empty">No matches</p>
       <span class="lt-sr-only" role="status"></span>
@@ -63,7 +68,7 @@ defineLtSuggestion()
     </script>
 
     <script type="module">
-      document.getElementById("airport-search").addEventListener("suggestion-select", (evt) => {
+      document.getElementById("breaker-search").addEventListener("suggestion-select", (evt) => {
         console.log("selected", evt.detail.label, evt.detail.value)
       })
     </script>
@@ -83,24 +88,24 @@ defineLtSuggestion()
 
     defineLtSuggestion()
 
-    // The key is the airport code: it gives the option a stable id.
-    const AIRPORTS = [
-      { code: "BGO", name: "Bergen" },
-      { code: "MMX", name: "Malmö" },
-      { code: "OSL", name: "Oslo" },
-      { code: "ZRH", name: "Zürich" },
+    // The key is the catalogue number: it gives the option a stable id.
+    const BREAKERS = [
+      { code: "LDG-117", name: "Crowbar" },
+      { code: "LDG-042", name: "Needle" },
+      { code: "LDG-063", name: "Lockjaw" },
+      { code: "LDG-088", name: "Saltwater" },
     ]
 
-    export function AirportSearch() {
-      const suggestion = lt.suggestion({ id: "airport", keys: AIRPORTS.map((a) => a.code) })
+    export function BreakerSearch() {
+      const suggestion = lt.suggestion({ id: "breaker", keys: BREAKERS.map((b) => b.code) })
 
       return (
         <lt-suggestion>
-          <label {...suggestion.label}>Airport</label>
-          <input {...suggestion.control} name="airport" />
+          <label {...suggestion.label}>Breaker</label>
+          <input {...suggestion.control} name="breaker" />
           <ul {...suggestion.list}>
             {suggestion.options.map((option, i) => (
-              <li key={option.id} {...option}>{AIRPORTS[i].name}</li>
+              <li key={option.id} {...option}>{BREAKERS[i].name}</li>
             ))}
           </ul>
           <p {...suggestion.empty}>No matches</p>
@@ -119,21 +124,21 @@ defineLtSuggestion()
     import "@lo-tek/interfaces/tokens.css"
     import "@lo-tek/interfaces/suggestion.css"
 
-    const airports = [
-      { code: "BGO", name: "Bergen" },
-      { code: "MMX", name: "Malmö" },
-      { code: "OSL", name: "Oslo" },
-      { code: "ZRH", name: "Zürich" },
+    const breakers = [
+      { code: "LDG-117", name: "Crowbar" },
+      { code: "LDG-042", name: "Needle" },
+      { code: "LDG-063", name: "Lockjaw" },
+      { code: "LDG-088", name: "Saltwater" },
     ]
-    const suggestion = lt.suggestion({ id: "airport", keys: airports.map((a) => a.code) })
+    const suggestion = lt.suggestion({ id: "breaker", keys: breakers.map((b) => b.code) })
 
     ---
 
     <lt-suggestion>
-      <label {...suggestion.label}>Airport</label>
-      <input {...suggestion.control} name="airport" />
+      <label {...suggestion.label}>Breaker</label>
+      <input {...suggestion.control} name="breaker" />
       <ul {...suggestion.list}>
-        {suggestion.options.map((option, i) => <li {...option}>{airports[i].name}</li>)}
+        {suggestion.options.map((option, i) => <li {...option}>{breakers[i].name}</li>)}
       </ul>
       <p {...suggestion.empty}>No matches</p>
       <span {...suggestion.status}></span>
@@ -169,43 +174,43 @@ defineLtSuggestion()
     </script>
 
     <lt-suggestion prefiltered
-                   data-on:input__debounce.300ms="@get('/airports?q=' + evt.target.value)"
-                   data-on:suggestion-select="$airport = evt.detail.value">
-      <label class="lt-label" for="airport">Airport</label>
-      <input class="lt-input" id="airport" name="airport" type="text">
-      <ul class="lt-suggestion__list" id="airports"></ul>
+                   data-on:input__debounce.300ms="@get('/breakers?q=' + evt.target.value)"
+                   data-on:suggestion-select="$breaker = evt.detail.value">
+      <label class="lt-label" for="breaker">Breaker</label>
+      <input class="lt-input" id="breaker" name="breaker" type="text">
+      <ul class="lt-suggestion__list" id="breakers"></ul>
       <span class="lt-sr-only" role="status"></span>
     </lt-suggestion>
     ```
 
-    The server answers with the list, `<ul class="lt-suggestion__list" id="airports">` with the new `<li>` elements, and Datastar morphs it by its id. The id comes from the server, and the component leaves it alone. Here the server decides which options are shown, hence `prefiltered`. The component wires itself to the options the server sends, so choosing with the mouse also works after an update.
+    The server answers with the list, `<ul class="lt-suggestion__list" id="breakers">` with the new `<li>` elements, and Datastar morphs it by its id. The id comes from the server, and the component leaves it alone. Here the server decides which options are shown, hence `prefiltered`. The component wires itself to the options the server sends, so choosing with the mouse also works after an update.
   </TabItem>
 </Tabs>
 
 ## The markup
 
 ```ts
-const suggestion = lt.suggestion({ id: "airport", keys: ["BGO", "MMX"], help: true })
+const suggestion = lt.suggestion({ id: "breaker", keys: ["LDG-117", "LDG-042"], help: true })
 ```
 
 ```html
 <lt-suggestion>
-  <label class="lt-label" for="airport" id="airport-label">Airport</label>
-  <input class="lt-input" id="airport" name="airport" type="text" role="combobox"
-         autocomplete="off" aria-expanded="false" aria-controls="airport-list"
-         aria-autocomplete="list" aria-describedby="airport-help airport-status">
+  <label class="lt-label" for="breaker" id="breaker-label">Breaker</label>
+  <input class="lt-input" id="breaker" name="breaker" type="text" role="combobox"
+         autocomplete="off" aria-expanded="false" aria-controls="breaker-list"
+         aria-autocomplete="list" aria-describedby="breaker-help breaker-status">
 
-  <ul class="lt-suggestion__list" id="airport-list" role="listbox"
-      aria-labelledby="airport-label" popover="manual" hidden>
-    <li class="lt-suggestion__option" id="airport-option-BGO" role="option"
-        aria-selected="false">Bergen</li>
-    <li class="lt-suggestion__option" id="airport-option-MMX" role="option"
-        aria-selected="false">Malmö</li>
+  <ul class="lt-suggestion__list" id="breaker-list" role="listbox"
+      aria-labelledby="breaker-label" popover="manual" hidden>
+    <li class="lt-suggestion__option" id="breaker-option-LDG-117" role="option"
+        aria-selected="false">Crowbar</li>
+    <li class="lt-suggestion__option" id="breaker-option-LDG-042" role="option"
+        aria-selected="false">Needle</li>
   </ul>
 
   <p class="lt-suggestion__empty" hidden>No matches</p>
-  <span class="lt-sr-only" id="airport-status" role="status"></span>
-  <p class="lt-help-text" id="airport-help">We show the departures from the airport you choose.</p>
+  <span class="lt-sr-only" id="breaker-status" role="status"></span>
+  <p class="lt-help-text" id="breaker-help">EB 100 a night. Every night late costs the same again.</p>
 </lt-suggestion>
 ```
 
@@ -213,28 +218,28 @@ The field is a real `<input>` with `name`, so it is included in the submission b
 
 When the markup comes from a template without JavaScript, the template writes `for` on the label and `id` on the field, as the "Plain HTML" recipe shows, or puts the label around the field. The component sets the roles, gives the list and the options ids, writes `aria-controls` on the field, and keeps the list closed until the user touches the field. Every `<li>` in the list becomes an option; a heading in the list needs `role="presentation"` to be left alone. What the server wrote stays, and what the component filled in is put back if an update removes it. The status element must be in the markup: it is content the server sends, and without it the number of matches is not announced.
 
-The component never writes an id on the field. Datastar and idiomorph recognise an element by its id, and a field with an id the server did not send would be replaced on the next update, along with focus and what the user has typed. The component writes `for` on the label from the field's id when the label is not around the field, as `<lt-field>` does; write it in the template too, since that is what gives the field a name without JavaScript. The options get ids from the key in `keys`, like the airport code, so an update recognises them. A key that is empty, contains whitespace or appears twice throws, in TypeScript as in Kotlin. If the ids are missing, as in a template without a builder function, the component gives the list and the options ids. If the server sends the whole list again, they are replaced, and that costs nothing: the component wires them again and finds the highlighted option again by its text.
+The component never writes an id on the field. Datastar and idiomorph recognise an element by its id, and a field with an id the server did not send would be replaced on the next update, along with focus and what the user has typed. The component writes `for` on the label from the field's id when the label is not around the field, as `<lt-field>` does; write it in the template too, since that is what gives the field a name without JavaScript. The options get ids from the key in `keys`, like the catalogue number, so an update recognises them. A key that is empty, contains whitespace or appears twice throws, in TypeScript as in Kotlin. If the ids are missing, as in a template without a builder function, the component gives the list and the options ids. If the server sends the whole list again, they are replaced, and that costs nothing: the component wires them again and finds the highlighted option again by its text.
 
 ### Text and code
 
-The field always shows the text of the option the user chose. If the form should submit a code, like the airport code, give the options `data-value` and write a hidden field for the code:
+The field always shows the text of the option the user chose. If the form should submit a code, like the catalogue number, give the options `data-value` and write a hidden field for the code:
 
 ```html
 <lt-suggestion>
-  <label class="lt-label" for="airport">Airport</label>
-  <input class="lt-input" id="airport" name="airport-text" type="text">
-  <input class="lt-suggestion__value" type="hidden" name="airport">
+  <label class="lt-label" for="breaker">Breaker</label>
+  <input class="lt-input" id="breaker" name="breaker-text" type="text">
+  <input class="lt-suggestion__value" type="hidden" name="breaker">
   <ul class="lt-suggestion__list">
-    <li data-value="BGO">Bergen</li>
-    <li data-value="MMX">Malmö</li>
+    <li data-value="LDG-117">Crowbar</li>
+    <li data-value="LDG-042">Needle</li>
   </ul>
   <span class="lt-sr-only" role="status"></span>
 </lt-suggestion>
 ```
 
-The component writes the code in the hidden field when the user chooses, and clears it again when the user changes the text, so the form never submits the code for Bergen with "Malmö" in the field. When the form is reset, the text goes back to what the server sent, and the code follows the text: the code the server sent when the text is the server's, otherwise the chosen one, otherwise the option with that text, otherwise none. The field gets `input` and `change` when the code is written, so `data-bind` sees it; the events do not bubble, so a `data-on:input` on `<lt-suggestion>` that fetches suggestions is not triggered by them. An update from the server that clears the hidden field gets the code back as long as the text is the chosen one. `suggestion-select` has both: `evt.detail.label` is the text and `evt.detail.value` the code.
+The component writes the code in the hidden field when the user chooses, and clears it again when the user changes the text, so the form never submits the code for Crowbar with "Needle" in the field. When the form is reset, the text goes back to what the server sent, and the code follows the text: the code the server sent when the text is the server's, otherwise the chosen one, otherwise the option with that text, otherwise none. The field gets `input` and `change` when the code is written, so `data-bind` sees it; the events do not bubble, so a `data-on:input` on `<lt-suggestion>` that fetches suggestions is not triggered by them. An update from the server that clears the hidden field gets the code back as long as the text is the chosen one. `suggestion-select` has both: `evt.detail.label` is the text and `evt.detail.value` the code.
 
-Without JavaScript the text is submitted with an empty field for the code, and the server looks up the code itself. If the text is ambiguous, like Portland, which has an airport in both Oregon and Maine, the server answers with a page where the user chooses. The code is then in two places, in `data-value` and in the hidden field, and that is a deliberate choice: HTML has no element that shows one text and submits another value when the user can also type freely. `lt.suggestion()` gives the hidden field as `suggestion.value`; you write `name` yourself.
+Without JavaScript the text is submitted with an empty field for the code, and the server looks up the code itself. If the text is ambiguous, like Needle, which the catalogue has two of, the server answers with a page where the user chooses. The code is then in two places, in `data-value` and in the hidden field, and that is a deliberate choice: HTML has no element that shows one text and submits another value when the user can also type freely. `lt.suggestion()` gives the hidden field as `suggestion.value`; you write `name` yourself.
 
 ## When someone else filters
 
@@ -248,9 +253,9 @@ If you filter on exactly the same thing, that the text contains the search term,
 
 | Your filter | What happens without `prefiltered` |
 | --- | --- |
-| Search without diacritics, `malmo` finds `Malmö` | The component hides Malmö, and the list looks empty |
-| Search on a code that is not shown, `BGO` | The same |
-| Fuzzy search, `zurik` finds `Zürich` | The matches the component does not recognise disappear |
+| Search on a street name, `spike` finds `Needle` | The component hides Needle, and the list looks empty |
+| Search on a code that is not shown, `LDG-117` | The same |
+| Fuzzy search, `lokjaw` finds `Lockjaw` | The matches the component does not recognise disappear |
 | Asynchronous search | The list flickers while the answer is on its way |
 
 If you render only the matches, and your filter is narrower than the component's, like `startsWith`, it is safe on the other hand: everything you keep also contains the search term, so the component hides none of it. `prefiltered` is still right for the empty message, as explained below.
@@ -258,14 +263,14 @@ If you render only the matches, and your filter is narrower than the component's
 This applies as much in React as in Datastar. In React it is easy to miss, because no server is involved:
 
 ```tsx
-// Search without diacritics. The component's own filter would hide Malmö again.
-const matches = airports.filter((a) => withoutDiacritics(a.name).includes(withoutDiacritics(query)))
-const suggestion = lt.suggestion({ id: "airport", keys: matches.map((a) => a.code) })
+// Search on the street names too. The component's own filter would hide Needle again.
+const matches = breakers.filter((b) => [b.name, ...b.streetNames].some((n) => n.toLowerCase().includes(query.toLowerCase())))
+const suggestion = lt.suggestion({ id: "breaker", keys: matches.map((b) => b.code) })
 
 <lt-suggestion prefiltered>
   …
   <ul {...suggestion.list}>
-    {matches.map((a, i) => <li {...suggestion.options[i]} key={a.code}>{a.name}</li>)}
+    {matches.map((b, i) => <li {...suggestion.options[i]} key={b.code}>{b.name}</li>)}
   </ul>
 </lt-suggestion>
 ```

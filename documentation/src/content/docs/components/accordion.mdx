@@ -14,16 +14,16 @@ If you build the same thing from buttons and `aria-expanded`, all of that has to
 <Example imports={["tokens.css", "accordion.css"]}
   styles={["accordion"]} layout="stack" maxWidth="34rem" code={`
 <details class="lt-accordion">
-  <summary>Who can apply for housing benefit?</summary>
+  <summary>Who can take out a runner's policy?</summary>
   <div class="lt-accordion__content">
-    <p>Anyone who lives in the home and is registered at the address can apply. You must be over 18, or have children of your own living with you.</p>
+    <p>Anyone who jacks in for a living can apply, once our medical has cleared them. You must be over 18, and the deck must be registered in your own name.</p>
   </div>
 </details>
 
 <details class="lt-accordion" open>
-  <summary>How long does processing take?</summary>
+  <summary>How long does a claim take?</summary>
   <div class="lt-accordion__content">
-    <p>We process the application within three weeks. If attachments are missing, you will be told in your digital mailbox.</p>
+    <p>We process a claim within three weeks. If attachments are missing, we write to whoever filed it.</p>
   </div>
 </details>
 `}>
@@ -37,8 +37,8 @@ If you build the same thing from buttons and `aria-expanded`, all of that has to
 import { lt } from "@lo-tek/interfaces/react"
 
 <details {...lt.accordion()}>
-  <summary>What counts as income?</summary>
-  <div className={lt.accordion.content}>Salary, pension and business income.</div>
+  <summary>What counts as an act of God?</summary>
+  <div className={lt.accordion.content}>Black ICE, power surges and other runners.</div>
 </details>
 ```
 
@@ -49,7 +49,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const panel = document.querySelector<HTMLDetailsElement>("#housing-benefit")
+const panel = document.querySelector<HTMLDetailsElement>("#runners-policy")
 if (!panel) throw new Error("element not found")
 
 lt.setAttributes(panel, lt.accordion({ variant: "plain" }))
@@ -85,7 +85,7 @@ If the panels should be part of the page structure, put a heading inside the `<s
 
 ```html
 <details class="lt-accordion">
-  <summary><h3>Who can apply for housing benefit?</h3></summary>
+  <summary><h3>Who can take out a runner's policy?</h3></summary>
   <div class="lt-accordion__content">…</div>
 </details>
 ```
@@ -105,7 +105,7 @@ Screen reader users can then jump between the questions with heading navigation.
 | `--lt-accordion-padding` | `var(--lt-spacing-3) var(--lt-accordion-padding-inline)`, the space in the heading |
 | `--lt-accordion-padding-inline` | `var(--lt-spacing-4)`, the space at the sides, in the heading and the content |
 
-The arrow is drawn with `::after` on the `<summary>`, because the browser's own triangle looks different in every browser. To replace it, overriding `content` and `border` is not enough: the pseudo-element has a fixed width and height and is rotated with `transform`, and the angle changes when the panel is open and in right-to-left. Reset them in the same rule. Give a visible symbol an empty alternative text, otherwise it becomes part of the button's name: the screen reader says "Who can apply? +" when the `<summary>` gets focus. The heading keeps its name, so someone navigating by headings does not hear the symbol. The rule is outside the layer and therefore wins over all the variants in the stylesheet:
+The arrow is drawn with `::after` on the `<summary>`, because the browser's own triangle looks different in every browser. To replace it, overriding `content` and `border` is not enough: the pseudo-element has a fixed width and height and is rotated with `transform`, and the angle changes when the panel is open and in right-to-left. Reset them in the same rule. Give a visible symbol an empty alternative text, otherwise it becomes part of the button's name: the screen reader says "Who can take out a policy? +" when the `<summary>` gets focus. The heading keeps its name, so someone navigating by headings does not hear the symbol. The rule is outside the layer and therefore wins over all the variants in the stylesheet:
 
 ```css
 .lt-accordion summary::after {

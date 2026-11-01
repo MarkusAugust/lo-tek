@@ -175,7 +175,7 @@ describe("right to left", () => {
         <div dir="${direction}" style="padding: 4rem 12rem">
           <span class="lt-tooltip">
             <button type="button" id="button-${direction}" aria-describedby="bubble-${direction}">Archive</button>
-            <span class="lt-tooltip__bubble" role="tooltip" id="bubble-${direction}" style="display: block">The case moves to the archive</span>
+            <span class="lt-tooltip__bubble" role="tooltip" id="bubble-${direction}" style="display: block">The recovery order moves to the archive</span>
           </span>
         </div>`,
         )

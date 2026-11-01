@@ -27,9 +27,9 @@ describe("lt-input", () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <input id="default" class="lt-input" />
-      <input id="date" class="lt-input" type="date" data-variant="date" value="2026-05-31" />
+      <input id="date" class="lt-input" type="date" data-variant="date" value="2079-05-31" />
       <input id="time" class="lt-input" type="time" data-variant="time" value="10:30" />
-      <input id="datetime" class="lt-input" type="datetime-local" data-variant="datetime-local" value="2026-05-31T10:30" />
+      <input id="datetime" class="lt-input" type="datetime-local" data-variant="datetime-local" value="2079-05-31T10:30" />
       <input id="invalid" class="lt-input" data-state="invalid" />
       <input id="success" class="lt-input" data-state="success" />
       <input id="disabled" class="lt-input" disabled />
@@ -91,17 +91,17 @@ describe("lt-input", () => {
 describe("lt-input accessibility", () => {
   it("has enough contrast and a label in every state", async () => {
     mount(`
-      <label class="lt-label" for="a11y-default">Email address</label>
+      <label class="lt-label" for="a11y-default">Fixer's address</label>
       <input class="lt-input" id="a11y-default" type="email" />
 
-      <label class="lt-label" for="a11y-valid">Confirm email address</label>
-      <input class="lt-input" id="a11y-valid" type="email" data-state="success" value="sam@example.com" />
+      <label class="lt-label" for="a11y-valid">Confirm the fixer's address</label>
+      <input class="lt-input" id="a11y-valid" type="email" data-state="success" value="fixer@relay.example" />
 
-      <label class="lt-label" for="a11y-invalid">Backup email</label>
-      <input class="lt-input" id="a11y-invalid" type="email" data-state="invalid" aria-invalid="true" value="sam@" />
+      <label class="lt-label" for="a11y-invalid">Backup fixer</label>
+      <input class="lt-input" id="a11y-invalid" type="email" data-state="invalid" aria-invalid="true" value="fixer@" />
 
-      <label class="lt-label" for="a11y-date">Travel date</label>
-      <input class="lt-input" id="a11y-date" type="date" data-variant="date" value="2026-05-31" />
+      <label class="lt-label" for="a11y-date">Deliver by</label>
+      <input class="lt-input" id="a11y-date" type="date" data-variant="date" value="2079-05-31" />
     `)
 
     await waitForPaint()
@@ -113,7 +113,7 @@ describe("lt-input without a CSS reset", () => {
   it("stays inside its box", () => {
     const { box } = mountIsolated(
       inputCss,
-      `<input class="lt-input" type="email" value="sam@example.com" />`,
+      `<input class="lt-input" type="email" value="fixer@relay.example" />`,
     )
 
     expect(findOverflow(box)).toEqual([])

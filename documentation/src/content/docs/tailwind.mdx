@@ -49,8 +49,8 @@ The theme with the `lt-` classes, `tailwind.css`, is a `@theme` block Tailwind's
 The components are in `@layer lotek`, and the utility classes come after. A Tailwind class therefore wins over the component's own value, without `!important` and without beating specificity:
 
 <TailwindExample styles={["button"]} layout="stack" maxWidth="26rem" code={`
-<button class="lt-button">Submit application</button>
-<button class="lt-button w-full justify-center rounded-full">Submit application</button>
+<button class="lt-button">Order the job</button>
+<button class="lt-button w-full justify-center rounded-full">Order the job</button>
 <button class="lt-button" data-variant="secondary">Save draft</button>
 <button class="lt-button px-8 py-4 text-lt-l" data-variant="secondary">Save draft</button>
 `} />
@@ -64,11 +64,11 @@ Everything the theme adds is called `lt-`, like the other classes in the system.
 <TailwindExample styles={["badge", "link"]} layout="stack" maxWidth="30rem" code={`
 <article class="rounded-xl border border-lt-neutral-border-subtle bg-lt-neutral-canvas p-4 shadow-lt-overlay">
   <div class="mb-2 flex items-center justify-between gap-2">
-    <h3 class="text-lt-l font-semibold text-lt-neutral-text-strong">Housing benefit application</h3>
-    <span class="lt-badge" data-color="success">Approved</span>
+    <h3 class="text-lt-l font-semibold text-lt-neutral-text-strong">Job 222-0481</h3>
+    <span class="lt-badge" data-color="success">Delivered</span>
   </div>
-  <p class="text-lt-neutral-text-subtle">Sent 4 March. Case number 2026-0481.</p>
-  <a class="lt-link mt-3 inline-block" href="#">View the decision</a>
+  <p class="text-lt-neutral-text-subtle">Ordered 4 March. Delivered clean on 9 March.</p>
+  <a class="lt-link mt-3 inline-block" href="#">View the delivery</a>
 </article>
 `} />
 

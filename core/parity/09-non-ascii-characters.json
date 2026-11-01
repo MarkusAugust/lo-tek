@@ -1,20 +1,40 @@
 {
   "markup": [
     {
-      "start": 148,
-      "end": 171,
+      "start": 180,
+      "end": 204,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/button/",
-      "message": "data-variant cannot be \"sekundær\" on button. Valid values: secondary, ghost, danger, and primary without the attribute."
+      "message": "data-variant cannot be \"secondäry\" on button. Valid values: secondary, ghost, danger, and primary without the attribute.",
+      "fix": {
+        "title": "Change to secondary",
+        "edits": [
+          {
+            "start": 194,
+            "end": 203,
+            "text": "secondary"
+          }
+        ]
+      }
     }
   ],
   "page": [
     {
-      "start": 148,
-      "end": 171,
+      "start": 180,
+      "end": 204,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/button/",
-      "message": "data-variant cannot be \"sekundær\" on button. Valid values: secondary, ghost, danger, and primary without the attribute."
+      "message": "data-variant cannot be \"secondäry\" on button. Valid values: secondary, ghost, danger, and primary without the attribute.",
+      "fix": {
+        "title": "Change to secondary",
+        "edits": [
+          {
+            "start": 194,
+            "end": 203,
+            "text": "secondary"
+          }
+        ]
+      }
     }
   ]
 }

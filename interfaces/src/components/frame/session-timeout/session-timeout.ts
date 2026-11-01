@@ -76,14 +76,14 @@ export type SessionTimeoutAttributes = {
  * ```html
  * <lt-session-timeout {...session.host}>
  *   <dialog {...session.dialog}>
- *     <h2 {...session.title}>You will soon be signed out</h2>
+ *     <h2 {...session.title}>Your session is ending</h2>
  *     <p {...session.text}>
- *       We will sign you out in <span {...session.count}></span>.
+ *       Your session on the Lattice ends in <span {...session.count}></span>. Unsaved routes will be lost.
  *     </p>
  *     <span {...session.live}></span>
  *     <form {...session.actions}>
- *       <button {...session.extend}>Stay signed in</button>
- *       <button {...session.logout}>Sign out now</button>
+ *       <button {...session.extend}>Stay connected</button>
+ *       <button {...session.logout}>Log out</button>
  *     </form>
  *   </dialog>
  * </lt-session-timeout>

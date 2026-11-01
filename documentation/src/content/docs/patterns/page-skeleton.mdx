@@ -16,26 +16,26 @@ A component cannot know where it sits on the page. It does not know whether its 
   <a class="lt-skip-link" href="#main-content">Skip to main content</a>
 
   <header>
-    <a class="lt-link" href="/" aria-label="Example Council, home page">
-      <strong>Example Council</strong>
+    <a class="lt-link" href="/" aria-label="Meridian Lattice, console home">
+      <strong>Meridian Lattice</strong>
     </a>
 
     <nav aria-label="Main menu">
       <ul class="lt-list" data-variant="plain">
-        <li><a class="lt-link" href="/cases">My cases</a></li>
+        <li><a class="lt-link" href="/incidents">Incidents</a></li>
       </ul>
     </nav>
   </header>
 
   <nav aria-label="You are here">
     <ol class="lt-breadcrumbs">
-      <li><a class="lt-link" href="/">Home</a></li>
-      <li><a class="lt-link" href="/cases" aria-current="page">My cases</a></li>
+      <li><a class="lt-link" href="/">Console</a></li>
+      <li><a class="lt-link" href="/incidents" aria-current="page">Incidents</a></li>
     </ol>
   </nav>
 
   <main id="main-content" tabindex="-1">
-    <h1 class="lt-heading" data-size="xl">My cases</h1>
+    <h1 class="lt-heading" data-size="xl">Incidents</h1>
     …
   </main>
 
@@ -56,13 +56,13 @@ A component cannot know where it sits on the page. It does not know whether its 
 `lt.heading({ size })` only sets the size. The level is the structure of the page, and that is your responsibility:
 
 ```html
-<h1 class="lt-heading" data-size="xl">My cases</h1>
+<h1 class="lt-heading" data-size="xl">Incidents</h1>
 
-<section aria-labelledby="under-review">
-  <h2 class="lt-heading" data-size="m" id="under-review">Under review</h2>
+<section aria-labelledby="this-week">
+  <h2 class="lt-heading" data-size="m" id="this-week">This week</h2>
 
   <article class="lt-card">
-    <h3 class="lt-card__title">Housing benefit application</h3>
+    <h3 class="lt-card__title">Sector 9 is dark</h3>
   </article>
 </section>
 ```

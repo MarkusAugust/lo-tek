@@ -100,9 +100,9 @@ const SYMBOL = marker("--lt-label-required-symbol")
 const REQUIRED = marker("--lt-label-required-text")
 const OPTIONAL = marker("--lt-label-optional-text")
 
-const HELP = "As it appears in your passport."
-const FORMAT = "First name and surname."
-const CHANGED = "Enter your full name, as in your passport."
+const HELP = "The name the crew answers to. Never the real one."
+const FORMAT = "Letters and digits only."
+const CHANGED = "Enter a codename the crew answers to."
 
 const shown = (field: string) =>
   swap(field, '<p class="lt-error-text" hidden>', '<p class="lt-error-text">')
@@ -168,7 +168,7 @@ const VERSIONS: Record<string, Version> = {
   },
   builder: {
     ...plain,
-    field: `<lt-field><label ${attr(BUILT.label)}>${LABEL}</label><input class="lt-input" ${attr(BUILT.control)} type="text" name="name" required /><p class="lt-help-text" ${attr(BUILT.help)}>${HELP}</p><p class="lt-error-text" ${attr(BUILT.error)}>${ERROR}</p></lt-field>`,
+    field: `<lt-field><label ${attr(BUILT.label)}>${LABEL}</label><input class="lt-input" ${attr(BUILT.control)} type="text" name="codename" required /><p class="lt-help-text" ${attr(BUILT.help)}>${HELP}</p><p class="lt-error-text" ${attr(BUILT.error)}>${ERROR}</p></lt-field>`,
     description: `${HELP} ${ERROR}`,
     invalid: true,
   },

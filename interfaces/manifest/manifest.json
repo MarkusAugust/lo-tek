@@ -4522,7 +4522,7 @@
           "type": {
             "kind": "textList"
           },
-          "description": "One key per tab, from the data, such as `[\"application\", \"attachments\"]`. The key gives the panel its id, and the link points to it. An index is not a key: if the server inserts a tab first, the same index points to another panel. An empty key, whitespace and two identical keys throw."
+          "description": "One key per tab, from the data, such as `[\"claim\", \"attachments\"]`. The key gives the panel its id, and the link points to it. An index is not a key: if the server inserts a tab first, the same index points to another panel. An empty key, whitespace and two identical keys throw."
         },
         {
           "name": "label",

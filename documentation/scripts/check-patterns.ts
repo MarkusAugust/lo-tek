@@ -128,9 +128,9 @@ function readForm() {
         root?.querySelector(".lt-error-summary__title")?.textContent ?? "",
       pointsToError:
         root
-          ?.getElementById("demo-email")
+          ?.getElementById("demo-fixer")
           ?.getAttribute("aria-describedby")
-          ?.includes("demo-email-error") ?? false,
+          ?.includes("demo-fixer-error") ?? false,
     }
   })
 
@@ -149,7 +149,7 @@ function readForm() {
   )
 
   // If the user fixes one of two errors, the other should remain on its own.
-  await typeInField("demo-email", "jo@example.com")
+  await typeInField("demo-fixer", "fixer@relay.example")
   await page.waitForTimeout(200)
 
   const afterFix = await readForm()
@@ -165,12 +165,12 @@ function readForm() {
 
   // An address without a top-level domain is accepted by the browser, but
   // not by the form.
-  await typeInField("demo-email", "jo@example")
+  await typeInField("demo-fixer", "fixer@relay")
   await page.waitForTimeout(200)
 
   expect(
     (await readForm()).links === 2,
-    '"jo@example" was accepted as an email address',
+    '"fixer@relay" was accepted as an email address',
   )
 }
 
@@ -179,7 +179,7 @@ function readForm() {
 {
   await open("/patterns/form/")
 
-  await typeInField("demo-email", "jo")
+  await typeInField("demo-fixer", "fixer")
   await page.waitForTimeout(200)
 
   const afterBlur = await readForm()
@@ -213,11 +213,9 @@ function readForm() {
     `the number of matches is not announced: "${initial.status}"`,
   )
 
-  // Sorting: a click on "Case number" reverses the order, moves `aria-sort`
+  // Sorting: a click on "Floor" reverses the order, moves `aria-sort`
   // and leaves focus on the button, even though the table is redrawn.
-  await page
-    .locator("#demo-list .lt-table__sort", { hasText: "Case number" })
-    .click()
+  await page.locator("#demo-list .lt-table__sort", { hasText: "Floor" }).click()
   const sorted = await page.evaluate(() => {
     const root = document.getElementById("demo-list")?.shadowRoot
     return {
@@ -230,15 +228,15 @@ function readForm() {
   })
 
   expect(
-    sorted.first === "2025-0988",
-    `the first row after sorting is "${sorted.first}", expected 2025-0988`,
+    sorted.first === "Floor 9",
+    `the first row after sorting is "${sorted.first}", expected Floor 9`,
   )
   expect(
-    sorted.sorted.join() === "Case number=ascending",
-    `aria-sort is on ${sorted.sorted.join() || "nothing"}, expected Case number=ascending`,
+    sorted.sorted.join() === "Floor=ascending",
+    `aria-sort is on ${sorted.sorted.join() || "nothing"}, expected Floor=ascending`,
   )
   expect(
-    sorted.focus === "Case number",
+    sorted.focus === "Floor",
     `focus is on "${sorted.focus}" after sorting, expected the button`,
   )
 
@@ -276,7 +274,7 @@ function readForm() {
 
   await page.evaluate(() => {
     const root = document.getElementById("demo-confirm")?.shadowRoot
-    ;(root?.getElementById("demo-delete") as HTMLElement).click()
+    ;(root?.getElementById("demo-cancel") as HTMLElement).click()
   })
   await page.waitForTimeout(200)
 
@@ -295,7 +293,7 @@ function readForm() {
   await page.evaluate(() => {
     const root = document.getElementById("demo-confirm")?.shadowRoot
     const dialog = root?.getElementById("demo-dialog") as HTMLDialogElement
-    dialog.close("delete")
+    dialog.close("cancel")
   })
   await page.waitForTimeout(200)
 
@@ -305,7 +303,7 @@ function readForm() {
   })
 
   expect(
-    message.includes("deleted"),
+    message.includes("Job 222-0481 has been cancelled"),
     `the message did not come after the action: "${message}"`,
   )
 }

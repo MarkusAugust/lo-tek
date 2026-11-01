@@ -606,7 +606,7 @@ mod tests {
             r#"<button class="lt-button"><svg class="lt-icon" aria-hidden="true"></svg><Label /></button>"#,
             r#"<a href="/"><Picture src={logo} alt="Home" /></a>"#,
             // The components name these themselves.
-            r#"<lt-suggestion><label for="t">Town</label><input id="t" role="combobox"><ul class="lt-suggestion__list" role="listbox"><li role="option">Oslo</li></ul></lt-suggestion>"#,
+            r#"<lt-suggestion><label for="t">Breaker</label><input id="t" role="combobox"><ul class="lt-suggestion__list" role="listbox"><li role="option">Crowbar</li></ul></lt-suggestion>"#,
             r##"<lt-tabs><ul class="lt-tabs__list" aria-label="Parts"><li><a href="#a">A</a></li></ul><section id="a" class="lt-tabs__panel" role="tabpanel">x</section></lt-tabs>"##,
             // <lt-field> writes `for` from the id.
             r#"<lt-field><label>Email</label><input class="lt-input" id="email"></lt-field>"#,

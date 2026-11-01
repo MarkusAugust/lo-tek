@@ -1,31 +1,31 @@
 {
   "markup": [
     {
-      "start": 56,
-      "end": 61,
+      "start": 55,
+      "end": 60,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The label is not wired to <input>. Without the wiring the field has no name without JavaScript, and a click on the label does not move focus to it. Give the field a fixed id based on what the field is for, for example id=\"country\", and write the same in for on the label, or put the label around the field.",
       "fix": {
-        "title": "Give the field the id \"kommune\"",
+        "title": "Give the field the id \"target\"",
         "edits": [
           {
             "start": 19,
             "end": 19,
-            "text": " for=\"kommune\""
+            "text": " for=\"target\""
           },
           {
-            "start": 61,
-            "end": 61,
-            "text": " id=\"kommune\""
+            "start": 60,
+            "end": 60,
+            "text": " id=\"target\""
           }
         ],
         "preferred": true
       }
     },
     {
-      "start": 228,
-      "end": 233,
+      "start": 219,
+      "end": 224,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/suggestion/",
       "message": "The label is not wired to <input>. Without the wiring the field has no name without JavaScript, and a click on the label does not move focus to it. Give the field a fixed id based on what the field is for, for example id=\"country\", and write the same in for on the label, or put the label around the field."
@@ -33,31 +33,31 @@
   ],
   "page": [
     {
-      "start": 56,
-      "end": 61,
+      "start": 55,
+      "end": 60,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The label is not wired to <input>. Without the wiring the field has no name without JavaScript, and a click on the label does not move focus to it. Give the field a fixed id based on what the field is for, for example id=\"country\", and write the same in for on the label, or put the label around the field.",
       "fix": {
-        "title": "Give the field the id \"kommune\"",
+        "title": "Give the field the id \"target\"",
         "edits": [
           {
             "start": 19,
             "end": 19,
-            "text": " for=\"kommune\""
+            "text": " for=\"target\""
           },
           {
-            "start": 61,
-            "end": 61,
-            "text": " id=\"kommune\""
+            "start": 60,
+            "end": 60,
+            "text": " id=\"target\""
           }
         ],
         "preferred": true
       }
     },
     {
-      "start": 228,
-      "end": 233,
+      "start": 219,
+      "end": 224,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/suggestion/",
       "message": "The label is not wired to <input>. Without the wiring the field has no name without JavaScript, and a click on the label does not move focus to it. Give the field a fixed id based on what the field is for, for example id=\"country\", and write the same in for on the label, or put the label around the field."

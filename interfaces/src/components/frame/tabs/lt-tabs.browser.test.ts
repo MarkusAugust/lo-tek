@@ -16,19 +16,19 @@ import { tabs } from "./tabs"
 import "../../../tokens/tokens.css"
 import "./tabs.css"
 
-const KEYS = ["application", "attachments", "messages"]
-const LABELS = ["Application", "Attachments", "Messages"]
+const KEYS = ["claim", "attachments", "messages"]
+const LABELS = ["Claim", "Attachments", "Messages"]
 const CONTENT = [
-  "The application was sent on 4 March.",
+  "Claim AV-2079-0481 was filed on 4 March 2079.",
   "Three attachments.",
   "No messages.",
 ]
 
 /** The markup `lt.tabs()` gives: links, ids and classes. The web component writes the rest. */
 const TABS = tabs({
-  id: "case",
+  id: "file",
   keys: KEYS,
-  label: "Parts of the case",
+  label: "Parts of the claim",
 })
 
 /** The links in the tab list and the panels, from the builder function, separately. */
@@ -94,16 +94,14 @@ describe("lt-tabs", () => {
   it("sets the roles and the wiring on markup from lt.tabs()", () => {
     const list = document.querySelector(".lt-tabs__list") as HTMLElement
     const [tab] = allTabs()
-    const panel = document.getElementById("case-application") as HTMLElement
+    const panel = document.getElementById("file-claim") as HTMLElement
 
     expect(list.getAttribute("role")).toBe("tablist")
-    expect(list.getAttribute("aria-label")).toBe("Parts of the case")
+    expect(list.getAttribute("aria-label")).toBe("Parts of the claim")
     expect(tab.getAttribute("role")).toBe("tab")
-    expect(tab.getAttribute("aria-controls")).toBe("case-application")
+    expect(tab.getAttribute("aria-controls")).toBe("file-claim")
     expect(panel.getAttribute("role")).toBe("tabpanel")
-    expect(panel.getAttribute("aria-labelledby")).toBe(
-      "case-application-heading",
-    )
+    expect(panel.getAttribute("aria-labelledby")).toBe("file-claim-heading")
   })
 
   it("writes no id on the tabs", () => {
@@ -179,13 +177,13 @@ describe("lt.tabs() and the keys", () => {
   it("makes links, panel ids and heading ids from the keys", () => {
     // The full form is in requirement I5, in
     // `lt-tabs-requirements.browser.test.ts`.
-    const f = tabs({ id: "case", keys: ["a", "b"], label: "The case" })
+    const f = tabs({ id: "file", keys: ["a", "b"], label: "The claim" })
 
-    expect(f.tabs.map((t) => t.href)).toEqual(["#case-a", "#case-b"])
-    expect(f.panels.map((p) => p.id)).toEqual(["case-a", "case-b"])
+    expect(f.tabs.map((t) => t.href)).toEqual(["#file-a", "#file-b"])
+    expect(f.panels.map((p) => p.id)).toEqual(["file-a", "file-b"])
     expect(f.headings.map((h) => h.id)).toEqual([
-      "case-a-heading",
-      "case-b-heading",
+      "file-a-heading",
+      "file-b-heading",
     ])
   })
 
@@ -331,9 +329,9 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
 
     const isHidden = (id: string) =>
       (document.getElementById(id) as HTMLElement).hasAttribute("hidden")
-    expect(isHidden("case-application")).toBe(true)
-    expect(isHidden("case-attachments")).toBe(false)
-    expect(isHidden("case-messages")).toBe(true)
+    expect(isHidden("file-claim")).toBe(true)
+    expect(isHidden("file-attachments")).toBe(false)
+    expect(isHidden("file-messages")).toBe(true)
   })
 
   it("finds a panel outside the host", async () => {
@@ -349,8 +347,8 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
 
     const isHidden = (id: string) =>
       (document.getElementById(id) as HTMLElement).hasAttribute("hidden")
-    expect(isHidden("case-application")).toBe(true)
-    expect(isHidden("case-attachments")).toBe(false)
+    expect(isHidden("file-claim")).toBe(true)
+    expect(isHidden("file-attachments")).toBe(false)
   })
 
   it("warns about a link that points to nothing, without freezing", async () => {
@@ -363,10 +361,10 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
       mount(`
         <lt-tabs>${list(
           links
-            .replace('href="#case-attachments"', 'href="#case-attachmentsx"')
+            .replace('href="#file-attachments"', 'href="#file-attachmentsx"')
             .replace(
-              'aria-controls="case-attachments"',
-              'aria-controls="case-attachmentsx"',
+              'aria-controls="file-attachments"',
+              'aria-controls="file-attachmentsx"',
             ),
         )}${p.join("")}</lt-tabs>
       `)
@@ -379,8 +377,8 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
 
       const isHidden = (id: string) =>
         (document.getElementById(id) as HTMLElement).hasAttribute("hidden")
-      expect(isHidden("case-application")).toBe(false)
-      expect(isHidden("case-messages")).toBe(true)
+      expect(isHidden("file-claim")).toBe(false)
+      expect(isHidden("file-messages")).toBe(true)
       expect(
         warn.mock.calls.some((k) =>
           String(k[0]).includes("has tabs without a panel"),
@@ -399,10 +397,10 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
     mount(`
       <lt-tabs>${list(
         links
-          .replace('href="#case-messages"', 'href="#case-application"')
+          .replace('href="#file-messages"', 'href="#file-claim"')
           .replace(
-            'aria-controls="case-messages"',
-            'aria-controls="case-application"',
+            'aria-controls="file-messages"',
+            'aria-controls="file-claim"',
           ),
       )}${p.join("")}</lt-tabs>
     `)
@@ -413,8 +411,8 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
     const isHidden = (id: string) =>
       (document.getElementById(id) as HTMLElement).hasAttribute("hidden")
     expect(selected()).toEqual([false, false, true])
-    expect(isHidden("case-application")).toBe(false)
-    expect(isHidden("case-attachments")).toBe(true)
+    expect(isHidden("file-claim")).toBe(false)
+    expect(isHidden("file-attachments")).toBe(true)
   })
 
   it("moves the tab stop when a patch disables the selected tab", async () => {
@@ -482,12 +480,12 @@ describe("lt-tabs finds the panel through href and skips what cannot be selected
  */
 const BARE = `
   <lt-tabs>
-    <ul class="lt-tabs__list" aria-label="Parts of the case">
-      <li><a href="#application">Application</a></li>
+    <ul class="lt-tabs__list" aria-label="Parts of the claim">
+      <li><a href="#claim">Claim</a></li>
       <li><a href="#attachments">Attachments</a></li>
       <li><a href="#messages">Messages</a></li>
     </ul>
-    <section class="lt-tabs__panel" id="application"><h2>Application</h2><p>The application was sent on 4 March.</p></section>
+    <section class="lt-tabs__panel" id="claim"><h2>Claim</h2><p>Claim AV-2079-0481 was filed on 4 March 2079.</p></section>
     <section class="lt-tabs__panel" id="attachments"><h2>Attachments</h2><p>Three attachments.</p></section>
     <section class="lt-tabs__panel" id="messages"><h2>Messages</h2><p>No messages.</p></section>
   </lt-tabs>`
@@ -568,11 +566,7 @@ describe("lt-tabs wires bare structure", () => {
       "",
     ])
     // The panels' ids come from the server, and are the same as before.
-    expect(p.map((x) => x.id)).toEqual([
-      "application",
-      "attachments",
-      "messages",
-    ])
+    expect(p.map((x) => x.id)).toEqual(["claim", "attachments", "messages"])
   })
 
   it("names the panel from the heading in it", async () => {
@@ -594,7 +588,7 @@ describe("lt-tabs wires bare structure", () => {
     const { panels: p } = bareParts()
 
     expect(p.map((x) => x.getAttribute("aria-label"))).toEqual([
-      "Application",
+      "Claim",
       "Attachments",
       "Messages",
     ])
@@ -651,7 +645,7 @@ describe("lt-tabs wires bare structure", () => {
 
   it("reads the selection from hidden when no tab is marked", async () => {
     mount(
-      BARE.replace('id="application"', 'id="application" hidden').replace(
+      BARE.replace('id="claim"', 'id="claim" hidden').replace(
         'id="messages"',
         'id="messages" hidden',
       ),
@@ -751,12 +745,12 @@ describe("lt-tabs wires bare structure", () => {
     // the tab list is something other than a tab.
     mount(`
       <lt-tabs>
-        <ul class="lt-tabs__list" role="tablist" aria-label="Parts of the case">
-          <li role="presentation"><a href="#application" role="tab">Application</a></li>
+        <ul class="lt-tabs__list" role="tablist" aria-label="Parts of the claim">
+          <li role="presentation"><a href="#claim" role="tab">Claim</a></li>
           <li role="presentation"><a href="#attachments" role="tab">Attachments</a></li>
           <li><a href="#other" class="back-to-top">Back to top</a></li>
         </ul>
-        <section class="lt-tabs__panel" id="application"><h2>Application</h2></section>
+        <section class="lt-tabs__panel" id="claim"><h2>Claim</h2></section>
         <section class="lt-tabs__panel" id="attachments"><h2>Attachments</h2></section>
       </lt-tabs>
     `)
@@ -824,11 +818,11 @@ describe("lt-tabs under server-controlled", () => {
   /** The recipe from the Datastar tab on the component page, bare structure. */
   const RECIPE = `
     <lt-tabs server-controlled>
-      <ul class="lt-tabs__list" aria-label="Parts of the case">
-        <li><a href="#application">Application</a></li>
+      <ul class="lt-tabs__list" aria-label="Parts of the claim">
+        <li><a href="#claim">Claim</a></li>
         <li><a href="#attachments">Attachments</a></li>
       </ul>
-      <section class="lt-tabs__panel" id="application"><h2>Application</h2></section>
+      <section class="lt-tabs__panel" id="claim"><h2>Claim</h2></section>
       <section class="lt-tabs__panel" id="attachments" hidden><h2>Attachments</h2></section>
     </lt-tabs>`
 
@@ -950,12 +944,12 @@ describe("lt-tabs under server-controlled", () => {
   /** Three tabs: with two, "back to the first" is also the wrong answer. */
   const THREE = `
     <lt-tabs server-controlled>
-      <ul class="lt-tabs__list" aria-label="Parts of the case">
-        <li><a href="#application">Application</a></li>
+      <ul class="lt-tabs__list" aria-label="Parts of the claim">
+        <li><a href="#claim">Claim</a></li>
         <li><a href="#attachments">Attachments</a></li>
         <li><a href="#messages">Messages</a></li>
       </ul>
-      <section class="lt-tabs__panel" id="application"><h2>Application</h2></section>
+      <section class="lt-tabs__panel" id="claim"><h2>Claim</h2></section>
       <section class="lt-tabs__panel" id="attachments" hidden><h2>Attachments</h2></section>
       <section class="lt-tabs__panel" id="messages" hidden><h2>Messages</h2></section>
     </lt-tabs>`
@@ -1130,10 +1124,7 @@ describe("lt-tabs when a patch touches the panels and the links", () => {
 
     // The server marks a tab itself, and it wins over the address.
     host.innerHTML = bare
-      .replace(
-        '<a href="#application">',
-        '<a href="#application" aria-selected="true">',
-      )
+      .replace('<a href="#claim">', '<a href="#claim" aria-selected="true">')
       .replace('id="attachments"', 'id="attachments" hidden')
     await waitForPaint()
     expect(host.selected).toBe(0)
@@ -1208,7 +1199,7 @@ describe("lt-tabs as links", () => {
     await paint()
 
     expect(clickEvent.defaultPrevented).toBe(true)
-    expect(location.hash).toBe("#case-attachments")
+    expect(location.hash).toBe("#file-attachments")
     expect(history.length).toBe(historyLength)
     expect(selected()).toEqual([false, true, false])
   })
@@ -1259,7 +1250,7 @@ describe("lt-tabs as links", () => {
   })
 
   it("selects the tab the address points to on load", async () => {
-    await setAddress("#case-attachments")
+    await setAddress("#file-attachments")
     mount(fromBuilderFunction())
     await paint()
 
@@ -1271,7 +1262,7 @@ describe("lt-tabs as links", () => {
     mount(fromBuilderFunction())
     await paint()
 
-    history.replaceState(null, "", "#case-messages")
+    history.replaceState(null, "", "#file-messages")
     window.dispatchEvent(new HashChangeEvent("hashchange"))
     await paint()
 
@@ -1364,7 +1355,7 @@ describe("lt-tabs after a morph and with arrow keys", () => {
   const CASE_TABS = tabs({
     id: "s",
     keys: ["a", "b", "c"],
-    label: "The case",
+    label: "The claim",
   })
   const links = () =>
     CASE_TABS.tabs
@@ -1472,15 +1463,15 @@ describe("lt-tabs through a morph from the server", () => {
     `<section class="lt-tabs__panel" id="${key}"${extra}><h2>${LABELS[KEYS.indexOf(key)] ?? "Summary"}</h2></section>`
   /** The recipe on the component page, with `links` and `panels` as given. */
   const host = (links: string[], panels: string[], extra = "") =>
-    `<lt-tabs id="case-tabs"${extra}><ul class="lt-tabs__list" aria-label="Parts of the case">${links.join("")}</ul>${panels.join("")}</lt-tabs>`
+    `<lt-tabs id="claim-tabs"${extra}><ul class="lt-tabs__list" aria-label="Parts of the claim">${links.join("")}</ul>${panels.join("")}</lt-tabs>`
   const RECIPE = host(
-    [link("application"), link("attachments")],
-    [panel("application"), panel("attachments")],
+    [link("claim"), link("attachments")],
+    [panel("claim"), panel("attachments")],
   )
   /** The recipe with a tab first in the row: the same index is another tab. */
   const INSERTED = host(
-    [link("summary"), link("application"), link("attachments")],
-    [panel("summary"), panel("application"), panel("attachments")],
+    [link("summary"), link("claim"), link("attachments")],
+    [panel("summary"), panel("claim"), panel("attachments")],
   )
   const ways = ["Datastar", "idiomorph"] as const
 
@@ -1497,19 +1488,19 @@ describe("lt-tabs through a morph from the server", () => {
     await paint()
     replace(
       "Datastar",
-      "case-tabs",
+      "claim-tabs",
       host(
-        [link("application"), link("attachments", ' aria-selected="true"')],
-        [panel("application"), panel("attachments")],
+        [link("claim"), link("attachments", ' aria-selected="true"')],
+        [panel("claim"), panel("attachments")],
       ),
     )
     await waitForPaint()
     replace(
       "Datastar",
-      "case-tabs",
+      "claim-tabs",
       host(
-        [link("application"), link("attachments")],
-        [panel("application", ' hidden="until-found"'), panel("attachments")],
+        [link("claim"), link("attachments")],
+        [panel("claim", ' hidden="until-found"'), panel("attachments")],
       ),
     )
     await waitForPaint()
@@ -1532,7 +1523,7 @@ describe("lt-tabs through a morph from the server", () => {
 
       replace(
         way,
-        "case-tabs",
+        "claim-tabs",
         INSERTED.replace(
           'href="#summary"',
           'href="#summary" aria-selected="true"',
@@ -1558,11 +1549,8 @@ describe("lt-tabs through a morph from the server", () => {
 
       replace(
         way,
-        "case-tabs",
-        RECIPE.replace(
-          'href="#application"',
-          'href="#application" aria-selected="true"',
-        ),
+        "claim-tabs",
+        RECIPE.replace('href="#claim"', 'href="#claim" aria-selected="true"'),
       )
       await waitForPaint()
 
@@ -1582,15 +1570,11 @@ describe("lt-tabs through a morph from the server", () => {
     mount(
       host(
         [
-          link("application", ' aria-selected="true"'),
+          link("claim", ' aria-selected="true"'),
           link("attachments", ' aria-selected="false"'),
           link("messages", ' aria-selected="false"'),
         ],
-        [
-          panel("application"),
-          panel("attachments", until),
-          panel("messages", until),
-        ],
+        [panel("claim"), panel("attachments", until), panel("messages", until)],
         " server-controlled",
       ),
     )

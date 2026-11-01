@@ -25,11 +25,11 @@ The bubble is hidden until the trigger gets the mouse or focus. Hold the mouse o
   `}
   code={`
 <span class="lt-tooltip">
-  <button class="lt-button" data-variant="ghost" type="button" aria-describedby="archive-hint">
-    Archive
+  <button class="lt-button" data-variant="ghost" type="button" aria-describedby="appraise-hint">
+    Appraise
   </button>
-  <span class="lt-tooltip__bubble" role="tooltip" id="archive-hint">
-    The case is moved to the archive and can be brought back
+  <span class="lt-tooltip__bubble" role="tooltip" id="appraise-hint">
+    All chrome is appraised at street value
   </span>
 </span>
 `}>
@@ -44,7 +44,7 @@ import { lt } from "@lo-tek/interfaces/react"
 
 <span {...lt.tooltip()}>
   <button {...lt.button({ variant: "ghost" })} type="button" aria-describedby="help">?</button>
-  <span className={lt.tooltip.bubble} id="help" role="tooltip">We never send spam.</span>
+  <span className={lt.tooltip.bubble} id="help" role="tooltip">Offers are valid for 24 hours.</span>
 </span>
 ```
 
@@ -55,7 +55,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const wrapper = document.querySelector<HTMLElement>("#archive")
+const wrapper = document.querySelector<HTMLElement>("#appraise")
 
 lt.setAttributes(wrapper, lt.tooltip())
 ```
@@ -81,11 +81,11 @@ A button with only an icon needs a name, not a help bubble. The two are differen
 ```html
 <span class="lt-tooltip">
   <button class="lt-button" data-variant="ghost" type="button"
-    aria-label="Archive the case" aria-describedby="archive-hint">
+    aria-label="Close the recovery order" aria-describedby="close-hint">
     <svg aria-hidden="true" width="20" height="20">…</svg>
   </button>
-  <span class="lt-tooltip__bubble" role="tooltip" id="archive-hint">
-    The case can be brought back later
+  <span class="lt-tooltip__bubble" role="tooltip" id="close-hint">
+    A closed order can be reopened within 30 days
   </span>
 </span>
 ```

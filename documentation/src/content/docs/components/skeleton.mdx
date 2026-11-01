@@ -16,19 +16,19 @@ Grey shapes that show where the content will appear. They are always hidden from
   maxWidth="26rem"
   customCss={`
 /* Your own classes. These two rules are all it takes. */
-.case-last-line {
+.sector-last-line {
   inline-size: 70%;
 }
 
-.case-image {
+.sector-map {
   --lt-skeleton-height: var(--lt-spacing-12);
 }
   `}
   code={`
 <div class="lt-skeleton" data-variant="circle" aria-hidden="true"></div>
 <div class="lt-skeleton" data-variant="text" aria-hidden="true"></div>
-<div class="lt-skeleton case-last-line" data-variant="text" aria-hidden="true"></div>
-<div class="lt-skeleton case-image" aria-hidden="true"></div>
+<div class="lt-skeleton sector-last-line" data-variant="text" aria-hidden="true"></div>
+<div class="lt-skeleton sector-map" aria-hidden="true"></div>
 `}>
 <Fragment slot="ts">
 
@@ -63,7 +63,7 @@ lt.setAttributes(line, lt.skeleton({ variant: "text" }))
 | `text` | One line of text |
 | `circle` | A profile picture |
 
-The block and the text lines fill the width they are given, while `circle` is as wide as it is high. `case-last-line` and `case-image` are your own classes, not LO-TEK's, and they are in the "Plain HTML" tab above together with the markup.
+The block and the text lines fill the width they are given, while `circle` is as wide as it is high. `sector-last-line` and `sector-map` are your own classes, not LO-TEK's, and they are in the "Plain HTML" tab above together with the markup.
 
 Set the width of the last line to less than 100 per cent. A paragraph where every line is the same length does not look like text.
 
@@ -71,7 +71,7 @@ Set the width of the last line to less than 100 per cent. A paragraph where ever
 
 ```html
 <div id="content" aria-busy="true">
-  <p class="lt-sr-only" role="status">Fetching your applications</p>
+  <p class="lt-sr-only" role="status">Fetching the sector map</p>
   <div class="lt-skeleton" data-variant="text" aria-hidden="true"></div>
   <div class="lt-skeleton" data-variant="text" aria-hidden="true"></div>
 </div>

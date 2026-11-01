@@ -58,11 +58,11 @@ const MARKUP = `
       .join("")}
     <select class="lt-select" data-target="select"><option>Ten</option></select>
     <input type="text" class="lt-input" data-target="input" />
-    <label class="lt-label" data-required data-target="label">Name</label>
+    <label class="lt-label" data-required data-target="label">Codename</label>
     <lt-field data-target="field">
-      <label class="lt-label" data-target="field-label">Date of birth</label>
+      <label class="lt-label" data-target="field-label">Deliver by</label>
       <input type="text" class="lt-input" required data-target="field-input" />
-      <p class="lt-help-text" data-target="help-text">Enter day, month and year.</p>
+      <p class="lt-help-text" data-target="help-text">Type the date as 31/05/2079.</p>
     </lt-field>
   </div>
 `

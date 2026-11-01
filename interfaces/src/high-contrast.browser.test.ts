@@ -121,8 +121,8 @@ describe.skipIf(server.browser !== "chromium")("in high contrast mode", () => {
         </label>
       </fieldset>
 
-      <button class="lt-tag" data-selectable aria-pressed="true" id="tag-on" type="button">Approved</button>
-      <button class="lt-tag" data-selectable aria-pressed="false" id="tag-off" type="button">Rejected</button>
+      <button class="lt-tag" data-selectable aria-pressed="true" id="tag-on" type="button">Cutter</button>
+      <button class="lt-tag" data-selectable aria-pressed="false" id="tag-off" type="button">Worm</button>
 
       <ul class="lt-pagination">
         <li><a href="#" aria-current="page" id="page-current">2</a></li>
@@ -130,8 +130,8 @@ describe.skipIf(server.browser !== "chromium")("in high contrast mode", () => {
       </ul>
 
       <ul class="lt-suggestion__list" role="listbox">
-        <li class="lt-suggestion__option" role="option" aria-selected="true" id="suggestion-on">Bergen</li>
-        <li class="lt-suggestion__option" role="option" aria-selected="false" id="suggestion-off">Bodø</li>
+        <li class="lt-suggestion__option" role="option" aria-selected="true" id="suggestion-on">Crowbar</li>
+        <li class="lt-suggestion__option" role="option" aria-selected="false" id="suggestion-off">Needle</li>
       </ul>
     `)
 

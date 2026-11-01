@@ -20,9 +20,9 @@ describe("lt-tooltip", () => {
     mount(`
       <span class="lt-tooltip">
         <button class="lt-button" data-variant="ghost" type="button"
-          aria-describedby="hint" id="trigger">Archive</button>
+          aria-describedby="hint" id="trigger">Appraise</button>
         <span class="lt-tooltip__bubble" role="tooltip" id="hint">
-          The case is moved to the archive
+          All chrome is appraised at street value
         </span>
       </span>
     `)
@@ -116,11 +116,11 @@ describe("lt-tooltip", () => {
       }
       const button = nodes.find(
         (node) =>
-          node.role?.value === "button" && node.name?.value === "Archive",
+          node.role?.value === "button" && node.name?.value === "Appraise",
       )
 
       expect(button?.description?.value?.trim()).toBe(
-        "The case is moved to the archive",
+        "All chrome is appraised at street value",
       )
     },
   )

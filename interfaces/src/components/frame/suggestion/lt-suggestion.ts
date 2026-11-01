@@ -99,15 +99,15 @@ const OPTION_SELECTOR = LT_SUGGESTION_PARTS.option
  *
  * ```html
  * <lt-suggestion>
- *   <label class="lt-label" for="city">City</label>
- *   <input class="lt-input" id="city" role="combobox" aria-controls="city-list"
+ *   <label class="lt-label" for="breaker">Breaker</label>
+ *   <input class="lt-input" id="breaker" role="combobox" aria-controls="breaker-list"
  *          aria-expanded="false" aria-autocomplete="list" autocomplete="off"
- *          aria-describedby="city-status">
- *   <ul class="lt-suggestion__list" id="city-list" role="listbox" hidden>
- *     <li class="lt-suggestion__option" id="city-option-0" role="option">Bergen</li>
+ *          aria-describedby="breaker-status">
+ *   <ul class="lt-suggestion__list" id="breaker-list" role="listbox" hidden>
+ *     <li class="lt-suggestion__option" id="breaker-option-0" role="option">Crowbar</li>
  *   </ul>
  *   <p class="lt-suggestion__empty">No matches</p>
- *   <span class="lt-sr-only" id="city-status" role="status"></span>
+ *   <span class="lt-sr-only" id="breaker-status" role="status"></span>
  * </lt-suggestion>
  * ```
  */
@@ -136,8 +136,8 @@ export class LtSuggestion extends HostElement {
    *
    * The pair is what the code in the value field applies to. If the user
    * changes the text, the code no longer applies, and the value field is
-   * emptied; otherwise the form would submit the code for Bergen with the
-   * text "Bodø" in the field. If the text is still there after an update, the
+   * emptied; otherwise the form would submit the code for Crowbar with the
+   * text "Needle" in the field. If the text is still there after an update, the
    * code is set back: the value field's `value` is an attribute, and a morph
    * writes the server's over what the web component set.
    */
@@ -1196,7 +1196,7 @@ export class LtSuggestion extends HostElement {
     }
     // The field shows the text. The code goes to the value field, when the
     // server has written one, and in the event. `data-value` used to end up in
-    // the field, and the user who chose Bergen saw "4601".
+    // the field, and the user who chose Crowbar saw "LDG-117".
     if (setter) setter.call(this.control, label)
     else this.control.value = label
 

@@ -94,15 +94,15 @@ export type DialogAttributes = {
  *   turns it into a modal.
  *
  * ```ts
- * const box = lt.dialog({ titleId: "delete-title", open: true })
+ * const box = lt.dialog({ titleId: "cancel-title", open: true })
  * ```
  * ```html
  * <lt-dialog {...box.host}>
  *   <dialog {...box.dialog}>
- *     <h2 {...box.title}>Delete the application?</h2>
- *     <div {...box.body}>The application and its attachments will be gone.</div>
+ *     <h2 {...box.title}>Cancel job 222-0481?</h2>
+ *     <div {...box.body}>The crew keeps the advance. This cannot be undone.</div>
  *     <form method="dialog" {...box.footer}>
- *       <button class="lt-button" value="cancel">Cancel</button>
+ *       <button class="lt-button" value="keep">Keep the job</button>
  *     </form>
  *   </dialog>
  * </lt-dialog>

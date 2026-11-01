@@ -3,11 +3,16 @@ title: Form with validation
 description: From field to error message to summary, with focus where the user needs it.
 ---
 
+import Epigraph from "../../../components/Epigraph.astro"
 import FormDemo from "../../../components/FormDemo.astro"
+
+<Epigraph source="The job console, floor 222">
+  “State the objective. State the budget. Do not state the method.”
+</Epigraph>
 
 The components exist separately. What decides whether a form is usable is the decisions around them: when you validate, where focus goes, and what the error message says.
 
-Try submitting the form empty, and then with an incomplete email address:
+Try submitting the form empty, and then with an incomplete address for the fixer:
 
 <FormDemo />
 
@@ -19,7 +24,7 @@ Try submitting the form empty, and then with an incomplete email address:
 | When the field is left | Validate the field, if the user has typed in it. They are done with it then, and the message interrupts nobody. |
 | When the form is submitted | Validate everything. This is where all the errors exist at once. |
 
-We say nothing about a field the user has not touched until submission. "Enter your email address" before you have started is scolding someone who has not done anything yet.
+We say nothing about a field the user has not touched until submission. "Enter the fixer's address" before you have started is scolding someone who has not done anything yet.
 
 The summary is read from the fields and keeps up when something is validated. If you fix one of two errors, the remaining one stays on its own, and the heading counts down. A summary stuck on the first number is worse than none.
 
@@ -28,18 +33,18 @@ Along the way you write it only when its content changes, and you do not show it
 ## The three things that must match per field
 
 ```html
-<label class="lt-label" data-required="symbol" for="email">Email address</label>
+<label class="lt-label" data-required="symbol" for="fixer">Fixer's address</label>
 <input
   class="lt-input"
-  id="email"
+  id="fixer"
   type="email"
   required
   data-state="invalid"
   aria-invalid="true"
-  aria-describedby="email-help email-error"
+  aria-describedby="fixer-help fixer-error"
 />
-<p class="lt-help-text" id="email-help">We send the receipt here.</p>
-<p class="lt-error-text" id="email-error">Enter an email address with an @ sign.</p>
+<p class="lt-help-text" id="fixer-help">The board writes to the fixer, never to the crew.</p>
+<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an @ sign.</p>
 ```
 
 `data-state` gives the colour, `aria-invalid` tells the screen reader, and `aria-describedby` points to the text. Without the last one, the error message exists only for those who can see it.
@@ -56,8 +61,8 @@ To avoid keeping track of this yourself, use [Field](../../components/field/), e
 <lt-error-summary class="lt-error-summary" role="alert" tabindex="-1" data-autofocus="false" id="form-errors" aria-labelledby="form-errors-title">
   <h2 class="lt-error-summary__title" id="form-errors-title">The form has two errors</h2>
   <ul class="lt-list">
-    <li><a href="#email">Enter an email address with an @ sign</a></li>
-    <li><a href="#date-of-birth">Enter a date that exists</a></li>
+    <li><a href="#fixer">Enter the fixer's address with an @ sign</a></li>
+    <li><a href="#deliver-by">Enter a date that exists</a></li>
   </ul>
 </lt-error-summary>
 ```
@@ -70,7 +75,7 @@ On submission you rebuild the list, even when the same errors remain. Then it is
 
 ## What the browser misses
 
-`type="email"` accepts `jo@example`, without a dot and top-level domain. That is a valid address on an internal network, and so correct of the browser, but in a form that sends a receipt by email it is almost always a typo. The demo therefore adds one more rule:
+`type="email"` accepts `fixer@relay`, without a dot and top-level domain. That is a valid address on an internal network, and so correct of the browser, but in a form that writes to the fixer by email it is almost always a typo. The demo therefore adds one more rule:
 
 ```js
 const ADDRESS = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/
@@ -82,22 +87,22 @@ Anything stricter is not worth it. An address is only confirmed once someone has
 
 ## Errors from the server
 
-The browser's validation catches format. The server catches everything else: that the address is not in the register, that the deadline has passed, that someone else has applied for the same thing. The two have to end up in the same place.
+The browser's validation catches format. The server catches everything else: that no fixer on file has the address, that the deadline has passed, that a crew has already taken the job. The two have to end up in the same place.
 
 ```js
-const form = document.getElementById("application")
+const form = document.getElementById("order")
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault()
 
-  const response = await fetch("/api/application", {
+  const response = await fetch("/api/jobs", {
     method: "POST",
     body: new FormData(form),
   })
 
   if (response.ok) return
 
-  const { errors } = await response.json() // [{ field: "email", message: "…" }]
+  const { errors } = await response.json() // [{ field: "fixer", message: "…" }]
 
   for (const { field: name, message } of errors) {
     const field = form.elements[name]
@@ -147,7 +152,7 @@ If the error has no field, such as "the service is down", it belongs in an [Aler
 ## Wording
 
 - Say what the user should do: "Enter a date that exists", not "Invalid value".
-- Include an example when the format is unusual: "for example jo@example.com".
+- Include an example when the format is unusual: "for example fixer@relay.example".
 - Write in the page's language. The browser's own messages follow the browser language, not the page's, so `validationMessage` can turn up in another language in the middle of an English form. The demo above therefore uses its own texts.
 - Drop the exclamation mark, and do not blame the user.
 

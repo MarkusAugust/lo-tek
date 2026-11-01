@@ -36,7 +36,7 @@ Without a build step you link the combined file, which has everything in it:
 The markup is the same whichever of the two you chose:
 
 ```html
-<button class="lt-button">Submit application</button>
+<button class="lt-button">Order the job</button>
 <button class="lt-button" data-variant="secondary">Save draft</button>
 ```
 

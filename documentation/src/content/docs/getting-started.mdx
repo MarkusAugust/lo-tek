@@ -68,13 +68,13 @@ With `tokens.css` and `button.css` imported:
 <Tabs>
   <TabItem label="Example">
     <Preview styles={["button"]}>
-      <button class="lt-button">Submit application</button>
+      <button class="lt-button">Order the job</button>
       <button class="lt-button" data-variant="secondary">Save draft</button>
     </Preview>
   </TabItem>
   <TabItem label="Code">
     ```html
-    <button class="lt-button">Submit application</button>
+    <button class="lt-button">Order the job</button>
     <button class="lt-button" data-variant="secondary">Save draft</button>
     ```
   </TabItem>
@@ -110,9 +110,9 @@ Calling them more than once is harmless, because the functions check themselves 
 
 ```html
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" required />
-  <p class="lt-help-text">As it appears in your passport.</p>
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" required />
+  <p class="lt-help-text">The name the crew answers to. Never the real one.</p>
 </lt-field>
 ```
 

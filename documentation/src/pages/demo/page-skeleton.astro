@@ -62,7 +62,7 @@ const { class: listClass, ...listAttributes } = lt.list({ variant: "plain" })
 			}
 		</script>
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-		<title>My cases | Example Council</title>
+		<title>Incidents | Meridian Lattice</title>
 		<meta
 			name="description"
 			content="Demo of the page skeleton in LO-TEK: skip link, landmarks and heading levels in a whole page."
@@ -73,15 +73,15 @@ const { class: listClass, ...listAttributes } = lt.list({ variant: "plain" })
 
 		<header class="skeleton-top">
 			<div class="skeleton-width skeleton-top-content">
-				<a class="skeleton-mark" href="#" aria-label="Example Council, home page">
-					Example Council
+				<a class="skeleton-mark" href="#" aria-label="Meridian Lattice, console home">
+					Meridian Lattice
 				</a>
 
 				<nav aria-label="Main menu">
 					<ul {...listAttributes} class={`${listClass} skeleton-menu`}>
-						<li><a href="#" aria-current="page">My cases</a></li>
-						<li><a href="#">Applications</a></li>
-						<li><a href="#">Contact us</a></li>
+						<li><a href="#" aria-current="page">Incidents</a></li>
+						<li><a href="#">Sectors</a></li>
+						<li><a href="#">Relays</a></li>
 					</ul>
 				</nav>
 			</div>
@@ -90,45 +90,45 @@ const { class: listClass, ...listAttributes } = lt.list({ variant: "plain" })
 		<div class="skeleton-width skeleton-path">
 			<nav aria-label="You are here">
 				<ol {...lt.breadcrumbs()}>
-					<li><a {...lt.link()} href="#">Home</a></li>
-					<li><a {...lt.link()} href="#">My page</a></li>
-					<li><a {...lt.link()} href="#" aria-current="page">My cases</a></li>
+					<li><a {...lt.link()} href="#">Console</a></li>
+					<li><a {...lt.link()} href="#">Operations</a></li>
+					<li><a {...lt.link()} href="#" aria-current="page">Incidents</a></li>
 				</ol>
 			</nav>
 		</div>
 
 		<main id="main-content" tabindex="-1" class="skeleton-width skeleton-main">
-			<h1 {...lt.heading({ size: "xl" })}>My cases</h1>
+			<h1 {...lt.heading({ size: "xl" })}>Incidents</h1>
 
 			<p {...lt.paragraph({ variant: "lead" })}>
-				Here you find your cases, and what is happening with them.
+				Every incident on the Lattice, and what the crews are doing about it.
 			</p>
 
-			<section aria-labelledby="under-review-status">
-				<h2 {...lt.heading({ size: "m" })} id="under-review-status">Under review</h2>
+			<section aria-labelledby="this-week">
+				<h2 {...lt.heading({ size: "m" })} id="this-week">This week</h2>
 
-				<ul {...listAttributes} class={`${listClass} skeleton-cases`}>
+				<ul {...listAttributes} class={`${listClass} skeleton-incidents`}>
 					<li>
 						<article {...lt.card()}>
-							<h3 class={lt.card.title}>Housing benefit application</h3>
+							<h3 class={lt.card.title}>Sector 9 is dark</h3>
 							<p {...lt.paragraph({ size: "small" })}>
-								Sent 4 March 2026. Case number 2026-0481.
+								Reported 4 March 2079. Incident LAT-0412.
 							</p>
-							<p><span {...lt.badge({ color: "warning" })}>Attachments missing</span></p>
+							<p><span {...lt.badge({ color: "warning" })}>Crews on the way</span></p>
 							<p>
-								<a {...lt.link()} href="#">See what is missing</a>
+								<a {...lt.link()} href="#">See the sector</a>
 							</p>
 						</article>
 					</li>
 					<li>
 						<article {...lt.card()}>
-							<h3 class={lt.card.title}>Nursery place application</h3>
+							<h3 class={lt.card.title}>Someone on the wire in sector 3</h3>
 							<p {...lt.paragraph({ size: "small" })}>
-								Sent 12 February 2026. Case number 2026-0377.
+								Reported 2 March 2079. Incident LAT-0409. It was us.
 							</p>
-							<p><span {...lt.badge({ color: "success" })}>Approved</span></p>
+							<p><span {...lt.badge({ color: "success" })}>False alarm</span></p>
 							<p>
-								<a {...lt.link()} href="#">See the decision</a>
+								<a {...lt.link()} href="#">Read the report</a>
 							</p>
 						</article>
 					</li>
@@ -137,19 +137,19 @@ const { class: listClass, ...listAttributes } = lt.list({ variant: "plain" })
 
 			<hr {...lt.divider()} />
 
-			<section aria-labelledby="new-application">
-				<h2 {...lt.heading({ size: "m" })} id="new-application">New application</h2>
+			<section aria-labelledby="new-incident">
+				<h2 {...lt.heading({ size: "m" })} id="new-incident">Report an incident</h2>
 				<p {...lt.paragraph()}>
-					You can apply for housing benefit every month. The deadline is the 25th.
+					Report anything you see on the wire. The duty crew answers around the clock.
 				</p>
-				<p><button {...lt.button()} type="button">Start a new application</button></p>
+				<p><button {...lt.button()} type="button">Report an incident</button></p>
 			</section>
 		</main>
 
 		<footer class="skeleton-bottom">
 			<div class="skeleton-width">
 				<p {...lt.paragraph({ size: "small" })}>
-					Example Council, PO Box 1, Exampletown 0000. Telephone 00 00 00 00.
+					Meridian Lattice, operations. The duty crew is on the wire around the clock.
 				</p>
 			</div>
 		</footer>
@@ -273,12 +273,12 @@ const { class: listClass, ...listAttributes } = lt.list({ variant: "plain" })
 				gap: var(--lt-spacing-3);
 			}
 
-			.skeleton-cases {
+			.skeleton-incidents {
 				display: grid;
 				gap: var(--lt-spacing-3);
 			}
 
-			.skeleton-cases li + li {
+			.skeleton-incidents li + li {
 				margin-block-start: 0;
 			}
 

@@ -43,7 +43,7 @@ class ParityTest {
     fun `the positions point to the right text in a Kotlin string`() {
         val html = File(DIR, "09-non-ascii-characters.html").readText()
         val finding = Lotek.diagnoseMarkup(html).single()
-        assertEquals("data-variant=\"sekundær\"", html.substring(finding.start, finding.end))
+        assertEquals("data-variant=\"secondäry\"", html.substring(finding.start, finding.end))
     }
 
     @org.junit.jupiter.api.Test

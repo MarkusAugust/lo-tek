@@ -60,13 +60,13 @@ describe("lt-help-text", () => {
 describe("lt-help-text accessibility", () => {
   it("has enough contrast and is wired to the field", async () => {
     mount(`
-      <label class="lt-label" for="a11y-kid">Payment reference</label>
-      <input class="lt-input" id="a11y-kid" inputmode="numeric" aria-describedby="a11y-kid-help" />
-      <p class="lt-help-text" id="a11y-kid-help">You will find the number at the top of the invoice.</p>
+      <label class="lt-label" for="a11y-budget">Budget</label>
+      <input class="lt-input" id="a11y-budget" inputmode="numeric" aria-describedby="a11y-budget-help" />
+      <p class="lt-help-text" id="a11y-budget-help">In EB, without the code. The crew sees it.</p>
 
-      <p class="lt-help-text" data-variant="strong">The change applies from the start of next month.</p>
-      <p class="lt-help-text" data-variant="success">The attachment has been uploaded.</p>
-      <p class="lt-help-text" data-variant="warning">The application deadline is in three days.</p>
+      <p class="lt-help-text" data-variant="strong">The order is binding once a crew takes it.</p>
+      <p class="lt-help-text" data-variant="success">The floor plans have been uploaded.</p>
+      <p class="lt-help-text" data-variant="warning">The window closes in three days.</p>
     `)
 
     await waitForPaint()

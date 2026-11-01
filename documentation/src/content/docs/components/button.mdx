@@ -11,10 +11,10 @@ The class goes on an ordinary `<button>`. No JavaScript is loaded, and it works 
 
 <Example imports={["tokens.css", "button.css"]}
   styles={["button"]} code={`
-<button class="lt-button">Send application</button>
+<button class="lt-button">Order the job</button>
 <button class="lt-button" data-variant="secondary">Save draft</button>
-<button class="lt-button" data-variant="ghost">Add attachment</button>
-<button class="lt-button" data-variant="danger">Delete application</button>
+<button class="lt-button" data-variant="ghost">Attach floor plans</button>
+<button class="lt-button" data-variant="danger">Cancel the job</button>
 `}>
 <Fragment slot="ts">
 
@@ -25,7 +25,7 @@ The class goes on an ordinary `<button>`. No JavaScript is loaded, and it works 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<button {...lt.button()}>Send application</button>
+<button {...lt.button()}>Order the job</button>
 ```
 
 The import goes to `/react` here, since the block is JSX. From there the keys are called `className` and `htmlFor`. In Astro and anything else without React you import `@lo-tek/interfaces` and get `class` and `for`.
@@ -35,7 +35,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const button = document.querySelector<HTMLButtonElement>("#send")
+const button = document.querySelector<HTMLButtonElement>("#order")
 
 lt.setAttributes(button, lt.button({ variant: "secondary" }))
 ```
@@ -98,9 +98,9 @@ If the team changes framework, it is this one component that is rewritten, not t
 ## Disabled
 
 <Example styles={["button"]} code={`
-<button class="lt-button" disabled>Send application</button>
+<button class="lt-button" disabled>Order the job</button>
 <button class="lt-button" data-variant="secondary" disabled>Save draft</button>
-<a class="lt-button" role="link" tabindex="0" aria-disabled="true">Go to the overview</a>
+<a class="lt-button" role="link" tabindex="0" aria-disabled="true">Back to open jobs</a>
 `} />
 
 `disabled` exists only on `<button>`. If the button is an `<a>`, use `aria-disabled="true"` and remove `href`, otherwise Enter follows it. Write `role="link"` and `tabindex="0"` alongside, so screen readers still find the link and can say that it is unavailable. See [Link](../link/#disabled-link).
@@ -108,7 +108,7 @@ If the team changes framework, it is this one component that is rewritten, not t
 ## A link that looks like a button
 
 <Example styles={["button"]} code={`
-<a class="lt-button" href="#">Go to the overview</a>
+<a class="lt-button" href="#">Back to open jobs</a>
 <a class="lt-button" data-variant="secondary" href="#">Read the terms</a>
 `} />
 
@@ -116,7 +116,7 @@ If you are navigating the user, the element should be an `<a>` even if it looks 
 
 ## On a narrow screen
 
-The button text wraps when it has to. A button with a long label, such as "Send the application for housing benefit for the whole of 2026", would otherwise become wider than the phone, and then the whole page scrolls sideways.
+The button text wraps when it has to. A button with a long label, such as "Order the job against Coldmere Systems, clean only, delivered before 31 May 2079", would otherwise become wider than the phone, and then the whole page scrolls sideways.
 
 If you need a full-width button, that is the app's layout:
 
@@ -154,7 +154,7 @@ An example. A button in a table row needs less space than one standing on its ow
 	--lt-button-radius: var(--lt-spacing-4);
 }
 `} code={`
-<button class="lt-button">Open the case</button>
+<button class="lt-button">Open the job</button>
 <button class="lt-button row-button" data-variant="secondary">Open</button>
 `} />
 

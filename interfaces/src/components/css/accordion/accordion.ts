@@ -30,7 +30,7 @@ export type AccordionAttributes = {
  *
  * ```ts
  * <details {...accordion()}>
- *   <summary>Who can apply?</summary>
+ *   <summary>Who can take out a policy?</summary>
  *   <div class={accordion.content}>…</div>
  * </details>
  * ```

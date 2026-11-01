@@ -95,7 +95,7 @@ describe("the builder functions fit the JSX declarations", () => {
    * alone was what said so.
    */
   it("the tabs, which are links with tabIndex", () => {
-    const tabs = lt.tabs({ id: "case", keys: ["a", "b"], label: "The case" })
+    const tabs = lt.tabs({ id: "file", keys: ["a", "b"], label: "The claim" })
     const [first] = tabs.tabs
     const tab: JSX.IntrinsicElements["a"] = first ?? {}
     const item: JSX.IntrinsicElements["li"] = tabs.item

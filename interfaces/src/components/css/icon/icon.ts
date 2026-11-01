@@ -30,7 +30,7 @@ export type IconAttributes = {
  * reports a button that lacks one.
  *
  * ```ts
- * <button {...button()} aria-label="Delete the application">
+ * <button {...button()} aria-label="Delete ticket #0331">
  *   <svg {...icon()} viewBox="0 0 24 24">…</svg>
  * </button>
  * ```

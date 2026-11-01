@@ -77,12 +77,12 @@ describe("lt-button variants", () => {
 describe("lt-button accessibility", () => {
   it("has enough contrast in every variant", async () => {
     mount(`
-      <button class="lt-button">Send application</button>
+      <button class="lt-button">Order the job</button>
       <button class="lt-button" data-variant="secondary">Save draft</button>
-      <button class="lt-button" data-variant="ghost">Add attachment</button>
-      <button class="lt-button" data-variant="danger">Delete application</button>
-      <button class="lt-button" disabled>Send application</button>
-      <a class="lt-button" href="/overview">Go to the overview</a>
+      <button class="lt-button" data-variant="ghost">Attach floor plans</button>
+      <button class="lt-button" data-variant="danger">Cancel the job</button>
+      <button class="lt-button" disabled>Order the job</button>
+      <a class="lt-button" href="/jobs">Back to open jobs</a>
     `)
 
     await waitForPaint()

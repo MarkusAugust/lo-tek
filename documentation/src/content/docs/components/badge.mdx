@@ -12,9 +12,9 @@ A small badge that shows what state something is in. The colour is set with `dat
 <Example imports={["tokens.css", "badge.css"]}
   styles={["badge"]} code={`
 <span class="lt-badge">In progress</span>
-<span class="lt-badge" data-color="success">Approved</span>
+<span class="lt-badge" data-color="success">Paid</span>
 <span class="lt-badge" data-color="warning">Attachment missing</span>
-<span class="lt-badge" data-color="danger">Rejected</span>
+<span class="lt-badge" data-color="danger">Denied</span>
 <span class="lt-badge" data-color="neutral">Archived</span>
 `}>
 <Fragment slot="ts">
@@ -37,7 +37,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 import { lt, type BadgeColor } from "@lo-tek/interfaces"
 
 const badge = document.createElement("span")
-badge.textContent = "Approved"
+badge.textContent = "Paid"
 
 lt.setAttributes(badge, lt.badge({ color: "success" }))
 ```
@@ -69,8 +69,8 @@ The badge usually sits next to what it describes. Here in a [List](../list/) wit
 
 <Example styles={["badge", "list"]} layout="stack" maxWidth="26rem" code={`
 <ul class="lt-list" data-variant="divided">
-  <li>Invoice 2026-0481 <span class="lt-badge" data-color="success">Paid</span></li>
-  <li>Invoice 2026-0482 <span class="lt-badge" data-color="danger">Overdue</span></li>
+  <li>Premium for February <span class="lt-badge" data-color="success">Paid</span></li>
+  <li>Premium for March <span class="lt-badge" data-color="danger">Overdue</span></li>
 </ul>
 `} />
 
@@ -91,6 +91,6 @@ See [Customising](../../customising/) for how the variables and the layer work.
 
 ## Accessibility
 
-- Colour alone says nothing to a screen reader. The text has to carry the meaning: "Rejected", not just a red dot.
+- Colour alone says nothing to a screen reader. The text has to carry the meaning: "Denied", not just a red dot.
 - `<span>` inside a line of text, `<div>` when the badge stands alone.
 - If the badge changes while the page is otherwise still, put `role="status"` and `aria-live="polite"` on the element around it.

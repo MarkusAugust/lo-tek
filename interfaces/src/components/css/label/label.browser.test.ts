@@ -64,17 +64,17 @@ describe("lt-label", () => {
 describe("lt-label accessibility", () => {
   it("connects the label to the field in every marker", async () => {
     mount(`
-      <label class="lt-label" for="a11y-name">Full name</label>
-      <input class="lt-input" id="a11y-name" type="text" />
+      <label class="lt-label" for="a11y-codename">Codename</label>
+      <input class="lt-input" id="a11y-codename" type="text" />
 
-      <label class="lt-label" data-required="symbol" for="a11y-email">Email address</label>
-      <input class="lt-input" id="a11y-email" type="email" required />
+      <label class="lt-label" data-required="symbol" for="a11y-fixer">Fixer's address</label>
+      <input class="lt-input" id="a11y-fixer" type="email" required />
 
-      <label class="lt-label" data-required="text" for="a11y-phone">Phone number</label>
-      <input class="lt-input" id="a11y-phone" type="tel" required />
+      <label class="lt-label" data-required="text" for="a11y-budget">Budget</label>
+      <input class="lt-input" id="a11y-budget" type="text" required />
 
-      <label class="lt-label" data-optional="" for="a11y-address">Address</label>
-      <input class="lt-input" id="a11y-address" type="text" />
+      <label class="lt-label" data-optional="" for="a11y-entry">Entry point</label>
+      <input class="lt-input" id="a11y-entry" type="text" />
     `)
 
     await waitForPaint()

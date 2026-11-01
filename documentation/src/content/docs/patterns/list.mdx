@@ -3,7 +3,12 @@ title: List with filters
 description: "Search, filters and the four states a list has: loading, results, empty and failed."
 ---
 
+import Epigraph from "../../../components/Epigraph.astro"
 import ListDemo from "../../../components/ListDemo.astro"
+
+<Epigraph source="Tidewall Holdings, listing">
+  “Floor 14 is dry. For now.”
+</Epigraph>
 
 A list is not one thing. It is four states, and the three other than "here is the result" are the ones that get forgotten.
 
@@ -40,8 +45,8 @@ The filters are buttons with `aria-pressed`, collected in a group with a label:
 <div role="group" aria-labelledby="filters">
   <h3 class="lt-heading" data-size="xs" id="filters">Status</h3>
 
-  <button class="lt-tag" data-selectable aria-pressed="true" type="button">Approved</button>
-  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Rejected</button>
+  <button class="lt-tag" data-selectable aria-pressed="true" type="button">Dry</button>
+  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Seasonal</button>
 </div>
 ```
 
@@ -52,7 +57,7 @@ The filters are buttons with `aria-pressed`, collected in a group with a label:
 A table with more than two columns becomes wider than a phone. Put it in its scroll container, and give the region a name:
 
 ```html
-<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Cases">
+<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Free floors">
   <table class="lt-table" data-variant="striped">…</table>
 </div>
 ```
@@ -61,7 +66,7 @@ A table with more than two columns becomes wider than a phone. Put it in its scr
 
 ### Sorting
 
-The "Case number" and "Sent" columns in the demo can be sorted. The button in the header and the arrow are [LO-TEK's](../../components/table/#sortable-columns), while the order is the demo's: it keeps track of the column and direction, and writes `aria-sort` on one header. A click fetches nothing again, but the table is redrawn, so the demo puts focus back on the button.
+The "Floor" and "Above the water" columns in the demo can be sorted. The button in the header and the arrow are [LO-TEK's](../../components/table/#sortable-columns), while the order is the demo's: it keeps track of the column and direction, and writes `aria-sort` on one header. A click fetches nothing again, but the table is redrawn, so the demo puts focus back on the button.
 
 ### The row below the table
 
@@ -69,7 +74,7 @@ The number of matches, how many are shown per page and the pages often sit in on
 
 ```html
 <div class="table-footer">
-  <p class="lt-paragraph">Showing 1 to 10 of 137</p>
+  <p class="lt-paragraph">Showing 1 to 10 of 137 floors</p>
   <div class="table-footer__count">
     <label class="lt-label" for="per-page">Per page</label>
     <select class="lt-select" id="per-page"><option>10</option><option>50</option></select>
@@ -103,7 +108,7 @@ The two are different, and should look different. An empty list is an answer. A 
 
 ```html
 <div class="lt-alert" data-color="danger" role="alert">
-  <p class="lt-alert__title">Could not fetch the cases</p>
+  <p class="lt-alert__title">Could not fetch the floors</p>
   <p>The network did not respond. Try again.</p>
 </div>
 ```

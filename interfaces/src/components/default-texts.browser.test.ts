@@ -19,9 +19,9 @@ type Key = keyof typeof DEFAULT_TEXTS
 /** The suggestion field, with three options to filter. */
 const SUGGESTION = (attributes: string) => `
   <lt-suggestion ${attributes}>
-    <label for="town">Town</label>
-    <input id="town">
-    <ul class="lt-suggestion__list"><li>Bergen</li><li>Bodø</li><li>Oslo</li></ul>
+    <label for="breaker">Breaker</label>
+    <input id="breaker">
+    <ul class="lt-suggestion__list"><li>Crowbar</li><li>Boltcutter</li><li>Needle</li></ul>
     <span role="status"></span>
   </lt-suggestion>`
 
@@ -30,7 +30,7 @@ async function count(attributes: string, typed: string): Promise<string> {
   mount(SUGGESTION(attributes))
   await customElements.whenDefined("lt-suggestion")
   await waitForPaint()
-  const input = document.querySelector("#town") as HTMLInputElement
+  const input = document.querySelector("#breaker") as HTMLInputElement
   input.value = typed
   input.dispatchEvent(new Event("input", { bubbles: true }))
   await waitForPaint()
@@ -78,7 +78,7 @@ const SHOWN: Record<Key, (attributes: string) => Promise<string>> = {
   connectionOffline: (attributes) => connection(attributes, false),
   connectionOnline: (attributes) => connection(attributes, true),
   suggestionNone: (attributes) => count(attributes, "xyz"),
-  suggestionOne: (attributes) => count(attributes, "osl"),
+  suggestionOne: (attributes) => count(attributes, "nee"),
   suggestionOther: (attributes) => count(attributes, "b"),
 }
 

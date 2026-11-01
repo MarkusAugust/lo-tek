@@ -48,8 +48,8 @@ defineLtPopover()
       <button class="lt-button" data-variant="secondary" type="button">Actions</button>
 
       <ul class="lt-popover" id="actions">
-        <li><button class="lt-button" data-variant="ghost" type="button">Archive the case</button></li>
-        <li><button class="lt-button" data-variant="ghost" type="button">Download as PDF</button></li>
+        <li><button class="lt-button" data-variant="ghost" type="button">Mark LDG-117 returned</button></li>
+        <li><button class="lt-button" data-variant="ghost" type="button">Charge the late fee</button></li>
       </ul>
     </lt-popover>
 
@@ -92,7 +92,7 @@ defineLtPopover()
     import { lt } from "@lo-tek/interfaces/react"
     import "@lo-tek/interfaces/tokens.css"
 
-    export function ActionsMenu({ onArchive }: { onArchive: () => void }) {
+    export function ActionsMenu({ onReturned }: { onReturned: () => void }) {
       const menu = useRef<HTMLElement & { hide(): void }>(null)
       const box = lt.popover({ id: "actions", placement: "bottom-end" })
 
@@ -109,8 +109,8 @@ defineLtPopover()
 
           <ul {...box.panel}>
             <li>
-              <button {...lt.button({ variant: "ghost" })} onClick={choose(onArchive)}>
-                Archive the case
+              <button {...lt.button({ variant: "ghost" })} onClick={choose(onReturned)}>
+                Mark LDG-117 returned
               </button>
             </li>
           </ul>
@@ -138,8 +138,8 @@ defineLtPopover()
       <button {...box.trigger} {...lt.button({ variant: "secondary" })}>Actions</button>
 
       <ul {...box.panel}>
-        <li><a {...lt.link()} href="/case/481/pdf">Download as PDF</a></li>
-        <li><a {...lt.link()} href="/case/481/archive">Archive the case</a></li>
+        <li><a {...lt.link()} href="/breakers/LDG-117/history">Rental history</a></li>
+        <li><a {...lt.link()} href="/breakers/LDG-117/terms">Rental terms</a></li>
       </ul>
     </lt-popover>
 
@@ -176,7 +176,7 @@ defineLtPopover()
         <ul class="lt-popover" id="actions">
           <li>
             <button class="lt-button" data-variant="ghost" type="button" data-on:click="$menuOpen = false">
-              Archive the case
+              Mark LDG-117 returned
             </button>
           </li>
         </ul>
@@ -208,8 +208,8 @@ const box = lt.popover({ id: "actions", placement: "bottom-end" })
           aria-expanded="false" aria-controls="actions">Actions</button>
 
   <ul class="lt-popover" id="actions" popover="manual">
-    <li><button class="lt-button" data-variant="ghost" type="button">Archive the case</button></li>
-    <li><button class="lt-button" data-variant="ghost" type="button">Download as PDF</button></li>
+    <li><button class="lt-button" data-variant="ghost" type="button">Mark LDG-117 returned</button></li>
+    <li><button class="lt-button" data-variant="ghost" type="button">Charge the late fee</button></li>
   </ul>
 </lt-popover>
 ```

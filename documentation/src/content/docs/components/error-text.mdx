@@ -11,8 +11,8 @@ The message shown when a field cannot be submitted as it stands. It belongs righ
 
 <Example imports={["tokens.css", "error-text.css"]}
   styles={["error-text"]} layout="stack" maxWidth="30rem" code={`
-<p class="lt-error-text">Enter an email address with an at sign, for example jane&#64;example.com.</p>
-<p class="lt-error-text" data-variant="warning">We cannot find this address in the population register. Check that it is correct.</p>
+<p class="lt-error-text">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>
+<p class="lt-error-text" data-variant="warning">No fixer on file has this address. Check it before the board writes.</p>
 `}>
 <Fragment slot="ts">
 
@@ -23,7 +23,7 @@ The message shown when a field cannot be submitted as it stands. It belongs righ
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<p {...lt.errorText()}>Enter your name.</p>
+<p {...lt.errorText()}>Enter a codename.</p>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -33,11 +33,11 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const input = document.querySelector<HTMLInputElement>("#email")
-const errorText = document.querySelector<HTMLElement>("#email-error")
+const input = document.querySelector<HTMLInputElement>("#fixer")
+const errorText = document.querySelector<HTMLElement>("#fixer-error")
 
 function update(isValid: boolean) {
-  const field = lt.field({ id: "email", error: true, invalid: !isValid })
+  const field = lt.field({ id: "fixer", error: true, invalid: !isValid })
 
   lt.setAttributes(input, lt.input({ type: "email" }), field.control)
   lt.setAttributes(errorText, lt.errorText(), field.error)
@@ -59,17 +59,17 @@ function update(isValid: boolean) {
 Three things have to agree at the same time: `data-state` for the colour, `aria-invalid` for the screen reader, and `aria-describedby` for the text itself.
 
 <Example styles={["error-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
-<label class="lt-label" for="email">Email address</label>
+<label class="lt-label" for="fixer">Fixer's address</label>
 <input
   class="lt-input"
-  id="email"
+  id="fixer"
   type="email"
   data-state="invalid"
   aria-invalid="true"
-  aria-describedby="email-error"
-  value="jane.example.com"
+  aria-describedby="fixer-error"
+  value="fixer.relay.example"
 />
-<p class="lt-error-text" id="email-error">Enter an email address with an at sign.</p>
+<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an at sign.</p>
 `} />
 
 [Field](../field/) sets all three when you give it `invalid`. That is why that component exists.

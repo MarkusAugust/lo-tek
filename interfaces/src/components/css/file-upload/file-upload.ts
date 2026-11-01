@@ -39,7 +39,7 @@ export type FileUploadAttributes = {
  * "all files", so the type must be checked on the server anyway.
  *
  * ```ts
- * <input {...fileUpload({ multiple: true, accept: ".pdf" })} />
+ * <input {...fileUpload({ multiple: true, accept: ".bin" })} />
  * ```
  */
 export const fileUpload = Object.assign(

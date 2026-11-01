@@ -5,14 +5,14 @@
       "end": 21,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/popover/",
-      "message": "placement cannot be \"midt\". Valid values: bottom-start, bottom-end, top-start, top-end."
+      "message": "placement cannot be \"middle\". Valid values: bottom-start, bottom-end, top-start, top-end."
     },
     {
-      "start": 164,
-      "end": 178,
+      "start": 169,
+      "end": 183,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/error-summary/",
-      "message": "data-autofocus cannot be \"kanskje\". Valid values: false, true."
+      "message": "data-autofocus cannot be \"maybe\". Valid values: false, true."
     }
   ],
   "page": [
@@ -21,14 +21,14 @@
       "end": 21,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/popover/",
-      "message": "placement cannot be \"midt\". Valid values: bottom-start, bottom-end, top-start, top-end."
+      "message": "placement cannot be \"middle\". Valid values: bottom-start, bottom-end, top-start, top-end."
     },
     {
-      "start": 164,
-      "end": 178,
+      "start": 169,
+      "end": 183,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/error-summary/",
-      "message": "data-autofocus cannot be \"kanskje\". Valid values: false, true."
+      "message": "data-autofocus cannot be \"maybe\". Valid values: false, true."
     }
   ]
 }

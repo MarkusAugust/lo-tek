@@ -10,7 +10,7 @@ export type TabsOptions = {
    */
   id: string
   /**
-   * One key per tab, from the data, such as `["application", "attachments"]`.
+   * One key per tab, from the data, such as `["claim", "attachments"]`.
    * The key gives the panel its id, and the link points to it. An index is
    * not a key: if the server inserts a tab first, the same index points to
    * another panel. An empty key, whitespace and two identical keys throw.
@@ -70,14 +70,14 @@ function prepare(
  * behave like one, and hidden the panels.
  *
  * The first tab is selected when the page loads. Another one comes from the
- * address, such as `#case-attachments`, or from `selected` and `select()` on
+ * address, such as `#file-attachments`, or from `selected` and `select()` on
  * `<lt-tabs>`.
  *
  * A React app uses `lt.tabs()` from `@lo-tek/interfaces/react`, which gives
  * the whole state, so React hydrates without mismatches.
  *
  * ```ts
- * const tabs = lt.tabs({ id: "case", keys: ["application", "attachments"], label: "Parts of the case" })
+ * const tabs = lt.tabs({ id: "file", keys: ["claim", "attachments"], label: "Parts of the claim" })
  * ```
  */
 export const tabs = (options: TabsOptions): TabsAttributes => {

@@ -15,21 +15,21 @@ If the user can choose several, use [Checkbox](../checkbox/). If there are many 
 <Example imports={["tokens.css", "radio.css", "fieldset.css", "label.css"]}
   styles={["radio", "label", "fieldset"]} layout="stack" maxWidth="28rem" code={`
 <fieldset class="lt-fieldset">
-  <legend class="lt-legend" data-required="symbol">How do you want to receive the answer?</legend>
+  <legend class="lt-legend" data-required="symbol">Lease length</legend>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="reply-digital" name="reply" value="digital" checked />
-    <label class="lt-label" for="reply-digital">In your digital mailbox</label>
+    <input class="lt-radio" type="radio" id="lease-1" name="lease" value="1" checked />
+    <label class="lt-label" for="lease-1">One month</label>
   </div>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="reply-post" name="reply" value="post" />
-    <label class="lt-label" for="reply-post">As a letter in the post</label>
+    <input class="lt-radio" type="radio" id="lease-6" name="lease" value="6" />
+    <label class="lt-label" for="lease-6">Six months</label>
   </div>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="reply-collect" name="reply" value="collect" disabled />
-    <label class="lt-label" for="reply-collect">Collect at the office</label>
+    <input class="lt-radio" type="radio" id="lease-12" name="lease" value="12" disabled />
+    <label class="lt-label" for="lease-12">Twelve months</label>
   </div>
 </fieldset>
 `}>
@@ -43,8 +43,8 @@ If the user can choose several, use [Checkbox](../checkbox/). If there are many 
 import { lt } from "@lo-tek/interfaces/react"
 
 <div className={lt.radio.row}>
-  <input {...lt.radio()} id="reply-digital" name="reply" value="digital" />
-  <label {...lt.label()} htmlFor="reply-digital">Digitally</label>
+  <input {...lt.radio()} id="lease-1" name="lease" value="1" />
+  <label {...lt.label()} htmlFor="lease-1">One month</label>
 </div>
 ```
 
@@ -55,7 +55,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const buttons = document.querySelectorAll<HTMLInputElement>("[name='reply']")
+const buttons = document.querySelectorAll<HTMLInputElement>("[name='lease']")
 
 function mark(invalid: boolean) {
   for (const button of buttons) {
@@ -76,7 +76,7 @@ The group always belongs in a [Fieldset](../fieldset/). Without it only the opti
 <Example styles={["radio", "label"]} layout="stack" maxWidth="28rem" code={`
 <div class="lt-radio-row">
   <input class="lt-radio" type="radio" id="invalid-choice" name="example" data-state="invalid" aria-invalid="true" />
-  <label class="lt-label" for="invalid-choice">You have to choose one option</label>
+  <label class="lt-label" for="invalid-choice">Choose a lease length</label>
 </div>
 `} />
 

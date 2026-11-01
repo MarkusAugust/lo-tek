@@ -15,7 +15,7 @@ import "./spinner.css"
 describe("lt-spinner", () => {
   beforeEach(() => {
     mount(`
-      <span class="lt-spinner" id="default" role="status" aria-label="Loading applications"></span>
+      <span class="lt-spinner" id="default" role="status" aria-label="Loading sectors"></span>
       <span class="lt-spinner" data-size="small" id="small" aria-hidden="true"></span>
       <span class="lt-spinner" data-size="large" id="large" aria-hidden="true"></span>
     `)
@@ -42,11 +42,11 @@ describe("lt-spinner", () => {
 
   it("sets a role only when it has something to announce", () => {
     expect(spinner()).toEqual({ class: "lt-spinner" })
-    expect(spinner({ size: "large", label: "Loading applications" })).toEqual({
+    expect(spinner({ size: "large", label: "Loading sectors" })).toEqual({
       class: "lt-spinner",
       "data-size": "large",
       role: "status",
-      "aria-label": "Loading applications",
+      "aria-label": "Loading sectors",
     })
   })
 
