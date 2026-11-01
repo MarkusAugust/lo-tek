@@ -126,6 +126,25 @@
     cursor: pointer;
   }
 
+  /* iOS Safari: with the native appearance, a date or time field leaves out
+     its padding from border-box, and the field stands wider than its
+     container. Only iOS has -webkit-touch-callout, so no other engine is
+     touched. */
+  @supports (-webkit-touch-callout: none) {
+    .lt-input[data-variant="date"],
+    .lt-input[data-variant="time"],
+    .lt-input[data-variant="datetime-local"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .lt-input[data-variant="date"]::-webkit-date-and-time-value,
+    .lt-input[data-variant="time"]::-webkit-date-and-time-value,
+    .lt-input[data-variant="datetime-local"]::-webkit-date-and-time-value {
+      text-align: start;
+    }
+  }
+
   /* High contrast: the icon is painted into the image with a fixed colour,
      and can become invisible in a dark theme. The browser's own button is
      hidden behind our icon, and is brought back here. */
