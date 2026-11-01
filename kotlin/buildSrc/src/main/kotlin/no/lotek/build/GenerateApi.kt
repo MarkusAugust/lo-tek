@@ -112,7 +112,6 @@ class Generator(manifest: Map<String, Any?>) {
         "Values.kt" to valuesFile(),
         "Lt.kt" to ltFile(),
         "Parts.kt" to partsFile(),
-        "Classes.kt" to classesFile(),
         "Dispatch.kt" to dispatchFile(),
         "WebJar.kt" to webJarFile(),
     )
@@ -202,30 +201,53 @@ class Generator(manifest: Map<String, Any?>) {
         out.append(" * whose options interact are in `Handwritten.kt`.\n */\n")
         out.append("object Lt {\n")
         for (b in builders) {
-            @Suppress("UNCHECKED_CAST")
-            val table = b["table"] as Map<String, Any?>? ?: continue
             val name = b["name"] as String
-            out.append("    /** `lt.$name` */\n")
-            val parameters = if (options(b).isEmpty()) "" else "\n${signature(b)},\n    "
-            out.append("    fun ${identifier(name)}($parameters): ${returnType(b)} {\n")
             @Suppress("UNCHECKED_CAST")
-            if (table["kind"] == "attributes") {
-                out.append(tableBody(b, table["table"] as Map<String, Any?>, "a", "        "))
-                out.append("        return Attributes(a)\n")
-            } else {
-                val fields = table["fields"] as Map<String, Map<String, Any?>>
-                for ((field, t) in fields) out.append(tableBody(b, t, "${field}Map", "        "))
-                out.append("        return ${returnType(b)}(\n")
-                for (field in fields.keys) out.append("            ${identifier(field)} = Attributes(${field}Map),\n")
-                out.append("        )\n")
+            val table = b["table"] as Map<String, Any?>?
+            if (table != null) {
+                out.append("    /** `lt.$name` */\n")
+                val parameters = if (options(b).isEmpty()) "" else "\n${signature(b)},\n    "
+                out.append("    fun ${identifier(name)}($parameters): ${returnType(b)} {\n")
+                @Suppress("UNCHECKED_CAST")
+                if (table["kind"] == "attributes") {
+                    out.append(tableBody(b, table["table"] as Map<String, Any?>, "a", "        "))
+                    out.append("        return Attributes(a)\n")
+                } else {
+                    val fields = table["fields"] as Map<String, Map<String, Any?>>
+                    for ((field, t) in fields) out.append(tableBody(b, t, "${field}Map", "        "))
+                    out.append("        return ${returnType(b)}(\n")
+                    for (field in fields.keys) out.append("            ${identifier(field)} = Attributes(${field}Map),\n")
+                    out.append("        )\n")
+                }
+                out.append("    }\n\n")
             }
-            out.append("    }\n\n")
-            if (classesOf(b).isNotEmpty()) {
+            // The constants do not depend on the table: a handwritten builder
+            // function with a constant gets its `val` here too.
+            val classes = classesOf(b)
+            if (classes.isNotEmpty()) {
                 val type = classesType(name)
-                val list = classesOf(b).keys.joinToString(", ") { "`Lt.$name.$it`" }
+                val list = classes.keys.joinToString(", ") { "`Lt.${identifier(name)}.${identifier(it)}`" }
                 out.append("    /** The parts of `lt.$name` the template writes itself: $list, as in TypeScript. */\n")
                 out.append("    val ${identifier(name)}: $type = $type\n\n")
             }
+        }
+        // One object per builder function with class constants, inside `Lt` so
+        // the only public spelling is `Lt.card.title`. Each constant is a set
+        // with the class, so it goes where every other answer goes:
+        // `h3 { lt(Lt.card.title) }` in kotlinx.html, `Lt.card.title.toHtml()`
+        // in a string. In TypeScript the same constant is the class as text.
+        for (b in builders) {
+            val classes = classesOf(b)
+            if (classes.isEmpty()) continue
+            val name = b["name"] as String
+            out.append("    /** The classes `lt.$name` carries for the parts the template writes itself. Reached as `Lt.${identifier(name)}`. */\n")
+            out.append("    object ${classesType(name)} {\n")
+            for ((part, className) in classes) {
+                out.append("        /** `lt.$name.$part` in TypeScript: the class `$className`. */\n")
+                out.append("        val ${identifier(part)}: Attributes = Attributes(linkedMapOf(\"class\" to ${literal(className)}))\n\n")
+            }
+            out.setLength(out.length - 1)
+            out.append("    }\n\n")
         }
         out.setLength(out.length - 1)
         out.append("}\n")
@@ -347,30 +369,6 @@ class Generator(manifest: Map<String, Any?>) {
         b["classes"] as Map<String, String>? ?: emptyMap()
 
     private fun classesType(builder: String): String = pascal(builder) + "Classes"
-
-    /**
-     * One object per builder function with class constants. Each constant is
-     * a set with the class, so it goes where every other answer goes:
-     * `h3 { lt(Lt.card.title) }` in kotlinx.html, `Lt.card.title.toHtml()` in
-     * a string. In TypeScript the same constant is the class as text.
-     */
-    private fun classesFile(): String {
-        val out = StringBuilder(header).append("package no.lotek\n")
-        for (b in builders) {
-            val classes = classesOf(b)
-            if (classes.isEmpty()) continue
-            val name = b["name"] as String
-            out.append("\n/** The classes `lt.$name` carries for the parts the template writes itself. Reached as `Lt.$name`. */\n")
-            out.append("object ${classesType(name)} {\n")
-            for ((part, className) in classes) {
-                out.append("    /** `lt.$name.$part` in TypeScript: the class `$className`. */\n")
-                out.append("    val ${identifier(part)}: Attributes = Attributes(linkedMapOf(\"class\" to ${literal(className)}))\n\n")
-            }
-            out.setLength(out.length - 1)
-            out.append("}\n")
-        }
-        return out.toString()
-    }
 
     private fun dispatchFile(): String {
         val out = StringBuilder(header).append("package no.lotek\n\n")

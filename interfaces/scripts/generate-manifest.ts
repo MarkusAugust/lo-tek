@@ -397,14 +397,18 @@ for (const b of builderFunctions) {
       .flatMap((t) => setsOf(t.expected))
       .flatMap(([, set]) => String(set.class ?? "").split(/\s+/)),
   )
-  const constants = Object.entries(
+  const strings = Object.entries(
     lt[b.name as keyof typeof lt] as unknown as Record<string, unknown>,
-  ).filter(
-    (entry): entry is [string, string] =>
-      typeof entry[1] === "string" &&
-      entry[1].startsWith("lt-") &&
-      !written.has(entry[1]),
-  )
+  ).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+  // Every class is `lt-`, so a string constant on a builder function that is
+  // not one is a mistake, and it stops here rather than vanishing from the
+  // manifest without a word.
+  for (const [key, value] of strings)
+    if (!value.startsWith("lt-"))
+      throw new Error(
+        `lt.${b.name}.${key} is "${value}". A string constant on a builder function is a class, and every class starts with lt-.`,
+      )
+  const constants = strings.filter(([, value]) => !written.has(value))
   if (constants.length > 0) b.classes = Object.fromEntries(constants)
 }
 

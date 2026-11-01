@@ -76,7 +76,7 @@ val field = Lt.field(id = "email", required = RequiredMarker.TEXT, help = true, 
 
 A flag such as `hidden` has the empty text as its value, and is written as the name alone.
 
-The parts a template writes itself, such as the heading in a card or an option in a toggle group, have their classes on the builder function, with the same names as in TypeScript. Each is a set with the class, so it goes where every other answer goes:
+The parts a template writes itself, such as the heading in a card or an option in a toggle group, have their classes on the builder function, with the same names as in TypeScript. Each is a set with the class, so it goes where every other answer goes. The exception is a part the answer already gives, such as the header of `Lt.dialog`: there the set in the answer is the way, and the constant TypeScript also has is left out.
 
 ```kotlin
 """
