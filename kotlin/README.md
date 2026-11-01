@@ -24,7 +24,11 @@ assertEquals(emptyList(), Lotek.diagnosePage(html))
 allowed values as `enum`s. Each returns an `Attributes`, a plain
 `Map<String, String>` that can be given to any template engine, or written
 out with `toHtml()`. The builder functions that return several sets, such as `Lt.dialog` and
-`Lt.field`, return a data class with one field per set.
+`Lt.field`, return a data class with one field per set. The parts a template
+writes itself have their classes on the builder function, as in TypeScript:
+`Lt.card.title` and `Lt.toggleGroup.option` are sets with the class. A part
+the answer already gives, such as the header of `Lt.dialog`, has no constant
+here; the set in the answer is the way.
 
 Most are generated from the manifest (`manifest/manifest.json` in the npm package)
 when the package is built. The manifest describes each builder function as a table of

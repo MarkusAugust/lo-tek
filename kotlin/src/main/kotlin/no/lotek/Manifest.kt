@@ -90,6 +90,7 @@ data class Manifest(
                         )
                     },
                 returns = returns(b["returns"].obj("$at.returns"), "$at.returns"),
+                classes = b["classes"]?.texts("$at.classes") ?: emptyMap(),
             )
 
         private fun optionType(t: Map<String, Any?>, at: String): OptionType =
@@ -340,6 +341,11 @@ data class Builder(
     /** The options in the manifest's order. */
     val options: List<BuilderOption>,
     val returns: Returns,
+    /**
+     * The classes for the parts the template writes itself, as `lt.card.title`
+     * in TypeScript: the name on the function and the class. Empty for most.
+     */
+    val classes: Map<String, String> = emptyMap(),
 )
 
 /** One option, like `variant` in `lt.button()`. [description] is the first paragraph of the comment on the option in the type. */

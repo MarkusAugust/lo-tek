@@ -197,6 +197,12 @@ export type Builder = {
     description?: string
   }[]
   returns: BuilderReturns
+  /**
+   * The classes for the parts the template writes itself, as `lt.card.title`:
+   * the name on the function and the class. Only on the builder functions
+   * that have one.
+   */
+  classes?: Record<string, string>
 }
 
 /**

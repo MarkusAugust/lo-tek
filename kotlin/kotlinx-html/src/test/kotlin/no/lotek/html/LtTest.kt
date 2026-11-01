@@ -9,6 +9,7 @@ import kotlinx.html.button
 import kotlinx.html.div
 import kotlinx.html.form
 import kotlinx.html.h2
+import kotlinx.html.h3
 import kotlinx.html.head
 import kotlinx.html.html
 import kotlinx.html.input
@@ -77,6 +78,18 @@ class LtTest {
     fun `the classes are added to the ones the tag has`() {
         val html = createHTML().div(classes = "my-own") { lt(Lt.card(), mapOf("class" to "my-own extra")) }
         assertContains(html, """class="my-own lt-card extra"""")
+    }
+
+    @Test
+    fun `the parts the template writes itself have their classes on the builder function`() {
+        // `lt-card__title` used to be a string in every Kotlin template, since
+        // only TypeScript had `lt.card.title`.
+        val html = createHTML().div {
+            lt(Lt.card())
+            h3 { lt(Lt.card.title); +"Application 2024/1187" }
+        }
+        assertContains(html, """<h3 class="lt-card__title">""")
+        assertLotek(html, fragment = true)
     }
 
     @Test
