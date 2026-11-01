@@ -43,14 +43,14 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     ```html
     <!-- novalidate: otherwise the browser stops an empty required field before
          the submit event, and the error text below is never shown. -->
-    <form id="contact-form" novalidate>
+    <form id="order-form" novalidate>
       <lt-field>
-        <label class="lt-label" for="name" data-required="symbol">Full name</label>
-        <input class="lt-input" id="name" type="text" name="name" required />
-        <p class="lt-error-text" hidden>Enter your name.</p>
+        <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+        <input class="lt-input" id="codename" type="text" name="codename" required />
+        <p class="lt-error-text" hidden>Enter a codename.</p>
       </lt-field>
 
-      <button class="lt-button" type="submit">Send</button>
+      <button class="lt-button" type="submit">Order the job</button>
     </form>
 
     <!-- Once for the whole app, in the page template. Not once per component. -->
@@ -62,18 +62,18 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     </script>
 
     <script type="module">
-      const form = document.getElementById("contact-form")
-      const nameInput = document.getElementById("name")
-      const error = nameInput.closest("lt-field").querySelector(".lt-error-text")
+      const form = document.getElementById("order-form")
+      const codenameInput = document.getElementById("codename")
+      const error = codenameInput.closest("lt-field").querySelector(".lt-error-text")
 
       form.addEventListener("submit", (event) => {
         event.preventDefault()
 
-        const empty = nameInput.value.trim() === ""
+        const empty = codenameInput.value.trim() === ""
         error.hidden = !empty
 
         if (empty) {
-          nameInput.focus()
+          codenameInput.focus()
           return
         }
 
@@ -96,15 +96,15 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     ```
 
     ```tsx
-    // ContactForm.tsx
+    // OrderForm.tsx
     import { lt } from "@lo-tek/interfaces/react"
     import { useId, useState } from "react"
 
-    export function ContactForm() {
-      const [name, setName] = useState("")
+    export function OrderForm() {
+      const [codename, setCodename] = useState("")
       const [touched, setTouched] = useState(false)
 
-      const invalid = touched && name.trim() === ""
+      const invalid = touched && codename.trim() === ""
       const field = lt.field({
         id: useId(),
         required: "symbol",
@@ -120,19 +120,19 @@ Both use the same function underneath, so the contract cannot drift apart. The o
             setTouched(true)
           }}
         >
-          <label {...field.label}>Full name</label>
+          <label {...field.label}>Codename</label>
           <input
             {...lt.input({ type: "text" })}
             {...field.control}
-            name="name"
+            name="codename"
             required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={codename}
+            onChange={(e) => setCodename(e.target.value)}
             onBlur={() => setTouched(true)}
           />
-          <p {...lt.errorText()} {...field.error}>Enter your name.</p>
+          <p {...lt.errorText()} {...field.error}>Enter a codename.</p>
 
-          <button {...lt.button()} type="submit">Send</button>
+          <button {...lt.button()} type="submit">Order the job</button>
         </form>
       )
     }
@@ -159,12 +159,12 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     import "@lo-tek/interfaces/tokens.css"
     import "@lo-tek/interfaces/field.css"
 
-    const name = lt.field({ id: "name", required: "symbol", error: true })
+    const codename = lt.field({ id: "codename", required: "symbol", error: true })
     ---
 
-    <label {...name.label}>Full name</label>
-    <input {...lt.input({ type: "text" })} {...name.control} name="name" required />
-    <p {...lt.errorText()} {...name.error}>Enter your name.</p>
+    <label {...codename.label}>Codename</label>
+    <input {...lt.input({ type: "text" })} {...codename.control} name="codename" required />
+    <p {...lt.errorText()} {...codename.error}>Enter a codename.</p>
     ```
 
     If the field should be able to become invalid while the user is in it, use `<lt-field>` and register it in a `<script>` tag. Astro bundles it and runs it on the client:
@@ -176,13 +176,13 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     import "@lo-tek/interfaces/tokens.css"
     import "@lo-tek/interfaces/field.css"
 
-    const name = lt.field({ id: "name", required: "symbol", error: true })
+    const codename = lt.field({ id: "codename", required: "symbol", error: true })
     ---
 
     <lt-field>
-      <label {...name.label}>Full name</label>
-      <input {...lt.input({ type: "text" })} {...name.control} name="name" required />
-      <p {...lt.errorText()} {...name.error}>Enter your name.</p>
+      <label {...codename.label}>Codename</label>
+      <input {...lt.input({ type: "text" })} {...codename.control} name="codename" required />
+      <p {...lt.errorText()} {...codename.error}>Enter a codename.</p>
     </lt-field>
 
     <script>
@@ -215,25 +215,25 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     ```html
     <form
       novalidate
-      data-signals="{name: '', touched: false}"
-      data-computed:invalid="$touched && $name.trim() === ''"
-      data-on:submit__prevent="$touched = true; !$invalid && @post('/contact')"
+      data-signals="{codename: '', touched: false}"
+      data-computed:invalid="$touched && $codename.trim() === ''"
+      data-on:submit__prevent="$touched = true; !$invalid && @post('/jobs')"
     >
       <lt-field>
-        <label class="lt-label" for="name" data-required="symbol">Full name</label>
+        <label class="lt-label" for="codename" data-required="symbol">Codename</label>
         <input
           class="lt-input"
-          id="name"
+          id="codename"
           type="text"
-          name="name"
+          name="codename"
           required
-          data-bind:name
+          data-bind:codename
           data-on:blur="$touched = true"
         />
-        <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter your name.</p>
+        <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter a codename.</p>
       </lt-field>
 
-      <button class="lt-button" type="submit">Send</button>
+      <button class="lt-button" type="submit">Order the job</button>
     </form>
 
     <!-- Once for the whole app, in the page template. Not once per component. -->
@@ -257,13 +257,13 @@ Both use the same function underneath, so the contract cannot drift apart. The o
 
 ```html
 <lt-field>
-  <label class="lt-label" for="email" data-required="text">Email address</label>
-  <input class="lt-input" id="email" type="email" required />
+  <label class="lt-label" for="fixer" data-required="text">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" name="fixer" required />
 </lt-field>
 
 <lt-field optional>
-  <label for="message">Message to the case officer</label>
-  <textarea class="lt-textarea" id="message" rows="3"></textarea>
+  <label for="note">Note for the fixer</label>
+  <textarea class="lt-textarea" id="note" rows="3"></textarea>
 </lt-field>
 ```
 
@@ -272,10 +272,10 @@ Both use the same function underneath, so the contract cannot drift apart. The o
 A field with help text and an error text needs five connections that must all be right at once:
 
 ```html
-<label for="email">Email address</label>
-<input id="email" aria-invalid="true" aria-describedby="email-help email-error" />
-<p id="email-help">We send the receipt here.</p>
-<p id="email-error">Enter a valid email address.</p>
+<label for="fixer">Fixer's address</label>
+<input id="fixer" aria-invalid="true" aria-describedby="fixer-help fixer-error" />
+<p id="fixer-help">The board writes to the fixer, never to the crew.</p>
+<p id="fixer-error">Enter a valid address.</p>
 ```
 
 Every `id` must be unique, `aria-describedby` must point to both texts, and `aria-invalid` must follow the validation. Five places to get it wrong per field, multiplied by the number of fields. And nothing shows on the screen when one of them is missing.
@@ -285,11 +285,11 @@ Every `id` must be unique, `aria-describedby` must point to both texts, and `ari
 `lt.field()` computes the attributes where you render, whether at build time in Astro, on every render in React, or on the server. The browser needs no registered component, and the wiring is ready in the HTML before any script has run:
 
 ```tsx
-const field = lt.field({ id: "email", required: "symbol", help: true, error: true, invalid })
+const field = lt.field({ id: "fixer", required: "symbol", help: true, error: true, invalid })
 
-<label {...field.label}>Email address</label>
+<label {...field.label}>Fixer's address</label>
 <input {...lt.input({ type: "email" })} {...field.control} />
-<p {...lt.helpText()} {...field.help}>We send the receipt here.</p>
+<p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>
 <p {...lt.errorText()} {...field.error}>Enter a valid address.</p>
 ```
 

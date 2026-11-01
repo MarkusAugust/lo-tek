@@ -201,8 +201,8 @@ describe("lt-popover positions the panel", () => {
   function markup(id: string, host = "", panel = 'popover="manual"') {
     return `
       <lt-popover ${host}>
-        <button aria-controls="${id}" aria-expanded="false" class="lt-button" id="${id}-button">Case actions</button>
-        <ul class="lt-popover" id="${id}" ${panel}><li>Archive case</li><li>Delete case</li></ul>
+        <button aria-controls="${id}" aria-expanded="false" class="lt-button" id="${id}-button">Breaker actions</button>
+        <ul class="lt-popover" id="${id}" ${panel}><li>Mark returned</li><li>Retire the breaker</li></ul>
       </lt-popover>
     `
   }
@@ -865,7 +865,7 @@ describe("lt-popover when the app and the server both open and close it", () => 
   const RECIPE = `<lt-popover id="menu" placement="bottom-end">
     <button class="lt-button" type="button">Actions</button>
     <ul class="lt-popover" id="actions">
-      <li><button class="lt-button" data-variant="ghost" type="button">Archive the case</button></li>
+      <li><button class="lt-button" data-variant="ghost" type="button">Mark LDG-117 returned</button></li>
     </ul>
   </lt-popover>`
   const host = () => document.getElementById("menu") as LtPopover

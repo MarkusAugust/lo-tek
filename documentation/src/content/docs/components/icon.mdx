@@ -17,10 +17,10 @@ The class goes on an `<svg>`. LO-TEK ships no icons, so the svg comes from the s
        stroke="currentColor" stroke-width="2">
     <path d="M12 5v14M5 12h14" />
   </svg>
-  New application
+  New ticket
 </button>
 
-<button class="lt-button" data-variant="ghost" type="button" aria-label="Delete the application">
+<button class="lt-button" data-variant="ghost" type="button" aria-label="Delete ticket #0331">
   <svg class="lt-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none"
        stroke="currentColor" stroke-width="2">
     <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
@@ -34,7 +34,7 @@ The class goes on an `<svg>`. LO-TEK ships no icons, so the svg comes from the s
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<button {...lt.button({ variant: "ghost" })} type="button" aria-label="Delete the application">
+<button {...lt.button({ variant: "ghost" })} type="button" aria-label="Delete ticket #0331">
   <svg {...lt.icon()} viewBox="0 0 24 24">…</svg>
 </button>
 ```
@@ -88,5 +88,5 @@ See [Customising](../../customising/) for how the layer works.
 <ScreenReaderContract component="icon" />
 
 - A button or link with only an icon in it needs a name: `aria-label` on the button, or a text in an element with the class `lt-sr-only`. `lotek check` and the editors report `without-name` when it is missing. A `<title>` in the svg names it too, when the svg has no `aria-hidden`.
-- Write what the button does, not what the icon depicts. "Delete the application" is better than "Rubbish bin".
+- Write what the button does, not what the icon depicts. "Delete ticket #0331" is better than "Rubbish bin".
 - An icon alone is hard for many people to understand, including those who can see it. If you have room, text next to it is better than only a name for the screen reader.

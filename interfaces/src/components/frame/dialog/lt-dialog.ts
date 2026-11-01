@@ -65,8 +65,8 @@ export const LT_DIALOG_PARTS = {
  * ```html
  * <lt-dialog open>
  *   <dialog class="lt-dialog" aria-labelledby="title" open>
- *     <h2 class="lt-dialog__title" id="title">The decision is registered</h2>
- *     <div class="lt-dialog__body">The case has been processed.</div>
+ *     <h2 class="lt-dialog__title" id="title">The order is placed</h2>
+ *     <div class="lt-dialog__body">Job 222-0481 is open to crews.</div>
  *     <form method="dialog" class="lt-dialog__footer">
  *       <button class="lt-button" value="close">Close</button>
  *     </form>
@@ -449,7 +449,7 @@ export class LtDialog extends HostElement {
      * run. When something wrote `open` on the host in the meantime, such as a
      * framework setting the same value again, the component opened the dialog
      * again and cleared `returnValue`, and a listener on `close` read an empty
-     * value instead of "delete". `returnValue` is cleared every time the
+     * value instead of "cancel". `returnValue` is cleared every time the
      * dialog opens, so a value here comes from a button in this round.
      */
     if (
@@ -478,9 +478,9 @@ export class LtDialog extends HostElement {
       /*
        * Escape and `close()` without an argument leave the previous
        * `returnValue` in place. A dialog the server opened again then
-       * reported "delete" from last time when it was closed from the server,
-       * and the app that tells "Cancel" from "Delete" by the value deleted
-       * something the user never asked for.
+       * reported "cancel" from last time when it was closed from the server,
+       * and the app that tells "Keep the job" from "Cancel the job" by the
+       * value cancelled something the user never asked for.
        */
       dialog.returnValue = ""
       dialog.showModal()

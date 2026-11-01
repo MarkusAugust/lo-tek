@@ -98,11 +98,11 @@ export const lt = {
    * Connects the label, field, help text and error text.
    *
    * ```ts
-   * const field = lt.field({ id: "email", required: "text", help: true, error: true, invalid })
+   * const field = lt.field({ id: "fixer", required: "text", help: true, error: true, invalid })
    *
-   * <label {...field.label}>Email address</label>
+   * <label {...field.label}>Fixer's address</label>
    * <input {...lt.input({ type: "email", state: field.state })} {...field.control} />
-   * <p {...lt.helpText()} {...field.help}>We send the receipt here.</p>
+   * <p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>
    * <p {...lt.errorText()} {...field.error}>Enter a valid address.</p>
    * ```
    *

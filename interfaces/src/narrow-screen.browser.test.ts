@@ -26,15 +26,16 @@ import.meta.glob("./components/*/*/*.css", { eager: true })
  * within the window horizontally, except what is clipped on purpose. Top and
  * bottom are not checked: a page scrolls vertically.
  *
- * The text is long on purpose: it is "Submit the housing benefit application
- * for the whole of calendar year 2026" that breaks a button, not "Submit".
+ * The text is long on purpose: it is "Order the job against Kestrel Dynamics
+ * before the end of the third quarter of 2079" that breaks a button, not
+ * "Order".
  */
 
 /** The width of a small phone. */
 const NARROW = 320
 
 const LONG =
-  "Submit the housing benefit application for the whole of calendar year 2026"
+  "Order the job against Kestrel Dynamics before the end of the third quarter of 2079"
 
 type Case = {
   markup: string
@@ -55,35 +56,35 @@ const COMPONENTS: Record<string, Case[]> = {
   accordion: [
     {
       markup: `<details class="lt-accordion" open>
-        <summary>Who can apply for housing benefit for the whole of calendar year 2026?</summary>
-        <p>Everyone over 18 who lives in an approved dwelling.</p>
+        <summary>Who can take out a runner's policy for the whole of calendar year 2079?</summary>
+        <p>Everyone over 18 who jacks in for a living and pays the premium every month.</p>
       </details>`,
     },
   ],
   alert: [
     {
       markup: `<div class="lt-alert" data-color="danger">
-        <p class="lt-alert__title">The application was not sent</p>
-        <p>The network did not respond. Try again in a moment.</p>
+        <p class="lt-alert__title">Sector 9 is dark</p>
+        <p>Crews are on the way. Try the relay again in a moment.</p>
       </div>`,
     },
   ],
   avatar: [
     {
-      markup: `<span class="lt-avatar" data-size="lg" role="img" aria-label="Jane Smith">JS</span>`,
+      markup: `<span class="lt-avatar" data-size="lg" role="img" aria-label="Dead Pixel">DP</span>`,
     },
   ],
   badge: [
     {
-      markup: `<span class="lt-badge" data-color="warning">Awaiting documents from the employer</span>`,
+      markup: `<span class="lt-badge" data-color="warning">Awaiting the small print from the next of kin</span>`,
     },
   ],
   breadcrumbs: [
     {
       markup: `<ol class="lt-breadcrumbs">
         <li><a href="#">Home</a></li>
-        <li><a href="#">My cases and applications</a></li>
-        <li><a href="#" aria-current="page">Application 2026-0481</a></li>
+        <li><a href="#">My policies and claims</a></li>
+        <li><a href="#" aria-current="page">Claim AV-2079-0481</a></li>
       </ol>`,
     },
   ],
@@ -95,34 +96,34 @@ const COMPONENTS: Record<string, Case[]> = {
       </div>`,
     },
     {
-      markup: `<button class="lt-button">Submit the application now</button>
+      markup: `<button class="lt-button">Order the job now</button>
         <button class="lt-button" data-variant="secondary">Save as draft</button>`,
     },
   ],
   card: [
     {
       markup: `<div class="lt-card">
-        <h3 class="lt-card__title">Housing benefit application for 2026</h3>
-        <p>Sent 4 March. Case number 2026-0481.</p>
+        <h3 class="lt-card__title">Claim AV-2079-0481 for a runner called Sixpence</h3>
+        <p>Filed 4 March 2079. Status: denied.</p>
       </div>`,
     },
   ],
   checkbox: [
     {
-      markup: `<label><input class="lt-checkbox" type="checkbox" /> I confirm that the information in the application is correct and complete</label>`,
+      markup: `<label><input class="lt-checkbox" type="checkbox" /> I accept that floors below 12 are seasonal, and that the rent goes up with the tide</label>`,
     },
   ],
   divider: [{ markup: `<hr class="lt-divider" />` }],
   "error-text": [
     {
-      markup: `<p class="lt-error-text">Enter the national identity number as eleven digits, without spaces or hyphens</p>`,
+      markup: `<p class="lt-error-text">Enter the budget as a whole number, without spaces or the EB code</p>`,
     },
   ],
   fieldset: [
     {
       markup: `<fieldset class="lt-fieldset">
-        <legend class="lt-legend">Who lives in the household with you in 2026?</legend>
-        <label><input class="lt-radio" type="radio" name="h" /> Only me</label>
+        <legend class="lt-legend">Which crews may take the job against Kestrel Dynamics in 2079?</legend>
+        <label><input class="lt-radio" type="radio" name="h" /> Any crew</label>
       </fieldset>`,
     },
   ],
@@ -131,20 +132,20 @@ const COMPONENTS: Record<string, Case[]> = {
     {
       markup: `<ul class="lt-file-upload-list">
         <li>
-          housing-benefit-application-2026-attachment-1.pdf
-          <button class="lt-button" data-variant="ghost" type="button">Remove housing-benefit-application-2026-attachment-1.pdf</button>
+          deck-firmware-ticket-0331-dump-before-opening-1.bin
+          <button class="lt-button" data-variant="ghost" type="button">Remove deck-firmware-ticket-0331-dump-before-opening-1.bin</button>
         </li>
       </ul>`,
     },
   ],
   heading: [
     {
-      markup: `<h1 class="lt-heading" data-size="xl">Housing benefit application for the whole of calendar year 2026</h1>`,
+      markup: `<h1 class="lt-heading" data-size="xl">Runner's policies and claims for the whole of calendar year 2079</h1>`,
     },
   ],
   "help-text": [
     {
-      markup: `<p class="lt-help-text">Eleven digits. You will find it on your bank card or in your tax return.</p>`,
+      markup: `<p class="lt-help-text">A whole number. The board approves anything under EB 5,000,000 without a meeting.</p>`,
     },
   ],
   icon: [
@@ -158,19 +159,19 @@ const COMPONENTS: Record<string, Case[]> = {
   ],
   label: [
     {
-      markup: `<label class="lt-label" data-required>National identity number of the person applying for housing benefit</label>`,
+      markup: `<label class="lt-label" data-required>The objective of the job, as the board wants it stated to the fixer</label>`,
     },
   ],
   link: [
     {
-      markup: `<a class="lt-link" href="#">Read more about who can apply for housing benefit for the whole of calendar year 2026</a>`,
+      markup: `<a class="lt-link" href="#">Read the small print about who can take out a runner's policy for the whole of calendar year 2079</a>`,
     },
   ],
   list: [
     {
       markup: `<ul class="lt-list">
-        <li>Payslips for the last three months before the application was sent</li>
-        <li>Tenancy agreement</li>
+        <li>Floor plans for every level of the target building, from the lobby to the roof</li>
+        <li>Budget</li>
       </ul>`,
     },
   ],
@@ -184,7 +185,7 @@ const COMPONENTS: Record<string, Case[]> = {
   ],
   paragraph: [
     {
-      markup: `<p class="lt-paragraph">The deadline is 1 March. We process the application within four weeks, and send the answer to your inbox.</p>`,
+      markup: `<p class="lt-paragraph">The deadline is 1 March. We process the claim within four weeks, and send the answer to the next of kin.</p>`,
     },
   ],
   progress: [
@@ -195,7 +196,7 @@ const COMPONENTS: Record<string, Case[]> = {
   ],
   radio: [
     {
-      markup: `<label><input class="lt-radio" type="radio" name="r" /> I rent council housing for the whole of calendar year 2026</label>`,
+      markup: `<label><input class="lt-radio" type="radio" name="r" /> I want a twelve-month lease on a dry floor for the whole of calendar year 2079</label>`,
     },
   ],
   search: [
@@ -205,16 +206,16 @@ const COMPONENTS: Record<string, Case[]> = {
   ],
   select: [
     {
-      markup: `<select class="lt-select" aria-label="Municipality">
-        <option>Bergen</option>
-        <option>Nordre Follo and surrounding inter-municipal housing benefit office</option>
+      markup: `<select class="lt-select" aria-label="Building">
+        <option>Saltline Tower</option>
+        <option>Breakwater House and the dry floors of the blocks around it, from floor 12 up</option>
       </select>`,
     },
   ],
   skeleton: [{ markup: `<div class="lt-skeleton"></div>` }],
   "skip-link": [
     {
-      markup: `<a class="lt-skip-link" href="#main">Skip to the main content of the housing benefit page</a>`,
+      markup: `<a class="lt-skip-link" href="#main">Skip past the navigation to the main content of this page</a>`,
       // The link is out of view until it gets focus. One real key press
       // first: a programmatic `focus()` alone sometimes gave no `:focus` in
       // Firefox in CI.
@@ -227,7 +228,7 @@ const COMPONENTS: Record<string, Case[]> = {
   ],
   spinner: [
     {
-      markup: `<span class="lt-spinner" role="status" aria-label="Loading the case"></span>`,
+      markup: `<span class="lt-spinner" role="status" aria-label="Loading the sector"></span>`,
     },
   ],
   "sr-only": [
@@ -237,36 +238,36 @@ const COMPONENTS: Record<string, Case[]> = {
   ],
   switch: [
     {
-      markup: `<label><input class="lt-switch" type="checkbox" role="switch" /> Send me a text message when the case has been processed</label>`,
+      markup: `<label><input class="lt-switch" type="checkbox" role="switch" /> Send me a message three days before the walls expire</label>`,
     },
   ],
   table: [
     {
       markup: `<div class="lt-table-scroll" tabindex="0">
         <table class="lt-table">
-          <thead><tr><th>Invoice number</th><th>Due date</th><th>Amount</th></tr></thead>
-          <tbody><tr><td>2026-0481</td><td>4 March 2026</td><td>NOK 1,240</td></tr></tbody>
+          <thead><tr><th>Recovery reference</th><th>Recovered</th><th>Offer</th></tr></thead>
+          <tbody><tr><td>LR-2079-0112</td><td>4 March 2079</td><td>EB 1,800</td></tr></tbody>
         </table>
       </div>`,
     },
   ],
   tag: [
     {
-      markup: `<button class="lt-tag" data-selectable aria-pressed="true">In progress</button>
-        <button class="lt-tag" data-selectable aria-pressed="false">Processed</button>`,
+      markup: `<button class="lt-tag" data-selectable aria-pressed="true">Cutter</button>
+        <button class="lt-tag" data-selectable aria-pressed="false">Worm</button>`,
     },
   ],
   textarea: [
     {
-      markup: `<textarea class="lt-textarea" aria-label="Reason">${LONG}</textarea>`,
+      markup: `<textarea class="lt-textarea" aria-label="Objective">${LONG}</textarea>`,
     },
   ],
   "toggle-group": [
     {
       markup: `<fieldset class="lt-toggle-group">
         <legend>View</legend>
-        <label class="lt-toggle-group__option"><input type="radio" name="v" checked /> List of cases</label>
-        <label class="lt-toggle-group__option"><input type="radio" name="v" /> Calendar view</label>
+        <label class="lt-toggle-group__option"><input type="radio" name="v" checked /> List of free floors</label>
+        <label class="lt-toggle-group__option"><input type="radio" name="v" /> Tide chart</label>
       </fieldset>`,
     },
   ],
@@ -281,7 +282,7 @@ const COMPONENTS: Record<string, Case[]> = {
       markup: `<div style="text-align: center">
         <span class="lt-tooltip">
           <button class="lt-button" type="button" aria-describedby="hint">Archive</button>
-          <span class="lt-tooltip__bubble" role="tooltip" id="hint" style="display: block">The case is moved to the archive, and can be retrieved again later</span>
+          <span class="lt-tooltip__bubble" role="tooltip" id="hint" style="display: block">The recovery order is moved to the archive, and can be retrieved again later</span>
         </span>
       </div>`,
     },
@@ -303,7 +304,7 @@ const COMPONENTS: Record<string, Case[]> = {
       markup: `<lt-toast></lt-toast>`,
       open: () =>
         element<HTMLElement & { show(text: string): void }>("lt-toast").show(
-          `${LONG} has been received, and you will get an answer within four weeks`,
+          `${LONG} has been received, and a fixer will answer within four hours`,
         ),
       opened: "lt-toast > *",
     },
@@ -313,11 +314,11 @@ const COMPONENTS: Record<string, Case[]> = {
     {
       markup: `<lt-dialog open>
         <dialog class="lt-dialog" aria-labelledby="box-title" open>
-          <h2 class="lt-dialog__title" id="box-title">Do you want to withdraw the housing benefit application for the whole of calendar year 2026?</h2>
-          <div class="lt-dialog__body"><p>The case will be closed, and you will have to apply again.</p></div>
+          <h2 class="lt-dialog__title" id="box-title">Do you want to cancel job 222-0481 against Kestrel Dynamics before a crew takes it?</h2>
+          <div class="lt-dialog__body"><p>The crew keeps the advance. This cannot be undone.</p></div>
           <form method="dialog" class="lt-dialog__footer">
-            <button class="lt-button" value="withdraw">Withdraw the application</button>
-            <button class="lt-button" data-variant="secondary" value="cancel">Cancel</button>
+            <button class="lt-button" value="withdraw">Cancel the job</button>
+            <button class="lt-button" data-variant="secondary" value="cancel">Keep the job</button>
           </form>
         </dialog>
       </lt-dialog>`,
@@ -326,10 +327,10 @@ const COMPONENTS: Record<string, Case[]> = {
   "error-summary": [
     {
       markup: `<lt-error-summary class="lt-error-summary" role="alert" tabindex="-1" data-autofocus="false">
-        <h2 class="lt-error-summary__title">The form has two errors that must be fixed before you can submit</h2>
+        <h2 class="lt-error-summary__title">The order has two errors that must be fixed before you can send it</h2>
         <ul class="lt-list">
-          <li><a href="#nin">Enter the national identity number as eleven digits, without spaces</a></li>
-          <li><a href="#municipality">Choose the municipality you lived in on 1 January 2026</a></li>
+          <li><a href="#budget">Enter the budget as a whole number, without spaces or the EB code</a></li>
+          <li><a href="#deadline">Choose the date in 2079 the crew must deliver by</a></li>
         </ul>
       </lt-error-summary>`,
     },
@@ -337,10 +338,10 @@ const COMPONENTS: Record<string, Case[]> = {
   field: [
     {
       markup: `<lt-field>
-        <label class="lt-label" for="narrow-email">The email address we should send the decision to</label>
-        <input class="lt-input" id="narrow-email" value="jane.smith.with.a.rather.long.name@example.com" />
-        <p class="lt-help-text">We never send advertising or newsletters.</p>
-        <p class="lt-error-text">Enter an email address with @ and a domain</p>
+        <label class="lt-label" for="narrow-fixer">The address the board writes to the fixer at</label>
+        <input class="lt-input" id="narrow-fixer" value="a.fixer.with.a.rather.long.handle@example.com" />
+        <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
+        <p class="lt-error-text">Enter a valid address with @ and a domain</p>
       </lt-field>`,
     },
   ],
@@ -349,7 +350,7 @@ const COMPONENTS: Record<string, Case[]> = {
       markup: `<lt-popover open>
         <button class="lt-button" aria-expanded="false" aria-controls="actions">Actions</button>
         <div popover id="actions" class="lt-popover">
-          <p>Move the case to another caseworker in the same office</p>
+          <p>Mark LDG-117 returned, and charge the late fee to the runner who rented it</p>
         </div>
       </lt-popover>`,
     },
@@ -358,13 +359,13 @@ const COMPONENTS: Record<string, Case[]> = {
     {
       markup: `<lt-session-timeout warn-at="600" expires-at="900">
         <dialog class="lt-session-timeout__dialog" role="alertdialog" aria-labelledby="session-title">
-          <h2 class="lt-session-timeout__title" id="session-title">You will soon be signed out of the housing benefit application</h2>
-          <p class="lt-session-timeout__text">We will sign you out in
+          <h2 class="lt-session-timeout__title" id="session-title">Your session on the Lattice is ending, and unsaved routes will be lost</h2>
+          <p class="lt-session-timeout__text">Your session on the Lattice ends in
             <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
           <span class="lt-sr-only" role="status"></span>
           <form method="dialog" class="lt-session-timeout__actions">
-            <button class="lt-button" value="extend">Stay signed in</button>
-            <button class="lt-button" data-variant="secondary" value="logout">Sign out now</button>
+            <button class="lt-button" value="extend">Stay connected</button>
+            <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
           </form>
         </dialog>
       </lt-session-timeout>`,
@@ -376,12 +377,12 @@ const COMPONENTS: Record<string, Case[]> = {
   suggestion: [
     {
       markup: `<lt-suggestion>
-        <label class="lt-label">Municipality</label>
+        <label class="lt-label">Breaker</label>
         <div>
-          <input class="lt-input" name="municipality" type="text" />
+          <input class="lt-input" name="breaker" type="text" />
           <ul class="lt-suggestion__list">
-            <li>Bergen</li>
-            <li>Bjørnafjorden and surrounding inter-municipal housing benefit office</li>
+            <li>Boltcutter</li>
+            <li>Boltcutter, the long one with a worm built into the handle, back three days late</li>
           </ul>
           <span class="lt-sr-only" role="status"></span>
         </div>
@@ -400,13 +401,13 @@ const COMPONENTS: Record<string, Case[]> = {
   tabs: [
     {
       markup: `<lt-tabs>
-        <ul class="lt-tabs__list" aria-label="Parts of the case">
-          <li><a href="#narrow-application">The application</a></li>
+        <ul class="lt-tabs__list" aria-label="Parts of the claim">
+          <li><a href="#narrow-claim">The claim</a></li>
           <li><a href="#narrow-attachments">Attachments and documentation</a></li>
           <li><a href="#narrow-decision">Decision</a></li>
           <li><a href="#narrow-appeal">Appeal against the decision</a></li>
         </ul>
-        <section class="lt-tabs__panel" id="narrow-application"><h2>The application</h2>The application arrived on 3 March.</section>
+        <section class="lt-tabs__panel" id="narrow-claim"><h2>The claim</h2>Claim AV-2079-0481 was filed on 4 March 2079.</section>
         <section class="lt-tabs__panel" id="narrow-attachments"><h2>Attachments and documentation</h2>Two attachments.</section>
         <section class="lt-tabs__panel" id="narrow-decision"><h2>Decision</h2>Not processed yet.</section>
         <section class="lt-tabs__panel" id="narrow-appeal"><h2>Appeal against the decision</h2>No appeal.</section>

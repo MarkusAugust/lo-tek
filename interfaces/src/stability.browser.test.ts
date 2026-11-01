@@ -67,9 +67,9 @@ describe("the components settle", () => {
   it("the field, after the wiring is set", async () => {
     const surface = mount(`
       <lt-field>
-        <label class="lt-label" for="settle-email" data-required="symbol">Email</label>
-        <input class="lt-input" id="settle-email" type="email" />
-        <p class="lt-help-text">We never send spam.</p>
+        <label class="lt-label" for="settle-fixer" data-required="symbol">Fixer's address</label>
+        <input class="lt-input" id="settle-fixer" type="email" />
+        <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
         <p class="lt-error-text">Enter a valid address.</p>
       </lt-field>
     `)
@@ -79,9 +79,9 @@ describe("the components settle", () => {
 
   it("the tabs, after the user has chosen", async () => {
     const TABS = tabs({
-      id: "case",
+      id: "file",
       keys: ["overview", "attachments"],
-      label: "The case",
+      label: "The claim",
     })
     const surface = mount(`
       <lt-tabs>
@@ -120,15 +120,15 @@ describe("the components settle", () => {
   })
 
   it("the suggestion field, after the list is opened and an option highlighted", async () => {
-    const SUGGESTION = suggestion({ id: "municipality", keys: ["a", "b"] })
+    const SUGGESTION = suggestion({ id: "breaker", keys: ["a", "b"] })
     const surface = mount(`
       <lt-suggestion>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality" />
+          <input ${attr(SUGGESTION.control)} name="breaker" />
           <ul ${attr(SUGGESTION.list)}>
-            <li ${attr(SUGGESTION.options[0])}>Bergen</li>
-            <li ${attr(SUGGESTION.options[1])}>Bodø</li>
+            <li ${attr(SUGGESTION.options[0])}>Crowbar</li>
+            <li ${attr(SUGGESTION.options[1])}>Needle</li>
           </ul>
           <p ${attr(SUGGESTION.empty)}>No matches</p>
           <span ${attr(SUGGESTION.status)}></span>
@@ -152,8 +152,8 @@ describe("the components settle", () => {
     const surface = mount(`
       <lt-dialog ${attr(BOX.host)}>
         <dialog ${attr(BOX.dialog)}>
-          <h2 ${attr(BOX.title)}>The decision is registered</h2>
-          <div ${attr(BOX.body)}><p>The case is closed.</p></div>
+          <h2 ${attr(BOX.title)}>The order is placed</h2>
+          <div ${attr(BOX.body)}><p>Job 222-0481 is open to crews.</p></div>
           <form method="dialog" ${attr(BOX.footer)}>
             <button class="lt-button" value="close">Close</button>
           </form>

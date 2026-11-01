@@ -13,11 +13,11 @@ LO-TEK has no date picker. The browser has one, and it is better than ours was.
 
 ```html
 <lt-field>
-  <label class="lt-label" for="date-of-birth">Date of birth</label>
-  <input class="lt-input" data-variant="date" id="date-of-birth"
-         name="date-of-birth" type="date"
-         min="1900-01-01" max="2026-12-31">
-  <p class="lt-help-text">Type the date as 31/05/2026, or pick it in the calendar.</p>
+  <label class="lt-label" for="deliver-by">Deliver by</label>
+  <input class="lt-input" data-variant="date" id="deliver-by"
+         name="deliver-by" type="date"
+         min="2079-01-01" max="2079-12-31">
+  <p class="lt-help-text">Type the date as 31/05/2079, or pick it in the calendar.</p>
 </lt-field>
 ```
 
@@ -26,7 +26,7 @@ If your server runs JavaScript, it writes the attributes itself and does not nee
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const field = lt.field({ id: "date-of-birth", help: true, invalid })
+const field = lt.field({ id: "deliver-by", help: true, invalid })
 const control = lt.input({ type: "date", state: field.state })
 ```
 
@@ -49,16 +49,16 @@ The panel is also transient. It is not part of the page; it opens and closes aga
 
 ## Two browser differences you need to know
 
-This is tested in Chromium, Firefox and WebKit, not read in a specification. The tests used a Norwegian locale (`nb`), where the browser shows the date as 31.05.2026, so the examples below keep that format on purpose.
+This is tested in Chromium, Firefox and WebKit, not read in a specification. The tests used a Norwegian locale (`nb`), where the browser shows the date as 31.05.2079, so the examples below keep that format on purpose.
 
-**WebKit requires the separators.** If the user types `31052026` without full stops, the field stays empty with `validity.badInput`, and the form sends nothing. `31.05.2026` works. So the help text should say how to write the date, with an example in the page's format, such as "Type the date as 31/05/2026, or pick it in the calendar."
+**WebKit requires the separators.** If the user types `31052079` without full stops, the field stays empty with `validity.badInput`, and the form sends nothing. `31.05.2079` works. So the help text should say how to write the date, with an example in the page's format, such as "Type the date as 31/05/2079, or pick it in the calendar."
 
 **Chromium accepts the wrong order as valid.** `20260531` became the year 60531, and `validity.valid` was still `true`. So `min` and `max` should always be set. Without them a typo gets through as a silently wrong date.
 
 ## Validating on the server
 
 ```ts
-const date = formData.get("date-of-birth")
+const date = formData.get("deliver-by")
 
 if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
   return error("Enter the date as day, month and year.")

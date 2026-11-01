@@ -4,17 +4,17 @@ LO-TEK in Kotlin and Java, without Node and without npm: the builder functions,
 the diagnostics, and the CSS and web components as a WebJar.
 
 ```kotlin
-val field = Lt.field(id = "email", required = RequiredMarker.TEXT, error = true, invalid = invalid)
+val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, error = true, invalid = invalid)
 
 """
-<label ${field.label.toHtml()}>Email address</label>
+<label ${field.label.toHtml()}>Fixer's address</label>
 <input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>
 <p ${(Lt.errorText() + field.error).toHtml()}>Enter a valid address.</p>
 """
 ```
 
 ```kotlin
-val html = client.post("/application") { setBody(invalidForm) }.bodyAsText()
+val html = client.post("/jobs") { setBody(invalidForm) }.bodyAsText()
 assertEquals(emptyList(), Lotek.diagnosePage(html))
 ```
 
@@ -81,7 +81,7 @@ The IntelliJ plugin gets the classes for completion from here.
 
 `kotlinx-html/` is a separate package, `lo-tek-kotlinx-html`, with the extension
 `Tag.lt(…)`, which puts the attributes from the builder functions on a tag.
-`LtTest` builds an application page with it and requires `assertLotek` to pass,
+`LtTest` builds a job order page with it and requires `assertLotek` to pass,
 with and without errors in the form.
 
 ## The WebJar

@@ -16,10 +16,10 @@ describe("lt-paragraph", () => {
   beforeEach(() => {
     mount(`
       <p class="lt-paragraph" data-variant="lead" id="lead">
-        Housing support is a scheme for people with low incomes and high housing costs.
+        Everything a runner's policy covers, and everything it does not.
       </p>
       <p class="lt-paragraph" id="body">
-        You can apply every month. The deadline is the 25th, and the answer comes around the 20th of the following month.
+        The premium is drawn on the first of every month. A claim must be filed within 30 days.
       </p>
       <p class="lt-paragraph" id="second">Next paragraph.</p>
     `)

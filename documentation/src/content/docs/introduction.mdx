@@ -27,10 +27,10 @@ A web component you put your own HTML elements into. It creates no markup itself
 
 ```html
 <lt-field>
-  <label class="lt-label" for="email" data-required="symbol">Email address</label>
-  <input class="lt-input" id="email" type="email" value="sam@" />
-  <p class="lt-help-text">We send the receipt to this address.</p>
-  <p class="lt-error-text">Enter an email address with an @.</p>
+  <label class="lt-label" for="fixer" data-required="symbol">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" name="fixer" value="fixer@" />
+  <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
+  <p class="lt-error-text">Enter a valid address.</p>
 </lt-field>
 ```
 
@@ -96,7 +96,7 @@ LO-TEK does not assume Tailwind, but does not get in its way. Let Tailwind handl
 <section class="mx-auto max-w-3xl p-6">
   <h2 class="mb-4 text-2xl font-bold">Actions</h2>
   <div class="flex flex-wrap gap-3">
-    <button class="lt-button">Submit application</button>
+    <button class="lt-button">Order the job</button>
     <button class="lt-button" data-variant="secondary">Save draft</button>
   </div>
 </section>

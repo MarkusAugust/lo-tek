@@ -19,18 +19,18 @@
       }
     },
     {
-      "start": 89,
-      "end": 111,
+      "start": 95,
+      "end": 117,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/button/",
       "message": "data-variant cannot be \"outline\" on button. Valid values: secondary, ghost, danger, and primary without the attribute."
     },
     {
-      "start": 151,
-      "end": 169,
+      "start": 163,
+      "end": 182,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/badge/",
-      "message": "data-color cannot be \"lilla\" on badge. Valid values: success, warning, danger, neutral, and info without the attribute."
+      "message": "data-color cannot be \"purple\" on badge. Valid values: success, warning, danger, neutral, and info without the attribute."
     }
   ],
   "page": [
@@ -53,18 +53,18 @@
       }
     },
     {
-      "start": 89,
-      "end": 111,
+      "start": 95,
+      "end": 117,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/button/",
       "message": "data-variant cannot be \"outline\" on button. Valid values: secondary, ghost, danger, and primary without the attribute."
     },
     {
-      "start": 151,
-      "end": 169,
+      "start": 163,
+      "end": 182,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/badge/",
-      "message": "data-color cannot be \"lilla\" on badge. Valid values: success, warning, danger, neutral, and info without the attribute."
+      "message": "data-color cannot be \"purple\" on badge. Valid values: success, warning, danger, neutral, and info without the attribute."
     }
   ]
 }

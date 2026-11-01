@@ -2,35 +2,35 @@
 import { lt } from "@lo-tek/interfaces"
 import Preview from "./Preview.astro"
 
-// The key is the city's code: it gives each option a fixed id, so an
+// The key is the catalogue number: it gives each option a fixed id, so an
 // update from the server recognises the option.
-const cities = [
-  { code: "abd", name: "Aberdeen" },
-  { code: "bel", name: "Belfast" },
-  { code: "bol", name: "Bolton" },
-  { code: "bou", name: "Bournemouth" },
-  { code: "car", name: "Cardiff" },
-  { code: "yor", name: "York" },
+const breakers = [
+  { code: "LDG-117", name: "Crowbar" },
+  { code: "LDG-101", name: "Glasscutter" },
+  { code: "LDG-063", name: "Lockjaw" },
+  { code: "LDG-042", name: "Needle" },
+  { code: "LDG-071", name: "Picklock" },
+  { code: "LDG-088", name: "Saltwater" },
 ]
 
 // The server writes the field and the list. The component filters and handles the keyboard.
 const suggestion = lt.suggestion({
-  id: "demo-city",
-  keys: cities.map((k) => k.code),
+  id: "demo-breaker",
+  keys: breakers.map((b) => b.code),
   help: true,
 })
 ---
 
 <Preview id="demo-suggestion" styles={["suggestion", "label", "input", "help-text", "sr-only"]} maxWidth="30rem">
 	<lt-suggestion>
-		<label {...suggestion.label}>City</label>
-		<input {...suggestion.control} name="city" placeholder="Start typing" />
+		<label {...suggestion.label}>Breaker</label>
+		<input {...suggestion.control} name="breaker" placeholder="Start typing" />
 		<ul {...suggestion.list}>
-			{suggestion.options.map((option, i) => <li {...option}>{cities[i].name}</li>)}
+			{suggestion.options.map((option, i) => <li {...option}>{breakers[i].name}</li>)}
 		</ul>
 		<p {...suggestion.empty}>No matches</p>
 		<span {...suggestion.status}></span>
-		<p class="lt-help-text" {...suggestion.help}>We fill in the rest of the address for you.</p>
+		<p class="lt-help-text" {...suggestion.help}>We show who has the breaker now, and when it is due back.</p>
 	</lt-suggestion>
 </Preview>
 

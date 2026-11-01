@@ -32,7 +32,7 @@ const RECEIPT_MS = 4000
  * ```ts
  * const status = document.querySelector("lt-connection-status")
  * try {
- *   const response = await fetch("/api/save", { method: "POST", body })
+ *   const response = await fetch("/api/routes", { method: "POST", body })
  *   if (!response.ok) throw new Error(response.statusText)
  *   status.reportSuccess()
  * } catch {

@@ -64,23 +64,23 @@ function sameNodes(before: Element[], after: Element[]): boolean[] {
   return before.map((node, i) => node === after[i])
 }
 
-const NAMES = ["Application", "Attachments", "Messages"]
-const KEYS = ["application", "attachments", "messages"]
+const NAMES = ["Claim", "Attachments", "Messages"]
+const KEYS = ["claim", "attachments", "messages"]
 
 /**
  * A tab list as a Go or Kotlin template writes it without `lt.tabs()`: links
  * without an id, and ids only on the panels, which the links require.
  */
-const BAR = `<lt-tabs id="case">
-  <ul class="lt-tabs__list" aria-label="Parts of the case">
+const BAR = `<lt-tabs id="claim-tabs">
+  <ul class="lt-tabs__list" aria-label="Parts of the claim">
     ${NAMES.map((n, i) => `<li><a href="#${KEYS[i]}">${n}</a></li>`).join("\n    ")}
   </ul>
   ${NAMES.map((n, i) => `<section class="lt-tabs__panel" id="${KEYS[i]}"><h2>${n}</h2><p>Content</p></section>`).join("\n  ")}
 </lt-tabs>`
 
 /** What `lt.tabs()` writes: links, the panels' ids, the headings' ids and the classes. */
-const TABS = tabs({ id: "claim", keys: KEYS, label: "Parts of the case" })
-const FROM_BUILDER = `<lt-tabs id="case">
+const TABS = tabs({ id: "file", keys: KEYS, label: "Parts of the claim" })
+const FROM_BUILDER = `<lt-tabs id="claim-tabs">
   <ul ${attr(TABS.list)}>
     ${TABS.tabs.map((t, i) => `<li><a ${attr(t)}>${NAMES[i]}</a></li>`).join("\n    ")}
   </ul>
@@ -89,12 +89,16 @@ const FROM_BUILDER = `<lt-tabs id="case">
 
 function links(): HTMLAnchorElement[] {
   return [
-    ...document.querySelectorAll<HTMLAnchorElement>("#case .lt-tabs__list a"),
+    ...document.querySelectorAll<HTMLAnchorElement>(
+      "#claim-tabs .lt-tabs__list a",
+    ),
   ]
 }
 
 function panels(): HTMLElement[] {
-  return [...document.querySelectorAll<HTMLElement>("#case .lt-tabs__panel")]
+  return [
+    ...document.querySelectorAll<HTMLElement>("#claim-tabs .lt-tabs__panel"),
+  ]
 }
 
 function selected(): (string | null)[] {
@@ -191,7 +195,7 @@ describe("lt-tabs through Datastar's morph", () => {
      * inside are kept the same way.
      */
     const page = (content: string) => `<main id="page">${content}</main>`
-    const withoutId = BAR.replace(' id="case"', ' class="case"')
+    const withoutId = BAR.replace(' id="claim-tabs"', ' class="claim-tabs"')
     document.body.innerHTML = page(withoutId)
     await waitForPaint()
     const regionLinks = () => [
@@ -235,7 +239,7 @@ describe("lt-tabs through Datastar's morph", () => {
 
     try {
       document.body.innerHTML = `${BAR}
-        <button id="refresh" data-on:click="@get('/case')">Refresh</button>`
+        <button id="refresh" data-on:click="@get('/claim')">Refresh</button>`
       await waitForPaint()
       // Datastar reads `data-*` in a `setTimeout` after the node arrived.
       await new Promise((done) => setTimeout(done, 20))
@@ -501,7 +505,7 @@ describe("the components warn when a patch replaced the elements", () => {
     links()[1].click()
     await waitForPaint()
 
-    patchInside("#case > section:last-child", "Three new messages.")
+    patchInside("#claim-tabs > section:last-child", "Three new messages.")
     await settle()
     expect(selected()).toEqual(["false", "true", "false"])
     expect(panels()[2].textContent).toBe("Three new messages.")
@@ -630,8 +634,8 @@ describe("the components warn when a patch replaced the elements", () => {
     // The browser selects the first option without anything being
     // `defaultSelected`, so a comparison with that saw a choice the user
     // never made.
-    const select = `<lt-field id="country-host">
-  <label>Country <select class="lt-select"><option>Norway</option><option>Sweden</option></select></label>
+    const select = `<lt-field id="building-host">
+  <label>Building <select class="lt-select"><option>Saltline Tower</option><option>Breakwater House</option></select></label>
 </lt-field>`
     document.body.innerHTML = select
     await waitForPaint()

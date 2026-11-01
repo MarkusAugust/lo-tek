@@ -16,13 +16,13 @@ The group is radio buttons in disguise. Each option is a `<label>` with an `<inp
   <legend class="lt-sr-only">View</legend>
 
   <label class="lt-toggle-group__option">
-    <input type="radio" name="view" value="list" checked /> List
+    <input type="radio" name="view" value="dry" checked /> Dry
   </label>
   <label class="lt-toggle-group__option">
-    <input type="radio" name="view" value="map" /> Map
+    <input type="radio" name="view" value="seasonal" /> Seasonal
   </label>
   <label class="lt-toggle-group__option">
-    <input type="radio" name="view" value="calendar" /> Calendar
+    <input type="radio" name="view" value="all" /> All
   </label>
 </fieldset>
 `}>
@@ -38,8 +38,8 @@ import { lt } from "@lo-tek/interfaces/react"
 <fieldset {...lt.toggleGroup()}>
   <legend {...lt.srOnly()}>View</legend>
   <label className={lt.toggleGroup.option}>
-    <input type="radio" name="view" value="list" defaultChecked />
-    List
+    <input type="radio" name="view" value="dry" defaultChecked />
+    Dry
   </label>
 </fieldset>
 ```

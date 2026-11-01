@@ -23,7 +23,7 @@ export type ToggleGroupAttributes = {
  * <fieldset {...toggleGroup()}>
  *   <legend class="lt-sr-only">View</legend>
  *   <label class={toggleGroup.option}>
- *     <input type="radio" name="view" value="list" checked /> List
+ *     <input type="radio" name="view" value="dry" checked /> Dry
  *   </label>
  * </fieldset>
  * ```

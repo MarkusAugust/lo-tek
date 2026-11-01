@@ -67,13 +67,13 @@ class DiagnosticsTest : BasePlatformTestCase() {
         assertTrue("no findings, got $out", out.isEmpty())
     }
 
-    /** The manifest in the package with `lt-card` replaced by `lt-kort`, as after `lotek takeover`. */
+    /** The manifest in the package with `lt-card` replaced by `lt-claim`, as after `lotek takeover`. */
     private val takenOver =
-        java.io.File(System.getProperty("manifest")).readText().replace("\"lt-card\": {", "\"lt-kort\": {")
+        java.io.File(System.getProperty("manifest")).readText().replace("\"lt-card\": {", "\"lt-claim\": {")
 
     fun `test uses the project's manifest from build-lotek`() {
         myFixture.addFileToProject("build/lotek/manifest.json", takenOver)
-        val out = findings("test.html", """<div class="lt-kort">Application</div><div class="lt-card">Application</div>""")
+        val out = findings("test.html", """<div class="lt-claim">Claim</div><div class="lt-card">Claim</div>""")
         assertEquals("only lt-card should be reported, got $out", listOf("lt-card"), out.map { it.first })
     }
 
@@ -82,7 +82,7 @@ class DiagnosticsTest : BasePlatformTestCase() {
         val file =
             myFixture.addFileToProject(
                 "pages/form/page.html",
-                """<div class="lt-kort">Application</div><div class="lt-card">Application</div>""",
+                """<div class="lt-claim">Claim</div><div class="lt-card">Claim</div>""",
             )
         myFixture.configureFromExistingVirtualFile(file.virtualFile)
         val text = myFixture.editor.document.text
@@ -101,7 +101,7 @@ class DiagnosticsTest : BasePlatformTestCase() {
                 """
                 // language=HTML
                 val card = ""${'"'}
-                    <div class="lt-kort">Application</div><div class="lt-card">Application</div>
+                    <div class="lt-claim">Claim</div><div class="lt-card">Claim</div>
                 ""${'"'}
                 """.trimIndent(),
             )
@@ -110,8 +110,8 @@ class DiagnosticsTest : BasePlatformTestCase() {
 
     fun `test a manifest the core cannot read gives the package's`() {
         myFixture.addFileToProject("build/lotek/manifest.json", "{}")
-        val out = findings("test.html", """<div class="lt-kort">Application</div><div class="lt-card">Application</div>""")
-        assertEquals("lt-kort should be reported, got $out", listOf("lt-kort"), out.map { it.first })
+        val out = findings("test.html", """<div class="lt-claim">Claim</div><div class="lt-card">Claim</div>""")
+        assertEquals("lt-claim should be reported, got $out", listOf("lt-claim"), out.map { it.first })
     }
 
     fun `test a fix with several edits is applied as one`() {

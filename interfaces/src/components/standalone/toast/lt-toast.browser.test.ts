@@ -41,11 +41,11 @@ describe("lt-toast", () => {
 
   it("shows a message with a close button", async () => {
     const toast = await paint()
-    const message = toast.show("The application has been sent", {
+    const message = toast.show("Someone is on the wire in sector 3", {
       color: "success",
     })
 
-    expect(message.textContent).toContain("The application has been sent")
+    expect(message.textContent).toContain("Someone is on the wire in sector 3")
     expect(message.dataset.color).toBe("success")
 
     const close = message.querySelector(".lt-toast__close") as HTMLElement
@@ -84,7 +84,7 @@ describe("lt-toast", () => {
 
   it("has no accessibility violations", async () => {
     const toast = await paint()
-    toast.show("The application has been sent", {
+    toast.show("Someone is on the wire in sector 3", {
       color: "success",
       duration: 0,
     })
@@ -196,7 +196,7 @@ describe("showToast() waits for the registration", () => {
     const element = document.querySelector("lt-toast-late") as Element
 
     let done = false
-    const promise = showToast(element, "The application has been saved", {
+    const promise = showToast(element, "Relay 14 is back", {
       color: "success",
     }).then((message) => {
       done = true
@@ -211,7 +211,7 @@ describe("showToast() waits for the registration", () => {
     const message = await promise
     expect(element.contains(message)).toBe(true)
     expect(message.getAttribute("data-color")).toBe("success")
-    expect(message.textContent).toContain("The application has been saved")
+    expect(message.textContent).toContain("Relay 14 is back")
   })
 })
 

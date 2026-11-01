@@ -15,9 +15,9 @@ import "./divider.css"
 describe("lt-divider", () => {
   beforeEach(() => {
     mount(`
-      <p>Your case has been registered.</p>
+      <p>The recovery order has been registered.</p>
       <hr class="lt-divider" id="default" />
-      <p>You will get an answer within three weeks.</p>
+      <p>The appraisal follows within three days.</p>
       <hr class="lt-divider" data-variant="strong" id="strong" />
       <hr class="lt-divider" data-variant="subtle" id="subtle" aria-hidden="true" />
     `)
@@ -42,9 +42,9 @@ describe("lt-divider", () => {
     // the line was 0 pixels wide. The documentation page showed no line.
     mount(`
       <div id="parent" style="${layout}; inline-size: 20rem">
-        <p>Your case has been registered.</p>
+        <p>The recovery order has been registered.</p>
         <hr class="lt-divider" id="in-parent" />
-        <p>You will get an answer within three weeks.</p>
+        <p>The appraisal follows within three days.</p>
       </div>
     `)
     const parent = document.getElementById("parent") as Element

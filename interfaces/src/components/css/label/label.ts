@@ -33,7 +33,7 @@ export type LabelAttributes = {
  * or the screen reader is not told that it must be filled in.
  *
  * ```ts
- * <label {...label({ required: "symbol" })} htmlFor="email">Email address</label>
+ * <label {...label({ required: "symbol" })} htmlFor="fixer">Fixer's address</label>
  * ```
  */
 export const label = Object.assign(

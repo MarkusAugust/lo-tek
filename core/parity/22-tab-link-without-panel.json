@@ -1,20 +1,20 @@
 {
   "markup": [
     {
-      "start": 122,
-      "end": 123,
+      "start": 120,
+      "end": 121,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/tabs/",
-      "message": "<lt-tabs> has a tab without a panel: the link points at #vedlegg, and no element has that id. Write an id on every .lt-tabs__panel, the same one the link points at. The tab can be selected without anything being shown."
+      "message": "<lt-tabs> has a tab without a panel: the link points at #attachments, and no element has that id. Write an id on every .lt-tabs__panel, the same one the link points at. The tab can be selected without anything being shown."
     }
   ],
   "page": [
     {
-      "start": 122,
-      "end": 123,
+      "start": 120,
+      "end": 121,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/tabs/",
-      "message": "<lt-tabs> has a tab without a panel: the link points at #vedlegg, and no element has that id. Write an id on every .lt-tabs__panel, the same one the link points at. The tab can be selected without anything being shown."
+      "message": "<lt-tabs> has a tab without a panel: the link points at #attachments, and no element has that id. Write an id on every .lt-tabs__panel, the same one the link points at. The tab can be selected without anything being shown."
     }
   ]
 }

@@ -32,21 +32,21 @@ No build tools, no package manager in the browser.
     <!-- Or everything in one file: /node_modules/@lo-tek/interfaces/dist/lotek.css -->
   </head>
   <body>
-    <form id="contact-form">
+    <form id="order-form">
       <lt-field>
-        <label class="lt-label" for="name" data-required="symbol">Full name</label>
-        <input class="lt-input" id="name" type="text" name="name" required />
-        <p class="lt-error-text" hidden>Enter your name.</p>
+        <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+        <input class="lt-input" id="codename" type="text" name="codename" required />
+        <p class="lt-error-text" hidden>Enter a codename.</p>
       </lt-field>
 
-      <button class="lt-button" type="submit">Send</button>
+      <button class="lt-button" type="submit">Order the job</button>
     </form>
 
     <script type="module">
       import { defineLtField } from "/node_modules/@lo-tek/interfaces/dist/components/frame/field/lt-field.js"
       defineLtField()
 
-      document.getElementById("contact-form").addEventListener("submit", (event) => {
+      document.getElementById("order-form").addEventListener("submit", (event) => {
         event.preventDefault()
         console.log(Object.fromEntries(new FormData(event.currentTarget)))
       })
@@ -130,15 +130,15 @@ A `<script>` tag in an HTML file is run by the browser as plain JavaScript. If y
     Write a field with `lt.field()`. The wiring between the label, the field and the error message is then in the markup React renders itself, and nothing needs to be registered.
 
     ```tsx
-    // ContactForm.tsx
+    // OrderForm.tsx
     import { lt } from "@lo-tek/interfaces/react"
     import { useId, useState } from "react"
 
-    export function ContactForm() {
-      const [name, setName] = useState("")
+    export function OrderForm() {
+      const [codename, setCodename] = useState("")
       const [touched, setTouched] = useState(false)
 
-      const invalid = touched && name.trim() === ""
+      const invalid = touched && codename.trim() === ""
       const field = lt.field({
         id: useId(),
         required: "symbol",
@@ -148,19 +148,19 @@ A `<script>` tag in an HTML file is run by the browser as plain JavaScript. If y
 
       return (
         <form onSubmit={(e) => e.preventDefault()}>
-          <label {...field.label}>Full name</label>
+          <label {...field.label}>Codename</label>
           <input
             {...lt.input({ type: "text" })}
             {...field.control}
-            name="name"
+            name="codename"
             required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={codename}
+            onChange={(e) => setCodename(e.target.value)}
             onBlur={() => setTouched(true)}
           />
-          <p {...lt.errorText()} {...field.error}>Enter your name.</p>
+          <p {...lt.errorText()} {...field.error}>Enter a codename.</p>
 
-          <button {...lt.button()} type="submit">Send</button>
+          <button {...lt.button()} type="submit">Order the job</button>
         </form>
       )
     }
@@ -189,14 +189,14 @@ import "@lo-tek/interfaces/badge.css"
 ---
 
 <button {...lt.button({ variant: "secondary" })}>Save draft</button>
-<span {...lt.badge({ color: "success" })}>Approved</span>
+<span {...lt.badge({ color: "success" })}>Delivered</span>
 ```
 
 Runs at build time. What comes out is plain HTML:
 
 ```html
 <button class="lt-button" data-variant="secondary">Save draft</button>
-<span class="lt-badge" data-color="success">Approved</span>
+<span class="lt-badge" data-color="success">Delivered</span>
 ```
 
 Zero JavaScript sent to the browser. `lt` is gone once the page is built.
@@ -211,13 +211,13 @@ import { lt } from "@lo-tek/interfaces"
 import "@lo-tek/interfaces/tokens.css"
 import "@lo-tek/interfaces/field.css"
 
-const email = lt.field({ id: "email", required: "symbol", help: true, error: true })
+const fixer = lt.field({ id: "fixer", required: "symbol", help: true, error: true })
 ---
 
-<label {...email.label}>Email address</label>
-<input {...lt.input({ type: "email" })} {...email.control} name="email" required />
-<p {...lt.helpText()} {...email.help}>We send the receipt here.</p>
-<p {...lt.errorText()} {...email.error}>Enter a valid address.</p>
+<label {...fixer.label}>Fixer's address</label>
+<input {...lt.input({ type: "email" })} {...fixer.control} name="fixer" required />
+<p {...lt.helpText()} {...fixer.help}>The board writes to the fixer, never to the crew.</p>
+<p {...lt.errorText()} {...fixer.error}>Enter a valid address.</p>
 ```
 
 No `<lt-field>`, no runtime.
@@ -233,9 +233,9 @@ import "@lo-tek/interfaces/field.css"
 ---
 
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" required />
-  <p class="lt-error-text" hidden>Enter your name.</p>
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" required />
+  <p class="lt-error-text" hidden>Enter a codename.</p>
 </lt-field>
 
 <script>
@@ -272,23 +272,23 @@ The stylesheets are linked, since a browser does not resolve a package name:
 
 ```html
 <form
-  data-signals="{name: '', touched: false}"
-  data-computed:invalid="$touched && $name.trim() === ''"
+  data-signals="{codename: '', touched: false}"
+  data-computed:invalid="$touched && $codename.trim() === ''"
 >
   <lt-field>
-    <label class="lt-label" for="name" data-required="symbol">Full name</label>
+    <label class="lt-label" for="codename" data-required="symbol">Codename</label>
     <input
       class="lt-input"
-      id="name"
+      id="codename"
       type="text"
-      name="name"
-      data-bind:name
+      name="codename"
+      data-bind:codename
       data-on:blur="$touched = true"
     />
-    <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter your name.</p>
+    <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter a codename.</p>
   </lt-field>
 
-  <button class="lt-button" type="submit">Send</button>
+  <button class="lt-button" type="submit">Order the job</button>
 </form>
 
 <script type="module">
@@ -303,7 +303,7 @@ Three attributes do the whole job:
 
 - `data-signals` creates the state.
 - `data-computed:invalid` derives the validation from it.
-- `data-bind:name` binds the field both ways, and `data-on:blur` marks that the user has left it.
+- `data-bind:codename` binds the field both ways, and `data-on:blur` marks that the user has left it.
 
 `data-attr:hidden` on the error message connects Datastar to the component: it **hides the error message when the field is valid and shows it when it is invalid**, and `<lt-field>` treats the field as invalid when the error message is visible.
 
@@ -317,9 +317,9 @@ A web component upgrades itself when it is inserted into the document, as long a
 
 ```html
 <lt-field>
-  <label class="lt-label" for="email" data-required="text">Email address</label>
-  <input class="lt-input" id="email" type="email" value="sam@" />
-  <p class="lt-help-text">We send the receipt here.</p>
+  <label class="lt-label" for="fixer" data-required="text">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" name="fixer" value="fixer@" />
+  <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
   <p class="lt-error-text">Enter a valid address.</p>
 </lt-field>
 ```

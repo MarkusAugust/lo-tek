@@ -91,6 +91,10 @@
   all: revert-layer;
 }
 
+[data-lt-boundary][data-lt-boundary] *::-webkit-date-and-time-value {
+  all: revert-layer;
+}
+
 [data-lt-boundary][data-lt-boundary] *::-webkit-progress-bar {
   all: revert-layer;
 }

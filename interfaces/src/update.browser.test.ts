@@ -72,14 +72,14 @@ const CODE = recipe(suggestionPage, 'input class="lt-suggestion__value"')
 /** The recipe with the label wrapping the field, and no id. */
 const FIELD_WRAPPED = `
   <lt-field>
-    <label class="lt-label">Full name <input class="lt-input" name="name" type="text"></label>
-    <p class="lt-help-text">As it appears in your passport.</p>
+    <label class="lt-label">Codename <input class="lt-input" name="codename" type="text"></label>
+    <p class="lt-help-text">The name the crew answers to. Never the real one.</p>
   </lt-field>`
 
 const SUGGESTION_WRAPPED = `
   <lt-suggestion>
-    <label class="lt-label">City <input class="lt-input" name="city" type="text"></label>
-    <ul class="lt-suggestion__list"><li>Cardiff</li><li>Leeds</li><li>York</li></ul>
+    <label class="lt-label">Breaker <input class="lt-input" name="breaker" type="text"></label>
+    <ul class="lt-suggestion__list"><li>Lockjaw</li><li>Saltwater</li><li>Glasscutter</li></ul>
     <span class="lt-sr-only" role="status"></span>
   </lt-suggestion>`
 
@@ -152,11 +152,11 @@ describe("fields and suggestion fields through a server update", () => {
   })
 
   it("reads the recipes from the component pages", () => {
-    expect(FIELD).toContain('for="name"')
-    expect(FIELD).toContain('id="name"')
-    expect(SUGGESTION).toContain('for="airport"')
-    expect(SUGGESTION).toContain('id="airport"')
-    expect(CODE).toContain('data-value="BGO"')
+    expect(FIELD).toContain('for="codename"')
+    expect(FIELD).toContain('id="codename"')
+    expect(SUGGESTION).toContain('for="breaker"')
+    expect(SUGGESTION).toContain('id="breaker"')
+    expect(CODE).toContain('data-value="LDG-117"')
   })
 
   for (const way of WAYS) {
@@ -171,21 +171,21 @@ describe("fields and suggestion fields through a server update", () => {
       await settle()
       const code = () =>
         document.querySelector(".lt-suggestion__value") as HTMLInputElement
-      expect(input.value).toBe("Bergen")
-      expect(code().value).toBe("BGO")
+      expect(input.value).toBe("Crowbar")
+      expect(code().value).toBe("LDG-117")
 
       await update(
         way,
         way === "innerHTML"
-          ? CODE.replace('type="text"', 'type="text" value="Bergen"').replace(
+          ? CODE.replace('type="text"', 'type="text" value="Crowbar"').replace(
               'type="hidden"',
-              'type="hidden" value="BGO"',
+              'type="hidden" value="LDG-117"',
             )
           : CODE,
       )
 
-      expect(field().value).toBe("Bergen")
-      expect(code().value).toBe("BGO")
+      expect(field().value).toBe("Crowbar")
+      expect(code().value).toBe("LDG-117")
       await quiet()
       expect(warning).not.toHaveBeenCalled()
     })
@@ -195,25 +195,25 @@ describe("fields and suggestion fields through a server update", () => {
     {
       name: "field from the recipe",
       markup: FIELD,
-      label: "Full name",
-      id: "name",
+      label: "Codename",
+      id: "codename",
     },
     {
       name: "field with the label wrapping it, no id",
       markup: FIELD_WRAPPED,
-      label: "Full name",
+      label: "Codename",
       id: "",
     },
     {
       name: "suggestion field from the recipe",
       markup: SUGGESTION,
-      label: "Airport",
-      id: "airport",
+      label: "Breaker",
+      id: "breaker",
     },
     {
       name: "suggestion field with the label wrapping it, no id",
       markup: SUGGESTION_WRAPPED,
-      label: "City",
+      label: "Breaker",
       id: "",
     },
   ]
@@ -225,7 +225,7 @@ describe("fields and suggestion fields through a server update", () => {
         await mount(t.markup)
         const before = field()
         before.focus()
-        before.value = "Alex"
+        before.value = "Static"
         before.dispatchEvent(new Event("input", { bubbles: true }))
         await settle()
 
@@ -236,7 +236,7 @@ describe("fields and suggestion fields through a server update", () => {
           expect(after).not.toBe(before)
         } else {
           expect(after).toBe(before)
-          expect(after.value).toBe("Alex")
+          expect(after.value).toBe("Static")
           expect(document.activeElement).toBe(after)
         }
         expect(after.id).toBe(t.id)
@@ -261,7 +261,7 @@ describe("fields and suggestion fields through a server update", () => {
     await mount(FIELD)
     const input = field()
     input.focus()
-    input.value = "Alex"
+    input.value = "Static"
     Idiomorph.morph(
       document.getElementById("region") as HTMLElement,
       region(FIELD, true),
@@ -281,18 +281,21 @@ describe("fields and suggestion fields through a server update", () => {
        * sentence the documentation gives htmx users, and it is checked here.
        */
       await mount(FIELD)
-      field().value = "Alex"
+      field().value = "Static"
       field().blur()
 
       await update(way, FIELD)
-      expect(field().value).toBe(way === "Datastar" ? "Alex" : "")
+      expect(field().value).toBe(way === "Datastar" ? "Static" : "")
 
       // The server sends a different text from what is there. Both morphers
       // set the property when the attribute differs: Datastar in
       // patchElements.ts (`oldElt.value = newValue`), idiomorph always.
-      field().value = "Sam"
-      await update(way, FIELD.replace('id="name"', 'id="name" value="Alex"'))
-      expect(field().value).toBe("Alex")
+      field().value = "Ghost"
+      await update(
+        way,
+        FIELD.replace('id="codename"', 'id="codename" value="Static"'),
+      )
+      expect(field().value).toBe("Static")
     })
 
     it(`checkbox: ${way} and what the server sends back`, async () => {
@@ -328,33 +331,33 @@ describe("fields and suggestion fields through a server update", () => {
             return `<lt-field id="row-${k}"><label class="lt-label" for="note-${k}">${n}</label><input class="lt-input" id="note-${k}" name="note-${k}"></lt-field>`
           })
           .join("")
-      await mount(list(["Leeds", "York"]))
-      const leeds = document.getElementById("note-leeds") as HTMLInputElement
-      const row = document.getElementById("row-leeds")
-      leeds.focus()
-      leeds.value = "West Yorkshire"
+      await mount(list(["Needle", "Sledge"]))
+      const needle = document.getElementById("note-needle") as HTMLInputElement
+      const row = document.getElementById("row-needle")
+      needle.focus()
+      needle.value = "Back three days late"
 
-      await update(way, list(["Bath", "Leeds", "York"]))
+      await update(way, list(["Boltcutter", "Needle", "Sledge"]))
 
       expect(
-        (document.getElementById("note-bath") as HTMLInputElement).value,
+        (document.getElementById("note-boltcutter") as HTMLInputElement).value,
       ).toBe("")
-      expect(document.getElementById("note-leeds")).toBe(leeds)
-      expect(document.getElementById("row-leeds")).toBe(row)
-      expect(leeds.value).toBe("West Yorkshire")
+      expect(document.getElementById("note-needle")).toBe(needle)
+      expect(document.getElementById("row-needle")).toBe(row)
+      expect(needle.value).toBe("Back three days late")
     })
   }
 
   it("writes for on a label without one, from the field's id", async () => {
     // The mutation: take the `for` write out of the component.
-    await mount(FIELD.replace(' for="name"', ""))
+    await mount(FIELD.replace(' for="codename"', ""))
     const label = document.querySelector("label") as HTMLLabelElement
-    expect(label.htmlFor).toBe("name")
+    expect(label.htmlFor).toBe("codename")
   })
 
   it("reports once when the recipe has no id on the field", async () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {})
-    await mount(FIELD.replace(' id="name"', ""))
+    await mount(FIELD.replace(' id="codename"', ""))
     await quiet()
     expect(warning).toHaveBeenCalledTimes(1)
     expect(String(warning.mock.calls[0][0])).toContain("not connected")
@@ -387,7 +390,7 @@ describe("the recipes without JavaScript", () => {
     iframe.srcdoc = `<!doctype html><meta charset="utf-8"><style>${styles}</style>
       <script>document.documentElement.dataset.script = "ran"</script>
       ${FIELD}
-      <div id="invalid">${FIELD.replace(" hidden>", ">").replaceAll('"name"', '"name-invalid"')}</div>
+      <div id="invalid">${FIELD.replace(" hidden>", ">").replaceAll('"codename"', '"codename-invalid"')}</div>
       ${SUGGESTION}
       ${CHECKBOX(false)}`
     await new Promise((r) => {
@@ -411,7 +414,7 @@ describe("the recipes without JavaScript", () => {
   })
 
   it("the required marker is visible", () => {
-    const label = doc.querySelector("label[for='name']") as HTMLElement
+    const label = doc.querySelector("label[for='codename']") as HTMLElement
     const after = doc.defaultView?.getComputedStyle(label, "::after")
     expect(after?.content).toContain("*")
   })

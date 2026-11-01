@@ -8,14 +8,14 @@ import Preview from "./Preview.astro"
 // contents.
 const tabSet = lt.tabs({
   id: "demo",
-  keys: ["application", "attachments", "messages"],
-  label: "Parts of the case",
+  keys: ["claim", "attachments", "messages"],
+  label: "Parts of the claim",
 })
-const titles = ["Application", "Attachments", "Messages"]
+const titles = ["Claim", "Attachments", "Messages"]
 const contents = [
-  "The application was sent on 4 March 2026. Case number 2026-0481.",
-  "Three attachments have been uploaded. The last one arrived on 6 March.",
-  "No messages in this case yet.",
+  "Claim AV-2079-0481 was filed on 4 March 2079.",
+  "Three attachments have been received. The death certificate arrived on 6 March.",
+  "Claim denied. Black ICE is an act of God.",
 ]
 ---
 

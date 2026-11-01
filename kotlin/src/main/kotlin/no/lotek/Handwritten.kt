@@ -125,8 +125,8 @@ private fun isJsWhitespace(c: Char): Boolean =
  * `lt.field`: wires the label, control, help text and error text.
  *
  * ```kotlin
- * val field = Lt.field(id = "email", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
- * "<label ${field.label.toHtml()}>Email address</label>"
+ * val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
+ * "<label ${field.label.toHtml()}>Fixer's address</label>"
  * "<input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>"
  * ```
  */

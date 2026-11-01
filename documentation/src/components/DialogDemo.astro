@@ -9,21 +9,21 @@ const box = lt.dialog({ titleId: "demo-dialog-title", color: "danger" })
 
 <Preview id="demo-dialog" styles={["dialog", "button"]} maxWidth="30rem">
 	<button {...lt.button({ variant: "danger" })} type="button" data-open>
-		Delete the application
+		Cancel the job
 	</button>
 
 	<lt-dialog {...box.host}>
 		<dialog {...box.dialog}>
 			<div {...box.header}>
-				<h2 {...box.title}>Delete the application?</h2>
+				<h2 {...box.title}>Cancel job 222-0481?</h2>
 				<p {...box.subtitle}>This cannot be undone</p>
 			</div>
 			<div {...box.body}>
-				<p>The application and its attachments will be gone. This cannot be undone.</p>
+				<p>The crew keeps the advance. This cannot be undone.</p>
 			</div>
 			<form method="dialog" {...box.footer}>
-				<button {...lt.button({ variant: "secondary" })} value="cancel">Cancel</button>
-				<button {...lt.button({ variant: "danger" })} value="delete">Delete the application</button>
+				<button {...lt.button({ variant: "secondary" })} value="keep">Keep the job</button>
+				<button {...lt.button({ variant: "danger" })} value="cancel">Cancel the job</button>
 			</form>
 		</dialog>
 	</lt-dialog>

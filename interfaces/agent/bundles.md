@@ -314,12 +314,12 @@ The markup is ordinary HTML, in whatever template your framework uses:
 
 ```html
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" required />
-  <p class="lt-error-text" hidden>Enter your name.</p>
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" required />
+  <p class="lt-error-text" hidden>Enter a codename.</p>
 </lt-field>
 
-<button class="lt-button" type="submit">Send</button>
+<button class="lt-button" type="submit">Order the job</button>
 ```
 
 `class` and `for`, not `className` and `htmlFor`. It is React that rewrites
@@ -358,8 +358,8 @@ Where the template language cannot spread an object, `lt.setAttributes()` sets
 the attributes on an element in plain DOM:
 
 ```ts
-const field = document.querySelector<HTMLInputElement>("#email")
-const wiring = lt.field({ id: "email", error: true, invalid: true })
+const field = document.querySelector<HTMLInputElement>("#fixer")
+const wiring = lt.field({ id: "fixer", error: true, invalid: true })
 
 lt.setAttributes(field, lt.input({ type: "email" }), wiring.control)
 ```

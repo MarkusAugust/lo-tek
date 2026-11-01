@@ -31,7 +31,7 @@ export type CardAttributes = {
  * reached with the keyboard nor be announced as something to press.
  *
  * ```ts
- * <a {...card({ interactive: true })} href="/case/481">…</a>
+ * <a {...card({ interactive: true })} href="/claims/AV-2079-0481">…</a>
  * ```
  */
 export const card = Object.assign(

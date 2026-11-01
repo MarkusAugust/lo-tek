@@ -71,15 +71,15 @@ describe("lt-select", () => {
 describe("lt-select accessibility", () => {
   it("has enough contrast and a label in every state", async () => {
     mount(`
-      <label class="lt-label" for="a11y-country">Country</label>
-      <select class="lt-select" id="a11y-country">
-        <option value="">Choose a country</option>
-        <option value="norway">Norway</option>
+      <label class="lt-label" for="a11y-building">Building</label>
+      <select class="lt-select" id="a11y-building">
+        <option value="">Choose a building</option>
+        <option value="saltline">Saltline Tower</option>
       </select>
 
-      <label class="lt-label" for="a11y-city">City</label>
-      <select class="lt-select" id="a11y-city" data-state="invalid" aria-invalid="true">
-        <option value="">Choose a city</option>
+      <label class="lt-label" for="a11y-floor">Floor</label>
+      <select class="lt-select" id="a11y-floor" data-state="invalid" aria-invalid="true">
+        <option value="">Choose a floor</option>
       </select>
     `)
 
@@ -92,7 +92,7 @@ describe("lt-select without a CSS reset", () => {
   it("stays inside its box", () => {
     const { box } = mountIsolated(
       selectCss,
-      `<select class="lt-select"><option>Norway</option></select>`,
+      `<select class="lt-select"><option>Saltline Tower</option></select>`,
     )
 
     expect(findOverflow(box)).toEqual([])
@@ -161,12 +161,12 @@ describe('lt-select with data-picker="styled"', () => {
   beforeEach(() => {
     document.body.innerHTML = `
       <select id="plain" class="lt-select">
-        <option value="norway">Norway</option>
-        <option value="sweden">Sweden</option>
+        <option value="saltline">Saltline Tower</option>
+        <option value="breakwater">Breakwater House</option>
       </select>
       <select id="styled" class="lt-select" data-picker="styled">
-        <option value="norway">Norway</option>
-        <option value="sweden" selected>Sweden</option>
+        <option value="saltline">Saltline Tower</option>
+        <option value="breakwater" selected>Breakwater House</option>
       </select>
     `
   })
@@ -235,8 +235,8 @@ describe('lt-select with data-picker="styled"', () => {
     await userEvent.click(element)
     await waitForList(element)
 
-    const selected = element.querySelector("option[value='sweden']")
-    const other = element.querySelector("option[value='norway']")
+    const selected = element.querySelector("option[value='breakwater']")
+    const other = element.querySelector("option[value='saltline']")
     if (!(selected instanceof HTMLElement) || !(other instanceof HTMLElement)) {
       throw new Error("Could not find the options")
     }
@@ -259,10 +259,10 @@ describe('lt-select with data-picker="styled"', () => {
 
     document.body.innerHTML = `
       <select id="grouped" class="lt-select" data-picker="styled">
-        <optgroup label="Nordic countries">
-          <option value="norway">Norway</option>
+        <optgroup label="Above the waterline">
+          <option value="saltline">Saltline Tower</option>
         </optgroup>
-        <option value="germany" selected>Germany</option>
+        <option value="lantern" selected>The Lantern Block</option>
       </select>
     `
 
@@ -274,8 +274,8 @@ describe('lt-select with data-picker="styled"', () => {
     await waitForList(element)
 
     const group = element.querySelector("optgroup")
-    const inGroup = element.querySelector("option[value='norway']")
-    const outside = element.querySelector("option[value='germany']")
+    const inGroup = element.querySelector("option[value='saltline']")
+    const outside = element.querySelector("option[value='lantern']")
     if (
       !(group instanceof HTMLElement) ||
       !(inGroup instanceof HTMLElement) ||
@@ -292,8 +292,8 @@ describe('lt-select with data-picker="styled"', () => {
     )
     expect(getComputedStyle(group).textIndent).toBe("12px")
 
-    // And the options inside must look like the options outside. `germany` is
-    // the selected one, so `norway` shows the plain text.
+    // And the options inside must look like the options outside. `lantern` is
+    // the selected one, so `saltline` shows the plain text.
     expect(getComputedStyle(inGroup).fontSize).toBe("16px")
     expect(getComputedStyle(inGroup).color).toBe(
       color("--lt-color-neutral-text-strong"),
@@ -312,8 +312,7 @@ describe('lt-select with data-picker="styled"', () => {
     // option wrapped onto two lines.
     if (!hasBaseSelect || !("HTMLSelectedContentElement" in window)) return
 
-    const long =
-      "Application for an exemption from the zoning plan for the area"
+    const long = "Seasonal floor below the waterline, weekly pump-out included"
     document.body.innerHTML = `
       <div style="inline-size: 260px">
         <select id="long" class="lt-select" data-picker="styled">
@@ -322,7 +321,7 @@ describe('lt-select with data-picker="styled"', () => {
         </select>
         <select id="short" class="lt-select" data-picker="styled">
           <button><selectedcontent></selectedcontent></button>
-          <option>Building permit</option>
+          <option>Dry floor</option>
         </select>
       </div>
     `
@@ -342,11 +341,11 @@ describe('lt-select with data-picker="styled"', () => {
 describe("lt-select with the list in the page, accessibility", () => {
   it("has enough contrast and a label", async () => {
     mount(`
-      <label class="lt-label" for="a11y-styled">Country</label>
+      <label class="lt-label" for="a11y-styled">Building</label>
       <select class="lt-select" id="a11y-styled" data-picker="styled">
-        <optgroup label="Nordic countries">
-          <option value="">Choose a country</option>
-          <option value="norway">Norway</option>
+        <optgroup label="Above the waterline">
+          <option value="">Choose a building</option>
+          <option value="saltline">Saltline Tower</option>
         </optgroup>
       </select>
     `)
@@ -365,11 +364,11 @@ describe("lt-select with the list in the page, accessibility", () => {
     if (!hasBaseSelect) return
 
     mount(`
-      <label class="lt-label" for="contrast-styled">Country</label>
+      <label class="lt-label" for="contrast-styled">Building</label>
       <select class="lt-select" id="contrast-styled" data-picker="styled">
-        <optgroup label="Nordic countries">
-          <option value="norway">Norway</option>
-          <option value="sweden" selected>Sweden</option>
+        <optgroup label="Above the waterline">
+          <option value="saltline">Saltline Tower</option>
+          <option value="breakwater" selected>Breakwater House</option>
         </optgroup>
       </select>
     `)
@@ -386,8 +385,8 @@ describe("lt-select with the list in the page, accessibility", () => {
     )
 
     for (const [name, selector] of [
-      ["an option", "option[value='norway']"],
-      ["the selected option", "option[value='sweden']"],
+      ["an option", "option[value='saltline']"],
+      ["the selected option", "option[value='breakwater']"],
       ["the group heading", "optgroup"],
     ] as const) {
       const part = element.querySelector(selector)

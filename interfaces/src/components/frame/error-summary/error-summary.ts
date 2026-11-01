@@ -50,7 +50,7 @@ export type ErrorSummaryAttributes = {
  * ```html
  * <lt-error-summary {...summary.host}>
  *   <h2 {...summary.title}>You need to fix 2 errors</h2>
- *   <ul><li><a href="#email">The email address is missing an @</a></li></ul>
+ *   <ul><li><a href="#fixer">The fixer's address is missing an @</a></li></ul>
  * </lt-error-summary>
  * ```
  */

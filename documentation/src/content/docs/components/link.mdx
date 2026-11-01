@@ -12,9 +12,9 @@ A link style with a clear underline, hover and a focus indicator. If the link sh
 <Example imports={["tokens.css", "link.css"]}
   styles={["link"]} layout="stack" maxWidth="32rem" code={`
 <p>
-  Your application has been sent. You will find it under
-  <a class="lt-link" href="#">My applications</a>, and we will send you an
-  email when it has been processed.
+  Your claim has been filed. The terms that apply are in
+  <a class="lt-link" href="#">the small print</a>, and we will write to you
+  when the claim has been processed.
 </p>
 `}>
 <Fragment slot="ts">
@@ -26,7 +26,7 @@ A link style with a clear underline, hover and a focus indicator. If the link sh
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<a {...lt.link()} href="/receipt">See receipt</a>
+<a {...lt.link()} href="/small-print">Read the small print</a>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -36,15 +36,15 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const link = document.querySelector<HTMLAnchorElement>("#tax-statement")
-const ready = await hasTaxStatement() // the app's own check
+const link = document.querySelector<HTMLAnchorElement>("#payout-statement")
+const ready = await hasPayoutStatement() // the app's own check
 
 lt.setAttributes(link, lt.link({ disabled: !ready }))
-if (ready) link?.setAttribute("href", "/tax-statement")
+if (ready) link?.setAttribute("href", "/payout-statement")
 else link?.removeAttribute("href")
 ```
 
-`href` belongs to the app, not the builder function, so you set and remove it yourself. If the tax statement becomes ready later, run the lines again. `aria-disabled`, `role` and `tabindex` are then removed, and the link works again. `lt.link()` manages all three, so a `role` or `tabindex` you set yourself on the same link is removed too. If the link needs them, set them after `setAttributes`.
+`href` belongs to the app, not the builder function, so you set and remove it yourself. If the payout statement becomes ready later, run the lines again. `aria-disabled`, `role` and `tabindex` are then removed, and the link works again. `lt.link()` manages all three, so a `role` or `tabindex` you set yourself on the same link is removed too. If the link needs them, set them after `setAttributes`.
 
 </Fragment>
 </Example>
@@ -52,8 +52,8 @@ else link?.removeAttribute("href")
 ## Disabled link
 
 <Example styles={["link"]} code={`
-<a class="lt-link" href="#">See receipt</a>
-<a class="lt-link" role="link" tabindex="0" aria-disabled="true">See tax statement</a>
+<a class="lt-link" href="#">Read the small print</a>
+<a class="lt-link" role="link" tabindex="0" aria-disabled="true">See payout statement</a>
 `} />
 
 A disabled link has no `href`. `aria-disabled="true"` mutes the colour and turns off the mouse with `pointer-events: none`, but the keyboard follows `href` with Enter regardless. That is why it has to go.
@@ -72,6 +72,6 @@ See [Customising](../../customising/) for how the layer works.
 
 ## Accessibility
 
-- The link text should make sense read on its own. Screen readers can list every link on the page, and there "See the invoice for March" helps where "Click here" says nothing.
+- The link text should make sense read on its own. Screen readers can list every link on the page, and there "Read the terms of the policy" helps where "Click here" says nothing.
 - Do not remove `outline` on `:focus-visible`. It is the only thing keyboard users navigate by.
 - If the link opens in a new tab, say so in the text or with `aria-label`.

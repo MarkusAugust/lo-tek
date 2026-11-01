@@ -13,23 +13,23 @@ Plain CSS on an ordinary `<input type="checkbox">`, so the keyboard, `FormData` 
 <Example imports={["tokens.css", "checkbox.css", "label.css"]}
   styles={["checkbox", "label"]} layout="stack" maxWidth="28rem" code={`
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="terms" />
-  <label class="lt-label" for="terms">I accept the terms</label>
+  <input class="lt-checkbox" type="checkbox" id="seasonal" />
+  <label class="lt-label" for="seasonal">I accept that floors below 12 are seasonal.</label>
 </div>
 
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="newsletter" checked />
-  <label class="lt-label" for="newsletter">Send me newsletters</label>
+  <input class="lt-checkbox" type="checkbox" id="vacancies" checked />
+  <label class="lt-label" for="vacancies">Tell me when a dry floor comes free</label>
 </div>
 
 <div class="lt-checkbox-row">
   <input class="lt-checkbox" type="checkbox" id="confirm" data-state="invalid" aria-invalid="true" />
-  <label class="lt-label" for="confirm">I confirm that the information is correct</label>
+  <label class="lt-label" for="confirm">I confirm that I have read the lease</label>
 </div>
 
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="archived" checked disabled />
-  <label class="lt-label" for="archived">The case is archived</label>
+  <input class="lt-checkbox" type="checkbox" id="deposit" checked disabled />
+  <label class="lt-label" for="deposit">The deposit is paid</label>
 </div>
 `}>
 <Fragment slot="ts">
@@ -42,8 +42,8 @@ Plain CSS on an ordinary `<input type="checkbox">`, so the keyboard, `FormData` 
 import { lt } from "@lo-tek/interfaces/react"
 
 <div className={lt.checkbox.row}>
-  <input {...lt.checkbox()} id="terms" />
-  <label {...lt.label()} htmlFor="terms">I accept the terms</label>
+  <input {...lt.checkbox()} id="seasonal" />
+  <label {...lt.label()} htmlFor="seasonal">I accept that floors below 12 are seasonal.</label>
 </div>
 ```
 
@@ -84,20 +84,20 @@ box.addEventListener("change", () => {
 ```html
 <div class="lt-checkbox-row">
   <input class="lt-checkbox" type="checkbox" id="all" />
-  <label class="lt-label" for="all">Select all attachments</label>
+  <label class="lt-label" for="all">Select all extras</label>
 </div>
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox attachment" type="checkbox" id="attachment-certificate" name="attachment" value="certificate" checked />
-  <label class="lt-label" for="attachment-certificate">Birth certificate</label>
+  <input class="lt-checkbox extra" type="checkbox" id="extra-pump" name="extra" value="pump" checked />
+  <label class="lt-label" for="extra-pump">Weekly pump-out</label>
 </div>
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox attachment" type="checkbox" id="attachment-lease" name="attachment" value="lease" />
-  <label class="lt-label" for="attachment-lease">Tenancy agreement</label>
+  <input class="lt-checkbox extra" type="checkbox" id="extra-barrier" name="extra" value="barrier" />
+  <label class="lt-label" for="extra-barrier">Flood barrier at the stairwell</label>
 </div>
 
 <script type="module">
   const all = document.getElementById("all")
-  const options = document.querySelectorAll(".attachment")
+  const options = document.querySelectorAll(".extra")
 
   function update() {
     const count = [...options].filter((box) => box.checked).length
@@ -124,16 +124,16 @@ If the boxes belong to the same question, group them in a [Fieldset](../fieldset
 
 <Example styles={["checkbox", "label", "fieldset"]} layout="stack" maxWidth="28rem" code={`
 <fieldset class="lt-fieldset">
-  <legend class="lt-legend">How would you like to be notified?</legend>
+  <legend class="lt-legend">How should we warn you when the tide rises?</legend>
 
   <div class="lt-checkbox-row">
-    <input class="lt-checkbox" type="checkbox" id="notify-email" name="notify" value="email" checked />
-    <label class="lt-label" for="notify-email">Email</label>
+    <input class="lt-checkbox" type="checkbox" id="notify-sms" name="notify" value="sms" checked />
+    <label class="lt-label" for="notify-sms">Text message</label>
   </div>
 
   <div class="lt-checkbox-row">
-    <input class="lt-checkbox" type="checkbox" id="notify-sms" name="notify" value="sms" />
-    <label class="lt-label" for="notify-sms">Text message</label>
+    <input class="lt-checkbox" type="checkbox" id="notify-siren" name="notify" value="siren" />
+    <label class="lt-label" for="notify-siren">The building siren</label>
   </div>
 </fieldset>
 `} />
@@ -159,6 +159,6 @@ The tick and the dash are drawn from `--lt-icon-check` and `--lt-icon-dash`, whi
 <ScreenReaderContract component="checkbox" />
 
 - Every box needs a `<label>` with `for`. Without it the click area is only the box itself, and the screen reader reads nothing.
-- The text should say what happens when the box is checked, not what the question was called. "Send me newsletters", not "Newsletter".
+- The text should say what happens when the box is checked, not what the question was called. "Tell me when a dry floor comes free", not "Vacancies".
 - Do not submit the form or navigate when a box changes. The user expects to be able to check several before anything happens.
 - If checking is required, set `required` on the box. The browser then stops the submission itself.

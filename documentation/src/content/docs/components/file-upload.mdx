@@ -3,7 +3,12 @@ title: File Upload
 description: A field for uploading files. A CSS component with two classes and no JavaScript.
 ---
 
+import Epigraph from "../../../components/Epigraph.astro"
 import Example from "../../../components/Example.astro"
+
+<Epigraph source="Solder, to a runner at the bench">
+  “Your deck’s fine. It’s you I can’t solder.”
+</Epigraph>
 
 The class goes on a plain `<input type="file">`. The button inside is the browser's own, and its text comes from the operating system's language. It cannot be translated, so the label above the field has to say what to upload.
 
@@ -11,9 +16,9 @@ The class goes on a plain `<input type="file">`. The button inside is the browse
 
 <Example imports={["tokens.css", "file-upload.css", "label.css", "help-text.css"]}
   styles={["file-upload", "label", "help-text"]} layout="stack" maxWidth="32rem" code={`
-<label class="lt-label" for="attachments">Upload attachments</label>
-<input class="lt-file-upload" type="file" id="attachments" multiple accept=".pdf,.jpg" aria-describedby="attachments-help" />
-<p class="lt-help-text" id="attachments-help">PDF or image, up to 10 MB per file.</p>
+<label class="lt-label" for="firmware">Upload firmware</label>
+<input class="lt-file-upload" type="file" id="firmware" multiple accept=".bin" aria-describedby="firmware-help" />
+<p class="lt-help-text" id="firmware-help">Deck firmware (.bin, up to 64 MB). Dump it before I open anything.</p>
 `}>
 <Fragment slot="ts">
 
@@ -24,7 +29,7 @@ The class goes on a plain `<input type="file">`. The button inside is the browse
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<input {...lt.fileUpload()} id="attachments" accept=".pdf,.jpg" />
+<input {...lt.fileUpload()} id="firmware" accept=".bin" />
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -34,9 +39,9 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const field = document.querySelector<HTMLInputElement>("#attachments")
+const field = document.querySelector<HTMLInputElement>("#firmware")
 
-lt.setAttributes(field, lt.fileUpload({ multiple: true, accept: ".pdf" }))
+lt.setAttributes(field, lt.fileUpload({ multiple: true, accept: ".bin" }))
 ```
 
 `lt.fileUpload.list` gives the class for the list. See [Type-safe use](../../type-safe-use/).
@@ -58,17 +63,17 @@ lt.setAttributes(field, lt.fileUpload({ multiple: true, accept: ".pdf" }))
 You write the list yourself, since only you know what should happen when a file is removed.
 
 <Example styles={["file-upload", "button", "label"]} layout="stack" maxWidth="32rem" code={`
-<label class="lt-label" for="attachments-2">Upload attachments</label>
-<input class="lt-file-upload" type="file" id="attachments-2" multiple />
+<label class="lt-label" for="firmware-2">Upload firmware</label>
+<input class="lt-file-upload" type="file" id="firmware-2" multiple />
 
 <ul class="lt-file-upload-list">
   <li>
-    birth-certificate.pdf
-    <button class="lt-button" data-variant="ghost" type="button">Remove birth-certificate.pdf</button>
+    firmware-0331.bin
+    <button class="lt-button" data-variant="ghost" type="button">Remove firmware-0331.bin</button>
   </li>
   <li>
-    tenancy-agreement.pdf
-    <button class="lt-button" data-variant="ghost" type="button">Remove tenancy-agreement.pdf</button>
+    bootrom-0331.bin
+    <button class="lt-button" data-variant="ghost" type="button">Remove bootrom-0331.bin</button>
   </li>
 </ul>
 `} />
@@ -78,16 +83,16 @@ The button text should say which file is removed. "Remove" alone gives identical
 The field only remembers the latest selection: if the user picks two more files, they replace the previous ones. If the files should accumulate, and be removable one at a time, you have to keep the list yourself, and send it yourself:
 
 ```html
-<form action="/application/attachments">
-  <label class="lt-label" for="attachments">Upload attachments</label>
-  <input class="lt-file-upload" type="file" id="attachments" name="attachments" multiple />
+<form action="/tickets/0331/firmware">
+  <label class="lt-label" for="firmware">Upload firmware</label>
+  <input class="lt-file-upload" type="file" id="firmware" name="firmware" multiple />
   <ul class="lt-file-upload-list"></ul>
   <button class="lt-button" type="submit">Send</button>
 </form>
 ```
 
 ```js
-const field = document.getElementById("attachments")
+const field = document.getElementById("firmware")
 const form = field.form
 let files = []
 

@@ -47,21 +47,21 @@ import Preview from "./Preview.astro"
 >
 	<div id="demo-list-root">
 		<form role="search" class="lt-search-row" id="demo-search-form">
-			<label class="lt-label lt-sr-only" for="demo-search">Search cases</label>
+			<label class="lt-label lt-sr-only" for="demo-search">Search floors</label>
 			<input
 				class="lt-input lt-search"
 				type="search"
 				id="demo-search"
 				name="q"
-				placeholder="Search cases"
+				placeholder="Search floors"
 			/>
 		</form>
 
 		<div role="group" aria-labelledby="demo-filters" class="demo-filters">
 			<h3 class="lt-heading" data-size="xs" id="demo-filters">Status</h3>
-			<button class="lt-tag" data-selectable aria-pressed="false" type="button" data-status="Approved">Approved</button>
-			<button class="lt-tag" data-selectable aria-pressed="false" type="button" data-status="Under review">Under review</button>
-			<button class="lt-tag" data-selectable aria-pressed="false" type="button" data-status="Rejected">Rejected</button>
+			<button class="lt-tag" data-selectable aria-pressed="false" type="button" data-status="Dry">Dry</button>
+			<button class="lt-tag" data-selectable aria-pressed="false" type="button" data-status="Damp">Damp</button>
+			<button class="lt-tag" data-selectable aria-pressed="false" type="button" data-status="Seasonal">Seasonal</button>
 		</div>
 
 		<p class="lt-sr-only" role="status" id="demo-matches"></p>
@@ -75,13 +75,18 @@ import Preview from "./Preview.astro"
 </Preview>
 
 <script>
-	type Case = { number: string; date: string; sent: string; status: string }
+	type Floor = {
+		floor: number
+		height: number
+		rent: string
+		status: string
+	}
 
-	const CASES: Case[] = [
-		{ number: "2026-0481", date: "4 March", sent: "2026-03-04", status: "Under review" },
-		{ number: "2026-0377", date: "12 February", sent: "2026-02-12", status: "Approved" },
-		{ number: "2025-1204", date: "3 December", sent: "2025-12-03", status: "Rejected" },
-		{ number: "2025-0988", date: "14 October", sent: "2025-10-14", status: "Approved" },
+	const FLOORS: Floor[] = [
+		{ floor: 14, height: 6, rent: "EB 4,200", status: "Dry" },
+		{ floor: 22, height: 31, rent: "EB 9,800", status: "Dry" },
+		{ floor: 12, height: 2, rent: "EB 2,600", status: "Damp" },
+		{ floor: 9, height: 1, rent: "EB 1,100", status: "Seasonal" },
 	]
 
 	/*
@@ -90,20 +95,18 @@ import Preview from "./Preview.astro"
 	 * sorted is known only here, and is written out as `aria-sort` on one
 	 * header.
 	 */
-	type Column = "number" | "sent"
+	type Column = "floor" | "height"
 	type Direction = "ascending" | "descending"
 	let sorting: { column: Column; direction: Direction } = {
-		column: "sent",
+		column: "height",
 		direction: "descending",
 	}
-	let shown: Case[] = []
+	let shown: Floor[] = []
 
-	function sorted(cases: Case[]): Case[] {
+	function sorted(floors: Floor[]): Floor[] {
 		const { column, direction } = sorting
 		const sign = direction === "ascending" ? 1 : -1
-		return [...cases].sort(
-			(a, b) => sign * a[column].localeCompare(b[column]),
-		)
+		return [...floors].sort((a, b) => sign * (a[column] - b[column]))
 	}
 
 	function header(column: Column, text: string): string {
@@ -134,14 +137,14 @@ import Preview from "./Preview.astro"
 			<div aria-busy="true">
 				${'<div class="lt-skeleton" data-variant="text" aria-hidden="true"></div>'.repeat(3)}
 			</div>`
-		if (matches) matches.textContent = "Loading cases"
+		if (matches) matches.textContent = "Loading floors"
 	}
 
 	function showError() {
 		if (!result) return
 		result.innerHTML = `
 			<div class="lt-alert" data-color="danger" role="alert">
-				<p class="lt-alert__title">Could not fetch the cases</p>
+				<p class="lt-alert__title">Could not fetch the floors</p>
 				<p>The network did not respond. Try again.</p>
 			</div>`
 		// The alert has role="alert" and is announced by itself. The status
@@ -164,7 +167,7 @@ import Preview from "./Preview.astro"
 		// have run.
 		const empty = surface?.getElementById("demo-empty")
 		if (empty) {
-			empty.textContent = `No cases match${searchTerm ? ` “${searchTerm}”` : ""}.`
+			empty.textContent = `No floors match${searchTerm ? ` “${searchTerm}”` : ""}.`
 		}
 		if (matches) matches.textContent = "No matches"
 
@@ -177,22 +180,23 @@ import Preview from "./Preview.astro"
 		})
 	}
 
-	function showCases(cases: Case[]) {
+	function showFloors(floors: Floor[]) {
 		if (!result) return
-		shown = cases
+		shown = floors
 		result.innerHTML = `
-			<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Cases">
+			<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Free floors">
 				<table class="lt-table" data-variant="striped">
-					<caption class="lt-sr-only">Cases that match the search. Columns with a button can be sorted.</caption>
+					<caption class="lt-sr-only">Free floors that match the search. Columns with a button can be sorted.</caption>
 					<thead>
-						<tr>${header("number", "Case number")}${header("sent", "Sent")}<th scope="col">Status</th></tr>
+						<tr>${header("floor", "Floor")}${header("height", "Above the water")}<th scope="col" data-align="end">Rent</th><th scope="col">Status</th></tr>
 					</thead>
 					<tbody>
-						${sorted(cases)
+						${sorted(floors)
 							.map(
 								(item) => `<tr>
-									<th scope="row">${item.number}</th>
-									<td>${item.date}</td>
+									<th scope="row">Floor ${item.floor}</th>
+									<td>${item.height} m</td>
+									<td data-align="end">${item.rent}</td>
 									<td>${item.status}</td>
 								</tr>`,
 							)
@@ -201,9 +205,9 @@ import Preview from "./Preview.astro"
 				</table>
 			</div>`
 
-		// Only when the count is different: sorting redraws the same cases, and
+		// Only when the count is different: sorting redraws the same floors, and
 		// the same text written in again is announced again.
-		const count = cases.length === 1 ? "1 case" : `${cases.length} cases`
+		const count = floors.length === 1 ? "1 floor" : `${floors.length} floors`
 		if (matches && matches.textContent !== count) matches.textContent = count
 	}
 
@@ -220,16 +224,16 @@ import Preview from "./Preview.astro"
 			const searchTerm = (search?.value ?? "").trim().toLowerCase()
 			const filters = selectedFilters()
 
-			const matching = CASES.filter(
+			const matching = FLOORS.filter(
 				(item) =>
 					(searchTerm === "" ||
-						item.number.toLowerCase().includes(searchTerm) ||
+						`floor ${item.floor}`.includes(searchTerm) ||
 						item.status.toLowerCase().includes(searchTerm)) &&
 					(filters.length === 0 || filters.includes(item.status)),
 			)
 
 			if (matching.length === 0) showEmpty(searchTerm)
-			else showCases(matching)
+			else showFloors(matching)
 		}, 450)
 	}
 
@@ -257,7 +261,7 @@ import Preview from "./Preview.astro"
 
 	surface?.getElementById("demo-reload")?.addEventListener("click", render)
 
-	// Sorting fetches nothing again, it draws the same cases in a new order.
+	// Sorting fetches nothing again, it draws the same floors in a new order.
 	// The table is replaced, so focus has to be put back on the button the
 	// user pressed, or it lands on `<body>`.
 	result?.addEventListener("click", (event) => {
@@ -272,7 +276,7 @@ import Preview from "./Preview.astro"
 					? "descending"
 					: "ascending",
 		}
-		showCases(shown)
+		showFloors(shown)
 		result
 			.querySelector<HTMLElement>(`.lt-table__sort[data-column="${column}"]`)
 			?.focus()

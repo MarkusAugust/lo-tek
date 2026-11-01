@@ -96,7 +96,7 @@ describe("a consumer can customise the system", () => {
  */
 async function withStylesheet(
   css: string,
-  markup = '<button class="lt-button" id="button">Send application</button>',
+  markup = '<button class="lt-button" id="button">Order the job</button>',
 ): Promise<Document> {
   const frame = document.createElement("iframe")
   frame.style.width = "400px"
@@ -202,9 +202,9 @@ describe("together with Tailwind", () => {
       ${listSource}
       ${PREFLIGHT}
     `,
-      `<ul class="lt-list" id="bullets"><li>Birth certificate</li></ul>
-       <ol class="lt-list" id="numbers"><li>Fill in the form</li></ol>
-       <ul class="lt-list" data-variant="plain" id="plain"><li>Sent</li></ul>`,
+      `<ul class="lt-list" id="bullets"><li>Floor plans</li></ul>
+       <ol class="lt-list" id="numbers"><li>State the objective</li></ol>
+       <ul class="lt-list" data-variant="plain" id="plain"><li>Ordered</li></ul>`,
     )
 
     expect(style(doc, "bullets").listStyleType).toBe("disc")
@@ -282,7 +282,7 @@ describe("together with Tailwind", () => {
     const markup = `
       <div class="p-4" id="class"></div>
       <div style="padding: var(--lt-spacing-4)" id="step"></div>
-      <button class="lt-button" id="button">Send application</button>`
+      <button class="lt-button" id="button">Order the job</button>`
 
     // The whole scale, as the documentation shows it: every step is
     // rewritten, because the steps are values of their own and are not

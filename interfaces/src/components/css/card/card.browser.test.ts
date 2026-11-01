@@ -21,16 +21,16 @@ describe("lt-card", () => {
   beforeEach(() => {
     mount(`
       <div class="lt-card" id="regular">
-        <h3 class="lt-card__title">Housing benefit application</h3>
-        <p>Sent 4 March. Case number 2026-0481.</p>
+        <h3 class="lt-card__title">Runner's policy AV-2079-0233</h3>
+        <p>Taken out 4 March. Premium EB 1,200 a month.</p>
       </div>
       <div class="lt-card" data-variant="filled" id="filled">
-        <h3 class="lt-card__title">Nursery place application</h3>
+        <h3 class="lt-card__title">Claim AV-2079-0481</h3>
         <p>In progress.</p>
       </div>
       <a class="lt-card" data-interactive href="#" id="clickable">
-        <h3 class="lt-card__title">See the whole case</h3>
-        <p>All documents and messages.</p>
+        <h3 class="lt-card__title">See the whole claim</h3>
+        <p>All attachments and messages.</p>
       </a>
     `)
   })
@@ -38,10 +38,10 @@ describe("lt-card", () => {
   it("lets a badge, a button and a link keep their own width, and stretches the paragraph", () => {
     mount(`
       <div class="lt-card" id="with-badge" style="width: 400px">
-        <p>Sent 4 March.</p>
-        <span class="lt-badge" data-color="success">Granted</span>
+        <p>Filed 4 March.</p>
+        <span class="lt-badge" data-color="success">Paid</span>
         <button class="lt-button" data-variant="secondary">Upload attachment</button>
-        <a class="lt-link" href="#">See the decision</a>
+        <a class="lt-link" href="#">Read the small print</a>
       </div>
     `)
     const cardElement = document.getElementById("with-badge") as HTMLElement

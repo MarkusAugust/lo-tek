@@ -49,7 +49,7 @@ const CASES: Case[] = [
   },
   {
     rule: ".lt-button:hover",
-    markup: `<button class="lt-button">Send the application</button>`,
+    markup: `<button class="lt-button">Order the job</button>`,
     selector: ".lt-button",
   },
   {
@@ -99,7 +99,7 @@ const CASES: Case[] = [
   },
   {
     rule: ".lt-suggestion__option:hover",
-    markup: `<div><input class="lt-input" /><ul class="lt-suggestion__list"><li class="lt-suggestion__option">Bergen</li></ul></div>`,
+    markup: `<div><input class="lt-input" /><ul class="lt-suggestion__list"><li class="lt-suggestion__option">Crowbar</li></ul></div>`,
     selector: ".lt-suggestion__option",
   },
   {

@@ -192,11 +192,11 @@ function markGone(element: Element, name: string, word: Word): boolean {
  *
  * ```html
  * <lt-tabs>
- *   <ul class="lt-tabs__list" aria-label="Parts of the case">
- *     <li><a href="#application">Application</a></li>
+ *   <ul class="lt-tabs__list" aria-label="Parts of the claim">
+ *     <li><a href="#claim">Claim</a></li>
  *     <li><a href="#attachments">Attachments</a></li>
  *   </ul>
- *   <section class="lt-tabs__panel" id="application"><h2>Application</h2>…</section>
+ *   <section class="lt-tabs__panel" id="claim"><h2>Claim</h2>…</section>
  *   <section class="lt-tabs__panel" id="attachments"><h2>Attachments</h2>…</section>
  * </lt-tabs>
  * ```
@@ -759,7 +759,7 @@ export class LtTabs extends HostElement {
     // the user asked for. Waiting for every tab to have a panel was not
     // enough: with one link pointing to nothing, the tab list never loaded.
     // If the address points to something that never comes, such as
-    // `#/case/1`, there is nothing to select either. The server's word is read
+    // `#/claim/1`, there is nothing to select either. The server's word is read
     // through the memory, so a new connection does not take the web
     // component's writes for the server's.
     const tabs = this.tabs
@@ -1066,7 +1066,7 @@ export class LtTabs extends HostElement {
     warnAboutMarkup(
       this,
       "has a tab list without a name. Write aria-label on " +
-        '.lt-tabs__list, such as aria-label="Parts of the case", or ' +
+        '.lt-tabs__list, such as aria-label="Parts of the claim", or ' +
         "aria-labelledby pointing to a heading; without a name a screen " +
         'reader only says "tab list".',
       () => {

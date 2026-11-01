@@ -1,6 +1,6 @@
-<lt-field {{ if .Feil }}invalid{{ end }}>
-  <label>{{ .Ledetekst }}</label>
+<lt-field {{ if .Failed }}invalid{{ end }}>
+  <label>{{ .Label }}</label>
   {{ template "input" . }}
 </lt-field>
 <button class="lt-button" data-variant="@Model.Variant">Send</button>
-<lt-tabs data-x="<?= $verdi ?>"></lt-tabs>
+<lt-tabs data-x="<?= $value ?>"></lt-tabs>

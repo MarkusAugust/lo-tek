@@ -15,13 +15,13 @@ import "./tag.css"
 describe("lt-tag", () => {
   beforeEach(() => {
     mount(`
-      <span class="lt-tag" id="plain">Housing benefit</span>
-      <span class="lt-tag" data-variant="filled" id="filled">Kindergarten</span>
+      <span class="lt-tag" id="plain">cutter</span>
+      <span class="lt-tag" data-variant="filled" id="filled">worm</span>
       <button class="lt-tag" data-selectable aria-pressed="true" id="selected" type="button">
-        Granted
+        Cutter
       </button>
       <button class="lt-tag" data-selectable aria-pressed="false" id="unselected" type="button">
-        Rejected
+        Decoy
       </button>
     `)
   })

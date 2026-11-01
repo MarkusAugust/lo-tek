@@ -47,19 +47,19 @@ describe("lt-error-text", () => {
 describe("lt-error-text accessibility", () => {
   it("has enough contrast and is wired to the field", async () => {
     mount(`
-      <label class="lt-label" for="a11y-error-email">Email address</label>
+      <label class="lt-label" for="a11y-error-fixer">Fixer's address</label>
       <input
         class="lt-input"
-        id="a11y-error-email"
+        id="a11y-error-fixer"
         type="email"
         data-state="invalid"
         aria-invalid="true"
-        aria-describedby="a11y-error-email-error"
-        value="alex@"
+        aria-describedby="a11y-error-fixer-error"
+        value="fixer@"
       />
-      <p class="lt-error-text" id="a11y-error-email-error">Enter an email address with an @.</p>
+      <p class="lt-error-text" id="a11y-error-fixer-error">Enter a valid address.</p>
 
-      <p class="lt-error-text" data-variant="warning">This address is not in the population register.</p>
+      <p class="lt-error-text" data-variant="warning">No fixer on file has this address.</p>
     `)
 
     await waitForPaint()

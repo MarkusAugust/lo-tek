@@ -19,17 +19,17 @@
       }
     },
     {
-      "start": 103,
-      "end": 121,
+      "start": 111,
+      "end": 130,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/label/",
-      "message": "data-optional is a flag on label: it is either there or not. data-optional=\"ja\" means the same as data-optional. Remove it to turn it off.",
+      "message": "data-optional is a flag on label: it is either there or not. data-optional=\"yes\" means the same as data-optional. Remove it to turn it off.",
       "fix": {
         "title": "Remove data-optional",
         "edits": [
           {
-            "start": 102,
-            "end": 121,
+            "start": 110,
+            "end": 130,
             "text": ""
           }
         ],
@@ -57,17 +57,17 @@
       }
     },
     {
-      "start": 103,
-      "end": 121,
+      "start": 111,
+      "end": 130,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/label/",
-      "message": "data-optional is a flag on label: it is either there or not. data-optional=\"ja\" means the same as data-optional. Remove it to turn it off.",
+      "message": "data-optional is a flag on label: it is either there or not. data-optional=\"yes\" means the same as data-optional. Remove it to turn it off.",
       "fix": {
         "title": "Remove data-optional",
         "edits": [
           {
-            "start": 102,
-            "end": 121,
+            "start": 110,
+            "end": 130,
             "text": ""
           }
         ],

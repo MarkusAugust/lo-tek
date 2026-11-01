@@ -5,7 +5,12 @@ description: Tab list of links to their panels. Frame component.
 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
 import TabsDemo from "../../../components/TabsDemo.astro"
+import Epigraph from "../../../components/Epigraph.astro"
 import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
+
+<Epigraph source="Aster & Vale, letter to the next of kin">
+  “Claim denied. Black ICE is an act of God.”
+</Epigraph>
 
 The tabs are links to their panels. Without JavaScript the row is a table of contents, and the panels follow one after another below it. With JavaScript the component turns the links into tabs: Tab skips past the whole row and into the selected panel, the arrow keys move between the tabs, and the screen reader says "tab, 2 of 3, selected" where it would otherwise have said "link".
 
@@ -33,14 +38,14 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     ```html
     <!-- The links point to the panels. The component writes the roles, the
          selection and `hidden`. Without JavaScript this is a table of contents. -->
-    <lt-tabs id="case-tabs">
-      <ul class="lt-tabs__list" aria-label="Parts of the case">
-        <li><a href="#application">Application</a></li>
+    <lt-tabs id="claim-tabs">
+      <ul class="lt-tabs__list" aria-label="Parts of the claim">
+        <li><a href="#claim">Claim</a></li>
         <li><a href="#attachments">Attachments</a></li>
       </ul>
-      <section class="lt-tabs__panel" id="application">
-        <h2>Application</h2>
-        <p>The application was sent on 4 March 2026.</p>
+      <section class="lt-tabs__panel" id="claim">
+        <h2>Claim</h2>
+        <p>Claim AV-2079-0481 was filed on 4 March 2079.</p>
       </section>
       <section class="lt-tabs__panel" id="attachments">
         <h2>Attachments</h2>
@@ -57,7 +62,7 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     </script>
 
     <script type="module">
-      document.getElementById("case-tabs").addEventListener("tab-select", (evt) => {
+      document.getElementById("claim-tabs").addEventListener("tab-select", (evt) => {
         console.log("selected tab", evt.detail.index)
       })
     </script>
@@ -80,16 +85,16 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     defineLtTabs()
 
     const PARTS = [
-      { key: "application", title: "Application" },
+      { key: "claim", title: "Claim" },
       { key: "attachments", title: "Attachments" },
       { key: "messages", title: "Messages" },
     ]
 
-    export function CaseTabs({ selected = 0 }: { selected?: number }) {
+    export function ClaimTabs({ selected = 0 }: { selected?: number }) {
       const tabs = lt.tabs({
-        id: "case",
+        id: "file",
         keys: PARTS.map((part) => part.key),
-        label: "Parts of the case",
+        label: "Parts of the claim",
         selected,
       })
 
@@ -115,7 +120,7 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
 
     `lt.tabs()` from `@lo-tek/interfaces/react` writes the whole state: the roles, `aria-selected`, `aria-controls`, the tab stops and `hidden`, and gives the links ids so the panel can point to its tab with `aria-labelledby`. The component then has nothing to write when it is registered, and React hydrates without mismatches. The import also gives `className` and `tabIndex` instead of the HTML names, so React does not warn.
 
-    `selected` applies when the page loads, and is the index in `keys`. The server does not see the fragment in the address, so a shared link to `#case-attachments` opens the first tab in a React app. If you want to follow the address, read it yourself after the page has loaded, and pass the index as `selected`. If the app should move the selection after the user has clicked, set `server-controlled` on `<lt-tabs>`, see [When the server decides the tab](#when-the-server-decides-the-tab).
+    `selected` applies when the page loads, and is the index in `keys`. The server does not see the fragment in the address, so a shared link to `#file-attachments` opens the first tab in a React app. If you want to follow the address, read it yourself after the page has loaded, and pass the index as `selected`. If the app should move the selection after the user has clicked, set `server-controlled` on `<lt-tabs>`, see [When the server decides the tab](#when-the-server-decides-the-tab).
 
     React 19 writes `hidden="until-found"` as `hidden=""`. Find in page and links into a hidden panel therefore do not open the tab in a React app until React supports the value.
 
@@ -129,14 +134,14 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     import "@lo-tek/interfaces/tabs.css"
 
     const parts = [
-      { key: "application", title: "Application" },
+      { key: "claim", title: "Claim" },
       { key: "attachments", title: "Attachments" },
       { key: "messages", title: "Messages" },
     ]
     const tabs = lt.tabs({
-      id: "case",
+      id: "file",
       keys: parts.map((part) => part.key),
-      label: "Parts of the case",
+      label: "Parts of the claim",
     })
     ---
 
@@ -181,13 +186,13 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     </script>
 
     <lt-tabs server-controlled data-signals__ifmissing="{selectedTab: 0}" data-on:tab-select="$selectedTab = evt.detail.index">
-      <ul class="lt-tabs__list" aria-label="Parts of the case">
-        <li><a href="#application">Application</a></li>
+      <ul class="lt-tabs__list" aria-label="Parts of the claim">
+        <li><a href="#claim">Claim</a></li>
         <li><a href="#attachments">Attachments</a></li>
       </ul>
-      <section class="lt-tabs__panel" id="application">
-        <h2>Application</h2>
-        <p>The application was sent on 4 March 2026.</p>
+      <section class="lt-tabs__panel" id="claim">
+        <h2>Claim</h2>
+        <p>Claim AV-2079-0481 was filed on 4 March 2079.</p>
       </section>
       <section class="lt-tabs__panel" id="attachments" hidden="until-found">
         <h2>Attachments</h2>
@@ -236,7 +241,7 @@ The panel is found by the id in `href`, and `aria-controls` is written from it. 
 
 ## The address and find in page
 
-Every selection is written to the address, like `#case-attachments`, without a new history entry. A shared link therefore opens the tab the reader was on, and a link to something inside a panel, like `#attachments-list`, selects the tab and scrolls there. That address is not rewritten, so the link into the content is not lost. If the address changes while the page is open, the tab is selected.
+Every selection is written to the address, like `#file-attachments`, without a new history entry. A shared link therefore opens the tab the reader was on, and a link to something inside a panel, like `#attachments-list`, selects the tab and scrolls there. That address is not rewritten, so the link into the content is not lost. If the address changes while the page is open, the tab is selected.
 
 Find in page finds text in the panels that are hidden, because they are hidden with `hidden="until-found"`. If the search hits a hidden panel, the component selects that tab, and only that panel is shown. The search does not change the address.
 
@@ -245,7 +250,7 @@ If the address cannot be written, as in Safari after many quick selections or in
 Two limitations follow from there being only one address:
 
 - Two tab lists on the same page share it. A selection in one overwrites the address of the other, and only the last can be restored from a shared link.
-- An app that routes on the fragment, like `#/case/1`, gets the address overwritten by the tabs when the user selects one. `server-controlled` stops the address from selecting a tab, see below, but a click still writes the tab to the address.
+- An app that routes on the fragment, like `#/claim/1`, gets the address overwritten by the tabs when the user selects one. `server-controlled` stops the address from selecting a tab, see below, but a click still writes the tab to the address.
 
 ## Why the panels are hidden with `hidden="until-found"`
 

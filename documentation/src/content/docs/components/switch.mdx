@@ -4,8 +4,15 @@ description: A switch for a setting that takes effect immediately. CSS component
 ---
 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
+import Epigraph from "../../../components/Epigraph.astro"
 import Example from "../../../components/Example.astro"
 import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
+
+<Epigraph source="Coldmere Systems, the sales meeting">
+  “Our walls have no doors.”
+
+  “Every wall I’ve met said that,” Trace said.
+</Epigraph>
 
 A checkbox with `role="switch"`. Screen readers then say "on" and "off" instead of "checked", while the keyboard and `FormData` work as for an ordinary checkbox.
 
@@ -14,20 +21,21 @@ A checkbox with `role="switch"`. Screen readers then say "on" and "off" instead 
 ## How to use it
 
 <Example imports={["tokens.css", "switch.css", "label.css", "help-text.css"]}
-  styles={["switch", "label"]} layout="stack" maxWidth="28rem" code={`
+  styles={["switch", "label", "help-text"]} layout="stack" maxWidth="28rem" code={`
 <div class="lt-switch-row">
-  <input class="lt-switch" type="checkbox" role="switch" id="email" checked />
-  <label class="lt-label" for="email">Notify me by email</label>
+  <input class="lt-switch" type="checkbox" role="switch" id="auto-renew" checked />
+  <label class="lt-label" for="auto-renew">Auto-renew</label>
 </div>
 
 <div class="lt-switch-row">
-  <input class="lt-switch" type="checkbox" role="switch" id="sms" />
-  <label class="lt-label" for="sms">Notify me by text message</label>
+  <input class="lt-switch" type="checkbox" role="switch" id="lethal" aria-describedby="lethal-help" />
+  <label class="lt-label" for="lethal">Lethal response</label>
 </div>
+<p class="lt-help-text" id="lethal-help">Black ICE. Check local law.</p>
 
 <div class="lt-switch-row">
-  <input class="lt-switch" type="checkbox" role="switch" id="post" disabled />
-  <label class="lt-label" for="post">Notify me by post</label>
+  <input class="lt-switch" type="checkbox" role="switch" id="intrusions" disabled />
+  <label class="lt-label" for="intrusions">Report every intrusion attempt</label>
 </div>
 `}>
 <Fragment slot="ts">
@@ -40,8 +48,8 @@ A checkbox with `role="switch"`. Screen readers then say "on" and "off" instead 
 import { lt } from "@lo-tek/interfaces/react"
 
 <div className={lt.switch.row}>
-  <input {...lt.switch()} id="notifications" />
-  <label {...lt.label()} htmlFor="notifications">Notify me by email</label>
+  <input {...lt.switch()} id="auto-renew" />
+  <label {...lt.label()} htmlFor="auto-renew">Auto-renew</label>
 </div>
 ```
 
@@ -52,7 +60,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const toggle = document.querySelector<HTMLInputElement>("#notifications")
+const toggle = document.querySelector<HTMLInputElement>("#auto-renew")
 
 // The server sent a checkbox. Now it is a switch.
 lt.setAttributes(toggle, lt.switch())
@@ -82,14 +90,14 @@ The switch promises that the change applies. So it also has to say when saving f
   <TabItem label="Plain HTML">
     ```html
     <div class="lt-switch-row">
-      <input class="lt-switch" type="checkbox" role="switch" id="notifications" />
-      <label class="lt-label" for="notifications">Notify me by email</label>
+      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew" />
+      <label class="lt-label" for="auto-renew">Auto-renew</label>
     </div>
-    <p class="lt-help-text" id="notifications-status" role="status"></p>
+    <p class="lt-help-text" id="auto-renew-status" role="status"></p>
 
     <script type="module">
-      const toggle = document.getElementById("notifications")
-      const status = document.getElementById("notifications-status")
+      const toggle = document.getElementById("auto-renew")
+      const status = document.getElementById("auto-renew-status")
       let saving = false
 
       // Another press while saving should not flip the switch. `disabled`
@@ -103,13 +111,13 @@ The switch promises that the change applies. So it also has to say when saving f
         saving = true
 
         try {
-          const response = await fetch("/api/notifications", {
+          const response = await fetch("/api/subscription", {
             method: "PUT",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email: on }),
+            body: JSON.stringify({ autoRenew: on }),
           })
           if (!response.ok) throw new Error(response.statusText)
-          status.textContent = on ? "Notifications are on." : "Notifications are off."
+          status.textContent = on ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription."
         } catch {
           toggle.checked = !on
           status.textContent = "Could not save. Try again."
@@ -125,7 +133,7 @@ The switch promises that the change applies. So it also has to say when saving f
     import { useState } from "react"
     import { lt } from "@lo-tek/interfaces/react"
 
-    export function NotificationSwitch({ initial }: { initial: boolean }) {
+    export function AutoRenewSwitch({ initial }: { initial: boolean }) {
       const [on, setOn] = useState(initial)
       const [saving, setSaving] = useState(false)
       const [status, setStatus] = useState("")
@@ -141,13 +149,13 @@ The switch promises that the change applies. So it also has to say when saving f
         setStatus("")
 
         try {
-          const response = await fetch("/api/notifications", {
+          const response = await fetch("/api/subscription", {
             method: "PUT",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({ email: value }),
+            body: JSON.stringify({ autoRenew: value }),
           })
           if (!response.ok) throw new Error(response.statusText)
-          setStatus(value ? "Notifications are on." : "Notifications are off.")
+          setStatus(value ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription.")
         } catch {
           // Back to where it was. The switch promised something it did not keep.
           setOn(!value)
@@ -162,11 +170,11 @@ The switch promises that the change applies. So it also has to say when saving f
           <div className={lt.switch.row}>
             <input
               {...lt.switch()}
-              id="notifications"
+              id="auto-renew"
               checked={on}
               onChange={(e) => changed(e.currentTarget.checked)}
             />
-            <label {...lt.label()} htmlFor="notifications">Notify me by email</label>
+            <label {...lt.label()} htmlFor="auto-renew">Auto-renew</label>
           </div>
           <p {...lt.helpText()} role="status">{status}</p>
         </>
@@ -183,16 +191,16 @@ The switch promises that the change applies. So it also has to say when saving f
             src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
 
     <div class="lt-switch-row"
-         data-signals="{notifications: false, status: ''}">
-      <input class="lt-switch" type="checkbox" role="switch" id="notifications"
-             data-bind:notifications
-             data-on:change="@put('/api/notifications')" />
-      <label class="lt-label" for="notifications">Notify me by email</label>
+         data-signals="{renew: false, status: ''}">
+      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew"
+             data-bind:renew
+             data-on:change="@put('/api/subscription')" />
+      <label class="lt-label" for="auto-renew">Auto-renew</label>
     </div>
     <p class="lt-help-text" role="status" data-text="$status"></p>
     ```
 
-    The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `notifications` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
+    The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `renew` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
   </TabItem>
 </Tabs>
 
@@ -218,7 +226,7 @@ The switch slides between off and on. If the user has asked for reduced motion i
 
 <ScreenReaderContract component="switch" />
 
-- The label should say what the switch controls, not which state it is in. "Notify me by email", not "Email notifications on".
+- The label should say what the switch controls, not which state it is in. "Lethal response", not "Lethal response is on".
 - Do not write "Off" and "On" as text next to it. The screen reader already says it, and the text contradicts itself when the user flips the switch.
 - The switch has no invalid state. If switching it on is required, for example to accept terms, that belongs in a [Checkbox](../checkbox/) with `required`.
 - If the change needs confirmation or cannot be undone, use a button instead. A switch that opens a dialog is not a switch.

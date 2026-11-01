@@ -17,21 +17,21 @@ describe("lt-alert", () => {
   beforeEach(() => {
     mount(`
       <div class="lt-alert">
-        <p class="lt-alert__title">Your case has been registered</p>
-        <p>You will get an answer within three weeks.</p>
+        <p class="lt-alert__title">Incident LAT-0412 has been logged</p>
+        <p>The duty crew reports back within the hour.</p>
       </div>
       <div class="lt-alert" data-color="success" id="success">
-        <p>The application has been sent.</p>
+        <p>Relay 14 is back.</p>
       </div>
       <div class="lt-alert" data-color="warning" id="warning">
-        <p>The deadline is in three days.</p>
+        <p>Someone is on the wire in sector 3.</p>
       </div>
       <div class="lt-alert" data-color="danger" id="danger" role="alert">
-        <p class="lt-alert__title">The application was not sent</p>
-        <p>The network did not respond. Try again.</p>
+        <p class="lt-alert__title">Sector 9 is dark</p>
+        <p>Crews are on the way.</p>
       </div>
       <div class="lt-alert" data-color="info" id="info">
-        <p>The service has been updated.</p>
+        <p>The console has been updated.</p>
       </div>
     `)
   })
@@ -60,7 +60,7 @@ describe("lt-alert", () => {
     mount(`
       <div class="lt-alert">
         <p>You will get an answer within three weeks.</p>
-        <p class="lt-help-text" id="help">The case number is on the receipt.</p>
+        <p class="lt-help-text" id="help">The incident number is in the log.</p>
       </div>
     `)
 

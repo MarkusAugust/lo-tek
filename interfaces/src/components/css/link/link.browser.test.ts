@@ -51,10 +51,10 @@ describe("lt-link accessibility", () => {
   it("has enough contrast in text and when disabled", async () => {
     mount(`
       <p>
-        Your application has been sent. You will find it under
-        <a class="lt-link" href="/my-applications">My applications</a>.
+        Your claim has been filed. The terms are in
+        <a class="lt-link" href="/small-print">the small print</a>.
       </p>
-      <a class="lt-link" role="link" tabindex="0" aria-disabled="true">See annual statement</a>
+      <a class="lt-link" role="link" tabindex="0" aria-disabled="true">See payout statement</a>
     `)
 
     await waitForPaint()
@@ -70,7 +70,7 @@ describe("lt.link({ disabled })", () => {
    * back.
    */
   it("gives a link without href the role and the place in the tab order", () => {
-    mount(`<a id="annual-statement">See annual statement</a>`)
+    mount(`<a id="annual-statement">See payout statement</a>`)
     const anchor = document.getElementById(
       "annual-statement",
     ) as HTMLAnchorElement
@@ -106,7 +106,7 @@ describe("lt-link visited", () => {
         ${linkCss.replaceAll(":visited", "[data-visited]").replaceAll(":hover", "[data-mouse]")}
         .lt-link { transition: none; }
       </style>
-      <a id="visited" class="lt-link" href="#" data-visited>Your application</a>
+      <a id="visited" class="lt-link" href="#" data-visited>Your claim</a>
     `)
     const visited = document.getElementById("visited") as HTMLElement
     expect(getComputedStyle(visited).color).toBe(

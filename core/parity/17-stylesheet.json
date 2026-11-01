@@ -10,8 +10,8 @@
       "message": "data-variant=\"danger\" on button has no rule in the style sheets, so it does nothing visible. Style the value, or remove it."
     },
     {
-      "start": 147,
-      "end": 154,
+      "start": 153,
+      "end": 160,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/card/",
       "message": "The class \"lt-card\" is in the markup, but none of the style sheets styles it. Is lotek.css, or the style sheet for card, loaded?"

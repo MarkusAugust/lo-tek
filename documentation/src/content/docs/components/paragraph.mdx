@@ -11,18 +11,18 @@ Body text with a readable line length. The width is limited to 70 characters, be
 
 <Example imports={["tokens.css", "paragraph.css", "heading.css"]}
   styles={["paragraph", "heading"]} layout="stack" maxWidth="34rem" code={`
-<h2 class="lt-heading">Housing benefit</h2>
+<h2 class="lt-heading">The small print</h2>
 
 <p class="lt-paragraph" data-variant="lead">
-  Support for people with low incomes and high housing costs.
+  Everything a runner's policy covers, and everything it does not.
 </p>
 
 <p class="lt-paragraph">
-  You can apply every month. The deadline is the 25th, and the answer comes around the 20th of the following month. If you have had housing benefit before, your application is renewed automatically.
+  The premium is drawn on the first of every month. A claim must be filed within 30 days, with a death certificate and the runner's last log. Black ICE, power surges and other runners count as acts of God, and are not covered.
 </p>
 
 <p class="lt-paragraph" data-size="small">
-  Last updated 4 March 2026.
+  Last updated 4 March 2079.
 </p>
 `}>
 <Fragment slot="ts">
@@ -35,7 +35,7 @@ Body text with a readable line length. The width is limited to 70 characters, be
 import { lt } from "@lo-tek/interfaces/react"
 
 <p {...lt.paragraph({ variant: "lead" })}>
-  Housing benefit is means-tested support for people with low incomes.
+  A runner's policy pays out when the runner flatlines, within the terms.
 </p>
 ```
 

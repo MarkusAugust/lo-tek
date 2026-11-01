@@ -458,14 +458,14 @@ flattened, without \`@import\`, and is therefore faster when you link.`,
 \`\`\`html
 <link rel="stylesheet" href="${cdnUrl("lotek.css")}">
 
-<form id="contact-form" novalidate>
+<form id="job-order" novalidate>
   <lt-field>
-    <label class="lt-label" for="name" data-required="symbol">Full name</label>
-    <input class="lt-input" id="name" type="text" name="name" required />
-    <p class="lt-error-text" hidden>Enter your name.</p>
+    <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+    <input class="lt-input" id="codename" type="text" name="codename" required />
+    <p class="lt-error-text" hidden>Enter a codename.</p>
   </lt-field>
 
-  <button class="lt-button" type="submit">Send</button>
+  <button class="lt-button" type="submit">Order the job</button>
 </form>
 
 <script type="module">
@@ -479,10 +479,10 @@ flattened, without \`@import\`, and is therefore faster when you link.`,
 The field becomes invalid when the error text shows, not by switching a class:
 
 \`\`\`js
-const name = document.getElementById("name")
-const error = name.closest("lt-field").querySelector(".lt-error-text")
+const codename = document.getElementById("codename")
+const error = codename.closest("lt-field").querySelector(".lt-error-text")
 
-error.hidden = name.value.trim() !== ""
+error.hidden = codename.value.trim() !== ""
 \`\`\`
 
 TypeScript does not belong in a \`<script type="module">\`. The browser runs
@@ -559,8 +559,8 @@ right choice.`,
 
 \`\`\`html
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" value="{{.Name}}" required />
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" value="{{.Codename}}" required />
   {{if .Error}}<p class="lt-error-text">{{.Error}}</p>{{end}}
 </lt-field>
 \`\`\`
@@ -574,7 +574,7 @@ In a loop the id comes from a key in the data, never from the index or a
 counter:
 
 \`\`\`html
-{{range .Municipalities}}
+{{range .Targets}}
 <lt-field>
   <label for="note-{{.Code}}">{{.Name}}</label>
   <input class="lt-input" id="note-{{.Code}}" name="note-{{.Code}}" value="{{.Note}}" />
@@ -633,11 +633,11 @@ stops putting the user's choice back:
 
 \`\`\`html
 <lt-tabs server-controlled>
-  <ul class="lt-tabs__list" aria-label="Parts of the case">
-    <li><a href="#application">Application</a></li>
+  <ul class="lt-tabs__list" aria-label="Parts of the claim">
+    <li><a href="#claim">Claim</a></li>
     <li><a href="#attachments">Attachments</a></li>
   </ul>
-  <section class="lt-tabs__panel" id="application">…</section>
+  <section class="lt-tabs__panel" id="claim">…</section>
   <section class="lt-tabs__panel" id="attachments" hidden="until-found">…</section>
 </lt-tabs>
 \`\`\`
@@ -764,12 +764,12 @@ The markup is ordinary HTML, in whatever template your framework uses:
 
 \`\`\`html
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" required />
-  <p class="lt-error-text" hidden>Enter your name.</p>
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" required />
+  <p class="lt-error-text" hidden>Enter a codename.</p>
 </lt-field>
 
-<button class="lt-button" type="submit">Send</button>
+<button class="lt-button" type="submit">Order the job</button>
 \`\`\`
 
 \`class\` and \`for\`, not \`className\` and \`htmlFor\`. It is React that
@@ -797,8 +797,8 @@ Where the template language cannot spread an object, \`lt.setAttributes()\`
 sets the attributes on an element in plain DOM:
 
 \`\`\`ts
-const field = document.querySelector<HTMLInputElement>("#email")
-const wiring = lt.field({ id: "email", error: true, invalid: true })
+const field = document.querySelector<HTMLInputElement>("#fixer")
+const wiring = lt.field({ id: "fixer", error: true, invalid: true })
 
 lt.setAttributes(field, lt.input({ type: "email" }), wiring.control)
 \`\`\`
@@ -914,15 +914,15 @@ reports mismatches on the label, the field and the error text. Without a
 server it works, but \`lt.field()\` is the way in both.
 
 \`\`\`tsx
-// ContactForm.tsx
+// JobOrder.tsx
 import { lt } from "@lo-tek/interfaces/react"
 import { useId, useState } from "react"
 
-export function ContactForm() {
-  const [name, setName] = useState("")
+export function JobOrder() {
+  const [codename, setCodename] = useState("")
   const [touched, setTouched] = useState(false)
 
-  const invalid = touched && name.trim() === ""
+  const invalid = touched && codename.trim() === ""
   const field = lt.field({
     id: useId(),
     required: "symbol",
@@ -932,19 +932,19 @@ export function ContactForm() {
 
   return (
     <form onSubmit={(e) => e.preventDefault()}>
-      <label {...field.label}>Full name</label>
+      <label {...field.label}>Codename</label>
       <input
         {...lt.input({ type: "text" })}
         {...field.control}
-        name="name"
+        name="codename"
         required
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={codename}
+        onChange={(e) => setCodename(e.target.value)}
         onBlur={() => setTouched(true)}
       />
-      <p {...lt.errorText()} {...field.error}>Enter your name.</p>
+      <p {...lt.errorText()} {...field.error}>Enter a codename.</p>
 
-      <button {...lt.button()} type="submit">Send</button>
+      <button {...lt.button()} type="submit">Order the job</button>
     </form>
   )
 }
@@ -1092,13 +1092,13 @@ import { lt } from "@lo-tek/interfaces"
 import "@lo-tek/interfaces/tokens.css"
 import "@lo-tek/interfaces/field.css"
 
-const email = lt.field({ id: "email", required: "symbol", help: true, error: true })
+const fixer = lt.field({ id: "fixer", required: "symbol", help: true, error: true })
 ---
 
-<label {...email.label}>Email address</label>
-<input {...lt.input({ type: "email" })} {...email.control} name="email" required />
-<p {...lt.helpText()} {...email.help}>We will send the receipt here.</p>
-<p {...lt.errorText()} {...email.error}>Enter a valid address.</p>
+<label {...fixer.label}>Fixer's address</label>
+<input {...lt.input({ type: "email" })} {...fixer.control} name="fixer" required />
+<p {...lt.helpText()} {...fixer.help}>The board writes to the fixer, never to the crew.</p>
+<p {...lt.errorText()} {...fixer.error}>Enter a valid address.</p>
 \`\`\`
 
 No \`<lt-field>\`, no runtime.
@@ -1116,9 +1116,9 @@ import "@lo-tek/interfaces/field.css"
 ---
 
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" required />
-  <p class="lt-error-text" hidden>Enter your name.</p>
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" required />
+  <p class="lt-error-text" hidden>Enter a codename.</p>
 </lt-field>
 
 <script>
@@ -1181,23 +1181,23 @@ only what you use, ${TOKENS_FIRST}`,
 
 \`\`\`html
 <form
-  data-signals="{name: '', touched: false}"
-  data-computed:invalid="$touched && $name.trim() === ''"
+  data-signals="{codename: '', touched: false}"
+  data-computed:invalid="$touched && $codename.trim() === ''"
 >
   <lt-field>
-    <label class="lt-label" for="name" data-required="symbol">Full name</label>
+    <label class="lt-label" for="codename" data-required="symbol">Codename</label>
     <input
       class="lt-input"
-      id="name"
+      id="codename"
       type="text"
-      name="name"
-      data-bind:name
+      name="codename"
+      data-bind:codename
       data-on:blur="$touched = true"
     />
-    <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter your name.</p>
+    <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter a codename.</p>
   </lt-field>
 
-  <button class="lt-button" type="submit">Send</button>
+  <button class="lt-button" type="submit">Order the job</button>
 </form>
 
 <script type="module">
@@ -1209,7 +1209,7 @@ only what you use, ${TOKENS_FIRST}`,
 \`\`\`
 
 \`data-signals\` creates the state, \`data-computed:invalid\` derives the
-validation from it, \`data-bind:name\` binds the field both ways, and
+validation from it, \`data-bind:codename\` binds the field both ways, and
 \`data-on:blur\` records that the user has left it.
 
 \`data-attr:hidden\` on the error text is the link to the component: it sets
@@ -1226,9 +1226,9 @@ therefore send this as plain HTML:
 
 \`\`\`html
 <lt-field>
-  <label class="lt-label" for="email" data-required="text">Email address</label>
-  <input class="lt-input" id="email" type="email" value="alex@" />
-  <p class="lt-help-text">We will send the receipt here.</p>
+  <label class="lt-label" for="fixer" data-required="text">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" value="fixer@" />
+  <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
   <p class="lt-error-text">Enter a valid address.</p>
 </lt-field>
 \`\`\`
@@ -1262,11 +1262,11 @@ should be able to move the tab, say so with \`server-controlled\`:
 
 \`\`\`html
 <lt-tabs server-controlled data-on:tab-select="$tab = evt.detail.index">
-  <ul class="lt-tabs__list" aria-label="Parts of the case">
-    <li><a href="#application">Application</a></li>
+  <ul class="lt-tabs__list" aria-label="Parts of the claim">
+    <li><a href="#claim">Claim</a></li>
     <li><a href="#attachments">Attachments</a></li>
   </ul>
-  <section class="lt-tabs__panel" id="application">…</section>
+  <section class="lt-tabs__panel" id="claim">…</section>
   <section class="lt-tabs__panel" id="attachments" hidden="until-found">…</section>
 </lt-tabs>
 \`\`\`

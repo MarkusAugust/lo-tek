@@ -11,9 +11,9 @@ A tag labels content: topics on an article, chosen filters above a list. If the 
 
 <Example imports={["tokens.css", "tag.css"]}
   styles={["tag"]} code={`
-<span class="lt-tag">Housing benefit</span>
-<span class="lt-tag" data-variant="filled">Nursery</span>
-<span class="lt-tag" aria-disabled="true">Archived</span>
+<span class="lt-tag">cutter</span>
+<span class="lt-tag" data-variant="filled">worm</span>
+<span class="lt-tag" aria-disabled="true">retired</span>
 `}>
 <Fragment slot="ts">
 
@@ -24,7 +24,7 @@ A tag labels content: topics on an article, chosen filters above a list. If the 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<span {...lt.tag()}>Housing benefit</span>
+<span {...lt.tag()}>cutter</span>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -51,15 +51,15 @@ tag.setAttribute("aria-pressed", "false")
 
 ## Filters that can be toggled
 
-Three filters above a list of cases. "Approved" is selected, the other two are not, and `aria-pressed` says which is which:
+Three filters above the catalogue. "Cutter" is selected, the other two are not, and `aria-pressed` says which is which:
 
 <Example styles={["tag", "heading"]} layout="stack" maxWidth="30rem" code={`
-<h3 class="lt-heading" data-size="xs" id="filters">Show cases with status</h3>
+<h3 class="lt-heading" data-size="xs" id="filters">Show breakers of kind</h3>
 
 <div role="group" aria-labelledby="filters">
-  <button class="lt-tag" data-selectable aria-pressed="true" type="button">Approved</button>
-  <button class="lt-tag" data-selectable aria-pressed="false" type="button">In progress</button>
-  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Rejected</button>
+  <button class="lt-tag" data-selectable aria-pressed="true" type="button">Cutter</button>
+  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Worm</button>
+  <button class="lt-tag" data-selectable aria-pressed="false" type="button">Decoy</button>
 </div>
 `} />
 
@@ -97,4 +97,4 @@ See [Customising](../../customising/) for how the variables and the layer work.
 
 - A tag that cannot be pressed should not look as if it can. Use `data-selectable` only on real buttons.
 - If you have many filters, put them in a list with a heading that says what they filter.
-- If the tag should be removable, make a separate button inside it with text that says what is removed: "Remove the Approved filter", not just a cross.
+- If the tag should be removable, make a separate button inside it with text that says what is removed: "Remove the Cutter filter", not just a cross.

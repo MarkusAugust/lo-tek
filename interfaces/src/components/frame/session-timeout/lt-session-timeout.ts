@@ -141,9 +141,9 @@ function deepActiveElement(): HTMLElement | null {
  * Warns before a signed-in session expires.
  *
  * This is the thing every large organisation builds itself and gets wrong.
- * Either no warning comes, and the user loses a half-filled application
- * form, or the dialog steals focus in the middle of a sentence, or the
- * screen reader reads the countdown every second.
+ * Either no warning comes, and the user loses a half-filled form, or the
+ * dialog steals focus in the middle of a sentence, or the screen reader
+ * reads the countdown every second.
  *
  * The renderer writes the dialog and the text, so the warning is in the
  * language the app uses, with the translation tool the app already has. The
@@ -163,14 +163,14 @@ function deepActiveElement(): HTMLElement | null {
  * ```html
  * <lt-session-timeout warn-at="1500" expires-at="1800" data-ignore-morph>
  *   <dialog class="lt-session-timeout__dialog" role="alertdialog" aria-labelledby="session">
- *     <h2 class="lt-session-timeout__title" id="session">You will soon be signed out</h2>
+ *     <h2 class="lt-session-timeout__title" id="session">Your session is ending</h2>
  *     <p class="lt-session-timeout__text">
- *       We will sign you out in <span class="lt-session-timeout__count" aria-hidden="true"></span>.
+ *       Your session on the Lattice ends in <span class="lt-session-timeout__count" aria-hidden="true"></span>. Unsaved routes will be lost.
  *     </p>
  *     <span class="lt-sr-only" role="status"></span>
  *     <form method="dialog" class="lt-session-timeout__actions">
- *       <button class="lt-button" value="extend">Stay signed in</button>
- *       <button class="lt-button" data-variant="secondary" value="logout">Sign out now</button>
+ *       <button class="lt-button" value="extend">Stay connected</button>
+ *       <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
  *     </form>
  *   </dialog>
  * </lt-session-timeout>
@@ -224,7 +224,7 @@ export class LtSessionTimeout extends HostElement {
    * `close` arrives in a later task than the click that closed the dialog.
    * When the clock ticked in between, `tick()` opened the dialog again and
    * cleared `returnValue`, and the queued event then read `""` and extended
-   * the session: the user pressed "Sign out now", and the app got
+   * the session: the user pressed "Log out", and the app got
    * `session-extend`.
    */
   private shownDialog?: HTMLDialogElement

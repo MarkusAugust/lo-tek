@@ -21,15 +21,15 @@ describe("lt-accordion", () => {
   beforeEach(() => {
     mount(`
       <details class="lt-accordion" id="first">
-        <summary>Who can apply for housing benefit?</summary>
+        <summary>Who can take out a runner's policy?</summary>
         <div class="lt-accordion__content">
-          <p>Everyone who lives in the home and is registered at that address.</p>
+          <p>Anyone who jacks in for a living, once our medical has cleared them.</p>
         </div>
       </details>
       <details class="lt-accordion" id="second" open>
-        <summary>How long does processing take?</summary>
+        <summary>How long does a claim take?</summary>
         <div class="lt-accordion__content">
-          <p>We process the application within three weeks.</p>
+          <p>We process a claim within three weeks.</p>
         </div>
       </details>
     `)
@@ -111,10 +111,10 @@ describe("lt-accordion", () => {
     () => {
       mount(`
         <details class="lt-accordion" id="closed">
-          <summary>Who can apply for housing benefit?</summary>
+          <summary>Who can take out a runner's policy?</summary>
           <div class="lt-accordion__content"><p>Dustbunnyhabitat</p></div>
         </details>
-        <button type="button" aria-expanded="false">Who can apply?</button>
+        <button type="button" aria-expanded="false">Who can take out a policy?</button>
         <div hidden><p>Dormerwindowmotif</p></div>
       `)
       const find = (text: string) => {

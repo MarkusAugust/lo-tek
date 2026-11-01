@@ -61,7 +61,7 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-field>
-        <label class="lt-label" for="copied">Email</label>
+        <label class="lt-label" for="copied">Fixer's address</label>
         <input class="lt-input" id="copied" aria-invalid="true" data-lt-written="aria-invalid" />
       </lt-field>
       <lt-tabs>
@@ -85,8 +85,8 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-field>
-        <label class="lt-label">Email</label>
-        <p class="lt-help-text">We never send spam.</p>
+        <label class="lt-label">Fixer's address</label>
+        <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
       </lt-field>
     `)
     await waitUntilSettled()
@@ -116,7 +116,7 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-field>
-        <input class="lt-input lt-search" type="search" aria-label="Search cases" />
+        <input class="lt-input lt-search" type="search" aria-label="Search the catalogue" />
       </lt-field>
     `)
     await waitUntilSettled()
@@ -131,9 +131,9 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <div>
-        <label class="lt-label" for="email" data-required="symbol">Email</label>
+        <label class="lt-label" for="fixer" data-required="symbol">Fixer's address</label>
         <lt-field>
-          <input class="lt-input" id="email" type="email" />
+          <input class="lt-input" id="fixer" type="email" />
         </lt-field>
       </div>
     `)
@@ -173,7 +173,7 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <lt-field>
-        <label class="lt-label">Email</label>
+        <label class="lt-label">Fixer's address</label>
         <input class="lt-input" type="email" />
       </lt-field>
     `)
@@ -190,7 +190,7 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-field>
-        <label class="lt-label">Email <input class="lt-input" type="email" /></label>
+        <label class="lt-label">Fixer's address <input class="lt-input" type="email" /></label>
       </lt-field>
     `)
     await waitUntilSettled()
@@ -208,20 +208,20 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <lt-field>
-        <label class="lt-label" for="name-1">Name</label>
-        <input class="lt-input" id="name-1" name="name" />
+        <label class="lt-label" for="codename-1">Codename</label>
+        <input class="lt-input" id="codename-1" name="codename" />
       </lt-field>
     `)
     await waitUntilSettled()
 
     const old = surface.querySelector("input") as HTMLInputElement
-    old.value = "Ada"
+    old.value = "Glass"
     const replacement = document.createElement("input")
     replacement.className = "lt-input"
-    replacement.id = "name-2"
-    replacement.name = "name"
+    replacement.id = "codename-2"
+    replacement.name = "codename"
     const label = surface.querySelector("label") as HTMLLabelElement
-    label.htmlFor = "name-2"
+    label.htmlFor = "codename-2"
     old.replaceWith(replacement)
     await waitUntilSettled()
 
@@ -237,20 +237,20 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <lt-field>
-        <label class="lt-label" for="name">Name</label>
-        <input class="lt-input" id="name" name="name" />
+        <label class="lt-label" for="codename">Codename</label>
+        <input class="lt-input" id="codename" name="codename" />
       </lt-field>
     `)
     await waitUntilSettled()
 
     const old = surface.querySelector("input") as HTMLInputElement
-    old.value = "Ada"
+    old.value = "Glass"
     const replacement = document.createElement("input")
     replacement.className = "lt-input"
-    replacement.id = "email"
-    replacement.name = "email"
+    replacement.id = "fixer"
+    replacement.name = "fixer"
     const label = surface.querySelector("label") as HTMLLabelElement
-    label.htmlFor = "email"
+    label.htmlFor = "fixer"
     old.replaceWith(replacement)
     await waitUntilSettled()
 
@@ -264,8 +264,8 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-field>
-        <label class="lt-label" for="city">City</label>
-        <input class="lt-input" id="city" type="text" />
+        <label class="lt-label" for="target">Target</label>
+        <input class="lt-input" id="target" type="text" />
         <div popover>
           <lt-field>
             <label class="lt-label">Search the list <input class="lt-input" type="search" /></label>
@@ -286,7 +286,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-dialog>
         <dialog>
-          <div class="lt-dialog__body"><h3>Attachments</h3><p>Two attachments.</p></div>
+          <div class="lt-dialog__body"><h3>Floor plans</h3><p>Two floor plans.</p></div>
         </dialog>
       </lt-dialog>
     `)
@@ -318,7 +318,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-tabs>
         <ul class="lt-tabs__list">
-          <li><button>Application</button></li>
+          <li><button>Claim</button></li>
           <li><button>Attachments</button></li>
         </ul>
       </lt-tabs>
@@ -334,10 +334,10 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-tabs>
         <ul class="lt-tabs__list">
-          <li><a href="#application">Application</a></li>
+          <li><a href="#claim">Claim</a></li>
           <li><a href="#attachments">Attachments</a></li>
         </ul>
-        <section class="lt-tabs__panel" id="application"><h2>Application</h2>The application arrived on 3 March.</section>
+        <section class="lt-tabs__panel" id="claim"><h2>Claim</h2>Claim AV-2079-0481 was filed on 4 March 2079.</section>
       </lt-tabs>
     `)
     await waitUntilSettled()
@@ -353,7 +353,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-dialog>
         <div class="lt-dialog">
-          <h2 class="lt-dialog__title">Delete the application?</h2>
+          <h2 class="lt-dialog__title">Cancel job 222-0481?</h2>
         </div>
       </lt-dialog>
     `)
@@ -368,7 +368,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-session-timeout>
         <div class="lt-session-timeout__dialog">
-          <h2>You will soon be signed out</h2>
+          <h2>Your session is ending</h2>
         </div>
       </lt-session-timeout>
     `)
@@ -383,8 +383,8 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-session-timeout>
         <dialog>
-          <h2>You will soon be signed out</h2>
-          <p>We will sign you out soon.</p>
+          <h2>Your session is ending</h2>
+          <p>Your session on the Lattice ends soon.</p>
         </dialog>
       </lt-session-timeout>
     `)
@@ -405,8 +405,8 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-suggestion>
-        <label class="lt-label">City</label>
-        <ul class="lt-suggestion__list"><li>Bergen</li></ul>
+        <label class="lt-label">Breaker</label>
+        <ul class="lt-suggestion__list"><li>Crowbar</li></ul>
       </lt-suggestion>
     `)
     await waitUntilSettled()
@@ -419,8 +419,8 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-suggestion>
-        <label class="lt-label" for="city">City</label>
-        <input class="lt-input" id="city" role="combobox"
+        <label class="lt-label" for="breaker">Breaker</label>
+        <input class="lt-input" id="breaker" role="combobox"
                aria-expanded="false" aria-autocomplete="list" />
       </lt-suggestion>
     `)
@@ -437,11 +437,11 @@ describe("the component reports markup that does not hold together", () => {
 
     mount(`
       <lt-suggestion>
-        <label class="lt-label" for="city">City</label>
-        <input class="lt-input" id="city" role="combobox"
-               aria-expanded="false" aria-controls="cities" aria-autocomplete="list" />
-        <ul class="lt-suggestion__list" id="cities" role="listbox" hidden>
-          <li class="lt-suggestion__option" id="city-0" role="option">Bergen</li>
+        <label class="lt-label" for="breaker">Breaker</label>
+        <input class="lt-input" id="breaker" role="combobox"
+               aria-expanded="false" aria-controls="breakers" aria-autocomplete="list" />
+        <ul class="lt-suggestion__list" id="breakers" role="listbox" hidden>
+          <li class="lt-suggestion__option" id="breaker-0" role="option">Crowbar</li>
         </ul>
       </lt-suggestion>
     `)
@@ -470,7 +470,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-popover>
         <button class="lt-button">Actions</button>
-        <div class="lt-popover">Move the case</div>
+        <div class="lt-popover">Mark LDG-117 returned</div>
       </lt-popover>
     `)
     await waitUntilSettled()
@@ -490,7 +490,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-popover>
         <a href="/actions" class="lt-link">Actions</a>
-        <div popover id="actions" class="lt-popover">Move the case</div>
+        <div popover id="actions" class="lt-popover">Mark LDG-117 returned</div>
       </lt-popover>
     `)
     await waitUntilSettled()
@@ -504,7 +504,7 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-error-summary class="lt-error-summary" role="alert" tabindex="-1">
         <h2 class="lt-error-summary__title">The form has one error</h2>
-        <ul class="lt-list"><li>Enter a valid email address</li></ul>
+        <ul class="lt-list"><li>Enter a valid address</li></ul>
       </lt-error-summary>
     `)
     await waitUntilSettled()
@@ -520,9 +520,9 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <lt-error-summary class="lt-error-summary" role="alert" tabindex="-1">
         <h2 class="lt-error-summary__title">The form has one error</h2>
-        <ul class="lt-list"><li><a href="#email-m">Enter an email address</a></li></ul>
+        <ul class="lt-list"><li><a href="#fixer-m">Enter the fixer's address with an @</a></li></ul>
       </lt-error-summary>
-      <input id="email-m">
+      <input id="fixer-m">
     `)
     await waitUntilSettled()
 
@@ -542,7 +542,7 @@ describe("the component reports markup that does not hold together", () => {
         <h2 class="lt-error-summary__title">The form has two errors</h2>
         <ul class="lt-list">
           <li><a href="#does-not-exist">Enter a valid address</a></li>
-          <li><a href="#nor-this">Choose a city</a></li>
+          <li><a href="#nor-this">Choose a breaker</a></li>
         </ul>
       </lt-error-summary>
     `)
@@ -558,7 +558,7 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <lt-field>
-        <label class="lt-label">Email</label>
+        <label class="lt-label">Fixer's address</label>
       </lt-field>
     `)
     const field = surface.querySelector("lt-field") as HTMLElement
@@ -587,7 +587,7 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <lt-tabs>
-        <ul class="lt-tabs__list" aria-label="Parts of the case">
+        <ul class="lt-tabs__list" aria-label="Parts of the claim">
           <li><a href="#one">One</a></li>
           <li><a href="#two">Two</a></li>
           <li><a href="#three">Three</a></li>
@@ -622,12 +622,12 @@ describe("the component reports markup that does not hold together", () => {
 
     const surface = mount(`
       <lt-field>
-        <label class="lt-label" for="email">Email</label>
+        <label class="lt-label" for="fixer">Fixer's address</label>
       </lt-field>
     `)
     const control = document.createElement("input")
     control.className = "lt-input"
-    control.id = "email"
+    control.id = "fixer"
     surface.querySelector("lt-field")?.append(control)
 
     await waitUntilSettled()
@@ -660,28 +660,28 @@ describe("the component reports markup that does not hold together", () => {
     mount(`
       <div>
         <lt-field>
-          <label class="lt-label" for="email">Email</label>
-          <input class="lt-input" id="email" />
-          <p class="lt-help-text">We never send spam.</p>
+          <label class="lt-label" for="fixer">Fixer's address</label>
+          <input class="lt-input" id="fixer" />
+          <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
         </lt-field>
 
         <lt-field>
-          <label class="lt-label">Phone <input class="lt-input" type="tel" /></label>
+          <label class="lt-label">Budget <input class="lt-input" type="number" /></label>
         </lt-field>
 
         <lt-tabs>
-          <ul class="lt-tabs__list" aria-label="Parts of the case">
-            <li><a href="#case-application">Application</a></li>
-            <li><a href="#case-attachments">Attachments</a></li>
+          <ul class="lt-tabs__list" aria-label="Parts of the claim">
+            <li><a href="#file-claim">Claim</a></li>
+            <li><a href="#file-attachments">Attachments</a></li>
           </ul>
-          <section class="lt-tabs__panel" id="case-application"><h2>Application</h2>The application arrived on 3 March.</section>
-          <section class="lt-tabs__panel" id="case-attachments"><h2>Attachments</h2>To vedlegg.</section>
+          <section class="lt-tabs__panel" id="file-claim"><h2>Claim</h2>Claim AV-2079-0481 was filed on 4 March 2079.</section>
+          <section class="lt-tabs__panel" id="file-attachments"><h2>Attachments</h2>Two attachments.</section>
         </lt-tabs>
 
         <lt-dialog>
           <dialog class="lt-dialog" aria-labelledby="dialog-title">
-            <h2 class="lt-dialog__title" id="dialog-title">The decision is registered</h2>
-            <div class="lt-dialog__body"><p>The case is closed.</p></div>
+            <h2 class="lt-dialog__title" id="dialog-title">The order is placed</h2>
+            <div class="lt-dialog__body"><p>Job 222-0481 is open to crews.</p></div>
             <form method="dialog" class="lt-dialog__footer">
               <button class="lt-button" value="close">Close</button>
             </form>
@@ -691,17 +691,17 @@ describe("the component reports markup that does not hold together", () => {
         <lt-popover>
           <button class="lt-button" aria-expanded="false"
                   aria-controls="actions">Actions</button>
-          <div popover id="actions" class="lt-popover__panel">Move the case</div>
+          <div popover id="actions" class="lt-popover__panel">Mark LDG-117 returned</div>
         </lt-popover>
 
         <lt-suggestion>
-          <label class="lt-label" for="city">City</label>
-          <input class="lt-input" id="city" role="combobox"
-                 aria-expanded="false" aria-controls="cities"
+          <label class="lt-label" for="breaker">Breaker</label>
+          <input class="lt-input" id="breaker" role="combobox"
+                 aria-expanded="false" aria-controls="breakers"
                  aria-autocomplete="list" />
-          <ul class="lt-suggestion__list" id="cities" role="listbox" hidden>
-            <li class="lt-suggestion__option" id="city-0" role="option"
-                aria-selected="false">Bergen</li>
+          <ul class="lt-suggestion__list" id="breakers" role="listbox" hidden>
+            <li class="lt-suggestion__option" id="breaker-0" role="option"
+                aria-selected="false">Crowbar</li>
           </ul>
           <span class="lt-sr-only" role="status"></span>
         </lt-suggestion>
@@ -709,19 +709,19 @@ describe("the component reports markup that does not hold together", () => {
         <lt-error-summary class="lt-error-summary" role="alert" tabindex="-1"
                           data-autofocus="false" aria-labelledby="summary-title">
           <h2 class="lt-error-summary__title" id="summary-title">The form has one error</h2>
-          <ul class="lt-list"><li><a href="#city">Choose a city</a></li></ul>
+          <ul class="lt-list"><li><a href="#breaker">Choose a breaker</a></li></ul>
         </lt-error-summary>
 
         <lt-session-timeout data-ignore-morph>
           <dialog class="lt-session-timeout__dialog" role="alertdialog"
                   aria-labelledby="session-title">
-            <h2 class="lt-session-timeout__title" id="session-title">You will soon be signed out</h2>
-            <p class="lt-session-timeout__text">We will sign you out in
+            <h2 class="lt-session-timeout__title" id="session-title">Your session is ending</h2>
+            <p class="lt-session-timeout__text">Your session on the Lattice ends in
               <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
             <span class="lt-sr-only" role="status"></span>
             <form method="dialog" class="lt-session-timeout__actions">
-              <button class="lt-button" value="extend">Stay signed in</button>
-              <button class="lt-button" data-variant="secondary" value="logout">Sign out now</button>
+              <button class="lt-button" value="extend">Stay connected</button>
+              <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
             </form>
           </dialog>
         </lt-session-timeout>

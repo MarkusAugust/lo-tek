@@ -114,13 +114,13 @@ if (
  */
 const REGION_ID = "session-region"
 const region = (host: string) => `<div id="${REGION_ID}">${host}</div>`
-const FIELD_ID = "application"
+const FIELD_ID = "route"
 const PANEL_ID = "log"
 /*
  * The form the user is filling in, which the warning must give the focus
  * back to, and a panel that scrolls, which counts as activity.
  */
-const PAGE = `<label for="${FIELD_ID}">Application</label>
+const PAGE = `<label for="${FIELD_ID}">Route</label>
 <input id="${FIELD_ID}">
 <div id="${PANEL_ID}" style="overflow: auto; height: 2rem"><div style="height: 10rem"></div></div>`
 /*
@@ -164,15 +164,15 @@ const VERSIONS: Record<string, string> = {
   texts: swap(
     swap(
       swap(
-        swap(HOST, HEADING[1], "Your session is ending"),
-        /to protect your information\./,
-        "unless you answer.",
+        swap(HOST, HEADING[1], "Session ending"),
+        /Unsaved routes will be lost\./,
+        "Answer, or the Lattice logs you out.",
       ),
       BUTTONS[0][2],
       "Keep working",
     ),
     BUTTONS[1][2],
-    "Log out",
+    "Log out now",
   ),
   // Without `data-ignore-morph`: every Datastar patch morphs the warning.
   unprotected: swap(HOST, /\s+data-ignore-morph/, ""),
@@ -1250,7 +1250,7 @@ const seeded = () => {
 const DEEP_STEPS = pick(["heading by idiomorph", "to warn-at", "Escape"])
 
 /** A fixed start, so every replay sees the same times. */
-const START = Date.UTC(2026, 0, 1, 9)
+const START = Date.UTC(2079, 0, 1, 9)
 
 const model: Model<Step, Snapshot, Context> = {
   recipe: RECIPE,

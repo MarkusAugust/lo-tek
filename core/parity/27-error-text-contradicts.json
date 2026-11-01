@@ -1,8 +1,8 @@
 {
   "markup": [
     {
-      "start": 139,
-      "end": 140,
+      "start": 141,
+      "end": 142,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The error text has hidden, but <input> has aria-invalid=\"true\". The component treats the field as invalid when the error text is visible or aria-invalid is there, so the two contradict each other: the screen reader says \"invalid\" without the user seeing why. Remove one of them."
@@ -10,8 +10,8 @@
   ],
   "page": [
     {
-      "start": 139,
-      "end": 140,
+      "start": 141,
+      "end": 142,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The error text has hidden, but <input> has aria-invalid=\"true\". The component treats the field as invalid when the error text is visible or aria-invalid is there, so the two contradict each other: the screen reader says \"invalid\" without the user seeing why. Remove one of them."

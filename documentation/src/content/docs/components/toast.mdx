@@ -43,7 +43,7 @@ The container is added once, and the messages come from your code. That is the d
               aria-atomic="false"
               aria-label="Messages" data-ignore-morph></lt-toast>
 
-    <button class="lt-button" id="save" type="button">Save application</button>
+    <button class="lt-button" id="restart" type="button">Restart relay 14</button>
 
     <!-- Once for the whole app, in the page template. Not once per component. -->
     <script type="module">
@@ -56,12 +56,12 @@ The container is added once, and the messages come from your code. That is the d
     <script type="module">
       const messages = document.getElementById("messages")
 
-      document.getElementById("save").addEventListener("click", async () => {
+      document.getElementById("restart").addEventListener("click", async () => {
         try {
-          await save()
-          messages.show("Your application has been saved", { color: "success" })
+          await restartRelay(14)
+          messages.show("Relay 14 is back", { color: "success" })
         } catch {
-          messages.show("Could not save. Try again.", { color: "danger", duration: 0 })
+          messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })
         }
       })
     </script>
@@ -120,8 +120,8 @@ The container is added once, and the messages come from your code. That is the d
     ```tsx
     const notify = useMessages()
 
-    <button {...lt.button()} onClick={() => notify("Your application has been saved", "success")}>
-      Save application
+    <button {...lt.button()} onClick={() => notify("Relay 14 is back", "success")}>
+      Restart relay 14
     </button>
     ```
 
@@ -176,9 +176,9 @@ The container is added once, and the messages come from your code. That is the d
     <button
       class="lt-button"
       type="button"
-      data-on:click="document.getElementById('messages').show('Your application has been saved', { color: 'success' })"
+      data-on:click="document.getElementById('messages').show('Relay 14 is back', { color: 'success' })"
     >
-      Save application
+      Restart relay 14
     </button>
 
     <!-- Once for the whole app, in the page template. Not once per component. -->

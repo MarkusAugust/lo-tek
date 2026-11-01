@@ -27,7 +27,7 @@ export type BadgeAttributes = {
  * The attributes for a status badge.
  *
  * ```ts
- * <span {...badge({ color: "success" })}>Approved</span>
+ * <span {...badge({ color: "success" })}>Paid</span>
  * ```
  */
 export const badge = Object.assign(

@@ -32,7 +32,7 @@ export type TagAttributes = {
  * since only you know whether the tag is selected.
  *
  * ```ts
- * <button {...tag({ selectable: true })} aria-pressed="true">Housing benefit</button>
+ * <button {...tag({ selectable: true })} aria-pressed="true">Cutter</button>
  * ```
  */
 export const tag = Object.assign(

@@ -184,7 +184,7 @@ describe("a property set before the registration", () => {
     document.body.innerHTML = `
       <lt-dialog-early>
         <dialog class="lt-dialog">
-          <h2>The decision has been registered</h2>
+          <h2>The order is placed</h2>
           <form method="dialog">
             <button class="lt-button" value="close">Close</button>
           </form>
@@ -220,7 +220,7 @@ describe("a property set before the registration", () => {
     document.body.innerHTML = `
       <lt-dialog-reclosed>
         <dialog class="lt-dialog">
-          <h2>The decision has been registered</h2>
+          <h2>The order is placed</h2>
           <form method="dialog">
             <button class="lt-button" value="close">Close</button>
           </form>

@@ -13,15 +13,15 @@ import Preview from "./Preview.astro"
 		expires-at="65"
 		data-ignore-morph>
 		<dialog class="lt-session-timeout__dialog" role="alertdialog" aria-labelledby="demo-session-title">
-			<h2 class="lt-session-timeout__title" id="demo-session-title">You will soon be signed out</h2>
+			<h2 class="lt-session-timeout__title" id="demo-session-title">Your session is ending</h2>
 			<p class="lt-session-timeout__text">
-				We will sign you out in <span class="lt-session-timeout__count" aria-hidden="true"></span>
-				to protect your information.
+				Your session on the Lattice ends in <span class="lt-session-timeout__count" aria-hidden="true"></span>.
+				Unsaved routes will be lost.
 			</p>
 			<span class="lt-sr-only" role="status"></span>
 			<form method="dialog" class="lt-session-timeout__actions">
-				<button class="lt-button" value="extend">Stay signed in</button>
-				<button class="lt-button" data-variant="secondary" value="logout">Sign out now</button>
+				<button class="lt-button" value="extend">Stay connected</button>
+				<button class="lt-button" data-variant="secondary" value="logout">Log out</button>
 			</form>
 		</dialog>
 	</lt-session-timeout>

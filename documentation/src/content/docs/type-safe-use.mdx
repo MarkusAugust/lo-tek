@@ -18,8 +18,8 @@ import { lt } from "@lo-tek/interfaces"
 
 <button {...lt.button({ variant: "secondary" })}>Save draft</button>
 <input {...lt.input({ type: "email", state: "invalid" })} />
-<span {...lt.badge({ color: "success" })}>Approved</span>
-<a {...lt.link()} href="/receipt">View receipt</a>
+<span {...lt.badge({ color: "success" })}>Delivered</span>
+<a {...lt.link()} href="/jobs/222-0481">View the job</a>
 ```
 
 Type `lt.` in the editor, and you see the whole system. Each component is a function that takes an object of options and returns the attributes you spread into the element. The shape is the same for all of them.
@@ -39,7 +39,7 @@ Plain HTML, Astro and Datastar take `class` and `for` as they are, and use the m
 In JSX you spread the object straight into the element. Without JSX, `lt.setAttributes` does the job:
 
 ```ts
-const field = document.querySelector<HTMLInputElement>("#email")
+const field = document.querySelector<HTMLInputElement>("#fixer")
 
 lt.setAttributes(field, lt.input({ type: "email", state: "invalid" }))
 ```
@@ -59,7 +59,7 @@ So the rule is: if the builder function has an option for the attribute, you set
 If two sets go on the same element, such as the field's appearance and the wiring from `lt.field()`, you pass them separately:
 
 ```ts
-const wiring = lt.field({ id: "email", error: true, invalid: true })
+const wiring = lt.field({ id: "fixer", error: true, invalid: true })
 
 lt.setAttributes(field, lt.input({ type: "email" }), wiring.control)
 ```

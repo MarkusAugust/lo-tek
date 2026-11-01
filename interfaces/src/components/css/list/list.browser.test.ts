@@ -16,16 +16,16 @@ describe("lt-list", () => {
   beforeEach(() => {
     mount(`
       <ul class="lt-list" id="regular">
-        <li>Birth certificate</li>
-        <li>Confirmation from employer</li>
+        <li>Floor plans</li>
+        <li>Guard rotation for sub-level two</li>
       </ul>
       <ul class="lt-list" data-variant="plain" id="plain">
-        <li>Sent 4 March</li>
-        <li>In progress</li>
+        <li>Ordered 4 March</li>
+        <li>Waiting for a crew</li>
       </ul>
       <ul class="lt-list" data-variant="divided" id="divided">
-        <li>Invoice 2026-0481</li>
-        <li>Invoice 2026-0482</li>
+        <li>Job 222-0481</li>
+        <li>Job 222-0482</li>
       </ul>
     `)
   })

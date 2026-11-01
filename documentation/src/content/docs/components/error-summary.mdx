@@ -47,9 +47,9 @@ defineLtErrorSummary()
         <ul class="lt-list"></ul>
       </lt-error-summary>
 
-      <label class="lt-label" for="email">Email address</label>
-      <input class="lt-input" id="email" type="email" />
-      <button class="lt-button">Send application</button>
+      <label class="lt-label" for="fixer">Fixer's address</label>
+      <input class="lt-input" id="fixer" type="email" name="fixer" />
+      <button class="lt-button">Order the job</button>
     </form>
 
     <!-- Once for the whole app, in the page template. Not once per component. -->
@@ -79,14 +79,14 @@ defineLtErrorSummary()
         box.hidden = errors.length === 0
       }
 
-      const email = document.getElementById("email")
+      const fixer = document.getElementById("fixer")
 
       document.querySelector("form").addEventListener("submit", (event) => {
         event.preventDefault()
 
-        const errors = email.value.includes("@")
+        const errors = fixer.value.includes("@")
           ? []
-          : [{ id: "email", message: "Enter an email address with an @" }]
+          : [{ id: "fixer", message: "Enter the fixer's address with an @" }]
 
         showErrors(errors)
       })
@@ -193,8 +193,8 @@ const box = lt.errorSummary({ count: errors.length, id: "errors" })
 <lt-error-summary class="lt-error-summary" role="alert" tabindex="-1" id="errors" aria-labelledby="errors-title">
   <h2 class="lt-error-summary__title" id="errors-title">The form has two errors</h2>
   <ul class="lt-list">
-    <li><a href="#email">Enter an email address with an @</a></li>
-    <li><a href="#birth-date">Enter the date as day, month and year</a></li>
+    <li><a href="#fixer">Enter the fixer's address with an @</a></li>
+    <li><a href="#deliver-by">Enter the date as day, month and year</a></li>
   </ul>
 </lt-error-summary>
 ```
@@ -208,10 +208,10 @@ When there are no errors, the builder function sets `hidden` on the box. An empt
 Each link in the list should point to the `id` of the control that failed. If it points to a `<label>`, the component follows the label on to the control, whether the label points with `for` or wraps the control.
 
 ```html
-<li><a href="#birth-date">Enter the date as day, month and year</a></li>
+<li><a href="#deliver-by">Enter the date as day, month and year</a></li>
 ...
-<label class="lt-label" for="birth-date">Date of birth</label>
-<input class="lt-input" id="birth-date" type="date">
+<label class="lt-label" for="deliver-by">Deliver by</label>
+<input class="lt-input" id="deliver-by" type="date">
 ```
 
 ## Classes you can style

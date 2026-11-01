@@ -570,7 +570,7 @@ async function act(page: Page, action: Action) {
  * What live regions announced in some events. One change to a region
  * arrives at several levels: Firefox reports a new message as a new child
  * for each element in it (the text, the close button "×") and as text
- * inserted in the region itself, "Could not save. Try again.×"; Chromium as
+ * inserted in the region itself, "Relay 14 did not answer. Try again.×"; Chromium as
  * text inserted in the region itself, as an embedded object it reads out,
  * and as the button's own "×". So:
  *

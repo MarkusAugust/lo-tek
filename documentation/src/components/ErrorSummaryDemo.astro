@@ -20,16 +20,16 @@ const summary = lt.errorSummary({
 		<lt-error-summary {...summary.host} data-autofocus="false">
 			<h2 {...summary.title}>The form has two errors</h2>
 			<ul class="lt-list">
-				<li><a href="#demo-email">Enter an email address with an @ sign</a></li>
-				<li><a href="#demo-date">Enter the date as day, month and year</a></li>
+				<li><a href="#demo-fixer">Enter the fixer's address with an @ sign</a></li>
+				<li><a href="#demo-deliver-by">Enter the date as day, month and year</a></li>
 			</ul>
 		</lt-error-summary>
 
-		<label class="lt-label" for="demo-email">Email address</label>
-		<input class="lt-input" id="demo-email" type="email" value="jo.example" data-state="invalid" aria-invalid="true" />
+		<label class="lt-label" for="demo-fixer">Fixer's address</label>
+		<input class="lt-input" id="demo-fixer" type="email" value="fixer.relay.example" data-state="invalid" aria-invalid="true" />
 
-		<label class="lt-label" for="demo-date">Date of birth</label>
-		<input class="lt-input" id="demo-date" type="date" data-state="invalid" aria-invalid="true" />
+		<label class="lt-label" for="demo-deliver-by">Deliver by</label>
+		<input class="lt-input" id="demo-deliver-by" type="date" data-state="invalid" aria-invalid="true" />
 	</form>
 </Preview>
 

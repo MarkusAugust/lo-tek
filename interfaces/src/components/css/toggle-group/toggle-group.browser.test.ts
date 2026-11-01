@@ -21,41 +21,41 @@ describe("lt-toggle-group", () => {
     mount(`
       <fieldset class="lt-toggle-group">
         <legend class="lt-sr-only">View</legend>
-        <label class="lt-toggle-group__option" id="list">
-          <input type="radio" name="view" value="list" checked /> List
+        <label class="lt-toggle-group__option" id="dry">
+          <input type="radio" name="view" value="dry" checked /> Dry
         </label>
-        <label class="lt-toggle-group__option" id="map">
-          <input type="radio" name="view" value="map" /> Map
+        <label class="lt-toggle-group__option" id="seasonal">
+          <input type="radio" name="view" value="seasonal" /> Seasonal
         </label>
       </fieldset>
     `)
   })
 
   it("marks the selected option", () => {
-    const selected = getComputedStyle(
-      document.getElementById("list") as Element,
-    )
+    const selected = getComputedStyle(document.getElementById("dry") as Element)
     const unselected = getComputedStyle(
-      document.getElementById("map") as Element,
+      document.getElementById("seasonal") as Element,
     )
 
     expect(selected.backgroundColor).not.toBe(unselected.backgroundColor)
   })
 
   it("is radio buttons underneath", () => {
-    const map = document.querySelector("#map input") as HTMLInputElement
-    map.click()
+    const seasonal = document.querySelector(
+      "#seasonal input",
+    ) as HTMLInputElement
+    seasonal.click()
 
     // Arrow keys, FormData and "2 of 2" from the screen reader come for free
     // because the controls are real radio buttons.
-    expect(map.checked).toBe(true)
+    expect(seasonal.checked).toBe(true)
     expect(
-      (document.querySelector("#list input") as HTMLInputElement).checked,
+      (document.querySelector("#dry input") as HTMLInputElement).checked,
     ).toBe(false)
   })
 
   it("keeps the radio button in the keyboard order", () => {
-    const input = document.querySelector("#list input") as HTMLInputElement
+    const input = document.querySelector("#dry input") as HTMLInputElement
     const style = getComputedStyle(input)
 
     expect(style.display).not.toBe("none")
@@ -81,10 +81,10 @@ describe("the focus ring on the selected option", () => {
           <fieldset class="lt-toggle-group">
             <legend class="lt-sr-only">View</legend>
             <label class="lt-toggle-group__option">
-              <input type="radio" name="view" value="list" id="list" checked /> List
+              <input type="radio" name="view" value="dry" id="dry" checked /> Dry
             </label>
             <label class="lt-toggle-group__option">
-              <input type="radio" name="view" value="map" /> Map
+              <input type="radio" name="view" value="seasonal" /> Seasonal
             </label>
           </fieldset>
         </div>`)
@@ -94,7 +94,7 @@ describe("the focus ring on the selected option", () => {
       // so focus is set from code after the one key press. That counts as
       // keyboard focus in all three engines, as in the focus test.
       await userEvent.tab()
-      const selected = document.getElementById("list") as HTMLInputElement
+      const selected = document.getElementById("dry") as HTMLInputElement
       selected.focus()
       expect(document.activeElement).toBe(selected)
       await waitForPaint()

@@ -23,8 +23,8 @@ export type TooltipAttributes = {
  *
  * ```ts
  * <span {...tooltip()}>
- *   <button aria-describedby="hint">Archive</button>
- *   <span class={tooltip.bubble} role="tooltip" id="hint">Moves it to the archive</span>
+ *   <button aria-describedby="hint">Appraise</button>
+ *   <span class={tooltip.bubble} role="tooltip" id="hint">At street value</span>
  * </span>
  * ```
  */

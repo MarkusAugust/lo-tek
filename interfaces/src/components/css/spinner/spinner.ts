@@ -30,7 +30,7 @@ export type SpinnerAttributes = {
  * message and drop `label`, so the same thing is not announced twice.
  *
  * ```ts
- * <span {...spinner({ label: "Loading applications" })} />
+ * <span {...spinner({ label: "Loading sectors" })} />
  * ```
  */
 export const spinner = Object.assign(

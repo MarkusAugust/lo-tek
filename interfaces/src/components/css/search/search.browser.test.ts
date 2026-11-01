@@ -18,9 +18,9 @@ describe("lt-search", () => {
   beforeEach(() => {
     mount(`
       <form class="lt-search-row" role="search">
-        <label class="lt-label lt-sr-only" for="search">Search cases</label>
+        <label class="lt-label lt-sr-only" for="search">Search breakers</label>
         <input class="lt-input lt-search" type="search" id="search" name="q"
-          placeholder="Search cases" />
+          placeholder="Search breakers" />
         <button class="lt-button" type="submit">Search</button>
       </form>
     `)

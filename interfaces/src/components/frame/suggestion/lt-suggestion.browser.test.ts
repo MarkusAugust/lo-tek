@@ -16,12 +16,12 @@ import "../../../tokens/tokens.css"
 import "./suggestion.css"
 import "../../css/sr-only/sr-only.css"
 
-const MUNICIPALITIES = ["Bergen", "Bodø", "Oslo", "Tromsø"]
-const KEYS = ["bergen", "bodo", "oslo", "tromso"]
+const BREAKERS = ["Glasscutter", "Corkscrew", "Saltwater", "Needle"]
+const KEYS = ["glasscutter", "corkscrew", "saltwater", "needle"]
 
 /** The markup the server sends. The field and the list exist before the script has run. */
 const SUGGESTION = suggestion({
-  id: "municipality",
+  id: "breaker",
   keys: KEYS,
   help: true,
 })
@@ -46,11 +46,11 @@ describe("lt-suggestion", () => {
   beforeEach(async () => {
     mount(`
       <lt-suggestion>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality">
+          <input ${attr(SUGGESTION.control)} name="breaker">
           <ul ${attr(SUGGESTION.list)}>
-            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("\n            ")}
+            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("\n            ")}
           </ul>
           <p ${attr(SUGGESTION.empty)} hidden>No matches</p>
           <span ${attr(SUGGESTION.status)}></span>
@@ -67,7 +67,7 @@ describe("lt-suggestion", () => {
     const input = document.querySelector("input") as HTMLInputElement
     const label = document.querySelector("label") as HTMLLabelElement
 
-    expect(input.name).toBe("municipality")
+    expect(input.name).toBe("breaker")
     expect(label.htmlFor).toBe(input.id)
     expect(input.getAttribute("role")).toBe("combobox")
     expect(input.getAttribute("aria-autocomplete")).toBe("list")
@@ -92,19 +92,19 @@ describe("lt-suggestion", () => {
 
   it("narrows the suggestions while the user types", async () => {
     const field = await paint()
-    typeInto(field, "bo")
+    typeInto(field, "co")
     await paint()
 
     const visible = [
       ...field.querySelectorAll<HTMLElement>("[role='option']"),
     ].filter((o) => !o.hidden)
 
-    expect(visible.map((o) => o.textContent?.trim())).toEqual(["Bodø"])
+    expect(visible.map((o) => o.textContent?.trim())).toEqual(["Corkscrew"])
   })
 
   it("announces the number of matches to screen readers", async () => {
     const field = await paint()
-    typeInto(field, "bod")
+    typeInto(field, "cor")
     await paint()
 
     const status = field.querySelector("[role='status']") as HTMLElement
@@ -121,7 +121,7 @@ describe("lt-suggestion", () => {
     await paint()
 
     const active = field.querySelector("[aria-selected='true']") as HTMLElement
-    expect(active.textContent?.trim()).toBe("Bergen")
+    expect(active.textContent?.trim()).toBe("Glasscutter")
     // Focus stays in the field. aria-activedescendant is what makes the
     // screen reader announce the option anyway.
     expect(input.getAttribute("aria-activedescendant")).toBe(active.id)
@@ -144,8 +144,8 @@ describe("lt-suggestion", () => {
     )
     await paint()
 
-    expect(input.value).toBe("Bergen")
-    expect(chosen).toEqual(["Bergen"])
+    expect(input.value).toBe("Glasscutter")
+    expect(chosen).toEqual(["Glasscutter"])
     expect(input.getAttribute("aria-expanded")).toBe("false")
   })
 
@@ -164,7 +164,7 @@ describe("lt-suggestion", () => {
   it("closes the list on Escape", async () => {
     const field = await paint()
     const input = field.querySelector("input") as HTMLInputElement
-    typeInto(field, "bo")
+    typeInto(field, "co")
     await paint()
 
     input.dispatchEvent(
@@ -219,7 +219,7 @@ describe("lt-suggestion", () => {
     field.prefiltered = true
     const status = field.querySelector("[role='status']") as HTMLElement
 
-    typeInto(field, "b")
+    typeInto(field, "c")
     await paint()
     expect(
       status.textContent,
@@ -288,13 +288,13 @@ describe("lt-suggestion waiting for the first answer", () => {
   })
 
   beforeEach(async () => {
-    const noKeys = suggestion({ id: "municipality", keys: [] })
+    const noKeys = suggestion({ id: "breaker", keys: [] })
 
     mount(`
       <lt-suggestion prefiltered>
-        <label ${attr(noKeys.label)}>Municipality</label>
+        <label ${attr(noKeys.label)}>Breaker</label>
         <div>
-          <input ${attr(noKeys.control)} name="municipality">
+          <input ${attr(noKeys.control)} name="breaker">
           <ul ${attr(noKeys.list)}></ul>
           <p ${attr(noKeys.empty)}>No matches</p>
           <span ${attr(noKeys.status)}></span>
@@ -331,8 +331,8 @@ describe("lt-suggestion waiting for the first answer", () => {
 
     // The way a patch would do it.
     list.innerHTML = `
-      <li class="lt-suggestion__option" id="municipality-option-bergen" role="option">Bergen</li>
-      <li class="lt-suggestion__option" id="municipality-option-bodo" role="option">Bodø</li>
+      <li class="lt-suggestion__option" id="breaker-option-glasscutter" role="option">Glasscutter</li>
+      <li class="lt-suggestion__option" id="breaker-option-corkscrew" role="option">Corkscrew</li>
     `
     await paint()
 
@@ -356,7 +356,7 @@ describe("lt-suggestion with the highlight from the server", () => {
 
   beforeEach(async () => {
     const fromServer = suggestion({
-      id: "municipality",
+      id: "breaker",
       keys: KEYS,
       open: true,
       activeIndex: 2,
@@ -364,11 +364,11 @@ describe("lt-suggestion with the highlight from the server", () => {
 
     mount(`
       <lt-suggestion>
-        <label ${attr(fromServer.label)}>Municipality</label>
+        <label ${attr(fromServer.label)}>Breaker</label>
         <div>
-          <input ${attr(fromServer.control)} name="municipality">
+          <input ${attr(fromServer.control)} name="breaker">
           <ul ${attr(fromServer.list)}>
-            ${fromServer.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("\n            ")}
+            ${fromServer.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("\n            ")}
           </ul>
           <p ${attr(fromServer.empty)}>No matches</p>
           <span ${attr(fromServer.status)}></span>
@@ -408,11 +408,11 @@ describe("lt-suggestion with arrow up", () => {
   beforeEach(async () => {
     mount(`
       <lt-suggestion>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality">
+          <input ${attr(SUGGESTION.control)} name="breaker">
           <ul ${attr(SUGGESTION.list)}>
-            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("\n            ")}
+            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("\n            ")}
           </ul>
           <p ${attr(SUGGESTION.empty)}>No matches</p>
           <span ${attr(SUGGESTION.status)}></span>
@@ -457,11 +457,11 @@ describe("lt-suggestion closes and cleans up", () => {
   function markup(extraHost = "") {
     return `
       <lt-suggestion ${extraHost}>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality">
+          <input ${attr(SUGGESTION.control)} name="breaker">
           <ul ${attr(SUGGESTION.list)}>
-            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("")}
+            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("")}
           </ul>
           <p ${attr(SUGGESTION.empty)}>No matches</p>
           <span ${attr(SUGGESTION.status)}></span>
@@ -498,12 +498,12 @@ describe("lt-suggestion closes and cleans up", () => {
     // must close then too.
     mount(`
       <lt-suggestion>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality">
+          <input ${attr(SUGGESTION.control)} name="breaker">
           <button type="button" id="clear-button">Clear</button>
           <ul ${attr(SUGGESTION.list)}>
-            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("")}
+            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("")}
           </ul>
           <span ${attr(SUGGESTION.status)}></span>
         </div>
@@ -598,26 +598,26 @@ describe("lt-suggestion closes and cleans up", () => {
 
     press(input, "ArrowDown")
     await paint()
-    const bergen = field.querySelector("[role='option']") as HTMLElement
-    expect(bergen.getAttribute("aria-selected")).toBe("true")
+    const glasscutter = field.querySelector("[role='option']") as HTMLElement
+    expect(glasscutter.getAttribute("aria-selected")).toBe("true")
 
     typeInto(field, "o")
     await paint()
 
-    expect(bergen.hidden).toBe(true)
-    expect(bergen.getAttribute("aria-selected")).toBe("false")
+    expect(glasscutter.hidden).toBe(true)
+    expect(glasscutter.getAttribute("aria-selected")).toBe("false")
     expect(input.getAttribute("aria-activedescendant")).toBeNull()
   })
 
   it("finds the options by role, not by class", async () => {
     mount(`
       <lt-suggestion>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality">
+          <input ${attr(SUGGESTION.control)} name="breaker">
           <ul ${attr(SUGGESTION.list)}>
-            <li id="own-0" role="option">Bergen</li>
-            <li id="own-1" role="option">Oslo</li>
+            <li id="own-0" role="option">Glasscutter</li>
+            <li id="own-1" role="option">Saltwater</li>
           </ul>
           <span ${attr(SUGGESTION.status)}></span>
         </div>
@@ -630,7 +630,7 @@ describe("lt-suggestion closes and cleans up", () => {
     await paint()
     expect(input.getAttribute("aria-activedescendant")).toBe("own-0")
 
-    typeInto(field, "os")
+    typeInto(field, "sal")
     await paint()
     expect((document.getElementById("own-0") as HTMLElement).hidden).toBe(true)
     expect((document.getElementById("own-1") as HTMLElement).hidden).toBe(false)
@@ -648,10 +648,10 @@ describe("lt-suggestion closes and cleans up", () => {
       <lt-suggestion>
         <label ${attr(narrow.label)}>Place</label>
         <div>
-          <input ${attr(narrow.control)} value="o">
+          <input ${attr(narrow.control)} value="s">
           <ul ${attr(narrow.list)}>
-            <li ${attr(narrow.options[0])}>Oslo</li>
-            <li ${attr(narrow.options[1])}>Odda</li>
+            <li ${attr(narrow.options[0])}>Saltwater</li>
+            <li ${attr(narrow.options[1])}>Sledge</li>
           </ul>
           <span ${attr(narrow.status)}></span>
         </div>
@@ -666,7 +666,7 @@ describe("lt-suggestion closes and cleans up", () => {
     const visible = [
       ...field.querySelectorAll<HTMLElement>("[role='option']"),
     ].filter((o) => !o.hidden)
-    expect(visible.map((o) => o.textContent)).toEqual(["Oslo", "Odda"])
+    expect(visible.map((o) => o.textContent)).toEqual(["Saltwater", "Sledge"])
     expect(
       (field.querySelector("[role='status']") as HTMLElement).textContent,
     ).toBe("2 matches")
@@ -717,11 +717,11 @@ describe("lt.suggestion() writes what the web component would otherwise write", 
  */
 const BARE = `
   <lt-suggestion>
-    <label for="municipality">Municipality</label>
+    <label for="breaker">Breaker</label>
     <div>
-      <input class="lt-input" id="municipality" name="municipality">
+      <input class="lt-input" id="breaker" name="breaker">
       <ul class="lt-suggestion__list">
-        ${MUNICIPALITIES.map((k) => `<li>${k}</li>`).join("")}
+        ${BREAKERS.map((k) => `<li>${k}</li>`).join("")}
       </ul>
       <p class="lt-suggestion__empty" hidden>No matches</p>
       <span class="lt-sr-only" role="status"></span>
@@ -751,8 +751,8 @@ describe("lt-suggestion wires up from bare structure", () => {
     expect(input.getAttribute("role")).toBe("combobox")
     expect(input.getAttribute("autocomplete")).toBe("off")
     expect(input.getAttribute("aria-autocomplete")).toBe("list")
-    expect(input.id).toBe("municipality")
-    expect(label.htmlFor).toBe("municipality")
+    expect(input.id).toBe("breaker")
+    expect(label.htmlFor).toBe("breaker")
     expect(label.classList.contains("lt-label")).toBe(true)
     expect(list.getAttribute("role")).toBe("listbox")
     expect(list.id).not.toBe("")
@@ -765,12 +765,12 @@ describe("lt-suggestion wires up from bare structure", () => {
       expect(v.classList.contains("lt-suggestion__option")).toBe(true)
     }
 
-    typeInto(field, "b")
+    typeInto(field, "c")
     await waitForPaint()
     expect(list.hidden).toBe(false)
     expect(options.filter((v) => !v.hidden).map((v) => v.textContent)).toEqual([
-      "Bergen",
-      "Bodø",
+      "Glasscutter",
+      "Corkscrew",
     ])
     expect(document.querySelector("[role='status']")?.textContent).toBe(
       "2 matches",
@@ -781,10 +781,10 @@ describe("lt-suggestion wires up from bare structure", () => {
 
   it("leaves what the server wrote", async () => {
     mount(
-      BARE.replace('<label for="municipality">', '<label for="own">')
+      BARE.replace('<label for="breaker">', '<label for="own">')
         .replace(
-          '<input class="lt-input" id="municipality" name="municipality">',
-          '<input class="lt-input" name="municipality" id="own" aria-expanded="true">',
+          '<input class="lt-input" id="breaker" name="breaker">',
+          '<input class="lt-input" name="breaker" id="own" aria-expanded="true">',
         )
         .replace(
           '<ul class="lt-suggestion__list">',
@@ -837,11 +837,11 @@ describe("lt-suggestion wires up from bare structure", () => {
     const wrapper = document.createElement("div")
     wrapper.innerHTML = `
       <lt-suggestion>
-        <label ${attr(SUGGESTION.label)}>Municipality</label>
+        <label ${attr(SUGGESTION.label)}>Breaker</label>
         <div>
-          <input ${attr(SUGGESTION.control)} name="municipality">
+          <input ${attr(SUGGESTION.control)} name="breaker">
           <ul ${attr(SUGGESTION.list)}>
-            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("")}
+            ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("")}
           </ul>
           <p ${attr(SUGGESTION.empty)} hidden>No matches</p>
           <span ${attr(SUGGESTION.status)}></span>
@@ -873,12 +873,12 @@ describe("the empty message when the app filters itself", () => {
 
   /** The way a React app renders the field: only the matches, and `prefiltered`. */
   async function field(options: { keys: string[]; pending?: boolean }) {
-    const built = suggestion({ id: "municipality", ...options })
+    const built = suggestion({ id: "breaker", ...options })
     mount(`
       <lt-suggestion prefiltered>
-        <label ${attr(built.label)}>Municipality</label>
+        <label ${attr(built.label)}>Breaker</label>
         <div>
-          <input ${attr(built.control)} name="municipality">
+          <input ${attr(built.control)} name="breaker">
           <ul ${attr(built.list)}>${built.options
             .map((options, i) => `<li ${attr(options)}>Match ${i}</li>`)
             .join("")}</ul>
@@ -953,11 +953,11 @@ describe("lt-suggestion when a patch replaces the field or the list", () => {
      */
     mount(`
       <lt-suggestion>
-        <label>Municipality
+        <label>Breaker
           <input class="lt-input">
         </label>
         <div>
-          <ul class="lt-suggestion__list"><li>Oslo</li></ul>
+          <ul class="lt-suggestion__list"><li>Saltwater</li></ul>
           <p class="lt-suggestion__empty">No matches</p>
           <span class="lt-suggestion__status" role="status"></span>
         </div>
@@ -974,7 +974,7 @@ describe("lt-suggestion when a patch replaces the field or the list", () => {
     host.querySelector("input")?.replaceWith(newField)
     const newList = document.createElement("ul")
     newList.className = "lt-suggestion__list"
-    newList.innerHTML = "<li>Bergen</li>"
+    newList.innerHTML = "<li>Glasscutter</li>"
     host.querySelector("ul")?.replaceWith(newList)
     await paint()
 
@@ -993,11 +993,11 @@ describe("lt-suggestion announces the count in the page's language", () => {
     mount(`
       <div lang="${lang}">
         <lt-suggestion ${attributes}>
-          <label ${attr(SUGGESTION.label)}>Municipality</label>
+          <label ${attr(SUGGESTION.label)}>Breaker</label>
           <div>
-            <input ${attr(SUGGESTION.control)} name="municipality">
+            <input ${attr(SUGGESTION.control)} name="breaker">
             <ul ${attr(SUGGESTION.list)}>
-              ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${MUNICIPALITIES[i]}</li>`).join("\n")}
+              ${SUGGESTION.options.map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`).join("\n")}
             </ul>
             <span ${attr(SUGGESTION.status)}></span>
           </div>
@@ -1019,8 +1019,8 @@ describe("lt-suggestion announces the count in the page's language", () => {
       'count-none="No results" count-one="{n} result" count-other="{n} results"',
     )
 
-    expect(await announced(element, "bod")).toBe("1 result")
-    expect(await announced(element, "o")).toBe("3 results")
+    expect(await announced(element, "cor")).toBe("1 result")
+    expect(await announced(element, "s")).toBe("3 results")
     expect(await announced(element, "xyz")).toBe("No results")
   })
 
@@ -1030,7 +1030,7 @@ describe("lt-suggestion announces the count in the page's language", () => {
     // the default text.
     const element = await field("en", 'count-other="{n} results"')
 
-    expect(await announced(element, "bod")).toBe("1 results")
+    expect(await announced(element, "cor")).toBe("1 results")
     expect(await announced(element, "xyz")).toBe("0 results")
   })
 
@@ -1041,15 +1041,15 @@ describe("lt-suggestion announces the count in the page's language", () => {
       'count-one="{n} wynik" count-few="{n} wyniki" count-many="{n} wyników" count-other="{n} wyniku"',
     )
 
-    expect(await announced(element, "o")).toBe("3 wyniki")
-    expect(await announced(element, "bod")).toBe("1 wynik")
+    expect(await announced(element, "s")).toBe("3 wyniki")
+    expect(await announced(element, "cor")).toBe("1 wynik")
   })
 
   it("uses the default text when no text is set", async () => {
     const element = await field("en", "")
 
-    expect(await announced(element, "bod")).toBe("One match")
-    expect(await announced(element, "o")).toBe("3 matches")
+    expect(await announced(element, "cor")).toBe("One match")
+    expect(await announced(element, "s")).toBe("3 matches")
   })
 })
 
@@ -1091,24 +1091,24 @@ describe("lt-suggestion with a field React controls", () => {
   })
 
   for (const control of [
-    '<input id="municipality" role="combobox" aria-controls="municipality-list" aria-expanded="false" aria-autocomplete="list">',
-    '<textarea id="municipality" role="combobox" aria-controls="municipality-list" aria-expanded="false" aria-autocomplete="list"></textarea>',
+    '<input id="breaker" role="combobox" aria-controls="breaker-list" aria-expanded="false" aria-autocomplete="list">',
+    '<textarea id="breaker" role="combobox" aria-controls="breaker-list" aria-expanded="false" aria-autocomplete="list"></textarea>',
   ]) {
     it(`gives onChange the chosen option (${control.slice(1, 6)})`, async () => {
       // Set directly on the node, React saw no change, and wrote the old text
       // back on the next render.
       mount(`
         <lt-suggestion>
-          <label for="municipality">Municipality</label>
+          <label for="breaker">Breaker</label>
           <div>
             ${control}
-            <ul class="lt-suggestion__list" role="listbox" id="municipality-list" hidden>
-              <li role="option" id="municipality-0">Bergen</li>
-              <li role="option" id="municipality-1">Oslo</li>
+            <ul class="lt-suggestion__list" role="listbox" id="breaker-list" hidden>
+              <li role="option" id="breaker-0">Glasscutter</li>
+              <li role="option" id="breaker-1">Saltwater</li>
             </ul>
           </div>
         </lt-suggestion>`)
-      const field = document.getElementById("municipality") as
+      const field = document.getElementById("breaker") as
         | HTMLInputElement
         | HTMLTextAreaElement
       const changes = controlledByReact(field)
@@ -1124,8 +1124,8 @@ describe("lt-suggestion with a field React controls", () => {
       )
       await waitForPaint()
 
-      expect(field.value).toBe("Bergen")
-      expect(changes).toEqual(["Bergen"])
+      expect(field.value).toBe("Glasscutter")
+      expect(changes).toEqual(["Glasscutter"])
     })
   }
 })
@@ -1137,14 +1137,14 @@ describe("lt-suggestion with a field React controls", () => {
  */
 const WITH_CODE = `
   <lt-suggestion>
-    <label for="municipality">Municipality</label>
+    <label for="breaker">Breaker</label>
     <div>
-      <input class="lt-input" id="municipality" name="municipality-text">
-      <input type="hidden" class="lt-suggestion__value" name="municipality">
+      <input class="lt-input" id="breaker" name="breaker-text">
+      <input type="hidden" class="lt-suggestion__value" name="breaker">
       <ul class="lt-suggestion__list">
-        <li data-value="4601">Bergen</li>
-        <li data-value="1804">Bodø</li>
-        <li data-value="0301">Oslo</li>
+        <li data-value="LDG-101">Glasscutter</li>
+        <li data-value="LDG-088">Corkscrew</li>
+        <li data-value="LDG-064">Saltwater</li>
       </ul>
       <span class="lt-sr-only" role="status"></span>
     </div>
@@ -1168,7 +1168,7 @@ describe("lt-suggestion chooses correctly", () => {
 
   function parts() {
     return {
-      input: document.getElementById("municipality") as HTMLInputElement,
+      input: document.getElementById("breaker") as HTMLInputElement,
       code: document.querySelector(".lt-suggestion__value") as HTMLInputElement,
       list: document.querySelector("ul") as HTMLElement,
       options: [...document.querySelectorAll<HTMLElement>("li")],
@@ -1188,13 +1188,13 @@ describe("lt-suggestion chooses correctly", () => {
     options[0].click()
     await waitForPaint()
 
-    expect(input.value).toBe("Bergen")
-    expect(code.value).toBe("4601")
-    expect(details).toEqual([{ value: "4601", label: "Bergen" }])
+    expect(input.value).toBe("Glasscutter")
+    expect(code.value).toBe("LDG-101")
+    expect(details).toEqual([{ value: "LDG-101", label: "Glasscutter" }])
   })
 
   it("empties the value field when the user changes the text after a choice", async () => {
-    // Otherwise the form would have submitted the code for Bergen with "Bodø" in the field.
+    // Otherwise the form would have submitted the code for Glasscutter with "Corkscrew" in the field.
     mount(WITH_CODE)
     await paint()
     const { input, code, options } = parts()
@@ -1202,7 +1202,7 @@ describe("lt-suggestion chooses correctly", () => {
     input.focus()
     options[0].click()
     await waitForPaint()
-    input.value = "Berge"
+    input.value = "Glasscutte"
     input.dispatchEvent(new Event("input", { bubbles: true }))
     await waitForPaint()
 
@@ -1222,8 +1222,8 @@ describe("lt-suggestion chooses correctly", () => {
     code.removeAttribute("value")
     await waitForPaint()
 
-    expect(input.value).toBe("Oslo")
-    expect(code.value).toBe("0301")
+    expect(input.value).toBe("Saltwater")
+    expect(code.value).toBe("LDG-064")
   })
 
   it("leaves a different code from the server alone", async () => {
@@ -1236,12 +1236,12 @@ describe("lt-suggestion chooses correctly", () => {
     input.focus()
     options[0].click()
     await waitForPaint()
-    code.setAttribute("value", "4602")
+    code.setAttribute("value", "LDG-102")
     await waitForPaint()
     await waitForPaint()
 
-    expect(input.value).toBe("Bergen")
-    expect(code.value).toBe("4602")
+    expect(input.value).toBe("Glasscutter")
+    expect(code.value).toBe("LDG-102")
   })
 
   it("dispatches input and change on the value field when the code is written and emptied", async () => {
@@ -1255,10 +1255,15 @@ describe("lt-suggestion chooses correctly", () => {
 
     input.focus()
     options[0].click()
-    input.value = "Berge"
+    input.value = "Glasscutte"
     input.dispatchEvent(new Event("input", { bubbles: true }))
 
-    expect(events).toEqual(["input:4601", "change:4601", "input:", "change:"])
+    expect(events).toEqual([
+      "input:LDG-101",
+      "change:LDG-101",
+      "input:",
+      "change:",
+    ])
   })
 
   it("closes an open list when the field becomes readonly", async () => {
@@ -1299,14 +1304,14 @@ describe("lt-suggestion chooses correctly", () => {
     expect(input.value).toBe("")
 
     options[1].click()
-    expect(input.value).toBe("Bodø")
+    expect(input.value).toBe("Corkscrew")
   })
 
   it("skips an option with aria-disabled, with keyboard and mouse", async () => {
     mount(
       WITH_CODE.replace(
-        '<li data-value="4601">Bergen</li>',
-        '<li data-value="4601" aria-disabled="true">Bergen</li>',
+        '<li data-value="LDG-101">Glasscutter</li>',
+        '<li data-value="LDG-101" aria-disabled="true">Glasscutter</li>',
       ),
     )
     await paint()
@@ -1318,15 +1323,12 @@ describe("lt-suggestion chooses correctly", () => {
 
     press(input, "ArrowDown")
     press(input, "Enter")
-    expect(input.value).toBe("Bodø")
+    expect(input.value).toBe("Corkscrew")
   })
 
   it("does not open the list or change the value in a readonly field", async () => {
     mount(
-      WITH_CODE.replace(
-        'name="municipality-text"',
-        'name="municipality-text" readonly',
-      ),
+      WITH_CODE.replace('name="breaker-text"', 'name="breaker-text" readonly'),
     )
     await paint()
     const { input, list, options } = parts()
@@ -1386,17 +1388,17 @@ describe("lt-suggestion chooses correctly", () => {
 
     const replacement = document.createElement("ul")
     replacement.className = "lt-suggestion__list"
-    replacement.innerHTML = `<li data-value="4601">Bergen</li><li data-value="1804">Bodø</li><li data-value="0301">Oslo</li>`
+    replacement.innerHTML = `<li data-value="LDG-101">Glasscutter</li><li data-value="LDG-088">Corkscrew</li><li data-value="LDG-064">Saltwater</li>`
     list.replaceWith(replacement)
     await waitForPaint()
     await waitForPaint()
 
-    const bodo = [...replacement.querySelectorAll("li")].find(
-      (li) => li.textContent === "Bodø",
+    const corkscrew = [...replacement.querySelectorAll("li")].find(
+      (li) => li.textContent === "Corkscrew",
     ) as HTMLElement
-    expect(bodo.getAttribute("aria-selected")).toBe("true")
-    expect(bodo.id).not.toBe("")
-    expect(input.getAttribute("aria-activedescendant")).toBe(bodo.id)
+    expect(corkscrew.getAttribute("aria-selected")).toBe("true")
+    expect(corkscrew.id).not.toBe("")
+    expect(input.getAttribute("aria-activedescendant")).toBe(corkscrew.id)
   })
 
   it("writes the number of matches again when an update empties the status element", async () => {
@@ -1408,7 +1410,7 @@ describe("lt-suggestion chooses correctly", () => {
     const { input } = parts()
     const status = document.querySelector("[role='status']") as HTMLElement
     input.focus()
-    input.value = "B"
+    input.value = "C"
     input.dispatchEvent(new Event("input", { bubbles: true }))
     await waitForPaint()
     const announcedText = status.textContent
@@ -1449,8 +1451,8 @@ describe("lt-suggestion chooses correctly", () => {
   it("tells two options with the same text apart by code when the list is replaced", async () => {
     mount(
       WITH_CODE.replace(
-        '<li data-value="0301">Oslo</li>',
-        '<li data-value="3018">Våler</li><li data-value="3419">Våler</li>',
+        '<li data-value="LDG-064">Saltwater</li>',
+        '<li data-value="LDG-042">Needle</li><li data-value="LDG-043">Needle</li>',
       ),
     )
     await paint()
@@ -1472,30 +1474,30 @@ describe("lt-suggestion chooses correctly", () => {
     const chosen = replacement.querySelector(
       '[aria-selected="true"]',
     ) as HTMLElement
-    expect(chosen.getAttribute("data-value")).toBe("3419")
+    expect(chosen.getAttribute("data-value")).toBe("LDG-043")
   })
 
   it("sets the code back to the server's when the form is reset", async () => {
     // A hidden field has no default value to go back to, since the code is
     // written as an attribute. Without this the form submitted the code for
-    // Bodø with empty text after a reset.
+    // Corkscrew with empty text after a reset.
     mount(
-      `<form>${WITH_CODE.replace('name="municipality-text"', 'name="municipality-text" value="Bergen"').replace('class="lt-suggestion__value" name="municipality"', 'class="lt-suggestion__value" name="municipality" value="4601"')}</form>`,
+      `<form>${WITH_CODE.replace('name="breaker-text"', 'name="breaker-text" value="Glasscutter"').replace('class="lt-suggestion__value" name="breaker"', 'class="lt-suggestion__value" name="breaker" value="LDG-101"')}</form>`,
     )
     await paint()
     const { input, code, options } = parts()
     input.focus()
     options[1].click()
     await waitForPaint()
-    expect(input.value).toBe("Bodø")
-    expect(code.value).toBe("1804")
+    expect(input.value).toBe("Corkscrew")
+    expect(code.value).toBe("LDG-088")
 
     ;(document.querySelector("form") as HTMLFormElement).reset()
     await new Promise((r) => setTimeout(r, 20))
     await waitForPaint()
 
-    expect(input.value).toBe("Bergen")
-    expect(code.value).toBe("4601")
+    expect(input.value).toBe("Glasscutter")
+    expect(code.value).toBe("LDG-101")
 
     // And with no code from the server: empty.
     mount(`<form>${WITH_CODE}</form>`)
@@ -1515,11 +1517,11 @@ describe("lt-suggestion chooses correctly", () => {
     // Same rule as in <lt-field>: `for` and `id` are the same information.
     // But without JavaScript the field had no label, so it must be reported.
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
-    mount(WITH_CODE.replace('for="municipality"', 'for="wrong"'))
+    mount(WITH_CODE.replace('for="breaker"', 'for="wrong"'))
     await paint()
     await new Promise((r) => setTimeout(r, 300))
     expect((document.querySelector("label") as HTMLLabelElement).htmlFor).toBe(
-      "municipality",
+      "breaker",
     )
     expect(warn).toHaveBeenCalledTimes(1)
     expect(String(warn.mock.calls[0][0])).toContain("pointed to a different id")
@@ -1528,7 +1530,7 @@ describe("lt-suggestion chooses correctly", () => {
 
   it("does not let the events on the value field bubble to the host", async () => {
     // The recipe fetches suggestions with `data-on:input` on <lt-suggestion>.
-    // Had the code fired it, every choice would have searched for "4601".
+    // Had the code fired it, every choice would have searched for "LDG-101".
     mount(WITH_CODE)
     const host = await paint()
     const { input, options } = parts()
@@ -1544,7 +1546,7 @@ describe("lt-suggestion chooses correctly", () => {
     options[0].click()
     await waitForPaint()
 
-    expect(onHost).toEqual(["municipality-text", "municipality-text"])
+    expect(onHost).toEqual(["breaker-text", "breaker-text"])
   })
 
   it("keeps the code on reset when the server has sent the choice back", async () => {
@@ -1557,8 +1559,8 @@ describe("lt-suggestion chooses correctly", () => {
     options[0].click()
     await waitForPaint()
     // The server's answer: both values as attributes, the way a morph writes them.
-    input.setAttribute("value", "Bergen")
-    code.setAttribute("value", "4601")
+    input.setAttribute("value", "Glasscutter")
+    code.setAttribute("value", "LDG-101")
     await waitForPaint()
     await waitForPaint()
 
@@ -1566,23 +1568,23 @@ describe("lt-suggestion chooses correctly", () => {
     await new Promise((r) => setTimeout(r, 20))
     await waitForPaint()
 
-    expect(input.value).toBe("Bergen")
-    expect(code.value).toBe("4601")
+    expect(input.value).toBe("Glasscutter")
+    expect(code.value).toBe("LDG-101")
   })
 
   it("finds the code from the option when the text after reset is a different choice", async () => {
-    // The server sent Bodø back after the user chose it, and the user kept
-    // typing. The reset gives "Bodø", and the code follows the option.
+    // The server sent Corkscrew back after the user chose it, and the user kept
+    // typing. The reset gives "Corkscrew", and the code follows the option.
     mount(`<form>${WITH_CODE}</form>`)
     await paint()
     const { input, code, options } = parts()
     input.focus()
     options[1].click()
     await waitForPaint()
-    input.setAttribute("value", "Bodø")
-    code.setAttribute("value", "1804")
+    input.setAttribute("value", "Corkscrew")
+    code.setAttribute("value", "LDG-088")
     await waitForPaint()
-    input.value = "Bod"
+    input.value = "Cork"
     input.dispatchEvent(new Event("input", { bubbles: true }))
     await waitForPaint()
     expect(code.value).toBe("")
@@ -1591,8 +1593,8 @@ describe("lt-suggestion chooses correctly", () => {
     await new Promise((r) => setTimeout(r, 20))
     await waitForPaint()
 
-    expect(input.value).toBe("Bodø")
-    expect(code.value).toBe("1804")
+    expect(input.value).toBe("Corkscrew")
+    expect(code.value).toBe("LDG-088")
   })
 
   it("does not write the count back when something else filters", async () => {
@@ -1618,7 +1620,7 @@ describe("lt-suggestion chooses correctly", () => {
   it("says nothing when the label wraps the whole element", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     mount(
-      `<label>Municipality <lt-suggestion><input class="lt-input" name="municipality"><ul class="lt-suggestion__list"><li>Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion></label>`,
+      `<label>Breaker <lt-suggestion><input class="lt-input" name="breaker"><ul class="lt-suggestion__list"><li>Glasscutter</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion></label>`,
     )
     await paint()
     await new Promise((r) => setTimeout(r, 300))
@@ -1639,17 +1641,17 @@ describe("lt-suggestion chooses correctly", () => {
     input.focus()
     options[0].click()
     await waitForPaint()
-    expect(code.value).toBe("4601")
+    expect(code.value).toBe("LDG-101")
 
     input.setAttribute("form", "b")
     await waitForPaint()
     await waitForPaint()
-    input.value = "Berg"
+    input.value = "Glass"
     input.dispatchEvent(new Event("input", { bubbles: true }))
     await waitForPaint()
     expect(code.value).toBe("")
-    input.value = "Bergen"
-    code.setAttribute("value", "4601")
+    input.value = "Glasscutter"
+    code.setAttribute("value", "LDG-101")
     await waitForPaint()
     ;(document.getElementById("b") as HTMLFormElement).reset()
     await new Promise((r) => setTimeout(r, 20))
@@ -1667,7 +1669,7 @@ describe("lt-suggestion chooses correctly", () => {
     const { input } = parts()
     const status = document.querySelector("[role='status']") as HTMLElement
     input.focus()
-    input.value = "B"
+    input.value = "C"
     input.dispatchEvent(new Event("input", { bubbles: true }))
     await waitForPaint()
     expect(status.textContent).not.toBe("")
@@ -1696,16 +1698,16 @@ describe("lt-suggestion chooses correctly", () => {
     await waitForPaint()
     expect(code.value).toBe("")
 
-    input.value = "Bergen"
+    input.value = "Glasscutter"
     input.dispatchEvent(new Event("input", { bubbles: true }))
 
-    expect(code.value).toBe("4601")
+    expect(code.value).toBe("LDG-101")
   })
 
   it("says nothing about a field without an id that is named by aria-labelledby", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
     mount(
-      `<lt-suggestion><label id="l">Municipality</label><input class="lt-input" name="municipality" aria-labelledby="l"><ul class="lt-suggestion__list"><li>Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+      `<lt-suggestion><label id="l">Breaker</label><input class="lt-input" name="breaker" aria-labelledby="l"><ul class="lt-suggestion__list"><li>Glasscutter</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     )
     await paint()
     await new Promise((r) => setTimeout(r, 300))
@@ -1713,21 +1715,21 @@ describe("lt-suggestion chooses correctly", () => {
     warn.mockRestore()
   })
 
-  it("goes back to the server's Våler when the user had chosen the other one", async () => {
+  it("goes back to the server's Needle when the user had chosen the other one", async () => {
     // Two options with the same text: on reset the text is the server's, and
     // then the server's code applies, not the one the user chose.
     mount(
       `<form>${WITH_CODE.replace(
-        'name="municipality-text"',
-        'name="municipality-text" value="Våler"',
+        'name="breaker-text"',
+        'name="breaker-text" value="Needle"',
       )
         .replace(
-          'class="lt-suggestion__value" name="municipality"',
-          'class="lt-suggestion__value" name="municipality" value="3419"',
+          'class="lt-suggestion__value" name="breaker"',
+          'class="lt-suggestion__value" name="breaker" value="LDG-043"',
         )
         .replace(
-          '<li data-value="0301">Oslo</li>',
-          '<li data-value="3018">Våler</li><li data-value="3419">Våler</li>',
+          '<li data-value="LDG-064">Saltwater</li>',
+          '<li data-value="LDG-042">Needle</li><li data-value="LDG-043">Needle</li>',
         )}</form>`,
     )
     await paint()
@@ -1735,19 +1737,19 @@ describe("lt-suggestion chooses correctly", () => {
     input.focus()
     options[2].click()
     await waitForPaint()
-    expect(code.value).toBe("3018")
+    expect(code.value).toBe("LDG-042")
 
     ;(document.querySelector("form") as HTMLFormElement).reset()
     await new Promise((r) => setTimeout(r, 20))
     await waitForPaint()
 
-    expect(input.value).toBe("Våler")
-    expect(code.value).toBe("3419")
+    expect(input.value).toBe("Needle")
+    expect(code.value).toBe("LDG-043")
   })
 
   it("gives a label outside the element the class, as lt-field does", async () => {
     mount(
-      `<label for="municipality">Municipality</label><lt-suggestion><input class="lt-input" id="municipality"><ul class="lt-suggestion__list"><li>Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+      `<label for="breaker">Breaker</label><lt-suggestion><input class="lt-input" id="breaker"><ul class="lt-suggestion__list"><li>Glasscutter</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     )
     await paint()
     expect(
@@ -1763,17 +1765,17 @@ describe("lt-suggestion through a morph from the server", () => {
 
   /** The recipe on the component page, with `options` in the list. */
   const recipe = (
-    options = "<li>Bergen</li><li>Malmö</li>",
+    options = "<li>Crowbar</li><li>Needle</li>",
     host = "",
     input = "",
-  ) => `<lt-suggestion id="airport-search"${host}>
-    <label class="lt-label" for="airport">Airport</label>
-    <input class="lt-input" id="airport" name="airport" type="text"${input}>
+  ) => `<lt-suggestion id="breaker-search"${host}>
+    <label class="lt-label" for="breaker">Breaker</label>
+    <input class="lt-input" id="breaker" name="breaker" type="text"${input}>
     <ul class="lt-suggestion__list">${options}</ul>
     <p class="lt-suggestion__empty">No matches</p>
     <span class="lt-sr-only" role="status"></span>
   </lt-suggestion>`
-  const input = () => document.getElementById("airport") as HTMLInputElement
+  const input = () => document.getElementById("breaker") as HTMLInputElement
   const list = () =>
     document.querySelector(".lt-suggestion__list") as HTMLElement
   const status = () => document.querySelector("[role='status']") as HTMLElement
@@ -1789,23 +1791,23 @@ describe("lt-suggestion through a morph from the server", () => {
      * so the list showed every option the server sent.
      */
     const controlled = recipe(
-      '<li id="airport-option-bergen">Bergen</li><li id="airport-option-malmo" aria-selected="true">Malmö</li>',
+      '<li id="breaker-option-crowbar">Crowbar</li><li id="breaker-option-needle" aria-selected="true">Needle</li>',
       " server-controlled",
-      ' role="combobox" aria-expanded="true" aria-controls="airport-list" aria-activedescendant="airport-option-malmo"',
+      ' role="combobox" aria-expanded="true" aria-controls="breaker-list" aria-activedescendant="breaker-option-needle"',
     ).replace(
       '<ul class="lt-suggestion__list">',
-      '<ul class="lt-suggestion__list" id="airport-list">',
+      '<ul class="lt-suggestion__list" id="breaker-list">',
     )
     mount(controlled)
     const field = await paint()
     input().focus()
-    typeInto(field, "b")
+    typeInto(field, "c")
     await paint()
 
     datastarPatch(controlled)
     await paint()
 
-    expect(shown()).toEqual(["Bergen"])
+    expect(shown()).toEqual(["Crowbar"])
   })
 
   it("announces nothing on focus over a list with nothing to show", async () => {
@@ -1831,11 +1833,11 @@ describe("lt-suggestion through a morph from the server", () => {
      */
     mount(recipe())
     await paint()
-    const prefiltered = recipe("<li>Malmö</li>", " prefiltered").replace(
+    const prefiltered = recipe("<li>Needle</li>", " prefiltered").replace(
       '<p class="lt-suggestion__empty">',
       '<p class="lt-suggestion__empty" hidden>',
     )
-    replace("outerHTML", "airport-search", prefiltered)
+    replace("outerHTML", "breaker-search", prefiltered)
     await paint()
     input().focus()
     await paint()

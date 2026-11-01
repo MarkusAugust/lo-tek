@@ -20,7 +20,7 @@ describe("lt-fieldset", () => {
         <legend class="lt-legend" id="title" data-required="symbol">Delivery method</legend>
         <div class="lt-radio-row">
           <input class="lt-radio" type="radio" id="post" name="delivery" />
-          <label for="post">Standard post</label>
+          <label for="post">Dead drop</label>
         </div>
       </fieldset>
     `)

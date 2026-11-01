@@ -1,15 +1,15 @@
 {
   "markup": [
     {
-      "start": 106,
-      "end": 123,
+      "start": 115,
+      "end": 132,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "id=\"lt-field-3-k2x9qa\" is an id the component created itself in the browser, and looks copied from DevTools. The component creates a new one on every page load, so nothing can point at this one. Write your own id, based on what the element is for, or leave it empty."
     },
     {
-      "start": 169,
-      "end": 190,
+      "start": 178,
+      "end": 199,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "id=\"lt-field-help-a1b2c3d\" is an id the component created itself in the browser, and looks copied from DevTools. The component creates a new one on every page load, so nothing can point at this one. Write your own id, based on what the element is for, or leave it empty."

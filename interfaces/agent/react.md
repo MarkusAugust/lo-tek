@@ -319,15 +319,15 @@ reports mismatches on the label, the field and the error text. Without a
 server it works, but `lt.field()` is the way in both.
 
 ```tsx
-// ContactForm.tsx
+// JobOrder.tsx
 import { lt } from "@lo-tek/interfaces/react"
 import { useId, useState } from "react"
 
-export function ContactForm() {
-  const [name, setName] = useState("")
+export function JobOrder() {
+  const [codename, setCodename] = useState("")
   const [touched, setTouched] = useState(false)
 
-  const invalid = touched && name.trim() === ""
+  const invalid = touched && codename.trim() === ""
   const field = lt.field({
     id: useId(),
     required: "symbol",
@@ -337,19 +337,19 @@ export function ContactForm() {
 
   return (
     <form onSubmit={(e) => e.preventDefault()}>
-      <label {...field.label}>Full name</label>
+      <label {...field.label}>Codename</label>
       <input
         {...lt.input({ type: "text" })}
         {...field.control}
-        name="name"
+        name="codename"
         required
-        value={name}
-        onChange={(e) => setName(e.target.value)}
+        value={codename}
+        onChange={(e) => setCodename(e.target.value)}
         onBlur={() => setTouched(true)}
       />
-      <p {...lt.errorText()} {...field.error}>Enter your name.</p>
+      <p {...lt.errorText()} {...field.error}>Enter a codename.</p>
 
-      <button {...lt.button()} type="submit">Send</button>
+      <button {...lt.button()} type="submit">Order the job</button>
     </form>
   )
 }

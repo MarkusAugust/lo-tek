@@ -151,7 +151,7 @@ const VERSIONS: Record<string, string> = {
   content: swap(
     HOST,
     /(\s*)<\/ul>/,
-    '$1  <li><button class="lt-button" data-variant="ghost" type="button">Share the case</button></li>$1</ul>',
+    '$1  <li><button class="lt-button" data-variant="ghost" type="button">Rent it out again</button></li>$1</ul>',
   ),
   // A panel without an id: the button cannot be wired, and the component
   // invents none.

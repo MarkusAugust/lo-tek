@@ -11,10 +11,10 @@ The small text below a field that explains what the system expects. If the text 
 
 <Example imports={["tokens.css", "help-text.css"]}
   styles={["help-text"]} layout="stack" maxWidth="30rem" code={`
-<p class="lt-help-text">You will find the number at the top right of the invoice.</p>
-<p class="lt-help-text" data-variant="strong">The change applies from the start of next month.</p>
-<p class="lt-help-text" data-variant="success">The attachment has been uploaded.</p>
-<p class="lt-help-text" data-variant="warning">The application deadline is in three days.</p>
+<p class="lt-help-text">State the budget in EB. The crew sees the number.</p>
+<p class="lt-help-text" data-variant="strong">The order is binding once a crew takes it.</p>
+<p class="lt-help-text" data-variant="success">The floor plans have been uploaded.</p>
+<p class="lt-help-text" data-variant="warning">The window closes in three days.</p>
 `}>
 <Fragment slot="ts">
 
@@ -25,7 +25,7 @@ The small text below a field that explains what the system expects. If the text 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<p {...lt.helpText()}>You will find the number at the top right of the invoice.</p>
+<p {...lt.helpText()}>State the budget in EB. The crew sees the number.</p>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -35,11 +35,11 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const label = document.querySelector<HTMLLabelElement>("#reference-label")
-const input = document.querySelector<HTMLInputElement>("#reference")
-const helpText = document.querySelector<HTMLElement>("#reference-help")
+const label = document.querySelector<HTMLLabelElement>("#budget-label")
+const input = document.querySelector<HTMLInputElement>("#budget")
+const helpText = document.querySelector<HTMLElement>("#budget-help")
 
-const field = lt.field({ id: "reference", help: true })
+const field = lt.field({ id: "budget", help: true })
 
 lt.setAttributes(label, field.label)
 lt.setAttributes(input, lt.input(), field.control)
@@ -69,9 +69,9 @@ lt.setAttributes(helpText, lt.helpText({ variant: "warning" }))
 Without `aria-describedby` the help text is not read out when the field gets focus.
 
 <Example styles={["help-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
-<label class="lt-label" for="reference">Payment reference</label>
-<input class="lt-input" id="reference" inputmode="numeric" aria-describedby="reference-help" />
-<p class="lt-help-text" id="reference-help">You will find the number at the top of the invoice.</p>
+<label class="lt-label" for="budget">Budget</label>
+<input class="lt-input" id="budget" inputmode="numeric" aria-describedby="budget-help" />
+<p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p>
 `} />
 
 [Field](../field/) generates the `id` and sets `aria-describedby` for you.

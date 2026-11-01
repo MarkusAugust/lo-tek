@@ -14,16 +14,16 @@ In practice the component is two things: a reset of the browser's border from 19
 <Example imports={["tokens.css", "fieldset.css", "radio.css"]}
   styles={["fieldset", "radio", "label"]} layout="stack" maxWidth="28rem" code={`
 <fieldset class="lt-fieldset">
-  <legend class="lt-legend" data-required="symbol">Who are you applying on behalf of?</legend>
+  <legend class="lt-legend" data-required="symbol">Who takes the job?</legend>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="self" name="applicant" value="self" checked />
-    <label class="lt-label" for="self">Myself</label>
+    <input class="lt-radio" type="radio" id="any-crew" name="crew" value="any" checked />
+    <label class="lt-label" for="any-crew">Any crew</label>
   </div>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="other" name="applicant" value="other" />
-    <label class="lt-label" for="other">Another person</label>
+    <input class="lt-radio" type="radio" id="named-crew" name="crew" value="named" />
+    <label class="lt-label" for="named-crew">A crew the fixer names</label>
   </div>
 </fieldset>
 `}>
@@ -37,7 +37,7 @@ In practice the component is two things: a reset of the browser's border from 19
 import { lt } from "@lo-tek/interfaces/react"
 
 <fieldset {...lt.fieldset({ state: "invalid" })}>
-  <legend {...lt.legend()}>How would you like a reply?</legend>
+  <legend {...lt.legend()}>How does the crew report back?</legend>
 </fieldset>
 ```
 
@@ -76,19 +76,19 @@ The group can have help text and an error text like the fields otherwise. The co
 <Example styles={["fieldset", "radio", "label", "help-text", "error-text"]} layout="stack" maxWidth="28rem" code={`
 <fieldset class="lt-fieldset" data-state="invalid" aria-describedby="delivery-help delivery-error">
   <legend class="lt-legend" data-required="symbol">Delivery method</legend>
-  <p class="lt-help-text" id="delivery-help">We dispatch within three working days.</p>
+  <p class="lt-help-text" id="delivery-help">The board does not meet crews.</p>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="delivery-post" name="delivery" value="post" data-state="invalid" aria-invalid="true" />
-    <label class="lt-label" for="delivery-post">Standard post</label>
+    <input class="lt-radio" type="radio" id="delivery-drop" name="delivery" value="drop" data-state="invalid" aria-invalid="true" />
+    <label class="lt-label" for="delivery-drop">Dead drop</label>
   </div>
 
   <div class="lt-radio-row">
-    <input class="lt-radio" type="radio" id="delivery-collect" name="delivery" value="collect" data-state="invalid" aria-invalid="true" />
-    <label class="lt-label" for="delivery-collect">Collect from the office</label>
+    <input class="lt-radio" type="radio" id="delivery-fixer" name="delivery" value="fixer" data-state="invalid" aria-invalid="true" />
+    <label class="lt-label" for="delivery-fixer">Through the fixer</label>
   </div>
 
-  <p class="lt-error-text" id="delivery-error">Choose how you want the item delivered.</p>
+  <p class="lt-error-text" id="delivery-error">Choose how the delivery reaches floor 222.</p>
 </fieldset>
 `} />
 
@@ -129,6 +129,6 @@ See [Customising](../../customising/) for how the variables and the layer work.
 ## Accessibility
 
 - `<legend>` should be the first element inside the `<fieldset>`. HTML requires it, and the markup is otherwise invalid. Browsers usually connect the first `<legend>` to the group wherever it is, but that is nothing to rely on: outside the content model, browsers and assistive technology can behave differently.
-- Use the group where the options belong to the same question. A single checkbox for "I accept the terms" does not need it.
+- Use the group where the options belong to the same question. A single checkbox for "Clean only" does not need it.
 - Do not put the whole form in one group. The label is then announced before every single field.
-- The group's error message should say what the user has to do: "Choose how you want the item delivered", not "This field is required".
+- The group's error message should say what the user has to do: "Choose how the delivery reaches floor 222", not "This field is required".

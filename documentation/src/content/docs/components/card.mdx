@@ -5,21 +5,21 @@ description: A box that groups content that belongs together. A CSS component wi
 
 import Example from "../../../components/Example.astro"
 
-A frame around content that belongs together, such as one case in a list of cases. The card is a container, not a component with behaviour: the content decides what the user can do.
+A frame around content that belongs together, such as one claim in a list of claims. The card is a container, not a component with behaviour: the content decides what the user can do.
 
 ## How to use it
 
 <Example imports={["tokens.css", "card.css", "badge.css", "button.css"]}
   styles={["card", "badge", "button"]} layout="stack" maxWidth="32rem" code={`
 <div class="lt-card">
-  <h3 class="lt-card__title">Housing benefit application</h3>
-  <p>Sent 4 March. Case number 2026-0481.</p>
-  <span class="lt-badge" data-color="success">Approved</span>
+  <h3 class="lt-card__title">Runner's policy AV-2079-0233</h3>
+  <p>Taken out 4 March. Premium EB 1,200 a month.</p>
+  <span class="lt-badge" data-color="success">Active</span>
 </div>
 
 <div class="lt-card" data-variant="filled">
-  <h3 class="lt-card__title">Nursery place application</h3>
-  <p>We need a birth certificate before we can process the application.</p>
+  <h3 class="lt-card__title">Claim AV-2079-0481</h3>
+  <p>We need a death certificate before we can process the claim.</p>
   <button class="lt-button" data-variant="secondary">Upload attachment</button>
 </div>
 `}>
@@ -33,7 +33,7 @@ A frame around content that belongs together, such as one case in a list of case
 import { lt } from "@lo-tek/interfaces/react"
 
 <div {...lt.card({ variant: "outline" })}>
-  <h3 className={lt.card.title}>Application 2024/1187</h3>
+  <h3 className={lt.card.title}>Claim AV-2079-0477</h3>
   <p>In progress.</p>
 </div>
 ```
@@ -46,7 +46,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 import { lt } from "@lo-tek/interfaces"
 
 const card = document.createElement("a")
-card.href = `/case/${caseFile.id}`
+card.href = `/claims/${claim.id}`
 
 lt.setAttributes(card, lt.card({ interactive: true }))
 ```
@@ -65,8 +65,8 @@ lt.setAttributes(card, lt.card({ interactive: true }))
 
 <Example styles={["card"]} layout="stack" maxWidth="32rem" code={`
 <a class="lt-card" data-interactive href="#">
-  <h3 class="lt-card__title">See the whole case</h3>
-  <p>All documents, messages and decisions in one place.</p>
+  <h3 class="lt-card__title">See the whole claim</h3>
+  <p>All attachments, messages and the small print in one place.</p>
 </a>
 `} />
 

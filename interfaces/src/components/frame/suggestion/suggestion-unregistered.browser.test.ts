@@ -18,10 +18,10 @@ describe("suggestion.css before the component is registered", () => {
     expect(customElements.get("lt-suggestion")).toBeUndefined()
     mount(`
       <lt-suggestion>
-        <label>Municipality</label>
+        <label>Breaker</label>
         <div>
-          <input class="lt-input" name="municipality">
-          <ul class="lt-suggestion__list"><li>Bath</li><li>Bristol</li></ul>
+          <input class="lt-input" name="breaker">
+          <ul class="lt-suggestion__list"><li>Crowbar</li><li>Needle</li></ul>
         </div>
       </lt-suggestion>
     `)

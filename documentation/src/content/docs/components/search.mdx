@@ -12,8 +12,8 @@ An `lt-input` with room for a magnifying glass. Both classes are set, so every s
 <Example imports={["tokens.css", "search.css", "button.css", "label.css", "sr-only.css"]}
   styles={["search", "button", "label", "sr-only"]} layout="stack" maxWidth="30rem" code={`
 <form class="lt-search-row" role="search">
-  <label class="lt-label lt-sr-only" for="search">Search cases</label>
-  <input class="lt-input lt-search" type="search" id="search" name="q" placeholder="Search cases" />
+  <label class="lt-label lt-sr-only" for="search">Search breakers</label>
+  <input class="lt-input lt-search" type="search" id="search" name="q" placeholder="Search breakers" />
   <button class="lt-button" type="submit">Search</button>
 </form>
 `}>
@@ -27,7 +27,7 @@ An `lt-input` with room for a magnifying glass. Both classes are set, so every s
 import { lt } from "@lo-tek/interfaces/react"
 
 <form className={lt.search.row} role="search">
-  <label {...lt.label()} htmlFor="search">Search cases</label>
+  <label {...lt.label()} htmlFor="search">Search breakers</label>
   <input {...lt.search()} id="search" />
 </form>
 ```
@@ -60,7 +60,7 @@ The placeholder disappears as soon as the user types, and several screen readers
 ## Searching as the user types
 
 ```html
-<label class="lt-label lt-sr-only" for="search">Search the cases</label>
+<label class="lt-label lt-sr-only" for="search">Search the catalogue</label>
 <input class="lt-input lt-search" type="search" id="search" name="q" />
 <p class="lt-sr-only" role="status" id="matches"></p>
 
@@ -72,11 +72,11 @@ The placeholder disappears as soon as the user types, and several screen readers
   field.addEventListener("input", () => {
     clearTimeout(timeout)
     timeout = setTimeout(async () => {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(field.value)}`)
-      const cases = await response.json()
+      const response = await fetch(`/api/breakers?q=${encodeURIComponent(field.value)}`)
+      const breakers = await response.json()
 
-      renderResults(cases)
-      status.textContent = `${cases.length} matches`
+      renderResults(breakers)
+      status.textContent = `${breakers.length} matches`
     }, 300)
   })
 </script>

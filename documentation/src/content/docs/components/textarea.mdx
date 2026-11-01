@@ -12,21 +12,21 @@ The same look and states as [Input](../input/), for answers longer than one line
 
 <Example imports={["tokens.css", "textarea.css", "label.css"]}
   styles={["textarea", "label"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" for="reason">Reason</label>
-<textarea class="lt-textarea" id="reason" rows="3"
-  placeholder="Write a short reason"></textarea>
+<label class="lt-label" for="objective">Objective</label>
+<textarea class="lt-textarea" id="objective" rows="3"
+  placeholder="State the objective"></textarea>
 
-<label class="lt-label" for="message">Message to the caseworker</label>
-<textarea class="lt-textarea" id="message"
-  data-state="success">I am moving to a new address on 1 June.</textarea>
+<label class="lt-label" for="fixer-note">Note for the fixer</label>
+<textarea class="lt-textarea" id="fixer-note"
+  data-state="success">The floor plans follow by the usual drop.</textarea>
 
-<label class="lt-label" for="answer">Detailed answer</label>
-<textarea class="lt-textarea" id="answer"
+<label class="lt-label" for="terms">Terms</label>
+<textarea class="lt-textarea" id="terms"
   data-state="invalid" aria-invalid="true">Too short</textarea>
 
-<label class="lt-label" for="note">Note</label>
-<textarea class="lt-textarea" id="note"
-  disabled>The case is closed and cannot be changed.</textarea>
+<label class="lt-label" for="order-log">Order log</label>
+<textarea class="lt-textarea" id="order-log"
+  disabled>A crew has taken job 222-0481. The order is locked.</textarea>
 `}>
 <Fragment slot="ts">
 
@@ -37,7 +37,7 @@ The same look and states as [Input](../input/), for answers longer than one line
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<textarea {...lt.textarea({ state: "invalid" })} id="reason" rows={3} />
+<textarea {...lt.textarea({ state: "invalid" })} id="objective" rows={3} />
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -47,7 +47,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt, type FieldState } from "@lo-tek/interfaces"
 
-const field = document.querySelector<HTMLTextAreaElement>("#reason")
+const field = document.querySelector<HTMLTextAreaElement>("#objective")
 if (!field) throw new Error("element not found")
 
 field.addEventListener("blur", () => {

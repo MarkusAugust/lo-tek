@@ -8,24 +8,24 @@ import Preview from "./Preview.astro"
 	layout="stack"
 	maxWidth="34rem"
 >
-	<p class="lt-paragraph">Application 2026-0481, sent 4 March.</p>
+	<p class="lt-paragraph">Job 222-0481, ordered 4 March.</p>
 
-	<button class="lt-button" data-variant="danger" type="button" id="demo-delete">
-		Delete the application
+	<button class="lt-button" data-variant="danger" type="button" id="demo-cancel">
+		Cancel the job
 	</button>
 
 	<dialog class="lt-dialog" id="demo-dialog" aria-labelledby="demo-dialog-title">
-		<h2 class="lt-dialog__title" id="demo-dialog-title">Delete the application?</h2>
+		<h2 class="lt-dialog__title" id="demo-dialog-title">Cancel job 222-0481?</h2>
 
 		<div class="lt-dialog__body">
 			<p class="lt-paragraph">
-				The application and its attachments will be gone. This cannot be undone.
+				The crew keeps the advance. This cannot be undone.
 			</p>
 		</div>
 
 		<form method="dialog" class="lt-dialog__footer">
-			<button class="lt-button" data-variant="secondary" value="cancel">Cancel</button>
-			<button class="lt-button" data-variant="danger" value="delete">Delete the application</button>
+			<button class="lt-button" data-variant="secondary" value="keep">Keep the job</button>
+			<button class="lt-button" data-variant="danger" value="cancel">Cancel the job</button>
 		</form>
 	</dialog>
 
@@ -43,7 +43,7 @@ import Preview from "./Preview.astro"
 		| (HTMLElement & { show(text: string, options?: { color?: string }): void })
 		| null
 
-	surface?.getElementById("demo-delete")?.addEventListener("click", () => {
+	surface?.getElementById("demo-cancel")?.addEventListener("click", () => {
 		if (!dialog) return
 		// Escape and close() without a value leave the previous value in place.
 		dialog.returnValue = ""
@@ -51,10 +51,10 @@ import Preview from "./Preview.astro"
 	})
 
 	dialog?.addEventListener("close", () => {
-		if (dialog.returnValue !== "delete") return
+		if (dialog.returnValue !== "cancel") return
 
 		// The action has been carried out. The message confirms it, but is not
 		// the place for an undo button: it disappears.
-		messages?.show("The application has been deleted", { color: "success" })
+		messages?.show("Job 222-0481 has been cancelled", { color: "success" })
 	})
 </script>

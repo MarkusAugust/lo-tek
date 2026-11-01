@@ -2,16 +2,16 @@
   "markup": [
     {
       "start": 10,
-      "end": 18,
+      "end": 16,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/link/",
-      "message": "The class \"lt-lenke\" does not exist in LO-TEK. Did you mean lt-link?",
+      "message": "The class \"lt-lnk\" does not exist in LO-TEK. Did you mean lt-link?",
       "fix": {
         "title": "Change to lt-link",
         "edits": [
           {
             "start": 10,
-            "end": 18,
+            "end": 16,
             "text": "lt-link"
           }
         ],
@@ -19,8 +19,8 @@
       }
     },
     {
-      "start": 53,
-      "end": 61,
+      "start": 51,
+      "end": 59,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/button/",
       "message": "The class \"lt-buton\" does not exist in LO-TEK. Did you mean lt-button?",
@@ -28,8 +28,8 @@
         "title": "Change to lt-button",
         "edits": [
           {
-            "start": 53,
-            "end": 61,
+            "start": 51,
+            "end": 59,
             "text": "lt-button"
           }
         ],
@@ -40,16 +40,16 @@
   "page": [
     {
       "start": 10,
-      "end": 18,
+      "end": 16,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/link/",
-      "message": "The class \"lt-lenke\" does not exist in LO-TEK. Did you mean lt-link?",
+      "message": "The class \"lt-lnk\" does not exist in LO-TEK. Did you mean lt-link?",
       "fix": {
         "title": "Change to lt-link",
         "edits": [
           {
             "start": 10,
-            "end": 18,
+            "end": 16,
             "text": "lt-link"
           }
         ],
@@ -57,8 +57,8 @@
       }
     },
     {
-      "start": 53,
-      "end": 61,
+      "start": 51,
+      "end": 59,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/button/",
       "message": "The class \"lt-buton\" does not exist in LO-TEK. Did you mean lt-button?",
@@ -66,8 +66,8 @@
         "title": "Change to lt-button",
         "edits": [
           {
-            "start": 53,
-            "end": 61,
+            "start": 51,
+            "end": 59,
             "text": "lt-button"
           }
         ],

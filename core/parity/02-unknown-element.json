@@ -8,8 +8,8 @@
       "message": "<lt-dialog-header> does not exist in LO-TEK. The elements are lt-field, lt-tabs, lt-error-summary, lt-popover, lt-suggestion, lt-dialog, lt-toast, lt-session-timeout, lt-connection-status."
     },
     {
-      "start": 45,
-      "end": 53,
+      "start": 44,
+      "end": 52,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/",
       "message": "<lt-modal> does not exist in LO-TEK. The elements are lt-field, lt-tabs, lt-error-summary, lt-popover, lt-suggestion, lt-dialog, lt-toast, lt-session-timeout, lt-connection-status."
@@ -24,8 +24,8 @@
       "message": "<lt-dialog-header> does not exist in LO-TEK. The elements are lt-field, lt-tabs, lt-error-summary, lt-popover, lt-suggestion, lt-dialog, lt-toast, lt-session-timeout, lt-connection-status."
     },
     {
-      "start": 45,
-      "end": 53,
+      "start": 44,
+      "end": 52,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/",
       "message": "<lt-modal> does not exist in LO-TEK. The elements are lt-field, lt-tabs, lt-error-summary, lt-popover, lt-suggestion, lt-dialog, lt-toast, lt-session-timeout, lt-connection-status."

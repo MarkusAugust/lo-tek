@@ -335,13 +335,13 @@ import { lt } from "@lo-tek/interfaces"
 import "@lo-tek/interfaces/tokens.css"
 import "@lo-tek/interfaces/field.css"
 
-const email = lt.field({ id: "email", required: "symbol", help: true, error: true })
+const fixer = lt.field({ id: "fixer", required: "symbol", help: true, error: true })
 ---
 
-<label {...email.label}>Email address</label>
-<input {...lt.input({ type: "email" })} {...email.control} name="email" required />
-<p {...lt.helpText()} {...email.help}>We will send the receipt here.</p>
-<p {...lt.errorText()} {...email.error}>Enter a valid address.</p>
+<label {...fixer.label}>Fixer's address</label>
+<input {...lt.input({ type: "email" })} {...fixer.control} name="fixer" required />
+<p {...lt.helpText()} {...fixer.help}>The board writes to the fixer, never to the crew.</p>
+<p {...lt.errorText()} {...fixer.error}>Enter a valid address.</p>
 ```
 
 No `<lt-field>`, no runtime.
@@ -359,9 +359,9 @@ import "@lo-tek/interfaces/field.css"
 ---
 
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" required />
-  <p class="lt-error-text" hidden>Enter your name.</p>
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" required />
+  <p class="lt-error-text" hidden>Enter a codename.</p>
 </lt-field>
 
 <script>

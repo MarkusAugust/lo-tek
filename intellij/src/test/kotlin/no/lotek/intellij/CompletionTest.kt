@@ -151,9 +151,9 @@ class CompletionTest : BasePlatformTestCase() {
         assertTrue("lt-table should be included in an injected string, got $out", out.contains("lt-table"))
     }
 
-    /** The manifest in the package with `lt-card` replaced by `lt-kort`, as after `lotek takeover`. */
+    /** The manifest in the package with `lt-card` replaced by `lt-claim`, as after `lotek takeover`. */
     private val takenOver =
-        java.io.File(System.getProperty("manifest")).readText().replace("\"lt-card\": {", "\"lt-kort\": {")
+        java.io.File(System.getProperty("manifest")).readText().replace("\"lt-card\": {", "\"lt-claim\": {")
 
     fun `test suggests the classes in the project's manifest`() {
         // The same manifest the check runs against (DiagnosticsTest), so
@@ -161,7 +161,7 @@ class CompletionTest : BasePlatformTestCase() {
         // underlines it. It used to read the package's manifest always.
         myFixture.addFileToProject("build/lotek/manifest.json", takenOver)
         val out = suggestions("test.html", """<div class="lt-<caret>">""")
-        assertTrue("lt-kort should be included, got $out", out.contains("lt-kort"))
+        assertTrue("lt-claim should be included, got $out", out.contains("lt-claim"))
         assertFalse("lt-card should not be included, got $out", out.contains("lt-card"))
     }
 
@@ -177,7 +177,7 @@ class CompletionTest : BasePlatformTestCase() {
                 ""${'"'}
                 """.trimIndent(),
             )
-        assertTrue("lt-kort should be included in an injected string, got $out", out.contains("lt-kort"))
+        assertTrue("lt-claim should be included in an injected string, got $out", out.contains("lt-claim"))
         assertFalse("lt-card should not be included, got $out", out.contains("lt-card"))
     }
 

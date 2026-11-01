@@ -36,7 +36,7 @@ import { lt } from "@lo-tek/interfaces"
 
 const ring = document.querySelector<HTMLElement>("#waiting")
 
-lt.setAttributes(ring, lt.spinner({ size: "small", label: "Loading applications" }))
+lt.setAttributes(ring, lt.spinner({ size: "small", label: "Loading sectors" }))
 ```
 
 `label` gives both `role="status"` and `aria-label`, since the ring has no name without both. If you leave it out, the ring is just a shape. See [Type-safe use](../../type-safe-use/).
@@ -57,7 +57,7 @@ Someone listening to the page gets nothing from a ring. Let a visible text carry
 <Example styles={["spinner"]} code={`
 <p role="status">
   <span class="lt-spinner" data-size="small" aria-hidden="true"></span>
-  Fetching your applications
+  Tracing the fault in sector 9
 </p>
 `} />
 
@@ -70,7 +70,7 @@ The ring is `inline-block`, so it sits in line with the text by itself. If you w
 If the ring stands alone, it gets the role and the name itself:
 
 ```html
-<span class="lt-spinner" role="status" aria-label="Loading applications"></span>
+<span class="lt-spinner" role="status" aria-label="Loading sectors"></span>
 ```
 
 That gives the ring a name when someone looks for it, but it is not certain to be announced by itself. A region with `role="status"` announces changes to its content, and the ring has no content. If it matters that the wait is reported, use the paragraph with text above, in a status element that is in the page before the wait starts.
@@ -80,11 +80,11 @@ That gives the ring a name when someone looks for it, but it is not certain to b
 ```html
 <button class="lt-button" disabled>
   <span class="lt-spinner" data-size="small" aria-hidden="true"></span>
-  Sending application
+  Restarting relay 14
 </button>
 ```
 
-Let the button text change from "Send application" to "Sending application". Then the button says what is happening, also for someone who does not see the ring.
+Let the button text change from "Restart relay 14" to "Restarting relay 14". Then the button says what is happening, also for someone who does not see the ring.
 
 ## Classes you can style
 
@@ -106,5 +106,5 @@ See [Customising](../../customising/) for how the variables and the layer work.
 ## Accessibility
 
 - Wait a little before you show it. A ring that flashes past in 100 milliseconds is more disturbing than nothing.
-- Say what is loading, not just that something is loading. "Fetching your applications" is worth more than "Loading".
+- Say what is loading, not just that something is loading. "Tracing the fault in sector 9" is worth more than "Loading".
 - When the wait is over, move focus to where the result appeared, or report it in a `role="status"` element. Otherwise the user is left without knowing that anything happened.

@@ -35,26 +35,26 @@ import no.lotek.field
  * correct markup, checked by the same core as `lotek check`.
  */
 class LtTest {
-    /** An application form with an error in the email field, as a Ktor app would render it. */
-    private fun application(invalid: Boolean): String =
+    /** A job order with an error in the fixer's address, as a Ktor app would render it. */
+    private fun jobOrder(invalid: Boolean): String =
         createHTML().html {
             head {
-                title("Application")
+                title("Job order")
                 link(rel = "stylesheet", href = LotekWebJar.CSS)
             }
             body {
-                form(action = "/application", method = FormMethod.post) {
+                form(action = "/jobs", method = FormMethod.post) {
                     val summary = Lt.errorSummary(count = if (invalid) 1 else 0, id = "errors")
                     div { lt(summary.host)
                         h2 { lt(summary.title); +"Fix 1 error" }
-                        ul { li { +"The email address is missing @" } }
+                        ul { li { +"The fixer's address is missing @" } }
                     }
-                    val field = Lt.field(id = "email", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
-                    label { lt(field.label); +"Email address" }
-                    input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "email" }
-                    p { lt(Lt.helpText(), field.help); +"We send the receipt here." }
+                    val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
+                    label { lt(field.label); +"Fixer's address" }
+                    input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "fixer" }
+                    p { lt(Lt.helpText(), field.help); +"The board writes to the fixer, never to the crew." }
                     p { lt(Lt.errorText(), field.error); +"Enter a valid address." }
-                    button { lt(Lt.button()); +"Send" }
+                    button { lt(Lt.button()); +"Order the job" }
                     button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); +"Save draft" }
                 }
             }
@@ -62,15 +62,15 @@ class LtTest {
 
     @Test
     fun `the page is correct markup, with and without errors`() {
-        assertLotek(application(invalid = false))
-        assertLotek(application(invalid = true))
+        assertLotek(jobOrder(invalid = false))
+        assertLotek(jobOrder(invalid = true))
     }
 
     @Test
     fun `the wiring between label, field and error text is in the HTML`() {
-        val html = application(invalid = true)
-        assertContains(html, """for="email"""")
-        assertContains(html, """aria-describedby="email-help email-error"""")
+        val html = jobOrder(invalid = true)
+        assertContains(html, """for="fixer"""")
+        assertContains(html, """aria-describedby="fixer-help fixer-error"""")
         assertContains(html, """aria-invalid="true"""")
     }
 
@@ -86,7 +86,7 @@ class LtTest {
         // only TypeScript had `lt.card.title`.
         val html = createHTML().div {
             lt(Lt.card())
-            h3 { lt(Lt.card.title); +"Application 2024/1187" }
+            h3 { lt(Lt.card.title); +"Claim AV-2079-0481" }
         }
         assertContains(html, """<h3 class="lt-card__title">""")
         assertLotek(html, fragment = true)

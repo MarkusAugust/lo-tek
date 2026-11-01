@@ -18,14 +18,14 @@ describe("lt-radio", () => {
   beforeEach(() => {
     mount(`
       <fieldset class="lt-fieldset">
-        <legend class="lt-legend">Delivery method</legend>
+        <legend class="lt-legend">Lease length</legend>
         <div class="lt-radio-row">
           <input class="lt-radio" type="radio" id="post" name="delivery" checked />
-          <label class="lt-label" for="post">Standard post</label>
+          <label class="lt-label" for="post">One month</label>
         </div>
         <div class="lt-radio-row">
           <input class="lt-radio" type="radio" id="pickup" name="delivery" />
-          <label class="lt-label" for="pickup">Collect at the office</label>
+          <label class="lt-label" for="pickup">Six months</label>
         </div>
       </fieldset>
     `)

@@ -286,23 +286,23 @@ None of them uses shadow DOM. The content is in plain DOM, so `querySelector`,
 
 ```html
 <form
-  data-signals="{name: '', touched: false}"
-  data-computed:invalid="$touched && $name.trim() === ''"
+  data-signals="{codename: '', touched: false}"
+  data-computed:invalid="$touched && $codename.trim() === ''"
 >
   <lt-field>
-    <label class="lt-label" for="name" data-required="symbol">Full name</label>
+    <label class="lt-label" for="codename" data-required="symbol">Codename</label>
     <input
       class="lt-input"
-      id="name"
+      id="codename"
       type="text"
-      name="name"
-      data-bind:name
+      name="codename"
+      data-bind:codename
       data-on:blur="$touched = true"
     />
-    <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter your name.</p>
+    <p class="lt-error-text" hidden data-attr:hidden="!$invalid">Enter a codename.</p>
   </lt-field>
 
-  <button class="lt-button" type="submit">Send</button>
+  <button class="lt-button" type="submit">Order the job</button>
 </form>
 
 <script type="module">
@@ -314,7 +314,7 @@ None of them uses shadow DOM. The content is in plain DOM, so `querySelector`,
 ```
 
 `data-signals` creates the state, `data-computed:invalid` derives the
-validation from it, `data-bind:name` binds the field both ways, and
+validation from it, `data-bind:codename` binds the field both ways, and
 `data-on:blur` records that the user has left it.
 
 `data-attr:hidden` on the error text is the link to the component: it sets
@@ -331,9 +331,9 @@ as plain HTML:
 
 ```html
 <lt-field>
-  <label class="lt-label" for="email" data-required="text">Email address</label>
-  <input class="lt-input" id="email" type="email" value="alex@" />
-  <p class="lt-help-text">We will send the receipt here.</p>
+  <label class="lt-label" for="fixer" data-required="text">Fixer's address</label>
+  <input class="lt-input" id="fixer" type="email" value="fixer@" />
+  <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
   <p class="lt-error-text">Enter a valid address.</p>
 </lt-field>
 ```
@@ -368,11 +368,11 @@ word. If the server should be able to move the tab, say so with
 
 ```html
 <lt-tabs server-controlled data-on:tab-select="$tab = evt.detail.index">
-  <ul class="lt-tabs__list" aria-label="Parts of the case">
-    <li><a href="#application">Application</a></li>
+  <ul class="lt-tabs__list" aria-label="Parts of the claim">
+    <li><a href="#claim">Claim</a></li>
     <li><a href="#attachments">Attachments</a></li>
   </ul>
-  <section class="lt-tabs__panel" id="application">…</section>
+  <section class="lt-tabs__panel" id="claim">…</section>
   <section class="lt-tabs__panel" id="attachments" hidden="until-found">…</section>
 </lt-tabs>
 ```

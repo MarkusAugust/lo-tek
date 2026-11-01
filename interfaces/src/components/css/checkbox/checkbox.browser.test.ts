@@ -26,20 +26,20 @@ describe("lt-checkbox", () => {
     mount(`
       <div class="lt-checkbox-row">
         <input class="lt-checkbox" type="checkbox" id="terms" />
-        <label class="lt-label" for="terms">I accept the terms</label>
+        <label class="lt-label" for="terms">I accept that floors below 12 are seasonal.</label>
       </div>
       <div class="lt-checkbox-row">
         <input class="lt-checkbox" type="checkbox" id="newsletter" checked />
-        <label class="lt-label" for="newsletter">Send me the newsletter</label>
+        <label class="lt-label" for="newsletter">Tell me when a dry floor comes free</label>
       </div>
       <div class="lt-checkbox-row">
         <input class="lt-checkbox" type="checkbox" id="partial" />
-        <label class="lt-label" for="partial">Select all attachments</label>
+        <label class="lt-label" for="partial">Select all extras</label>
       </div>
       <div class="lt-checkbox-row">
         <input class="lt-checkbox" type="checkbox" id="invalid"
           data-state="invalid" aria-invalid="true" />
-        <label class="lt-label" for="invalid">I confirm the details</label>
+        <label class="lt-label" for="invalid">I confirm that I have read the lease</label>
       </div>
     `)
 

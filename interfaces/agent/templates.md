@@ -298,8 +298,8 @@ None of them uses shadow DOM. The content is in plain DOM, so `querySelector`,
 
 ```html
 <lt-field>
-  <label class="lt-label" for="name" data-required="symbol">Full name</label>
-  <input class="lt-input" id="name" type="text" name="name" value="{{.Name}}" required />
+  <label class="lt-label" for="codename" data-required="symbol">Codename</label>
+  <input class="lt-input" id="codename" type="text" name="codename" value="{{.Codename}}" required />
   {{if .Error}}<p class="lt-error-text">{{.Error}}</p>{{end}}
 </lt-field>
 ```
@@ -313,7 +313,7 @@ In a loop the id comes from a key in the data, never from the index or a
 counter:
 
 ```html
-{{range .Municipalities}}
+{{range .Targets}}
 <lt-field>
   <label for="note-{{.Code}}">{{.Name}}</label>
   <input class="lt-input" id="note-{{.Code}}" name="note-{{.Code}}" value="{{.Note}}" />
@@ -372,11 +372,11 @@ putting the user's choice back:
 
 ```html
 <lt-tabs server-controlled>
-  <ul class="lt-tabs__list" aria-label="Parts of the case">
-    <li><a href="#application">Application</a></li>
+  <ul class="lt-tabs__list" aria-label="Parts of the claim">
+    <li><a href="#claim">Claim</a></li>
     <li><a href="#attachments">Attachments</a></li>
   </ul>
-  <section class="lt-tabs__panel" id="application">…</section>
+  <section class="lt-tabs__panel" id="claim">…</section>
   <section class="lt-tabs__panel" id="attachments" hidden="until-found">…</section>
 </lt-tabs>
 ```

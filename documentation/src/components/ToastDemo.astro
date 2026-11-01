@@ -14,7 +14,7 @@ import Preview from "./Preview.astro"
 		.surface { min-block-size: 10rem; }
 	`}
 >
-	<button class="lt-button" id="demo-toast-button" type="button">Save the application</button>
+	<button class="lt-button" id="demo-toast-button" type="button">Restart relay 14</button>
 	<lt-toast id="demo-toast-queue" label="Notifications"></lt-toast>
 </Preview>
 
@@ -29,6 +29,6 @@ import Preview from "./Preview.astro"
 	const messages = surface?.getElementById("demo-toast-queue")
 
 	button?.addEventListener("click", () => {
-		messages?.show("The application has been saved", { color: "success" })
+		messages?.show("Relay 14 is back", { color: "success" })
 	})
 </script>

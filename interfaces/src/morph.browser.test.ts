@@ -125,9 +125,9 @@ describe("a morph does not strip what the component sets", () => {
    */
   const FIELD = `
     <lt-field>
-      <label class="lt-label" for="email">Email</label>
-      <input class="lt-input" id="email" />
-      <p class="lt-help-text">We never send spam.</p>
+      <label class="lt-label" for="fixer">Fixer's address</label>
+      <input class="lt-input" id="fixer" />
+      <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
       <p class="lt-error-text">Enter a valid address.</p>
     </lt-field>`
 
@@ -160,7 +160,7 @@ describe("a morph does not strip what the component sets", () => {
       ).not.toBeNull()
     }
 
-    expect(label.htmlFor).toBe("email")
+    expect(label.htmlFor).toBe("fixer")
     expect(document.getElementById(label.htmlFor)).toBe(control)
     expect(label.classList.contains("lt-label")).toBe(true)
   })
@@ -174,8 +174,8 @@ describe("a morph does not strip what the component sets", () => {
      */
     const WRAPPED = `
       <lt-field>
-        <label class="lt-label">Email <input class="lt-input" /></label>
-        <p class="lt-help-text">We never send spam.</p>
+        <label class="lt-label">Fixer's address <input class="lt-input" /></label>
+        <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
       </lt-field>`
     const field = mountMarkup(WRAPPED)
     await customElements.whenDefined("lt-field")
@@ -207,14 +207,14 @@ describe("a morph does not strip what the component sets", () => {
     const old = field.querySelector("input") as HTMLInputElement
     const replacement = document.createElement("input")
     replacement.className = "lt-input"
-    replacement.id = "email"
+    replacement.id = "fixer"
     old.replaceWith(replacement)
 
     await new Promise((done) => requestAnimationFrame(done))
 
     const control = field.querySelector("input") as HTMLInputElement
     expect(control).toBe(replacement)
-    expect(label.htmlFor).toBe("email")
+    expect(label.htmlFor).toBe("fixer")
     expect(document.getElementById(label.htmlFor)).toBe(control)
     expect(control.getAttribute("aria-describedby")).toBeTruthy()
     expect(control.getAttribute("aria-invalid")).toBe("true")
@@ -230,8 +230,8 @@ describe("a morph does not strip what the component sets", () => {
     const MARKUP = `
       <lt-dialog ${attr(box.host)}>
         <dialog ${attr(box.dialog)}>
-          <h2 ${attr(box.title)}>The decision is registered</h2>
-          <div ${attr(box.body)}><p>The case is closed.</p></div>
+          <h2 ${attr(box.title)}>The order is placed</h2>
+          <div ${attr(box.body)}><p>Job 222-0481 is open to crews.</p></div>
         </dialog>
       </lt-dialog>`
 
@@ -276,8 +276,8 @@ describe("a morph does not strip what the component sets", () => {
     const MARKUP = `
       <lt-dialog ${attr(box.host)}>
         <dialog ${attr(dialogWithoutOpen)}>
-          <h2 ${attr(box.title)}>The decision is registered</h2>
-          <div ${attr(box.body)}><p>The case is closed.</p></div>
+          <h2 ${attr(box.title)}>The order is placed</h2>
+          <div ${attr(box.body)}><p>Job 222-0481 is open to crews.</p></div>
         </dialog>
       </lt-dialog>`
 
@@ -306,7 +306,7 @@ describe("a morph does not strip what the component sets", () => {
    * so with `hidden`, and the server does not send that state, because it
    * follows from what the user has typed.
    */
-  const SUGGESTION = suggestion({ id: "municipality", keys: ["a", "b"] })
+  const SUGGESTION = suggestion({ id: "breaker", keys: ["a", "b"] })
   const attr = (values: Record<string, unknown>) =>
     Object.entries(values)
       .map(([name, value]) => (value === true ? name : `${name}="${value}"`))
@@ -314,12 +314,12 @@ describe("a morph does not strip what the component sets", () => {
 
   const FIELD_WITH_SUGGESTIONS = `
     <lt-suggestion>
-      <label ${attr(SUGGESTION.label)}>Municipality</label>
+      <label ${attr(SUGGESTION.label)}>Breaker</label>
       <div>
-        <input ${attr(SUGGESTION.control)} name="municipality">
+        <input ${attr(SUGGESTION.control)} name="breaker">
         <ul ${attr(SUGGESTION.list)}>
-          <li ${attr(SUGGESTION.options[0])}>Bergen</li>
-          <li ${attr(SUGGESTION.options[1])}>Bodø</li>
+          <li ${attr(SUGGESTION.options[0])}>Crowbar</li>
+          <li ${attr(SUGGESTION.options[1])}>Needle</li>
         </ul>
         <p ${attr(SUGGESTION.empty)}>No matches</p>
         <span ${attr(SUGGESTION.status)}></span>
@@ -431,7 +431,7 @@ describe("a morph does not strip what the component sets", () => {
      * The ids from `lt.suggestion()` are positional, so a new list reuses
      * them. If the component remembered only the id, it set the highlight
      * back on option number two in an entirely different list, and the screen
-     * reader announced a municipality the user never navigated to. The text
+     * reader announced a breaker the user never navigated to. The text
      * is the identity.
      */
     const field = mountMarkup(FIELD_WITH_SUGGESTIONS)
@@ -460,11 +460,11 @@ describe("a morph does not strip what the component sets", () => {
      * new attributes.
      */
     const NEW_LIST = FIELD_WITH_SUGGESTIONS.replace(
-      ">Bergen<",
-      ">Alta<",
-    ).replace(">Bodø<", ">Asker<")
-    options[0].textContent = "Alta"
-    options[1].textContent = "Asker"
+      ">Crowbar<",
+      ">Lockjaw<",
+    ).replace(">Needle<", ">Saltwater<")
+    options[0].textContent = "Lockjaw"
+    options[1].textContent = "Saltwater"
     morph(field, NEW_LIST)
     await new Promise((done) => requestAnimationFrame(done))
 
@@ -484,13 +484,13 @@ describe("a morph does not strip what the component sets", () => {
     await new Promise((done) => requestAnimationFrame(done))
 
     const control = field.querySelector("input") as HTMLInputElement
-    control.value = "Be"
+    control.value = "Cr"
     control.dispatchEvent(new Event("input", { bubbles: true }))
 
     const empty = field.querySelector(".lt-suggestion__empty") as HTMLElement
     expect(
       empty.hidden,
-      "“No matches” was showing although Bergen matched",
+      "“No matches” was showing although Crowbar matched",
     ).toBe(true)
 
     morph(field, FIELD_WITH_SUGGESTIONS)
@@ -507,9 +507,9 @@ describe("a morph does not strip what the component sets", () => {
    * them back.
    */
   const TABS = tabs({
-    id: "case",
+    id: "file",
     keys: ["overview", "attachments"],
-    label: "The case",
+    label: "The claim",
   })
 
   const TAB_MARKUP = `

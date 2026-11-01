@@ -22,7 +22,7 @@ export type LinkAttributes = {
  * The attributes for a link.
  *
  * ```ts
- * <a {...link()} href="/receipt">See receipt</a>
+ * <a {...link()} href="/small-print">Read the small print</a>
  * <a {...link({ disabled: true })}>See annual statement</a>
  * ```
  *

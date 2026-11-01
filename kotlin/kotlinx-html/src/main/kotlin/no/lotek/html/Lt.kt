@@ -6,10 +6,10 @@ import kotlinx.html.Tag
  * Puts the attributes from LO-TEK's builder functions on a tag in kotlinx.html.
  *
  * ```kotlin
- * val field = Lt.field(id = "email", required = RequiredMarker.TEXT, error = true, invalid = invalid)
+ * val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, error = true, invalid = invalid)
  *
- * label { lt(field.label); +"Email address" }
- * input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "email" }
+ * label { lt(field.label); +"Fixer's address" }
+ * input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "fixer" }
  * p { lt(Lt.errorText(), field.error); +"Enter a valid address." }
  * ```
  *

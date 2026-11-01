@@ -11,11 +11,11 @@ Size and level are two different things. The level is `<h1>` to `<h6>` and decid
 
 <Example imports={["tokens.css", "heading.css"]}
   styles={["heading"]} layout="stack" maxWidth="32rem" code={`
-<h1 class="lt-heading" data-size="mega">Housing benefit application</h1>
-<h2 class="lt-heading" data-size="xl">About the applicant</h2>
-<h2 class="lt-heading">Living situation</h2>
-<h3 class="lt-heading" data-size="m">Attachments</h3>
-<h4 class="lt-heading" data-size="s">Birth certificate</h4>
+<h1 class="lt-heading" data-size="mega">Runner's policy terms</h1>
+<h2 class="lt-heading" data-size="xl">About the policyholder</h2>
+<h2 class="lt-heading">What we cover</h2>
+<h3 class="lt-heading" data-size="m">Exclusions</h3>
+<h4 class="lt-heading" data-size="s">Acts of God</h4>
 <h5 class="lt-heading" data-size="xs">Last changed</h5>
 `}>
 <Fragment slot="ts">
@@ -27,7 +27,7 @@ Size and level are two different things. The level is `<h1>` to `<h6>` and decid
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<h1 {...lt.heading({ size: "mega" })}>Housing benefit application</h1>
+<h1 {...lt.heading({ size: "mega" })}>Runner's policy terms</h1>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -61,7 +61,7 @@ If the size comes from outside content, validate it with `lt.heading.isSize(x)`.
 An `<h2>` that should look small is correct. An `<h4>` chosen because it was small enough skips a level, and the table of contents the screen reader builds is then wrong:
 
 ```html
-<h2 class="lt-heading" data-size="s">Attachments</h2>
+<h2 class="lt-heading" data-size="s">The small print</h2>
 ```
 
 The page should have one `<h1>`, and the levels below should follow each other without skipping.

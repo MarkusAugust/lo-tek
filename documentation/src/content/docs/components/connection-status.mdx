@@ -5,7 +5,14 @@ description: Tells the user when the connection to the server is gone. Standalon
 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
 import ConnectionStatusDemo from "../../../components/ConnectionStatusDemo.astro"
+import Epigraph from "../../../components/Epigraph.astro"
 import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
+
+<Epigraph source="Meridian Lattice, the Monday after">
+  “How did you get in?”
+
+  “Page four of your own manual,” Trace said.
+</Epigraph>
 
 A page that loses its connection looks completely normal, but is frozen. If the user fills in a form over a dead connection, everything is gone when she presses send.
 
@@ -47,9 +54,9 @@ defineLtConnectionStatus()
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
 
-      async function save(body) {
+      async function saveRoute(body) {
         try {
-          const response = await fetch("/api/save", { method: "POST", body })
+          const response = await fetch("/api/routes", { method: "POST", body })
           if (!response.ok) throw new Error(response.statusText)
           connection.reportSuccess()
         } catch {
@@ -81,11 +88,11 @@ defineLtConnectionStatus()
       return <lt-connection-status {...lt.connectionStatus()} />
     }
 
-    export async function save(body: BodyInit) {
+    export async function saveRoute(body: BodyInit) {
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
       try {
-        const response = await fetch("/api/save", { method: "POST", body })
+        const response = await fetch("/api/routes", { method: "POST", body })
         if (!response.ok) throw new Error(response.statusText)
         await reportSuccess(connection)
       } catch {
@@ -157,7 +164,7 @@ const connection = document.querySelector("lt-connection-status")
 if (!connection) throw new Error("element not found")
 
 try {
-  const response = await fetch("/api/save", { method: "POST", body })
+  const response = await fetch("/api/routes", { method: "POST", body })
   if (!response.ok) throw new Error(response.statusText)
   connection.reportSuccess()
 } catch {

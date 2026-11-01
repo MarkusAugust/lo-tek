@@ -52,8 +52,8 @@ export type PopoverAttributes = {
  * ```
  * ```html
  * <lt-popover>
- *   <button {...box.trigger}>What does this mean?</button>
- *   <div {...box.panel}>We use the date of birth to find the right rate.</div>
+ *   <button {...box.trigger}>What is the late fee?</button>
+ *   <div {...box.panel}>EB 100 a night past the return date. No exceptions.</div>
  * </lt-popover>
  * ```
  */

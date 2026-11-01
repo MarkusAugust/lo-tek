@@ -53,10 +53,8 @@ describe("the saving example on the page", () => {
     })
     new Function(script)()
 
-    const toggle = document.getElementById("notifications") as HTMLInputElement
-    const message = document.getElementById(
-      "notifications-status",
-    ) as HTMLElement
+    const toggle = document.getElementById("auto-renew") as HTMLInputElement
+    const message = document.getElementById("auto-renew-status") as HTMLElement
     toggle.focus()
     toggle.click()
 
@@ -82,7 +80,7 @@ describe("the saving example on the page", () => {
     expect(toggle.checked).toBe(true)
 
     await vi.waitFor(() =>
-      expect(message.textContent).toBe("Notifications are on."),
+      expect(message.textContent).toBe("Auto-renew is on."),
     )
 
     expect(document.activeElement).toBe(toggle)
@@ -93,7 +91,9 @@ describe("the saving example on the page", () => {
     expect(toggle.checked).toBe(false)
     expect(calls()).toBe(2)
     await vi.waitFor(() =>
-      expect(message.textContent).toBe("Notifications are off."),
+      expect(message.textContent).toBe(
+        "Auto-renew is off. Your walls expire with the subscription.",
+      ),
     )
   })
 })
@@ -103,11 +103,11 @@ describe("lt-switch", () => {
     mount(`
       <div class="lt-switch-row">
         <input class="lt-switch" type="checkbox" role="switch" id="alerts" checked />
-        <label class="lt-label" for="alerts">Email me</label>
+        <label class="lt-label" for="alerts">Auto-renew</label>
       </div>
       <div class="lt-switch-row">
         <input class="lt-switch" type="checkbox" role="switch" id="sms" />
-        <label class="lt-label" for="sms">Text me</label>
+        <label class="lt-label" for="sms">Lethal response</label>
       </div>
     `)
   })

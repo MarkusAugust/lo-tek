@@ -132,9 +132,9 @@ const withDialog = (html: string, extra: string) =>
 
 /** The id the server writes on its title, in the versions that name one. */
 const TITLE_ID = "confirm-title"
-const LABEL = "Confirm the deletion"
+const LABEL = "Confirm the cancellation"
 const BODY_HEADING = "Attachments"
-const CHANGED_TITLE = "Delete the application and its attachments?"
+const CHANGED_TITLE = "Cancel job 222-0481 before a crew takes it?"
 
 // What `lt.dialog()` writes, on a server that runs JavaScript: the whole
 // wiring, with the recipe's id, texts and buttons.
@@ -192,7 +192,7 @@ const VERSIONS: Record<string, string> = {
   content: swap(
     swap(HOST, HEADING[0], `<h2>${CHANGED_TITLE}</h2>`),
     BODY[1],
-    "<p>The application, its three attachments and the case notes will be gone.</p>",
+    "<p>The crew keeps the advance and the floor plans. This cannot be undone.</p>",
   ),
   // A template that writes `open` on the host only, as the documentation
   // once showed: every morph takes the browser's `open` from the dialog.
@@ -266,7 +266,7 @@ type Action =
   | "click opener"
   | "focus opener"
   | "Escape"
-  | "click cancel"
+  | "click keep"
   | "Enter"
   | "Tab"
   | "open = true"
@@ -298,7 +298,7 @@ const ACTIONS: Step[] = (
     "click opener",
     "focus opener",
     "Escape",
-    "click cancel",
+    "click keep",
     "Enter",
     "Tab",
     "open = true",
@@ -354,7 +354,7 @@ const STATE_STEPS = pick(STEPS, [
   "click opener",
   "focus opener",
   "Escape",
-  "click cancel",
+  "click keep",
   "Enter",
   "Tab",
   "open = true",
@@ -372,7 +372,7 @@ const SEQUENCE_STEPS = pick(STEPS, [
   "content by innerHTML",
   "click opener",
   "Escape",
-  "click cancel",
+  "click keep",
   "open = false",
 ])
 /** What the sequences leave out: Tab is the browser's, and the state search presses it in every engine. */
@@ -495,7 +495,7 @@ function expectAction(ctx: Context, action: Action): Expectation {
       return unchanged
     case "Escape":
       return closes("", "user")
-    case "click cancel":
+    case "click keep":
       return closes(VALUES[0], "user")
     case "Enter":
       // The key activates the focused button: one in the form closes the
@@ -609,7 +609,7 @@ async function apply(step: Step): Promise<void> {
       // inert check also relies on.
       opener().focus()
       break
-    case "click cancel":
+    case "click keep":
       // The button is shown only in an open dialog.
       if (modal) await userEvent.click(buttonsOf(d)[0])
       break

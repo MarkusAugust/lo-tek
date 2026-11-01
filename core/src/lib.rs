@@ -884,17 +884,17 @@ mod tests {
     #[test]
     fn a_disabled_link_with_href_can_still_be_followed() {
         for html in [
-            r#"<a class="lt-link" aria-disabled="true" href="/arsoppgave">Se årsoppgave</a>"#,
-            r#"<a class="lt-button" href="/videre" aria-disabled=" TRUE ">Videre</a>"#,
+            r#"<a class="lt-link" aria-disabled="true" href="/small-print">Read the small print</a>"#,
+            r#"<a class="lt-button" href="/next" aria-disabled=" TRUE ">Next</a>"#,
         ] {
             let found = check(html);
             assert_eq!(found.len(), 1, "{html}: {found:?}");
             assert_eq!(found[0].rule, "disabled-with-href");
         }
         for html in [
-            r#"<a class="lt-link" role="link" tabindex="0" aria-disabled="true">Se årsoppgave</a>"#,
-            r#"<a class="lt-link" aria-disabled="false" href="/arsoppgave">Se årsoppgave</a>"#,
-            r#"<a class="app-link" aria-disabled="true" href="/arsoppgave">Se årsoppgave</a>"#,
+            r#"<a class="lt-link" role="link" tabindex="0" aria-disabled="true">Read the small print</a>"#,
+            r#"<a class="lt-link" aria-disabled="false" href="/small-print">Read the small print</a>"#,
+            r#"<a class="app-link" aria-disabled="true" href="/small-print">Read the small print</a>"#,
         ] {
             assert!(check(html).is_empty(), "{html}: {:?}", check(html));
         }

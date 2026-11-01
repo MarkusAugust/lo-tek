@@ -2083,19 +2083,19 @@ mod tests {
     fn focus_follows_the_active_descendant() {
         // Found by comparing the core with Chromium and Firefox through AT-SPI.
         let tree = tree(
-            r##"<input role="combobox" aria-expanded="true" aria-activedescendant="o2" data-lt-ax-focused="1"><ul role="listbox"><li role="option" id="o1">Oslo</li><li role="option" id="o2" aria-selected="true">Bergen</li></ul>"##,
+            r##"<input role="combobox" aria-expanded="true" aria-activedescendant="o2" data-lt-ax-focused="1"><ul role="listbox"><li role="option" id="o1">Crowbar</li><li role="option" id="o2" aria-selected="true">Needle</li></ul>"##,
         );
         let focused: Vec<&str> = tree
             .iter()
             .filter(|n| n.states.contains(&"focused"))
             .map(|n| n.name.as_str())
             .collect();
-        assert_eq!(focused, vec!["Bergen"]);
+        assert_eq!(focused, vec!["Needle"]);
     }
 
     #[test]
     fn a_native_select_can_be_expanded() {
-        let tree = tree(r##"<select><option>Oslo</option></select>"##);
+        let tree = tree(r##"<select><option>Crowbar</option></select>"##);
         assert_eq!(node(&tree, "combobox").states, vec!["expandable"]);
     }
 
@@ -2109,9 +2109,9 @@ mod tests {
 
     #[test]
     fn comments_and_line_breaks_in_a_name() {
-        let tree = tree(r##"<button>Sa<!-- -->ve</button><a href="#x">Delete<br>application</a>"##);
+        let tree = tree(r##"<button>Sa<!-- -->ve</button><a href="#x">Cancel<br>the job</a>"##);
         assert_eq!(node(&tree, "button").name, "Save");
-        assert_eq!(node(&tree, "link").name, "Delete application");
+        assert_eq!(node(&tree, "link").name, "Cancel the job");
     }
 
     #[test]
@@ -2134,7 +2134,7 @@ mod tests {
     #[test]
     fn roles_html_and_aria_give() {
         let tree = tree(
-            r##"<select size="4"><option>Oslo</option></select><div role="feed article">x</div><button role="presentation">Save</button><input type="image" alt="Search">"##,
+            r##"<select size="4"><option>Crowbar</option></select><div role="feed article">x</div><button role="presentation">Save</button><input type="image" alt="Search">"##,
         );
         assert!(tree.iter().any(|n| n.role == "listbox"));
         assert!(tree.iter().any(|n| n.role == "feed"));

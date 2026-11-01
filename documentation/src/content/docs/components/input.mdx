@@ -12,17 +12,17 @@ Plain CSS on an ordinary `<input>`, so the browser's own validation, autofill an
 
 <Example imports={["tokens.css", "input.css", "label.css"]}
   styles={["input", "label"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" for="email">Email address</label>
-<input class="lt-input" id="email" type="email" placeholder="alex&#64;example.com" />
+<label class="lt-label" for="fixer">Fixer's address</label>
+<input class="lt-input" id="fixer" type="email" name="fixer" placeholder="fixer&#64;relay.example" />
 
-<label class="lt-label" for="confirm">Confirm email address</label>
-<input class="lt-input" id="confirm" type="email" data-state="success" value="alex&#64;example.com" />
+<label class="lt-label" for="confirm">Confirm the fixer's address</label>
+<input class="lt-input" id="confirm" type="email" data-state="success" value="fixer&#64;relay.example" />
 
-<label class="lt-label" for="backup">Backup email</label>
-<input class="lt-input" id="backup" type="email" data-state="invalid" aria-invalid="true" value="alex&#64;" />
+<label class="lt-label" for="backup">Backup fixer</label>
+<input class="lt-input" id="backup" type="email" data-state="invalid" aria-invalid="true" value="fixer&#64;" />
 
-<label class="lt-label" for="registered">Registered email address</label>
-<input class="lt-input" id="registered" type="email" value="alex&#64;example.com" disabled />
+<label class="lt-label" for="registered">Fixer on file</label>
+<input class="lt-input" id="registered" type="email" value="fixer&#64;relay.example" disabled />
 `}>
 <Fragment slot="ts">
 
@@ -33,7 +33,7 @@ Plain CSS on an ordinary `<input>`, so the browser's own validation, autofill an
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<input {...lt.input({ type: "email", state: "invalid" })} id="email" />
+<input {...lt.input({ type: "email", state: "invalid" })} id="fixer" />
 ```
 
 The import goes to `/react` here, since the block is JSX. From there the keys are called `className` and `htmlFor`. In Astro and anything else without React you import `@lo-tek/interfaces` and get `class` and `for`.
@@ -43,7 +43,7 @@ The import goes to `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt, type FieldState } from "@lo-tek/interfaces"
 
-const field = document.querySelector<HTMLInputElement>("#email")
+const field = document.querySelector<HTMLInputElement>("#fixer")
 if (!field) throw new Error("field not found")
 
 lt.setAttributes(field, lt.input({ type: "email" }))
@@ -79,11 +79,11 @@ Values from outside: `lt.input.isType(x)` and `lt.input.isState(x)`. See [Type-s
 ## Date and time
 
 <Example styles={["input", "label"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label" for="date">Travel date</label>
-<input class="lt-input" id="date" data-variant="date" type="date" value="2026-05-31" />
+<label class="lt-label" for="date">Deliver by</label>
+<input class="lt-input" id="date" data-variant="date" type="date" value="2079-05-31" />
 
-<label class="lt-label" for="time">Departure time</label>
-<input class="lt-input" id="time" data-variant="time" type="time" value="14:30" />
+<label class="lt-label" for="time">Hour of delivery</label>
+<input class="lt-input" id="time" data-variant="time" type="time" value="03:00" />
 `} />
 
 :::caution[`data-variant` and `type` must match]
@@ -121,11 +121,11 @@ An example. A form to be filled in on a phone can take larger touch targets, and
 	--lt-input-radius: 0;
 }
 `} code={`
-<label class="lt-label" for="default">Customer number</label>
+<label class="lt-label" for="default">Fixer number</label>
 <input class="lt-input" id="default" type="text" />
 
 <div class="roomy-form">
-  <label class="lt-label" for="roomy">Customer number</label>
+  <label class="lt-label" for="roomy">Fixer number</label>
   <input class="lt-input" id="roomy" type="text" />
 </div>
 `} />

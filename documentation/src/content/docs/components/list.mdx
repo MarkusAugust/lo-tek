@@ -12,20 +12,20 @@ The class goes on `<ul>` or `<ol>` and gives the list the right spacing and inde
 <Example imports={["tokens.css", "list.css"]}
   styles={["list"]} layout="stack" maxWidth="32rem" code={`
 <ul class="lt-list">
-  <li>Birth certificate</li>
-  <li>Confirmation from your employer</li>
-  <li>Copy of the tenancy agreement</li>
+  <li>Floor plans</li>
+  <li>Guard rotation for sub-level two</li>
+  <li>Camera map of the loading dock</li>
 </ul>
 
 <ol class="lt-list">
-  <li>Fill in the form</li>
-  <li>Upload attachments</li>
-  <li>Send the application</li>
+  <li>State the objective</li>
+  <li>Set the budget</li>
+  <li>Order the job</li>
 </ol>
 
 <ul class="lt-list" data-variant="divided">
-  <li>Invoice 2026-0481, due 4 March</li>
-  <li>Invoice 2026-0482, due 4 April</li>
+  <li>Job 222-0481, deliver by 4 March</li>
+  <li>Job 222-0482, deliver by 4 April</li>
 </ul>
 `}>
 <Fragment slot="ts">
@@ -38,8 +38,8 @@ The class goes on `<ul>` or `<ol>` and gives the list the right spacing and inde
 import { lt } from "@lo-tek/interfaces/react"
 
 <ul {...lt.list({ variant: "divided" })}>
-  <li>Housing benefit application</li>
-  <li>Home loan application</li>
+  <li>Job 222-0481</li>
+  <li>Job 222-0482</li>
 </ul>
 ```
 
@@ -72,14 +72,14 @@ Without `plain`, people would write `<div>` to get rid of the bullets, and the i
 <ul class="lt-list" data-variant="plain">
   <li>
     <div class="lt-card">
-      <h3 class="lt-card__title">Housing benefit application</h3>
-      <p>Sent 4 March.</p>
+      <h3 class="lt-card__title">Job 222-0481</h3>
+      <p>Ordered 4 March.</p>
     </div>
   </li>
   <li>
     <div class="lt-card">
-      <h3 class="lt-card__title">Nursery place application</h3>
-      <p>In progress.</p>
+      <h3 class="lt-card__title">Job 222-0482</h3>
+      <p>Waiting for a crew.</p>
     </div>
   </li>
 </ul>

@@ -126,7 +126,7 @@ const li = (text: string, extra = "") =>
   `<li${extra ? ` ${extra}` : ""}>${text}</li>`
 
 /** A third option, which only a changed list has. Starts with the letter the user types. */
-const THIRD = "Bodø"
+const THIRD = "Boltcutter"
 /** What the user types: one letter, which the first option and the third contain, and the second not. */
 const LETTER = "b"
 if (
@@ -152,8 +152,8 @@ const COUNTS = {
 const VERSIONS: Record<string, string> = {
   // A bare field and a bare list: the component writes the rest.
   recipe: HOST,
-  // The server answered a search the component cannot do (`malmo` without
-  // diacritics) and sent only that match, with the empty message hidden.
+  // The server answered a search the component cannot do (`spike`, the
+  // alias for Needle) and sent only that match, with the empty message hidden.
   prefiltered: swap(
     withList(withHost(HOST, "prefiltered"), li(SECOND)),
     EMPTY_TAG,

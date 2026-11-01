@@ -14,7 +14,7 @@ A row of "Delete" buttons makes sense to someone looking at the table. Someone l
 <Example imports={["tokens.css", "sr-only.css", "button.css"]}
   styles={["button", "sr-only"]} layout="stack" maxWidth="26rem" code={`
 <button class="lt-button" data-variant="danger">
-  Delete<span class="lt-sr-only"> the application from 4 March</span>
+  Delete<span class="lt-sr-only"> the report from 4 March</span>
 </button>
 `}>
 <Fragment slot="ts">
@@ -28,11 +28,11 @@ import { lt } from "@lo-tek/interfaces/react"
 
 <button {...lt.button({ variant: "ghost" })} type="button">
   Delete{" "}
-  <span {...lt.srOnly()}>application 2024/1187</span>
+  <span {...lt.srOnly()}>report 1187</span>
 </button>
 ```
 
-`{" "}` is the space between the two words. JSX strips a line break between text and an element, and without it the button is read as "Deleteapplication".
+`{" "}` is the space between the two words. JSX strips a line break between text and an element, and without it the button is read as "Deletereport".
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
 
@@ -42,7 +42,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 import { lt } from "@lo-tek/interfaces"
 
 const addition = document.createElement("span")
-addition.textContent = " the application from 4 March"
+addition.textContent = " the report from 4 March"
 
 lt.setAttributes(addition, lt.srOnly())
 ```
@@ -50,15 +50,15 @@ lt.setAttributes(addition, lt.srOnly())
 </Fragment>
 </Example>
 
-The button is read out as "Delete the application from 4 March", while it shows "Delete" on screen.
+The button is read out as "Delete the report from 4 March", while it shows "Delete" on screen.
 
 ## Hidden label
 
 If the label is obvious from the layout, it can be hidden visually. It should not be removed.
 
 <Example styles={["input", "label", "sr-only", "button"]} layout="stack" maxWidth="26rem" code={`
-<label class="lt-label lt-sr-only" for="search">Search cases</label>
-<input class="lt-input" id="search" type="search" placeholder="Search cases" />
+<label class="lt-label lt-sr-only" for="search">Search the site</label>
+<input class="lt-input" id="search" type="search" placeholder="Search the site" />
 `} />
 
 `placeholder` is no replacement for a label: it disappears as soon as the user types, and several screen readers do not read it out at all.

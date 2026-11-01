@@ -59,11 +59,11 @@ const NORWEGIAN: Texts = {
 }
 
 const ENGLISH: Texts = {
-  title: "You will soon be signed out",
-  before: "We will sign you out in",
-  after: "to protect your information.",
-  stay: "Stay signed in",
-  leave: "Sign out now",
+  title: "Your session is ending",
+  before: "The Lattice logs you out in",
+  after: "unless you answer.",
+  stay: "Stay connected",
+  leave: "Log out",
 }
 
 /** The warning as the renderer writes it, with the builder function. */
@@ -798,7 +798,7 @@ describe("lt-session-timeout: announcements in the page language, and moving", (
     await advance(1)
 
     expect(announced()).toBe(
-      "We will sign you out in 1 minute and 30 seconds to protect your information.",
+      "The Lattice logs you out in 1 minute and 30 seconds unless you answer.",
     )
   })
 

@@ -248,7 +248,7 @@ await on(
     expect(result.role === "alert", "the box is not an alert")
     expect(result.title.length > 0, "the heading is empty")
     expect(
-      result.focus === "demo-email",
+      result.focus === "demo-fixer",
       `a link gave focus to "${result.focus}", expected the field`,
     )
   },
@@ -259,7 +259,7 @@ await on("suggestion", "demo-suggestion", "lt-suggestion", async (page, id) => {
     const root = document.getElementById(id)?.shadowRoot
     const field = root?.querySelector("input") as HTMLInputElement | null
     if (field) {
-      field.value = "bo"
+      field.value = "lo"
       field.dispatchEvent(new Event("input", { bubbles: true }))
     }
     const options = [...(root?.querySelectorAll("[role='option']") ?? [])]

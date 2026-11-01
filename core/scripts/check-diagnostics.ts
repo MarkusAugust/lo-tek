@@ -73,7 +73,7 @@ type Case = {
   page?: boolean
 }
 
-const FIELD_OK = `<lt-field id="f"><label for="navn">Navn</label><input class="lt-input" name="navn" id="navn"></lt-field>`
+const FIELD_OK = `<lt-field id="f"><label for="handle">Handle</label><input class="lt-input" name="handle" id="handle"></lt-field>`
 
 const cases: Case[] = [
   {
@@ -94,14 +94,14 @@ const cases: Case[] = [
   },
   {
     name: "an icon named by text, aria-label, title, alt or an svg title",
-    html: `<button><svg class="lt-icon" aria-hidden="true"></svg> Slett</button>
-<button aria-label="Slett"><svg class="lt-icon" aria-hidden="true"></svg></button>
-<button title="Slett"><svg class="lt-icon" aria-hidden="true"></svg></button>
-<button><svg class="lt-icon" aria-hidden="true"></svg><span class="lt-sr-only">Slett</span></button>
-<button><img src="x.svg" alt="Slett"></button>
-<button><svg><title>Slett</title></svg></button>
+    html: `<button><svg class="lt-icon" aria-hidden="true"></svg> Delete</button>
+<button aria-label="Delete"><svg class="lt-icon" aria-hidden="true"></svg></button>
+<button title="Delete"><svg class="lt-icon" aria-hidden="true"></svg></button>
+<button><svg class="lt-icon" aria-hidden="true"></svg><span class="lt-sr-only">Delete</span></button>
+<button><img src="x.svg" alt="Delete"></button>
+<button><svg><title>Delete</title></svg></button>
 <a><svg class="lt-icon" aria-hidden="true"></svg></a>
-<button>{{ .Navn }}<svg class="lt-icon" aria-hidden="true"></svg></button>
+<button>{{ .Handle }}<svg class="lt-icon" aria-hidden="true"></svg></button>
 <button></button>`,
     count: 0,
   },
@@ -113,7 +113,7 @@ const cases: Case[] = [
   },
   {
     name: "a field with two controls",
-    html: `<lt-field><label for="a">Telefon</label><input name="a" id="a"><select name="b"></select></lt-field>`,
+    html: `<lt-field><label for="a">Phone</label><input name="a" id="a"><select name="b"></select></lt-field>`,
     count: 1,
     mentions: [
       '<lt-field> has the part "control" more than once',
@@ -124,7 +124,7 @@ const cases: Case[] = [
   },
   {
     name: "two help texts in a field, where only the first is wired",
-    html: `<lt-field><label for="n">Navn</label><input name="n" id="n"><p class="lt-help-text">A</p><p class="lt-help-text">B</p></lt-field>`,
+    html: `<lt-field><label for="n">Name</label><input name="n" id="n"><p class="lt-help-text">A</p><p class="lt-help-text">B</p></lt-field>`,
     count: 1,
     mentions: ['"help"'],
     coversAt: 90,
@@ -138,10 +138,10 @@ const cases: Case[] = [
   },
   {
     name: "parts repeated where that is allowed, or belonging to something else",
-    html: `<lt-popover><button>Meny</button><ul class="lt-popover" id="meny"><li><button>A</button></li><li><button>B</button></li></ul></lt-popover>
-<lt-dialog><dialog><h2>Tittel</h2><div class="lt-dialog__body"><h3>Del</h3></div></dialog></lt-dialog>
+    html: `<lt-popover><button>Menu</button><ul class="lt-popover" id="menu"><li><button>A</button></li><li><button>B</button></li></ul></lt-popover>
+<lt-dialog><dialog><h2>Title</h2><div class="lt-dialog__body"><h3>Part</h3></div></dialog></lt-dialog>
 <lt-field><label>A <input name="a"></label><lt-field><label>B <input name="b"></label></lt-field></lt-field>
-<lt-tabs><ul class="lt-tabs__list" aria-label="Deler"><li><a href="#pa">A</a></li><li><a href="#pb">B</a></li></ul><div class="lt-tabs__panel" id="pa">A</div><div class="lt-tabs__panel" id="pb">B</div></lt-tabs>
+<lt-tabs><ul class="lt-tabs__list" aria-label="Parts"><li><a href="#pa">A</a></li><li><a href="#pb">B</a></li></ul><div class="lt-tabs__panel" id="pa">A</div><div class="lt-tabs__panel" id="pb">B</div></lt-tabs>
 <div class="lt-card"><h3 class="lt-card__title">A</h3><div class="lt-card"><h3 class="lt-card__title">B</h3></div></div>
 <ul class="lt-list"><li>A</li><li>B</li></ul>`,
     count: 0,
@@ -156,8 +156,8 @@ const cases: Case[] = [
   {
     name: "a hidden value is not another control, and a split button is not two triggers",
     html: `<lt-field><input type="hidden" name="x"><label><input type="checkbox" name="y"> Jeg godtar</label></lt-field>
-<lt-popover><button type="button">Lagre</button><button type="button" aria-controls="m">Flere valg</button><ul class="lt-popover" id="m"><li><button type="button">Lagre som</button></li></ul></lt-popover>
-<fieldset class="lt-fieldset"><legend class="lt-legend">Adresse</legend><p class="lt-help-text">Der du bor</p><lt-field><label for="g">Gate</label><input name="g" id="g"><p class="lt-help-text">Med nummer</p></lt-field></fieldset>
+<lt-popover><button type="button">Save</button><button type="button" aria-controls="m">More options</button><ul class="lt-popover" id="m"><li><button type="button">Save as</button></li></ul></lt-popover>
+<fieldset class="lt-fieldset"><legend class="lt-legend">Address</legend><p class="lt-help-text">Where you sleep</p><lt-field><label for="g">Street</label><input name="g" id="g"><p class="lt-help-text">With the number</p></lt-field></fieldset>
 <table class="lt-table"><caption>A</caption><thead></thead><tbody></tbody><tbody></tbody></table>`,
     count: 0,
   },
@@ -169,7 +169,7 @@ const cases: Case[] = [
   },
   {
     name: "two parts behind a condition in a template are not two parts",
-    html: `<lt-field><label>Svar</label>{{if .Lang}}<textarea name="s"></textarea>{{else}}<input name="s">{{end}}</lt-field>`,
+    html: `<lt-field><label>Answer</label>{{if .Long}}<textarea name="s"></textarea>{{else}}<input name="s">{{end}}</lt-field>`,
     count: 0,
   },
   {
@@ -179,7 +179,7 @@ const cases: Case[] = [
   },
   {
     name: "an element that does not exist",
-    html: `<lt-dialog><lt-dialog-header>Tittel</lt-dialog-header></lt-dialog>`,
+    html: `<lt-dialog><lt-dialog-header>Title</lt-dialog-header></lt-dialog>`,
     count: 1,
     mentions: ["<lt-dialog-header> does not exist", "lt-dialog"],
     severity: "error",
@@ -195,7 +195,7 @@ const cases: Case[] = [
   },
   {
     name: "global attributes, data-, aria- and event handlers pass",
-    html: `<lt-popover id="p" class="x" data-on-click="@get('/x')" aria-label="Hjelp" onclick="1" role="dialog" hidden></lt-popover>`,
+    html: `<lt-popover id="p" class="x" data-on-click="@get('/x')" aria-label="Help" onclick="1" role="dialog" hidden></lt-popover>`,
     count: 0,
   },
   {
@@ -227,7 +227,7 @@ const cases: Case[] = [
   },
   {
     name: "a Razor partial inside the field",
-    html: `<lt-field><label>Navn</label>@Html.Partial("Input")</lt-field>`,
+    html: `<lt-field><label>Handle</label>@Html.Partial("Input")</lt-field>`,
     count: 0,
   },
   {
@@ -276,7 +276,7 @@ const cases: Case[] = [
   },
   {
     name: "a field without a control",
-    html: `<lt-field><label>Navn</label><p class="lt-help-text">Hjelp</p></lt-field>`,
+    html: `<lt-field><label>Handle</label><p class="lt-help-text">Help</p></lt-field>`,
     count: 1,
     mentions: ["found no control", "<input>, <textarea> or <select>"],
     severity: "warning",
@@ -290,7 +290,7 @@ const cases: Case[] = [
   },
   {
     name: "the control after a hidden input counts",
-    html: `<lt-field><input type="hidden" name="csrf"><input aria-label="Søk"></lt-field>`,
+    html: `<lt-field><input type="hidden" name="csrf"><input aria-label="Search"></lt-field>`,
     count: 0,
   },
   {
@@ -311,12 +311,12 @@ const cases: Case[] = [
   },
   {
     name: "a session timeout with a dialog",
-    html: `<lt-session-timeout><dialog><h2>Snart ute</h2></dialog></lt-session-timeout>`,
+    html: `<lt-session-timeout><dialog><h2>Ends soon</h2></dialog></lt-session-timeout>`,
     count: 0,
   },
   {
     name: "a session timeout without a closing tag, with another dialog further down",
-    html: `<lt-session-timeout warn-at="1500">\n<lt-dialog><dialog><h2>Annet</h2></dialog></lt-dialog>`,
+    html: `<lt-session-timeout warn-at="1500">\n<lt-dialog><dialog><h2>Other</h2></dialog></lt-dialog>`,
     count: 0,
   },
   {
@@ -331,12 +331,12 @@ const cases: Case[] = [
   },
   {
     name: "label outside, with for",
-    html: `<label for="epost">E-post</label><lt-field><input id="epost"></lt-field>`,
+    html: `<label for="email">Email</label><lt-field><input id="email"></lt-field>`,
     count: 0,
   },
   {
     name: "label outside, with an unquoted for",
-    html: `<label for=epost>E-post</label><lt-field><input id="epost"></lt-field>`,
+    html: `<label for=email>Email</label><lt-field><input id="email"></lt-field>`,
     count: 0,
   },
   {
@@ -353,7 +353,7 @@ const cases: Case[] = [
   },
   {
     name: "aria-label on the control",
-    html: `<lt-field><input aria-label="Søk"></lt-field>`,
+    html: `<lt-field><input aria-label="Search"></lt-field>`,
     count: 0,
   },
   {
@@ -383,7 +383,7 @@ const cases: Case[] = [
   },
   {
     name: "a partial inside the field is not a field without a control",
-    html: `<lt-field><label>Navn</label>{{ template "input" . }}</lt-field>`,
+    html: `<lt-field><label>Handle</label>{{ template "input" . }}</lt-field>`,
     count: 0,
   },
   {
@@ -457,7 +457,7 @@ const cases: Case[] = [
   },
   {
     name: "upper-case field: an empty field is silent",
-    html: `<LT-FIELD id="senere"></LT-FIELD>\n<p>tekst</p>`,
+    html: `<LT-FIELD id="senere"></LT-FIELD>\n<p>text</p>`,
     count: 0,
   },
   {
@@ -528,12 +528,12 @@ const cases: Case[] = [
   },
   {
     name: "a class with a template in its name is not a typo",
-    html: `<div class="lt-{{ .Type }} kort"></div><div class="lt-<?= $x ?>"></div>`,
+    html: `<div class="lt-{{ .Type }} card"></div><div class="lt-<?= $x ?>"></div>`,
     count: 0,
   },
   {
     name: "known classes, also several in one attribute and with a template",
-    html: `<input class="lt-input lt-search" type="search"><div class="{{ .Klasse }} lt-card"></div><p class="kort lt-paragraph"></p>`,
+    html: `<input class="lt-input lt-search" type="search"><div class="{{ .Class }} lt-card"></div><p class="card lt-paragraph"></p>`,
     count: 0,
   },
   {
@@ -587,10 +587,10 @@ const cases: Case[] = [
   },
   {
     name: "the fix for a field without a label",
-    html: `<lt-field><input class="lt-input" id="navn"></lt-field>`,
+    html: `<lt-field><input class="lt-input" id="handle"></lt-field>`,
     count: 1,
     page: true,
-    fixed: `<lt-field><label for="navn">Label</label><input class="lt-input" id="navn"></lt-field>`,
+    fixed: `<lt-field><label for="handle">Label</label><input class="lt-input" id="handle"></lt-field>`,
     fixTitle: "Add a label",
   },
   {
@@ -605,17 +605,17 @@ const cases: Case[] = [
   },
   {
     name: "the label gets its own line with the same indentation",
-    html: `<lt-field>\n  <input class="lt-input" id="navn">\n</lt-field>`,
+    html: `<lt-field>\n  <input class="lt-input" id="handle">\n</lt-field>`,
     count: 1,
     page: true,
-    fixed: `<lt-field>\n  <label for="navn">Label</label>\n  <input class="lt-input" id="navn">\n</lt-field>`,
+    fixed: `<lt-field>\n  <label for="handle">Label</label>\n  <input class="lt-input" id="handle">\n</lt-field>`,
   },
   {
     name: "the label gets its own line with \\r line breaks too",
-    html: `<lt-field>\r  <input class="lt-input" id="navn">\r</lt-field>`,
+    html: `<lt-field>\r  <input class="lt-input" id="handle">\r</lt-field>`,
     count: 1,
     page: true,
-    fixed: `<lt-field>\r  <label for="navn">Label</label>\r  <input class="lt-input" id="navn">\r</lt-field>`,
+    fixed: `<lt-field>\r  <label for="handle">Label</label>\r  <input class="lt-input" id="handle">\r</lt-field>`,
   },
   {
     name: "data-required on label and legend",
@@ -693,7 +693,7 @@ const cases: Case[] = [
   },
   {
     name: "two classes taking the same attribute give one finding",
-    html: `<input class="lt-input lt-search" data-state="ugyldig">`,
+    html: `<input class="lt-input lt-search" data-state="failed">`,
     count: 1,
   },
   {
@@ -703,7 +703,7 @@ const cases: Case[] = [
   },
   {
     name: "Astro and Svelte: braces with quotes and nesting inside",
-    html: `<input class="lt-input" data-state={feil ? "invalid" : undefined}><lt-field class:list={["lt-card", { kort }]}></lt-field>`,
+    html: `<input class="lt-input" data-state={error ? "invalid" : undefined}><lt-field class:list={["lt-card", { card }]}></lt-field>`,
     count: 0,
   },
   {
@@ -770,7 +770,7 @@ const cases: Case[] = [
 ]
 
 // The wiring on a whole page, with `--rendered` or an address.
-const LABELLED = `<label class="lt-label" for="epost">E-post</label><input class="lt-input" id="epost" aria-describedby="epost-help"><p class="lt-help-text" id="epost-help">Hjelp</p>`
+const LABELLED = `<label class="lt-label" for="email">Email</label><input class="lt-input" id="email" aria-describedby="email-help"><p class="lt-help-text" id="email-help">Help</p>`
 cases.push(
   {
     name: "page: a clean field with label and help text",
@@ -780,24 +780,24 @@ cases.push(
   },
   {
     name: "page: for points at an id that does not exist",
-    html: `<label class="lt-label" for="e-post">E-post</label><input class="lt-input" id="epost">`,
+    html: `<label class="lt-label" for="e-mail">Email</label><input class="lt-input" id="email">`,
     count: 2,
     page: true,
     severity: "error",
-    mentions: ["for=", '"e-post"', "the label", "lt.field({ id })"],
-    covers: "e-post",
+    mentions: ["for=", '"e-mail"', "the label", "lt.field({ id })"],
+    covers: "e-mail",
   },
   {
     name: "page: one of several ids in aria-describedby does not exist",
     html: LABELLED.replace(
-      'aria-describedby="epost-help"',
-      'aria-describedby="epost-help epost-feil"',
+      'aria-describedby="email-help"',
+      'aria-describedby="email-help email-error"',
     ),
     count: 1,
     page: true,
     severity: "error",
-    mentions: ['"epost-feil"', "the description"],
-    covers: "epost-feil",
+    mentions: ['"email-error"', "the description"],
+    covers: "email-error",
   },
   {
     name: "page: aria-labelledby points at an id that does not exist",
@@ -808,24 +808,24 @@ cases.push(
   },
   {
     name: "page: aria-controls gets no recipe about the field",
-    html: `<button class="lt-button" aria-controls="meny">Meny</button>`,
+    html: `<button class="lt-button" aria-controls="menu">Menu</button>`,
     count: 1,
     page: true,
-    mentions: ["aria-controls", '"meny"'],
+    mentions: ["aria-controls", '"menu"'],
     notMentions: ["lt.field("],
   },
   {
     name: "page: an id that appears twice",
-    html: `${LABELLED}<p id="epost">Igjen</p>`,
+    html: `${LABELLED}<p id="email">Again</p>`,
     count: 1,
     page: true,
     severity: "error",
-    mentions: ['id="epost"', "more than once"],
-    covers: "epost",
+    mentions: ['id="email"', "more than once"],
+    covers: "email",
   },
   {
     name: "page: a LO-TEK field without a label",
-    html: `<label class="lt-label">Navn</label><input class="lt-input" id="navn">`,
+    html: `<label class="lt-label">Handle</label><input class="lt-input" id="handle">`,
     count: 1,
     page: true,
     severity: "error",
@@ -834,13 +834,13 @@ cases.push(
   },
   {
     name: "page: a field with <label> around it has a label",
-    html: `<label class="lt-label">Navn <input class="lt-input"></label>`,
+    html: `<label class="lt-label">Handle <input class="lt-input"></label>`,
     count: 0,
     page: true,
   },
   {
     name: "page: a field with aria-label has a label",
-    html: `<input class="lt-input lt-search" type="search" aria-label="Søk">`,
+    html: `<input class="lt-input lt-search" type="search" aria-label="Search">`,
     count: 0,
     page: true,
   },
@@ -852,20 +852,20 @@ cases.push(
   },
   {
     name: "page: bare markup inside <lt-field> is correct",
-    html: `<lt-field><label class="lt-label" for="navn">Navn</label><input class="lt-input" id="navn"><p class="lt-help-text">Hjelp</p><p class="lt-error-text" hidden>Feil</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="handle">Handle</label><input class="lt-input" id="handle"><p class="lt-help-text">Help</p><p class="lt-error-text" hidden>Error</p></lt-field>`,
     count: 0,
     page: true,
   },
   {
     name: "page: an id pointing wrong inside <lt-field> is still reported, and the label is then not wired",
-    html: `<lt-field><label class="lt-label" for="x">Navn</label><input class="lt-input" id="y"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="x">Handle</label><input class="lt-input" id="y"></lt-field>`,
     count: 2,
     page: true,
     mentions: ['"x"'],
   },
   {
     name: "page: a help text without an id",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text">Hjelp</p>`,
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text">Help</p>`,
     count: 1,
     page: true,
     severity: "warning",
@@ -873,47 +873,47 @@ cases.push(
   },
   {
     name: "page: a visible error text nothing points at",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-feil">Feil</p>`,
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-error">Error</p>`,
     count: 1,
     page: true,
-    mentions: ["The error text", '"a-feil"'],
+    mentions: ["The error text", '"a-error"'],
   },
   {
     name: "page: a hidden error text needs no wiring",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-feil" hidden>Feil</p>`,
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-error" hidden>Error</p>`,
     count: 0,
     page: true,
   },
   {
     name: "page: an id in a comment does not count",
-    html: `<!-- <p id="hjelp"></p> --><label class="lt-label" for="hjelp">A</label><input class="lt-input" id="a">`,
+    html: `<!-- <p id="help"></p> --><label class="lt-label" for="help">A</label><input class="lt-input" id="a">`,
     count: 2,
     page: true,
-    mentions: ['"hjelp"'],
+    mentions: ['"help"'],
   },
   {
     name: "page: a label without for inside <lt-suggestion> is reported, since the template must write it",
-    html: `<lt-suggestion><label class="lt-label">Kommune</label><input class="lt-input" type="text"></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label">Target</label><input class="lt-input" type="text"></lt-suggestion>`,
     count: 1,
     page: true,
     mentions: ["The label is not wired"],
   },
   {
     name: "page: a help text inside <lt-suggestion> must be wired",
-    html: `<lt-suggestion><label class="lt-label" for="k">Kommune</label><input class="lt-input" type="text" id="k"><p class="lt-help-text">Hjelp</p></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" for="k">Target</label><input class="lt-input" type="text" id="k"><p class="lt-help-text">Help</p></lt-suggestion>`,
     count: 1,
     page: true,
     mentions: ["The help text"],
   },
   {
     name: "page: ids in a shadow root have their own scope",
-    html: `${LABELLED}<div><template shadowrootmode="open"><label class="lt-label" for="epost">E-post</label><input class="lt-input" id="epost"></template></div>`,
+    html: `${LABELLED}<div><template shadowrootmode="open"><label class="lt-label" for="email">Email</label><input class="lt-input" id="email"></template></div>`,
     count: 0,
     page: true,
   },
   {
     name: "page: markup in an attribute value is text, not elements",
-    html: `${LABELLED}<button class="lt-button" data-code='<lt-modal open><input class="lt-input" id="epost">'>Kopier</button>`,
+    html: `${LABELLED}<button class="lt-button" data-code='<lt-modal open><input class="lt-input" id="email">'>Copy</button>`,
     count: 0,
     page: true,
   },
@@ -932,25 +932,25 @@ cases.push(
   },
   {
     name: "page: for pointing at a <div>",
-    html: `<label class="lt-label" for="boks">Navn</label><div id="boks"></div><input class="lt-input" aria-label="Navn">`,
+    html: `<label class="lt-label" for="box">Handle</label><div id="box"></div><input class="lt-input" aria-label="Handle">`,
     count: 1,
     page: true,
     severity: "error",
     mentions: ["<div>", "cannot have a label"],
-    covers: "boks",
+    covers: "box",
   },
   {
     name: "page: a link in the error summary to a field that does not exist",
-    html: `${LABELLED}<lt-error-summary><h2 id="feil-tittel">Rett feilene</h2><ul><li><a href="#e-post">E-post</a></li></ul></lt-error-summary>`,
+    html: `${LABELLED}<lt-error-summary><h2 id="errors-title">Fix the errors</h2><ul><li><a href="#e-mail">Email</a></li></ul></lt-error-summary>`,
     count: 1,
     page: true,
     severity: "error",
-    mentions: ["error summary", '"#e-post"'],
-    covers: "e-post",
+    mentions: ["error summary", '"#e-mail"'],
+    covers: "e-mail",
   },
   {
     name: "page: a link in the error summary to a field that exists",
-    html: `${LABELLED}<lt-error-summary><h2 id="feil-tittel">Rett feilene</h2><ul><li><a href="#epost">E-post</a></li></ul></lt-error-summary>`,
+    html: `${LABELLED}<lt-error-summary><h2 id="errors-title">Fix the errors</h2><ul><li><a href="#email">Email</a></li></ul></lt-error-summary>`,
     count: 0,
     page: true,
   },
@@ -981,30 +981,30 @@ cases.push(
   },
   {
     name: "page: markup in a <textarea> is text",
-    html: `${LABELLED}<label class="lt-label" for="t">T</label><textarea class="lt-textarea" id="t"><input class="lt-input" id="epost"></textarea>`,
+    html: `${LABELLED}<label class="lt-label" for="t">T</label><textarea class="lt-textarea" id="t"><input class="lt-input" id="email"></textarea>`,
     count: 0,
     page: true,
   },
   {
     name: "page: a <textarea> in an attribute value does not swallow the page",
-    html: `<button class="lt-button" data-code="<textarea>">Kopier</button><label class="lt-label" for="borte">X</label><label class="lt-label" for="t">T</label><textarea class="lt-textarea" id="t"></textarea>`,
+    html: `<button class="lt-button" data-code="<textarea>">Copy</button><label class="lt-label" for="gone">X</label><label class="lt-label" for="t">T</label><textarea class="lt-textarea" id="t"></textarea>`,
     count: 1,
     page: true,
-    mentions: ['"borte"'],
+    mentions: ['"gone"'],
   },
   {
     name: "page: a <template> in an attribute value does not swallow the page",
-    html: `<button class="lt-button" data-code='<template>'>Kopier</button><label class="lt-label" for="borte">X</label><p>tekst</p><template></template>`,
+    html: `<button class="lt-button" data-code='<template>'>Copy</button><label class="lt-label" for="gone">X</label><p>text</p><template></template>`,
     count: 1,
     page: true,
-    mentions: ['"borte"'],
+    mentions: ['"gone"'],
   },
   {
     name: "page: a comment in an attribute value does not swallow the page",
-    html: `<button class="lt-button" data-code="<!--">Kopier</button><label class="lt-label" for="borte">X</label><!-- slutt -->`,
+    html: `<button class="lt-button" data-code="<!--">Copy</button><label class="lt-label" for="gone">X</label><!-- end -->`,
     count: 1,
     page: true,
-    mentions: ['"borte"'],
+    mentions: ['"gone"'],
   },
   {
     name: "page: a numeric entity outside Unicode does not crash",
@@ -1014,13 +1014,13 @@ cases.push(
   },
   {
     name: "page: a percent-encoded link in the error summary",
-    html: `<label class="lt-label" for="fødselsdato">F</label><input class="lt-input" id="fødselsdato"><lt-error-summary><h2 id="feil-tittel">Feil</h2><ul><li><a href="#f%C3%B8dselsdato">Dato</a></li></ul></lt-error-summary>`,
+    html: `<label class="lt-label" for="café">F</label><input class="lt-input" id="café"><lt-error-summary><h2 id="errors-title">Error</h2><ul><li><a href="#caf%C3%A9">Date</a></li></ul></lt-error-summary>`,
     count: 0,
     page: true,
   },
   {
     name: "page: an id that is part of another id counts on its own",
-    html: `${LABELLED.replace('aria-describedby="epost-help"', 'aria-describedby="epost-help epost"')}`,
+    html: `${LABELLED.replace('aria-describedby="email-help"', 'aria-describedby="email-help email"')}`,
     count: 0,
     page: true,
   },
@@ -1036,7 +1036,7 @@ cases.push(
   },
   {
     name: "page: <label/> opens an element in HTML",
-    html: `<label class="lt-label"/>Navn <input class="lt-input"></label>`,
+    html: `<label class="lt-label"/>Handle <input class="lt-input"></label>`,
     count: 0,
     page: true,
   },
@@ -1048,13 +1048,13 @@ cases.push(
   },
   {
     name: "template: markup in an attribute value is read as before without --rendered",
-    html: `<button class="lt-button" data-code="<lt-modal>">Kopier</button>`,
+    html: `<button class="lt-button" data-code="<lt-modal>">Copy</button>`,
     count: 1,
     mentions: ["lt-modal"],
   },
   {
     name: "template: an id pointing out of the file is not reported without --rendered",
-    html: `<label class="lt-label" for="e-post">E-post</label><input class="lt-input" id="epost">`,
+    html: `<label class="lt-label" for="e-mail">Email</label><input class="lt-input" id="email">`,
     count: 0,
   },
 )
@@ -1063,7 +1063,7 @@ cases.push(
 // they must work when pasted in, wiring included.
 /**
  * The snippet as it stands in the document after the user has accepted the
- * tab stops: `${1:navn}` becomes `navn`, and `$1` the same, as VS Code
+ * tab stops: `${1:handle}` becomes `handle`, and `$1` the same, as VS Code
  * mirrors them. The escaping is removed last.
  */
 function withoutTabStops(body: string[]): string {
@@ -1093,87 +1093,87 @@ const started = performance.now()
 // JavaScript and survives an update from the server (plan v6, PR 3).
 const TABS = (
   list: string,
-  panels = `<section class="lt-tabs__panel" id="soknaden"><h2>Søknaden</h2></section><section class="lt-tabs__panel" id="vedlegg"><h2>Vedlegg</h2></section>`,
+  panels = `<section class="lt-tabs__panel" id="claim"><h2>Claim</h2></section><section class="lt-tabs__panel" id="attachments"><h2>Attachments</h2></section>`,
 ) => `<lt-tabs>${list}${panels}</lt-tabs>`
-const LIST = `<ul class="lt-tabs__list" aria-label="Case sections"><li><a href="#soknaden">Søknaden</a></li><li><a href="#vedlegg">Vedlegg</a></li></ul>`
+const LIST = `<ul class="lt-tabs__list" aria-label="Case sections"><li><a href="#claim">Claim</a></li><li><a href="#attachments">Attachments</a></li></ul>`
 cases.push(
   {
     name: "a label without for next to a field without an id",
-    html: `<lt-field><label class="lt-label">Kommune</label><input class="lt-input" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label">Target</label><input class="lt-input" name="target"></lt-field>`,
     count: 1,
     mentions: ["The label is not wired to <input>", "for on the label"],
     severity: "warning",
     covers: "input",
-    fixTitle: 'Give the field the id "kommune"',
-    fixed: `<lt-field><label for="kommune" class="lt-label">Kommune</label><input id="kommune" class="lt-input" name="kommune"></lt-field>`,
+    fixTitle: 'Give the field the id "target"',
+    fixed: `<lt-field><label for="target" class="lt-label">Target</label><input id="target" class="lt-input" name="target"></lt-field>`,
     fixPreferred: true,
   },
   {
     name: "a label pointing at a different id than the field's",
-    html: `<lt-field><label class="lt-label" for="annen">Kommune</label><input class="lt-input" id="kommune" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="other">Target</label><input class="lt-input" id="target" name="target"></lt-field>`,
     count: 1,
     mentions: ["The label is not wired"],
     noFix: true,
   },
   {
     name: "a name that cannot become an id gives no fix",
-    html: `<lt-field><label class="lt-label">E-post</label><input class="lt-input" name="items[0].email"></lt-field>`,
+    html: `<lt-field><label class="lt-label">Email</label><input class="lt-input" name="items[0].email"></lt-field>`,
     count: 1,
     noFix: true,
   },
   {
     name: "a name that is already an id on the page gives no fix",
-    html: `<p id="kommune"></p><lt-field><label class="lt-label">Kommune</label><input class="lt-input" name="kommune"></lt-field>`,
+    html: `<p id="target"></p><lt-field><label class="lt-label">Target</label><input class="lt-input" name="target"></lt-field>`,
     count: 1,
     noFix: true,
   },
   {
     name: "a field with for and id is wired",
-    html: `<lt-field><label class="lt-label" for="kommune">Kommune</label><input class="lt-input" id="kommune" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="target">Target</label><input class="lt-input" id="target" name="target"></lt-field>`,
     count: 0,
   },
   {
     name: "a label around the field is wired",
-    html: `<lt-field><label class="lt-label">Kommune <input class="lt-input" name="kommune"></label></lt-field>`,
+    html: `<lt-field><label class="lt-label">Target <input class="lt-input" name="target"></label></lt-field>`,
     count: 0,
   },
   {
     name: "a field with aria-label needs no wiring",
-    html: `<lt-field><label class="lt-label">Søk</label><input class="lt-input" name="q" aria-label="Søk i saken"></lt-field>`,
+    html: `<lt-field><label class="lt-label">Search</label><input class="lt-input" name="q" aria-label="Search the claim"></lt-field>`,
     count: 0,
   },
   {
     name: "a bound id is up to the server",
-    html: `<lt-field><label class="lt-label" :for="id">Kommune</label><input class="lt-input" :id="id" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" :for="id">Target</label><input class="lt-input" :id="id" name="target"></lt-field>`,
     count: 0,
   },
   {
     name: "an id with template syntax is up to the server",
-    html: `<lt-field><label class="lt-label" for="{{ .Id }}">Kommune</label><input class="lt-input" id="{{ .Id }}" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="{{ .Id }}">Target</label><input class="lt-input" id="{{ .Id }}" name="target"></lt-field>`,
     count: 0,
   },
   {
     name: "asp-for gives an id in Razor",
-    html: `<lt-field><label class="lt-label" asp-for="Kommune">Kommune</label><input class="lt-input" asp-for="Kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" asp-for="Target">Target</label><input class="lt-input" asp-for="Target"></lt-field>`,
     count: 0,
   },
   {
     name: "the suggestion field with a label without for",
-    html: `<lt-suggestion><label class="lt-label">Sted</label><input class="lt-input" id="sted" name="sted"><ul class="lt-suggestion__list"><li>Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label">Breaker</label><input class="lt-input" id="breaker" name="breaker"><ul class="lt-suggestion__list"><li>Crowbar</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     count: 1,
     mentions: ["The label is not wired"],
     noFix: true,
   },
   {
     name: "the suggestion field with no label at all",
-    html: `<lt-suggestion><input class="lt-input" name="sted"><ul class="lt-suggestion__list"><li>Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+    html: `<lt-suggestion><input class="lt-input" name="breaker"><ul class="lt-suggestion__list"><li>Crowbar</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     count: 1,
     mentions: ["no label wired to it"],
     noFix: true,
   },
   {
     name: "a panel in the popover without an id",
-    html: `<lt-popover><button class="lt-button" type="button">Meny</button><div class="lt-popover" popover>Innhold</div></lt-popover>`,
+    html: `<lt-popover><button class="lt-button" type="button">Menu</button><div class="lt-popover" popover>Contents</div></lt-popover>`,
     count: 1,
     mentions: ['"panel" without an id', "aria-controls", "never creates one"],
     covers: "div",
@@ -1181,33 +1181,33 @@ cases.push(
   },
   {
     name: "a panel with an id",
-    html: `<lt-popover><button class="lt-button" type="button" popovertarget="meny">Meny</button><div class="lt-popover" popover id="meny">Innhold</div></lt-popover>`,
+    html: `<lt-popover><button class="lt-button" type="button" popovertarget="menu">Menu</button><div class="lt-popover" popover id="menu">Contents</div></lt-popover>`,
     count: 0,
   },
   {
     name: "a panel with a bound id",
-    html: `<lt-popover><button class="lt-button" type="button">Meny</button><div class="lt-popover" popover :id="id">Innhold</div></lt-popover>`,
+    html: `<lt-popover><button class="lt-button" type="button">Menu</button><div class="lt-popover" popover :id="id">Contents</div></lt-popover>`,
     count: 0,
   },
   {
     name: "a tab pointing at a panel that does not exist",
     html: TABS(
       LIST,
-      `<section class="lt-tabs__panel" id="soknaden"><h2>Søknaden</h2></section>`,
+      `<section class="lt-tabs__panel" id="claim"><h2>Claim</h2></section>`,
     ),
     count: 1,
-    mentions: ["#vedlegg", "no element has that id"],
+    mentions: ["#attachments", "no element has that id"],
     covers: "a",
   },
   {
     name: "a panel outside the tab list counts",
-    html: `${TABS(LIST, `<section class="lt-tabs__panel" id="soknaden"><h2>Søknaden</h2></section>`)}<section class="lt-tabs__panel" id="vedlegg"><h2>Vedlegg</h2></section>`,
+    html: `${TABS(LIST, `<section class="lt-tabs__panel" id="claim"><h2>Claim</h2></section>`)}<section class="lt-tabs__panel" id="attachments"><h2>Attachments</h2></section>`,
     count: 0,
   },
   {
     name: "a link with template syntax in href is up to the server",
     html: TABS(
-      `<ul class="lt-tabs__list" aria-label="Deler"><li><a href="#{{ .Id }}">Søknaden</a></li></ul>`,
+      `<ul class="lt-tabs__list" aria-label="Parts"><li><a href="#{{ .Id }}">Claim</a></li></ul>`,
       `<section class="lt-tabs__panel" id="{{ .Id }}"></section>`,
     ),
     count: 0,
@@ -1215,7 +1215,7 @@ cases.push(
   {
     name: "a button with role=tab in the tab list",
     html: TABS(
-      `<ul class="lt-tabs__list" aria-label="Case sections"><li><a href="#soknaden">Søknaden</a></li><li><button type="button" role="tab">Vedlegg</button></li></ul>`,
+      `<ul class="lt-tabs__list" aria-label="Case sections"><li><a href="#claim">Claim</a></li><li><button type="button" role="tab">Attachments</button></li></ul>`,
     ),
     count: 1,
     mentions: ['role="tab" is on <button>', "The tabs are links"],
@@ -1224,186 +1224,186 @@ cases.push(
   {
     name: "a link with role=tab is a tab",
     html: TABS(
-      `<ul class="lt-tabs__list" aria-label="Case sections" role="tablist"><li role="presentation"><a href="#soknaden" role="tab">Søknaden</a></li><li role="presentation"><a href="#vedlegg" role="tab">Vedlegg</a></li></ul>`,
+      `<ul class="lt-tabs__list" aria-label="Case sections" role="tablist"><li role="presentation"><a href="#claim" role="tab">Claim</a></li><li role="presentation"><a href="#attachments" role="tab">Attachments</a></li></ul>`,
     ),
     count: 0,
   },
   {
     name: "a tab list without a name",
     html: TABS(
-      `<ul class="lt-tabs__list"><li><a href="#soknaden">Søknaden</a></li><li><a href="#vedlegg">Vedlegg</a></li></ul>`,
+      `<ul class="lt-tabs__list"><li><a href="#claim">Claim</a></li><li><a href="#attachments">Attachments</a></li></ul>`,
     ),
     count: 1,
     mentions: ["tab list without a name", '"tab list"'],
     covers: "ul",
     fixTitle: "Give the tab list a name with aria-label",
     fixed: TABS(
-      `<ul aria-label="Case sections" class="lt-tabs__list"><li><a href="#soknaden">Søknaden</a></li><li><a href="#vedlegg">Vedlegg</a></li></ul>`,
+      `<ul aria-label="Case sections" class="lt-tabs__list"><li><a href="#claim">Claim</a></li><li><a href="#attachments">Attachments</a></li></ul>`,
     ),
   },
   {
     name: "a tab list with aria-labelledby",
-    html: `<h2 id="deler">Deler av saken</h2>${TABS(`<ul class="lt-tabs__list" aria-labelledby="deler"><li><a href="#soknaden">Søknaden</a></li><li><a href="#vedlegg">Vedlegg</a></li></ul>`)}`,
+    html: `<h2 id="parts">Parts of the claim</h2>${TABS(`<ul class="lt-tabs__list" aria-labelledby="parts"><li><a href="#claim">Claim</a></li><li><a href="#attachments">Attachments</a></li></ul>`)}`,
     count: 0,
   },
   {
     name: "a tab list with a bound aria-label",
     html: TABS(
-      `<ul class="lt-tabs__list" :aria-label="navn"><li><a href="#soknaden">Søknaden</a></li><li><a href="#vedlegg">Vedlegg</a></li></ul>`,
+      `<ul class="lt-tabs__list" :aria-label="handle"><li><a href="#claim">Claim</a></li><li><a href="#attachments">Attachments</a></li></ul>`,
     ),
     count: 0,
   },
   {
     name: "the help text inside the label",
-    html: `<lt-field><label class="lt-label" for="epost">E-post <span class="lt-help-text">Vi sender aldri reklame.</span></label><input class="lt-input" id="epost" name="epost"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="email">Email <span class="lt-help-text">We never send adverts.</span></label><input class="lt-input" id="email" name="email"></lt-field>`,
     count: 1,
     mentions: ["The help text is inside <label>", "part of the field's name"],
     covers: "span",
   },
   {
     name: "the error text inside the label",
-    html: `<lt-field><label class="lt-label" for="epost">E-post <span class="lt-error-text">Skriv en e-postadresse.</span></label><input class="lt-input" id="epost" name="epost"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="email">Email <span class="lt-error-text">Enter an email address.</span></label><input class="lt-input" id="email" name="email"></lt-field>`,
     count: 1,
     mentions: ["The error text is inside <label>"],
   },
   {
     name: "the help text next to the label",
-    html: `<lt-field><label class="lt-label" for="epost">E-post</label><input class="lt-input" id="epost" name="epost"><p class="lt-help-text">Vi sender aldri reklame.</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="email">Email</label><input class="lt-input" id="email" name="email"><p class="lt-help-text">We never send adverts.</p></lt-field>`,
     count: 0,
   },
   {
     name: "options with data-value without a value field",
-    html: `<lt-suggestion><label class="lt-label" for="k">Kommune</label><input class="lt-input" id="k" name="k"><ul class="lt-suggestion__list"><li data-value="4601">Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" for="k">Target</label><input class="lt-input" id="k" name="k"><ul class="lt-suggestion__list"><li data-value="4601">Crowbar</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     count: 1,
     mentions: ["data-value, but no .lt-suggestion__value"],
     covers: "li",
   },
   {
     name: "a value field without options with data-value",
-    html: `<lt-suggestion><label class="lt-label" for="k">Kommune</label><input class="lt-input" id="k" name="k"><input type="hidden" class="lt-suggestion__value" name="nr"><ul class="lt-suggestion__list"><li>Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" for="k">Target</label><input class="lt-input" id="k" name="k"><input type="hidden" class="lt-suggestion__value" name="number"><ul class="lt-suggestion__list"><li>Crowbar</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     count: 1,
     mentions: ["no options with data-value"],
     covers: "input",
   },
   {
     name: "data-value and a value field together",
-    html: `<lt-suggestion><label class="lt-label" for="k">Kommune</label><input class="lt-input" id="k" name="k"><input type="hidden" class="lt-suggestion__value" name="nr"><ul class="lt-suggestion__list"><li data-value="4601">Bergen</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" for="k">Target</label><input class="lt-input" id="k" name="k"><input type="hidden" class="lt-suggestion__value" name="number"><ul class="lt-suggestion__list"><li data-value="4601">Crowbar</li></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     count: 0,
   },
   {
     name: "an empty list the server fills later",
-    html: `<lt-suggestion><label class="lt-label" for="k">Kommune</label><input class="lt-input" id="k" name="k"><input type="hidden" class="lt-suggestion__value" name="nr"><ul class="lt-suggestion__list"></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" for="k">Target</label><input class="lt-input" id="k" name="k"><input type="hidden" class="lt-suggestion__value" name="number"><ul class="lt-suggestion__list"></ul><span class="lt-sr-only" role="status"></span></lt-suggestion>`,
     count: 0,
   },
   {
     name: "a hidden error text next to aria-invalid",
-    html: `<lt-field><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr" aria-invalid="true"><p class="lt-error-text" hidden>Skriv elleve siffer.</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget" aria-invalid="true"><p class="lt-error-text" hidden>Enter the budget in EB.</p></lt-field>`,
     count: 1,
     mentions: ["The error text has hidden", 'aria-invalid="true"'],
     covers: "p",
   },
   {
     name: "a hidden error text on a valid field",
-    html: `<lt-field><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr"><p class="lt-error-text" hidden>Skriv elleve siffer.</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget"><p class="lt-error-text" hidden>Enter the budget in EB.</p></lt-field>`,
     count: 0,
   },
   {
     name: "an error text Datastar hides is up to the server",
-    html: `<lt-field><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr" aria-invalid="true"><p class="lt-error-text" data-attr:hidden="!$ugyldig">Skriv elleve siffer.</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget" aria-invalid="true"><p class="lt-error-text" data-attr:hidden="!$failed">Enter the budget in EB.</p></lt-field>`,
     count: 0,
   },
   {
     name: "invalid on lt-field, as it used to be written",
-    html: `<lt-field invalid><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr"></lt-field>`,
+    html: `<lt-field invalid><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget"></lt-field>`,
     count: 1,
     mentions: ["invalid has been removed from <lt-field>", "aria-invalid"],
     covers: "invalid",
     fixTitle: "Remove invalid",
-    fixed: `<lt-field><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr"></lt-field>`,
+    fixed: `<lt-field><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget"></lt-field>`,
   },
   {
     name: "required-marker on lt-field, as it used to be written",
-    html: `<lt-field required-marker="*"><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr"></lt-field>`,
+    html: `<lt-field required-marker="*"><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget"></lt-field>`,
     count: 1,
     mentions: ["data-required"],
-    fixed: `<lt-field><label class="lt-label" for="fnr">Fødselsnummer</label><input class="lt-input" id="fnr" name="fnr"></lt-field>`,
+    fixed: `<lt-field><label class="lt-label" for="budget">Budget</label><input class="lt-input" id="budget" name="budget"></lt-field>`,
   },
   {
     name: "an id the component made itself, copied into the template",
-    html: `<lt-field><label class="lt-label" for="e">E-post</label><input class="lt-input" id="e" name="epost"><p class="lt-help-text" id="lt-field-help-a1b2c3d">Hjelp</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="e">Email</label><input class="lt-input" id="e" name="email"><p class="lt-help-text" id="lt-field-help-a1b2c3d">Help</p></lt-field>`,
     count: 1,
     mentions: ["copied from DevTools"],
     covers: "lt-field-help-a1b2c3d",
   },
   {
     name: "an id from createFieldId, copied into the template",
-    html: `<lt-field><label class="lt-label" for="lt-field-3-k2x9qa">E-post</label><input class="lt-input" id="lt-field-3-k2x9qa" name="epost"></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="lt-field-3-k2x9qa">Email</label><input class="lt-input" id="lt-field-3-k2x9qa" name="email"></lt-field>`,
     count: 1,
     mentions: ["copied from DevTools"],
   },
   {
     name: "the same id on a rendered page is correct",
-    html: `<lt-field><label class="lt-label" for="e">E-post</label><input class="lt-input" id="e" name="epost" aria-describedby="lt-field-help-a1b2c3d"><p class="lt-help-text" id="lt-field-help-a1b2c3d">Hjelp</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="e">Email</label><input class="lt-input" id="e" name="email" aria-describedby="lt-field-help-a1b2c3d"><p class="lt-help-text" id="lt-field-help-a1b2c3d">Help</p></lt-field>`,
     count: 0,
     page: true,
   },
   {
     name: "a custom id starting with lt-",
-    html: `<lt-field><label class="lt-label" for="e">E-post</label><input class="lt-input" id="e" name="epost"><p class="lt-help-text" id="lt-field-help">Hjelp</p></lt-field>`,
+    html: `<lt-field><label class="lt-label" for="e">Email</label><input class="lt-input" id="e" name="email"><p class="lt-help-text" id="lt-field-help">Help</p></lt-field>`,
     count: 0,
   },
   {
     name: "an encoded fragment finds its panel, as in the browser",
     html: TABS(
-      `<ul class="lt-tabs__list" aria-label="Deler"><li><a href="#s%C3%B8knaden">Søknaden</a></li></ul>`,
-      `<section class="lt-tabs__panel" id="søknaden"></section>`,
+      `<ul class="lt-tabs__list" aria-label="Parts"><li><a href="#caf%C3%A9">Claim</a></li></ul>`,
+      `<section class="lt-tabs__panel" id="café"></section>`,
     ),
     count: 0,
   },
   {
     name: "invalid bound in Datastar, as the old recipe wrote it",
-    html: `<lt-field data-attr:invalid="$ugyldig"><label class="lt-label" for="e">E-post</label><input class="lt-input" id="e"></lt-field>`,
+    html: `<lt-field data-attr:invalid="$failed"><label class="lt-label" for="e">Email</label><input class="lt-input" id="e"></lt-field>`,
     count: 1,
     mentions: ["invalid has been removed from <lt-field>"],
     fixTitle: "Remove data-attr:invalid",
-    fixed: `<lt-field><label class="lt-label" for="e">E-post</label><input class="lt-input" id="e"></lt-field>`,
+    fixed: `<lt-field><label class="lt-label" for="e">Email</label><input class="lt-input" id="e"></lt-field>`,
   },
   {
     name: "invalid bound in Vue",
-    html: `<lt-field :invalid="ugyldig"><label class="lt-label" for="e">E-post</label><input class="lt-input" id="e"></lt-field>`,
+    html: `<lt-field :invalid="failed"><label class="lt-label" for="e">Email</label><input class="lt-input" id="e"></lt-field>`,
     count: 1,
     mentions: ["invalid has been removed from <lt-field>"],
   },
   {
     name: "the ids the suggestion field makes itself, copied into the template",
-    html: `<lt-suggestion><label class="lt-label" for="k">Kommune</label><input class="lt-input" id="k"><ul class="lt-suggestion__list" id="lt-suggestion-list-a1b2c3d" aria-labelledby="lt-suggestion-label-z8y7x6w"><li id="lt-suggestion-option-q9w8e7r">Bergen</li></ul><span id="lt-suggestion-label-z8y7x6w"></span></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" for="k">Target</label><input class="lt-input" id="k"><ul class="lt-suggestion__list" id="lt-suggestion-list-a1b2c3d" aria-labelledby="lt-suggestion-label-z8y7x6w"><li id="lt-suggestion-option-q9w8e7r">Crowbar</li></ul><span id="lt-suggestion-label-z8y7x6w"></span></lt-suggestion>`,
     count: 3,
     mentions: ["copied from DevTools"],
   },
   {
     name: "a bound for on the label is up to the server",
-    html: `<lt-suggestion><label class="lt-label" :for="'k'">Kommune</label><input class="lt-input" id="k"><ul class="lt-suggestion__list"><li>Bergen</li></ul></lt-suggestion>`,
+    html: `<lt-suggestion><label class="lt-label" :for="'k'">Target</label><input class="lt-input" id="k"><ul class="lt-suggestion__list"><li>Crowbar</li></ul></lt-suggestion>`,
     count: 0,
   },
   {
     name: "[attr.id] and [attr.for] in Angular are up to the server",
-    html: `<lt-field><label class="lt-label" [attr.for]="id">Kommune</label><input class="lt-input" [attr.id]="id" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" [attr.for]="id">Target</label><input class="lt-input" [attr.id]="id" name="target"></lt-field>`,
     count: 0,
   },
   {
     name: "the message about a panel without an id is plain text",
-    html: `<lt-popover><button class="lt-button" type="button">Meny</button><div class="lt-popover" popover>Innhold</div></lt-popover>`,
+    html: `<lt-popover><button class="lt-button" type="button">Menu</button><div class="lt-popover" popover>Contents</div></lt-popover>`,
     count: 1,
     notMentions: ["`"],
   },
   {
     name: "a host in a loop in the template is up to the server",
-    html: `{{ range .Felt }}<lt-field><label class="lt-label">{{ .Navn }}</label><input class="lt-input" name="{{ .Navn }}"></lt-field>{{ end }}`,
+    html: `{{ range .Fields }}<lt-field><label class="lt-label">{{ .Handle }}</label><input class="lt-input" name="{{ .Handle }}"></lt-field>{{ end }}`,
     count: 0,
   },
   {
     name: "a label with v-if is up to the server",
-    html: `<lt-field><label class="lt-label" v-if="vis">Kommune</label><input class="lt-input" name="kommune"></lt-field>`,
+    html: `<lt-field><label class="lt-label" v-if="show">Target</label><input class="lt-input" name="target"></lt-field>`,
     count: 0,
   },
 )

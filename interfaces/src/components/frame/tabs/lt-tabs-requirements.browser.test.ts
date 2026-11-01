@@ -39,8 +39,8 @@ import { tabs } from "./tabs"
 import "../../../tokens/tokens.css"
 import "./tabs.css"
 
-const NAMES = ["Application", "Attachments", "Messages"]
-const KEYS = ["application", "attachments", "messages"]
+const NAMES = ["Claim", "Attachments", "Messages"]
+const KEYS = ["claim", "attachments", "messages"]
 
 type Bar = {
   host?: string
@@ -56,7 +56,7 @@ function bar(options: Bar = {}): string {
   const heading = options.heading ?? ((i) => NAMES[i])
   return `
     <lt-tabs${options.host ?? ""}>
-      <ul class="lt-tabs__list"${options.list ?? ' aria-label="Parts of the case"'}>
+      <ul class="lt-tabs__list"${options.list ?? ' aria-label="Parts of the claim"'}>
         ${NAMES.map((n, i) => `<li><a href="#${KEYS[i]}"${options.link?.(i) ?? ""}>${n}</a></li>`).join("")}
       </ul>
       ${NAMES.map((_, i) => {
@@ -68,7 +68,7 @@ function bar(options: Bar = {}): string {
 
 /** What `lt.tabs()` writes, put together the way a template does it. */
 function fromBuilder(): string {
-  const f = tabs({ id: "case", keys: KEYS, label: "Parts of the case" })
+  const f = tabs({ id: "file", keys: KEYS, label: "Parts of the claim" })
   return `
     <lt-tabs>
       <ul ${attr(f.list)}>
@@ -195,9 +195,9 @@ describe("A. Three states of the page", () => {
   /** A React app that renders the tabs with `lt.tabs()` from the React entry point. */
   const App = ({ counter }: { counter: number }) => {
     const f = ltReact.tabs({
-      id: "case",
+      id: "file",
       keys: KEYS,
-      label: "Parts of the case",
+      label: "Parts of the claim",
     })
     return h(
       "div",
@@ -251,7 +251,7 @@ describe("A. Three states of the page", () => {
   })
 
   it("A7 with D11: React hydrates without mismatches also when the address points to another tab", async () => {
-    await setAddress("#case-attachments")
+    await setAddress("#file-attachments")
     const mismatches: string[] = []
     const errorSpy = vi.spyOn(console, "error").mockImplementation((...a) => {
       mismatches.push(a.map(String).join(" "))
@@ -268,7 +268,7 @@ describe("A. Three states of the page", () => {
     errorSpy.mockRestore()
     expect(mismatches).toEqual([])
     expect(selectedTabs()).toEqual([true, false, false])
-    expect(location.hash).toBe("#case-application")
+    expect(location.hash).toBe("#file-claim")
     root.unmount()
   })
 
@@ -433,8 +433,8 @@ describe("B. Semantics and names", () => {
           '<a href="#attachments" aria-labelledby="late-name">',
         )
         .replace(
-          '<p id="inside-application">',
-          '<p id="inside-application"><span id="late-name" hidden><b>Enclosures</b></span>',
+          '<p id="inside-claim">',
+          '<p id="inside-claim"><span id="late-name" hidden><b>Enclosures</b></span>',
         ),
     )
     await settle()
@@ -456,8 +456,8 @@ describe("B. Semantics and names", () => {
           '<a href="#attachments"><svg role="img" aria-labelledby="late-name" width="16" height="16"></svg></a>',
         )
         .replace(
-          '<p id="inside-application">',
-          '<p id="inside-application"><span id="late-name" hidden>Enclosures</span>',
+          '<p id="inside-claim">',
+          '<p id="inside-claim"><span id="late-name" hidden>Enclosures</span>',
         ),
     )
     await settle()
@@ -480,7 +480,7 @@ describe("B. Semantics and names", () => {
     await settle()
     expect(panels()[1].getAttribute("aria-label")).toBe("Attachments")
 
-    const deep = document.getElementById("inside-application") as HTMLElement
+    const deep = document.getElementById("inside-claim") as HTMLElement
     deep.insertAdjacentHTML(
       "beforeend",
       '<span id="late-name">Attachments</span>',
@@ -501,7 +501,7 @@ describe("B. Semantics and names", () => {
     await settle()
     expect(wiredName(panels()[1])).toBe("Attachments")
 
-    const deep = document.getElementById("inside-application") as HTMLElement
+    const deep = document.getElementById("inside-claim") as HTMLElement
     deep.insertAdjacentHTML(
       "beforeend",
       '<span hidden><span id="late-name">Enclosures</span></span>',
@@ -519,8 +519,8 @@ describe("B. Semantics and names", () => {
           '<a href="#attachments" aria-labelledby="late-name">',
         )
         .replace(
-          '<p id="inside-application">',
-          '<p id="inside-application"><span id="not-yet" hidden>Enclosures</span>',
+          '<p id="inside-claim">',
+          '<p id="inside-claim"><span id="not-yet" hidden>Enclosures</span>',
         ),
     )
     await settle()
@@ -553,8 +553,8 @@ describe("B. Semantics and names", () => {
           '<a href="#attachments" aria-labelledby="late-name">',
         )
         .replace(
-          '<p id="inside-application">',
-          '<p id="inside-application"><span id="late-name" hidden>Enclosures</span>',
+          '<p id="inside-claim">',
+          '<p id="inside-claim"><span id="late-name" hidden>Enclosures</span>',
         ),
     )
     await settle()
@@ -769,7 +769,7 @@ describe("D. Mouse and links", () => {
     mount(
       bar().replace(
         "</ul>",
-        '<li><button type="button" role="tab" aria-controls="application" id="without-href">Other</button></li></ul>',
+        '<li><button type="button" role="tab" aria-controls="claim" id="without-href">Other</button></li></ul>',
       ),
     )
     await settle()
@@ -848,16 +848,16 @@ describe("E. The address and find in page", () => {
       await settle()
 
       expect(selectedTabs()[0]).toBe(true)
-      expect(location.hash).toBe("#application")
+      expect(location.hash).toBe("#claim")
     })
   }
 
   it("G2: an address to something that does not exist stays, and a click is reported once", async () => {
-    await setAddress("#/case/1")
+    await setAddress("#/claim/1")
     mount(bar())
     await settle()
     expect(selectedTabs()).toEqual([true, false, false])
-    expect(location.hash).toBe("#/case/1")
+    expect(location.hash).toBe("#/claim/1")
     const reported: number[] = []
     host().addEventListener("tab-select", (e) => reported.push(e.detail.index))
 
@@ -1160,13 +1160,13 @@ describe("E. The address and find in page", () => {
 
     const content = bar().slice(bar().indexOf(">") + 1, bar().lastIndexOf("<"))
     host().innerHTML = content.replace(
-      '<a href="#application">',
-      '<a href="#application" aria-selected="true">',
+      '<a href="#claim">',
+      '<a href="#claim" aria-selected="true">',
     )
     await settle()
 
     expect(selectedTabs()).toEqual([true, false, false])
-    expect(location.hash).toBe("#application")
+    expect(location.hash).toBe("#claim")
   })
 
   it("E6: the address is corrected when the server moves the selection under server-controlled", async () => {
@@ -1182,7 +1182,7 @@ describe("E. The address and find in page", () => {
     await settle()
 
     expect(selectedTabs()).toEqual([true, false, false])
-    expect(location.hash).toBe("#application")
+    expect(location.hash).toBe("#claim")
   })
 
   it("E3: find in page selects the tab under server-controlled too, like a click", async () => {
@@ -1442,7 +1442,7 @@ describe("F. Updates from the server", () => {
   })
 
   it("F11: the same when the address points to something that does not exist, as in an app with routing", async () => {
-    await setAddress("#/case/1")
+    await setAddress("#/claim/1")
     // In a container: what is put directly in the panel could be a heading.
     mount(
       bar({
@@ -1600,7 +1600,7 @@ describe("F. Updates from the server", () => {
     host().querySelector("ul")?.remove()
     host().insertAdjacentHTML(
       "afterbegin",
-      `<ul class="lt-tabs__list" aria-label="Parts of the case" role="tablist">${NAMES.map(
+      `<ul class="lt-tabs__list" aria-label="Parts of the claim" role="tablist">${NAMES.map(
         (n, i) =>
           `<li role="presentation"><a role="tab" aria-controls="${KEYS[i]}" href="#${KEYS[i]}"${i === 2 ? ' aria-selected="true"' : ""}>${n}</a></li>`,
       ).join("")}</ul>`,
@@ -1666,7 +1666,7 @@ describe("G. API and events", () => {
     const reported: number[] = []
     host().addEventListener("tab-select", (e) => reported.push(e.detail.index))
 
-    location.hash = "#application"
+    location.hash = "#claim"
     await settle()
     await settle()
 
@@ -1769,7 +1769,7 @@ describe("I. The builder function", () => {
   it("I6: a selected that is not an integer gives the first tab", () => {
     for (const selected of [Number.NaN, 1.5]) {
       const f = ltReact.tabs({
-        id: "case",
+        id: "file",
         keys: ["a", "b"],
         label: "Tabs",
         selected,
@@ -1782,49 +1782,49 @@ describe("I. The builder function", () => {
   it("I6: lt.tabs() in the React entry point gives the whole state", () => {
     expect(
       ltReact.tabs({
-        id: "case",
+        id: "file",
         keys: ["a", "b"],
-        label: "Parts of the case",
+        label: "Parts of the claim",
         selected: 1,
       }),
     ).toEqual({
       list: {
         className: "lt-tabs__list",
         role: "tablist",
-        "aria-label": "Parts of the case",
+        "aria-label": "Parts of the claim",
       },
       item: { role: "presentation" },
       tabs: [
         {
-          id: "case-a-tab",
-          href: "#case-a",
+          id: "file-a-tab",
+          href: "#file-a",
           role: "tab",
           "aria-selected": "false",
-          "aria-controls": "case-a",
+          "aria-controls": "file-a",
           tabIndex: -1,
         },
         {
-          id: "case-b-tab",
-          href: "#case-b",
+          id: "file-b-tab",
+          href: "#file-b",
           role: "tab",
           "aria-selected": "true",
-          "aria-controls": "case-b",
+          "aria-controls": "file-b",
           tabIndex: 0,
         },
       ],
       panels: [
         {
-          id: "case-a",
+          id: "file-a",
           className: "lt-tabs__panel",
           role: "tabpanel",
-          "aria-labelledby": "case-a-tab",
+          "aria-labelledby": "file-a-tab",
           hidden: true,
         },
         {
-          id: "case-b",
+          id: "file-b",
           className: "lt-tabs__panel",
           role: "tabpanel",
-          "aria-labelledby": "case-b-tab",
+          "aria-labelledby": "file-b-tab",
           tabIndex: 0,
         },
       ],
@@ -1833,15 +1833,15 @@ describe("I. The builder function", () => {
 
   it("I5: lt.tabs() writes only links, ids and classes", () => {
     expect(
-      tabs({ id: "case", keys: ["a", "b"], label: "Parts of the case" }),
+      tabs({ id: "file", keys: ["a", "b"], label: "Parts of the claim" }),
     ).toEqual({
-      list: { class: "lt-tabs__list", "aria-label": "Parts of the case" },
-      tabs: [{ href: "#case-a" }, { href: "#case-b" }],
+      list: { class: "lt-tabs__list", "aria-label": "Parts of the claim" },
+      tabs: [{ href: "#file-a" }, { href: "#file-b" }],
       panels: [
-        { id: "case-a", class: "lt-tabs__panel" },
-        { id: "case-b", class: "lt-tabs__panel" },
+        { id: "file-a", class: "lt-tabs__panel" },
+        { id: "file-b", class: "lt-tabs__panel" },
       ],
-      headings: [{ id: "case-a-heading" }, { id: "case-b-heading" }],
+      headings: [{ id: "file-a-heading" }, { id: "file-b-heading" }],
     })
   })
 })

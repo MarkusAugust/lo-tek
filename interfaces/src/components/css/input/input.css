@@ -126,6 +126,27 @@
     cursor: pointer;
   }
 
+  /* iOS Safari: with the native appearance, a date or time field stood wider
+     than its container. Without it, the field fits.
+     Undocumented: on 2026-11-01, CSS.supports("-webkit-touch-callout", "none")
+     was false in Playwright's Chromium, Firefox and WebKit on macOS, also with
+     iPhone emulation, and this rule applied in Safari on an iPhone. A WebKit
+     build with touch events elsewhere may match it too. */
+  @supports (-webkit-touch-callout: none) {
+    .lt-input[data-variant="date"],
+    .lt-input[data-variant="time"],
+    .lt-input[data-variant="datetime-local"] {
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .lt-input[data-variant="date"]::-webkit-date-and-time-value,
+    .lt-input[data-variant="time"]::-webkit-date-and-time-value,
+    .lt-input[data-variant="datetime-local"]::-webkit-date-and-time-value {
+      text-align: start;
+    }
+  }
+
   /* High contrast: the icon is painted into the image with a fixed colour,
      and can become invisible in a dark theme. The browser's own button is
      hidden behind our icon, and is brought back here. */
