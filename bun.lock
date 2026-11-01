@@ -36,7 +36,7 @@
     },
     "interfaces": {
       "name": "@lo-tek/interfaces",
-      "version": "0.38.0",
+      "version": "0.39.0",
       "bin": {
         "lotek": "dist/cli.js",
       },

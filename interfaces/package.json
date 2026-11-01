@@ -1,6 +1,6 @@
 {
   "name": "@lo-tek/interfaces",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "Framework-agnostic design system: tokens, CSS components and web components.",
   "license": "MIT",
   "author": "August Søberg-Klyver",
