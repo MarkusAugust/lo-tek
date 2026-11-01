@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import {
+  defineLtPopover,
+  type LtPopover,
+} from "./components/frame/popover/lt-popover"
 import { defineElement, whenUpgraded } from "./components/host-element"
 import { defineLtToast, LtToast } from "./components/standalone/toast/lt-toast"
 import * as pkg from "./index"
 import { defineLt } from "./register"
+import { waitForPaint } from "./testing/a11y"
+import "./components/frame/popover/popover.css"
 
 /*
  * The tag names come from the main entry point, not from `register.ts`. Then
@@ -126,5 +132,83 @@ describe("whenUpgraded()", () => {
     vi.advanceTimersByTime(3000)
 
     expect(warning).not.toHaveBeenCalled()
+  })
+})
+
+/*
+ * A property set before the registration. `el.open = true` from a script that
+ * ran before `defineLt()` became an own property on the plain element, which
+ * shadowed the setter once the element was upgraded: the attribute never came,
+ * and later writes never reached the setter either. The tag names are
+ * registered late on purpose, as subclasses, since `lt-toast` and
+ * `lt-popover` have already taken the constructors in this file.
+ */
+describe("a property set before the registration", () => {
+  afterEach(() => {
+    document.body.innerHTML = ""
+  })
+
+  it("reaches the attribute, and the setter works from then on", async () => {
+    document.body.innerHTML = `<lt-toast-early></lt-toast-early>`
+    const region = document.querySelector("lt-toast-early") as LtToast
+    region.duration = 1234
+
+    defineLtToast("lt-toast-early")
+    await Promise.resolve()
+
+    expect(region.getAttribute("duration")).toBe("1234")
+    expect(region.duration).toBe(1234)
+    expect(Object.getOwnPropertyDescriptor(region, "duration")).toBeUndefined()
+
+    region.duration = 99
+    expect(region.getAttribute("duration")).toBe("99")
+  })
+
+  it("holds for a setter that notes something on the instance", async () => {
+    // `<lt-popover>` remembers in `set open` that the user wanted it open, in
+    // a field the component initialises after `super()`. Adopting the property
+    // in the constructor would have run the setter before the field existed.
+    document.body.innerHTML = `
+      <lt-popover-early>
+        <button class="lt-button" type="button">Actions</button>
+        <ul popover class="lt-popover"><li>Archive</li></ul>
+      </lt-popover-early>`
+    const menu = document.querySelector("lt-popover-early") as LtPopover
+    menu.open = true
+
+    defineLtPopover("lt-popover-early")
+    await Promise.resolve()
+    await waitForPaint()
+
+    expect(menu.hasAttribute("open")).toBe(true)
+    expect(menu.querySelector("[popover]")?.matches(":popover-open")).toBe(true)
+
+    // The note survived the field initialiser: a morph that tears `open` off
+    // gets it put back, which the component does only when the user opened it.
+    menu.removeAttribute("open")
+    await waitForPaint()
+    expect(menu.hasAttribute("open")).toBe(true)
+
+    menu.open = false
+    await waitForPaint()
+    expect(menu.hasAttribute("open")).toBe(false)
+    expect(menu.querySelector("[popover]")?.matches(":popover-open")).toBe(
+      false,
+    )
+  })
+
+  it("leaves a property without a setter alone", async () => {
+    document.body.innerHTML = `<lt-toast-plain></lt-toast-plain>`
+    const region = document.querySelector("lt-toast-plain") as LtToast &
+      Record<string, unknown>
+    region.appData = { saved: true }
+
+    defineLtToast("lt-toast-plain")
+    await Promise.resolve()
+
+    expect(Object.getOwnPropertyDescriptor(region, "appData")?.value).toEqual({
+      saved: true,
+    })
+    expect(region.hasAttribute("app-data")).toBe(false)
   })
 })

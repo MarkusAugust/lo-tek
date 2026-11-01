@@ -12,12 +12,65 @@
  * without `customElements` nothing is registered, and without registration
  * the browser never creates an instance. It only exists so the module can
  * load.
+ *
+ * In the browser the base does one thing: it adopts the properties a script
+ * set before the registration, see `adoptPropertiesSetBeforeUpgrade()`.
  */
 
 export const HostElement =
   typeof HTMLElement === "undefined"
     ? (class {} as unknown as typeof HTMLElement)
-    : HTMLElement
+    : (class extends HTMLElement {
+        constructor() {
+          super()
+          // In a microtask, not here: the component's own field initialisers
+          // run after `super()` returns, and a setter that notes something on
+          // the instance, as `<lt-popover>` does with `open`, would have been
+          // overwritten by them. By the microtask the whole constructor and
+          // the upgrade's `connectedCallback` are done.
+          queueMicrotask(() => adoptPropertiesSetBeforeUpgrade(this))
+        }
+      } as unknown as typeof HTMLElement)
+
+/**
+ * Writes the properties a script set on the element before it was upgraded
+ * through the component's setters.
+ *
+ * `dialog.open = true` from a script that runs before `defineLt()` lands on a
+ * plain `HTMLElement`, and becomes an own data property. When the element is
+ * upgraded, that property shadows the accessor on the prototype: the
+ * attribute is never set, and every later write, `dialog.open = false`
+ * included, goes to the shadow and never reaches the setter. Tested against
+ * `dist` on 2026-11-01: the setters were dead for the rest of the element's
+ * life.
+ *
+ * Only a property with a setter somewhere on the prototype chain is adopted.
+ * The component's own fields have none, and are left as they are. A property
+ * set after the upgrade is never an own property, so there is nothing to do
+ * for an element created once the registration is there. (Documented: the
+ * "lazy properties" pattern in Google's custom elements best practices.)
+ */
+function adoptPropertiesSetBeforeUpgrade(element: HTMLElement): void {
+  const record = element as unknown as Record<string, unknown>
+  for (const name of Object.keys(element)) {
+    const own = Object.getOwnPropertyDescriptor(element, name)
+    if (!own || !("value" in own) || !hasSetter(element, name)) continue
+    delete record[name]
+    record[name] = own.value
+  }
+}
+
+function hasSetter(element: object, name: string): boolean {
+  for (
+    let proto = Object.getPrototypeOf(element);
+    proto !== null;
+    proto = Object.getPrototypeOf(proto)
+  ) {
+    const descriptor = Object.getOwnPropertyDescriptor(proto, name)
+    if (descriptor) return typeof descriptor.set === "function"
+  }
+  return false
+}
 
 /*
  * The types of the events, such as `dialog-toggle` with `detail.open`. Every
