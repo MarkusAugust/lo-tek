@@ -1019,8 +1019,8 @@ describe("lt-suggestion announces the count in the page's language", () => {
       'count-none="No results" count-one="{n} result" count-other="{n} results"',
     )
 
-    expect(await announced(element, "bod")).toBe("1 result")
-    expect(await announced(element, "o")).toBe("3 results")
+    expect(await announced(element, "cor")).toBe("1 result")
+    expect(await announced(element, "s")).toBe("3 results")
     expect(await announced(element, "xyz")).toBe("No results")
   })
 
@@ -1030,7 +1030,7 @@ describe("lt-suggestion announces the count in the page's language", () => {
     // the default text.
     const element = await field("en", 'count-other="{n} results"')
 
-    expect(await announced(element, "bod")).toBe("1 results")
+    expect(await announced(element, "cor")).toBe("1 results")
     expect(await announced(element, "xyz")).toBe("0 results")
   })
 
@@ -1041,15 +1041,15 @@ describe("lt-suggestion announces the count in the page's language", () => {
       'count-one="{n} wynik" count-few="{n} wyniki" count-many="{n} wyników" count-other="{n} wyniku"',
     )
 
-    expect(await announced(element, "o")).toBe("3 wyniki")
-    expect(await announced(element, "bod")).toBe("1 wynik")
+    expect(await announced(element, "s")).toBe("3 wyniki")
+    expect(await announced(element, "cor")).toBe("1 wynik")
   })
 
   it("uses the default text when no text is set", async () => {
     const element = await field("en", "")
 
-    expect(await announced(element, "bod")).toBe("One match")
-    expect(await announced(element, "o")).toBe("3 matches")
+    expect(await announced(element, "cor")).toBe("One match")
+    expect(await announced(element, "s")).toBe("3 matches")
   })
 })
 
