@@ -239,7 +239,7 @@ The field always shows the text of the option the user chose. If the form should
 
 The component writes the code in the hidden field when the user chooses, and clears it again when the user changes the text, so the form never submits the code for Crowbar with "Needle" in the field. When the form is reset, the text goes back to what the server sent, and the code follows the text: the code the server sent when the text is the server's, otherwise the chosen one, otherwise the option with that text, otherwise none. The field gets `input` and `change` when the code is written, so `data-bind` sees it; the events do not bubble, so a `data-on:input` on `<lt-suggestion>` that fetches suggestions is not triggered by them. An update from the server that clears the hidden field gets the code back as long as the text is the chosen one. `suggestion-select` has both: `evt.detail.label` is the text and `evt.detail.value` the code.
 
-Without JavaScript the text is submitted with an empty field for the code, and the server looks up the code itself. If the text is ambiguous, as when the catalogue has two versions of Needle, the server answers with a page where the user chooses. The code is then in two places, in `data-value` and in the hidden field, and that is a deliberate choice: HTML has no element that shows one text and submits another value when the user can also type freely. `lt.suggestion()` gives the hidden field as `suggestion.value`; you write `name` yourself.
+Without JavaScript the text is submitted with an empty field for the code, and the server looks up the code itself. If the text is ambiguous, as it would be if the catalogue had two versions of Needle, the server answers with a page where the user chooses. The code is then in two places, in `data-value` and in the hidden field, and that is a deliberate choice: HTML has no element that shows one text and submits another value when the user can also type freely. `lt.suggestion()` gives the hidden field as `suggestion.value`; you write `name` yourself.
 
 ## When someone else filters
 
@@ -263,7 +263,7 @@ If you render only the matches, and your filter is narrower than the component's
 This applies as much in React as in Datastar. In React it is easy to miss, because no server is involved:
 
 ```tsx
-// Search on the code too. The component's own filter would hide Crowbar again.
+// Search on the code too, so LDG-117 finds Crowbar. The component's own filter would hide it again.
 const matches = breakers.filter((b) => [b.name, b.code].some((n) => n.toLowerCase().includes(query.toLowerCase())))
 const suggestion = lt.suggestion({ id: "breaker", keys: matches.map((b) => b.code) })
 

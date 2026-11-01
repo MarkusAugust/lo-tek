@@ -39,9 +39,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 ### Fixed
 
 - **A date or time field fits its container in iOS Safari.** With the
-  native appearance, iOS left the padding out of `border-box`, and
-  `.lt-input[data-variant="date"]` stood wider than the form around it.
-  On iOS alone, the field now has `appearance: none`.
+  native appearance, `.lt-input` with `data-variant` `date`, `time` or
+  `datetime-local` stood wider than the form around it. In iOS Safari
+  these fields now have `appearance: none`, and the value starts at the
+  start of the field.
 
 ## 0.39.0 (2026-11-01)
 

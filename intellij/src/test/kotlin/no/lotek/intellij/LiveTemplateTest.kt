@@ -24,7 +24,7 @@ class LiveTemplateTest : BasePlatformTestCase() {
         assertTrue("the id should be a variable: $text", text.contains("id=\"\$codename\$\""))
         assertTrue("for should mirror it: $text", text.contains("for=\"\$codename\$\""))
         // The form around the field has its own id, and it is a variable too.
-        assertTrue("the variables were ${template.variables.map { it.name }}", template.variables.map { it.name }.contains("codename"))
+        assertTrue("the variables were ${template.variables.map { it.name }}", template.variables.map { it.name }.containsAll(listOf("order_form", "codename")))
     }
 
     fun `test the template expands in an HTML file`() {

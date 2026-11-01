@@ -126,10 +126,12 @@
     cursor: pointer;
   }
 
-  /* iOS Safari: with the native appearance, a date or time field leaves out
-     its padding from border-box, and the field stands wider than its
-     container. Only iOS has -webkit-touch-callout, so no other engine is
-     touched. */
+  /* iOS Safari: with the native appearance, a date or time field stood wider
+     than its container. Without it, the field fits.
+     Undocumented: on 2026-11-01, CSS.supports("-webkit-touch-callout", "none")
+     was false in Playwright's Chromium, Firefox and WebKit on macOS, also with
+     iPhone emulation, and this rule applied in Safari on an iPhone. A WebKit
+     build with touch events elsewhere may match it too. */
   @supports (-webkit-touch-callout: none) {
     .lt-input[data-variant="date"],
     .lt-input[data-variant="time"],
