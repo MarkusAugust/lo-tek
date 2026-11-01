@@ -53,7 +53,7 @@ This is tested in Chromium, Firefox and WebKit, not read in a specification. The
 
 **WebKit requires the separators.** If the user types `31052079` without full stops, the field stays empty with `validity.badInput`, and the form sends nothing. `31.05.2079` works. So the help text should say how to write the date, with an example in the page's format, such as "Type the date as 31/05/2079, or pick it in the calendar."
 
-**Chromium accepts the wrong order as valid.** `20790531` became the year 90531, and `validity.valid` was still `true`. So `min` and `max` should always be set. Without them a typo gets through as a silently wrong date.
+**Chromium accepts the wrong order as valid.** `20260531` became the year 60531, and `validity.valid` was still `true`. So `min` and `max` should always be set. Without them a typo gets through as a silently wrong date.
 
 ## Validating on the server
 
