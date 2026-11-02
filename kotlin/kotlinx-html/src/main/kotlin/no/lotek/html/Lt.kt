@@ -10,7 +10,7 @@ import kotlinx.html.Tag
  *
  * label { lt(field.label); +"Fixer's address" }
  * input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "fixer" }
- * p { lt(Lt.errorText(), field.error); +"Enter a valid address." }
+ * p { lt(Lt.errorText(), field.error); +"Enter the fixer's address, for example fixer@relay.example." }
  * ```
  *
  * The sets are applied in order, and a later one wins over an earlier one,

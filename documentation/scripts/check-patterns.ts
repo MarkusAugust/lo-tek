@@ -194,6 +194,28 @@ function readForm() {
   )
 }
 
+// The form: a date outside the year the field allows should say so, not
+// that the date does not exist
+{
+  await open("/patterns/form/")
+
+  await typeInField("demo-deliver-by", "2081-04-25")
+  await page.waitForTimeout(200)
+
+  const message = await page.evaluate(
+    () =>
+      document
+        .getElementById("demo-form")
+        ?.shadowRoot?.getElementById("demo-deliver-by-error")?.textContent ??
+      "",
+  )
+
+  expect(
+    message === "The board only takes jobs for 2079",
+    `a date in 2081 gave "${message}"`,
+  )
+}
+
 // The list: four states, and here matches and empty are checked
 {
   await open("/patterns/list/")

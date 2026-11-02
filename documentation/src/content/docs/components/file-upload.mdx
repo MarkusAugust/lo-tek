@@ -29,7 +29,7 @@ The class goes on a plain `<input type="file">`. The button inside is the browse
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<input {...lt.fileUpload()} id="firmware" accept=".bin" />
+<input {...lt.fileUpload({ multiple: true })} id="firmware" accept=".bin" />
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.

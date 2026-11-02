@@ -275,7 +275,7 @@ A field with help text and an error text needs five connections that must all be
 <label for="fixer">Fixer's address</label>
 <input id="fixer" aria-invalid="true" aria-describedby="fixer-help fixer-error" />
 <p id="fixer-help">The board writes to the fixer, never to the crew.</p>
-<p id="fixer-error">Enter a valid address.</p>
+<p id="fixer-error">Enter the fixer's address, for example fixer@relay.example.</p>
 ```
 
 Every `id` must be unique, `aria-describedby` must point to both texts, and `aria-invalid` must follow the validation. Five places to get it wrong per field, multiplied by the number of fields. And nothing shows on the screen when one of them is missing.
@@ -290,7 +290,7 @@ const field = lt.field({ id: "fixer", required: "symbol", help: true, error: tru
 <label {...field.label}>Fixer's address</label>
 <input {...lt.input({ type: "email" })} {...field.control} />
 <p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>
-<p {...lt.errorText()} {...field.error}>Enter a valid address.</p>
+<p {...lt.errorText()} {...field.error}>Enter the fixer's address, for example fixer@relay.example.</p>
 ```
 
 If you use React, import from `@lo-tek/interfaces/react`, which gives `className` and `htmlFor` instead of the HTML names.

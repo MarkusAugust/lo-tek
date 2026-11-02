@@ -44,7 +44,7 @@ Along the way you write it only when its content changes, and you do not show it
   aria-describedby="fixer-help fixer-error"
 />
 <p class="lt-help-text" id="fixer-help">The board writes to the fixer, never to the crew.</p>
-<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an @ sign.</p>
+<p class="lt-error-text" id="fixer-error">Enter the full address, for example fixer@relay.example.</p>
 ```
 
 `data-state` gives the colour, `aria-invalid` tells the screen reader, and `aria-describedby` points to the text. Without the last one, the error message exists only for those who can see it.
@@ -61,7 +61,7 @@ To avoid keeping track of this yourself, use [Field](../../components/field/), e
 <lt-error-summary class="lt-error-summary" role="alert" tabindex="-1" data-autofocus="false" id="form-errors" aria-labelledby="form-errors-title">
   <h2 class="lt-error-summary__title" id="form-errors-title">The form has two errors</h2>
   <ul class="lt-list">
-    <li><a href="#fixer">Enter the fixer's address with an @ sign</a></li>
+    <li><a href="#fixer">Enter the full address, for example fixer@relay.example</a></li>
     <li><a href="#deliver-by">Enter a date that exists</a></li>
   </ul>
 </lt-error-summary>

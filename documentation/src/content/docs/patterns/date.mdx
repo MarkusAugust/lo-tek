@@ -47,13 +47,15 @@ What was left for a separate component was nothing, apart from the panel looking
 
 The panel is also transient. It is not part of the page; it opens and closes again.
 
-## Two browser differences you need to know
+## Three browser differences you need to know
 
-This is tested in Chromium, Firefox and WebKit, not read in a specification. The tests used a Norwegian locale (`nb`), where the browser shows the date as 31.05.2079, so the examples below keep that format on purpose.
+The first two are tested in Chromium, Firefox and WebKit, not read in a specification, and the third was seen in Safari on an iPhone. The tests used a Norwegian locale (`nb`), where the browser shows the date as 31.05.2079, so the test results below use that format. The help text uses the page's own format, 31/05/2079.
 
 **WebKit requires the separators.** If the user types `31052079` without full stops, the field stays empty with `validity.badInput`, and the form sends nothing. `31.05.2079` works. So the help text should say how to write the date, with an example in the page's format, such as "Type the date as 31/05/2079, or pick it in the calendar."
 
 **Chromium accepts the wrong order as valid.** `20260531` became the year 60531, and `validity.valid` was still `true`. So `min` and `max` should always be set. Without them a typo gets through as a silently wrong date.
+
+**Safari on an iPhone lets the user pick a date outside `min` and `max`.** The picker offers every year, and 25 April 2081 lands in a field limited to 2079. The field gets `rangeOverflow`, so the error message must say which dates are allowed, not that the date does not exist, and the server must check the range too.
 
 ## Validating on the server
 
@@ -63,9 +65,13 @@ const date = formData.get("deliver-by")
 if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
   return error("Enter the date as day, month and year.")
 }
+
+if (date < "2079-01-01" || date > "2079-12-31") {
+  return error("The board only takes jobs for 2079.")
+}
 ```
 
-The field always sends ISO when the browser accepted the date. But `badInput` means the server gets an empty string from someone who meant to type something, and your app has to point out that difference.
+The field always sends ISO when the browser accepted the date, and ISO dates compare correctly as strings. But `badInput` means the server gets an empty string from someone who meant to type something, and your app has to point out that difference.
 
 ## What the system does not do
 
