@@ -33,7 +33,11 @@ class LiveTemplateTest : BasePlatformTestCase() {
         val template = TemplateSettings.getInstance().getTemplate("lt-field", "LO-TEK")!!
         TemplateManager.getInstance(project).startTemplate(myFixture.editor, template)
         val text = myFixture.editor.document.text
-        assertTrue("the markup should be there: $text", text.contains("<lt-field>") && text.contains("id=\"codename\""))
+        assertTrue("the markup should be there: $text", text.contains("<lt-field>"))
+        // The id is left empty: a filled-in one compiled and ran when the
+        // template was pasted twice on a page, and gave two equal ids.
+        assertTrue("the id should be empty, mirrored in for: $text", text.contains("id=\"\"") && text.contains("for=\"\""))
         assertFalse("the variable should be replaced: $text", text.contains("\$codename\$"))
+        assertFalse("no id from the recipe should be filled in: $text", text.contains("id=\"codename\""))
     }
 }

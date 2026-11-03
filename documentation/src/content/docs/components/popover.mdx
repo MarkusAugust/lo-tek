@@ -196,7 +196,42 @@ defineLtPopover()
 
     `server-controlled` belongs with it when the signal controls `open`. Otherwise the component puts the attribute back when something removes it, since a removed attribute cannot be told apart from an update that tears it off, and then the panel could not be closed from the signal. If you control the panel from JavaScript instead, with `menu.open = false`, it is not needed: a property is a message the component can see.
   </TabItem>
+  <TabItem label="Kotlin">
+    On a Kotlin server you call `Lt.popover()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the panel's, and the button points to it.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltPopover
+
+    fun FlowContent.actionsMenu() {
+        val menu = Lt.popover(id = "actions", placement = PopoverPlacement.BOTTOM_END)
+        ltPopover {
+            id = "menu"
+            lt(menu.host)
+            button { lt(Lt.button(variant = ButtonVariant.SECONDARY), menu.trigger); type = ButtonType.button; +"Actions" }
+            ul {
+                lt(menu.panel)
+                li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Mark LDG-117 returned" } }
+                li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Charge the late fee" } }
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        actionsMenu()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
+
+The panel's id comes from the template, and the button points to it. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render: a morph recognises an element by its id. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 ```ts
 const box = lt.popover({ id: "actions", placement: "bottom-end" })

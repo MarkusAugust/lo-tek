@@ -24,8 +24,59 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **In Kotlin every builder function is a member of `Lt`.** `field`,
+  `suggestion`, `tabs`, `errorSummary`, `label` and `legend` were extension
+  functions on `Lt` in `Handwritten.kt`. A call such as `Lt.field(…)` reads
+  the same, but `import no.lotek.field` no longer compiles and has to go,
+  and code compiled against the old version calls a method that is gone, so
+  it must be compiled again.
+
+### Added
+
+- **Each builder function in the manifest has `description`, `example` and
+  `docs`, and an option with a closed list has `default`.** The description
+  is the comment on the function in TypeScript without the code examples,
+  the example is those examples, and `docs` is the component page. The
+  default is read from the answers: the value that gives the same answer as
+  leaving the option out, and the build stops when the comment on the
+  option names another one. A builder function with several sets has
+  `parts`, which says which part of a web component each set fills:
+  `field.control` fills `control` in `lt-field`, with its selector there.
+  All are optional, so `schemaVersion` is still 1, and a manifest from
+  before reads as before.
+- **The Kotlin API has the documentation from the manifest.** Every member
+  of `Lt` has the description, an example call, a link to the component
+  page and an `@param` per option with the default as the Kotlin constant,
+  in the sources jar, so IntelliJ shows it in Quick Documentation.
+- **The builder functions can be called from Java.** They are `@JvmStatic`
+  and `@JvmOverloads`, with the required options first, `ButtonVariant.of(…)`
+  and the other lookups are static, and `Lt.card.title` is a field:
+  `Lt.field("fixer")` rather than `HandwrittenKt.field(Lt.INSTANCE, "fixer",
+  null, …)`. In Kotlin the options are passed by name as before, but
+  `Lt.suggestion` called with its options in order now has `id` first.
+  `JavaCallTest` compiles the calls in Java.
+- **`lo-tek-kotlinx-html` has one function per web component**, such as
+  `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
+  elements in HTML.
+- **The pages for field, suggestion, tabs, popover, dialog, error summary
+  and session timeout have a Kotlin tab.** `RecipesTest` compiles each,
+  renders it, and requires the elements, the texts, the classes and the
+  attributes of the page's HTML recipe, with `lotek check` on the result.
+
 ### Changed
 
+- **The snippets and the live templates leave the ids empty.** They filled
+  in the id from the recipe, such as `codename`, and a snippet pasted twice
+  on a page, or in a loop, then gave two fields with the same id, which a
+  morph matches wrongly. The id is still one tab stop, mirrored in `for`
+  and `href`.
+- **The documentation of every id option says to make it from a key in the
+  data**, never from the loop index or a counter, so it is unique on the
+  page and the same on every render. The message when `Lt.field` and the
+  others get an empty id in Kotlin says the same; it used to suggest "the
+  field's name or another fixed id", which in a loop is the duplicate.
 - **The examples come from the world LO-TEK belongs to, not from a housing
   benefit application.** Every recipe, demo, snippet, live template and
   rulebook now shows a system LO-TEK delivered to a client: the job

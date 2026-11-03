@@ -6,7 +6,11 @@ export const ERROR_SUMMARY_TITLE_CLASS = "lt-error-summary__title" as const
 export type ErrorSummaryOptions = {
   /** The number of errors the server found. When it is zero, the box is hidden. */
   count?: number
-  /** The id of the box, so the form can move focus here after submission. */
+  /**
+   * The id of the box, so the form can move focus here after submission.
+   * Make it from a key in the data, never from the loop index or a counter,
+   * so it is unique on the page and the same on every render.
+   */
   id?: string
   /**
    * The id of the heading. The box takes its name from it with

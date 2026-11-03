@@ -216,7 +216,49 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
     ```
 
   </TabItem>
+  <TabItem label="Kotlin">
+    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The dialog opens with `showModal()` in the browser, as in the HTML tab.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+
+    fun FlowContent.cancelJob() {
+        val box = Lt.dialog(titleId = "confirm-title")
+        button { lt(Lt.button(variant = ButtonVariant.DANGER)); id = "open-confirm"; type = ButtonType.button; +"Cancel the job" }
+        dialog {
+            lt(box.dialog)
+            id = "confirm"
+            h2 { lt(box.title); +"Cancel job 222-0481?" }
+            div {
+                lt(box.body)
+                p { +"The crew keeps the advance. This cannot be undone." }
+            }
+            form {
+                lt(box.footer)
+                attributes["method"] = "dialog"
+                button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); value = "keep"; +"Keep the job" }
+                button { lt(Lt.button(variant = ButtonVariant.DANGER)); value = "cancel"; +"Cancel the job" }
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        cancelJob()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+
+    If the server should open the dialog itself, put it in `ltDialog { lt(box.host) }` and pass `open = true`, as in the Datastar tab.
+  </TabItem>
 </Tabs>
+
+The heading's id comes from the template, and the dialog takes its name from it. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render: a screen reader follows `aria-labelledby` to it, and a morph recognises an element by its id. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 The button in "Try it" does what a server would otherwise do: it sets `open` on `<lt-dialog>`, as the Datastar recipe does. The dialog in "Try it" also has a coloured header with a subtitle, described under [Coloured header](#coloured-header).
 

@@ -39,6 +39,11 @@ export type Option = {
   type: OptionType
   /** The JSDoc of the option in the builder function's type, when it has one. */
   description?: string
+  /**
+   * The value that gives the same answer as leaving the option out, for an
+   * option with a closed list. Set by `generate-manifest.ts`.
+   */
+  default?: string
 }
 
 export type ResultShape =
@@ -53,6 +58,14 @@ export type ResultShape =
 
 export type BuilderFunction = {
   name: string
+  /**
+   * The comment on the builder function, without the code examples: what it
+   * is for and what the template has to know. A link to a source file keeps
+   * only its text, since the reader of the manifest has no source tree.
+   */
+  description: string
+  /** The code examples in the comment, in TypeScript, when it has any. */
+  example?: string
   options: Option[]
   returns: ResultShape
 }
@@ -182,6 +195,114 @@ export function readBuilderFunctions(): BuilderFunction[] {
     )
   }
 
+  /** The `/** … *\/` comment right before a node, as text without the stars. */
+  function commentBefore(node: ts.Node | undefined): string {
+    if (!node) return ""
+    const file = node.getSourceFile()
+    const ranges = (
+      ts.getLeadingCommentRanges(file.text, node.getFullStart()) ?? []
+    ).filter((r) => file.text.startsWith("/**", r.pos))
+    const range = ranges[ranges.length - 1]
+    if (!range) return ""
+    return file.text
+      .slice(range.pos + 3, range.end - 2)
+      .split("\n")
+      .map((line) => line.replace(/^\s*\* ?/, ""))
+      .join("\n")
+      .trim()
+  }
+
+  /** The statement a declaration stands in, which is where its comment is. */
+  function statementOf(symbol: ts.Symbol | undefined): ts.Node | undefined {
+    let node: ts.Node | undefined = symbol?.valueDeclaration
+    while (
+      node &&
+      !ts.isVariableStatement(node) &&
+      !ts.isFunctionDeclaration(node)
+    )
+      node = node.parent
+    return node
+  }
+
+  /**
+   * The comment on the function itself. The comment is read as text rather
+   * than through the checker, which takes `@` in an example, like an address
+   * with `@` in it, for a tag and cuts the comment there. A function listed
+   * in `lt` has its comment where it is declared, also one listed under
+   * another name, as `switch: switchControl`; a declaration without one, as
+   * `computeFieldAttributes`, has it on the property in `lt`, and so does a
+   * shorthand whose declaration has none.
+   */
+  function documentation(p: ts.Symbol): {
+    description: string
+    example?: string
+  } {
+    const property = p.valueDeclaration
+    const resolve = (symbol: ts.Symbol | undefined) =>
+      symbol && symbol.flags & ts.SymbolFlags.Alias
+        ? checker.getAliasedSymbol(symbol)
+        : symbol
+    let text = ""
+    if (property && ts.isShorthandPropertyAssignment(property))
+      text =
+        commentBefore(
+          statementOf(
+            resolve(checker.getShorthandAssignmentValueSymbol(property)),
+          ),
+        ) || commentBefore(property)
+    else if (property && ts.isPropertyAssignment(property))
+      text =
+        commentBefore(
+          statementOf(
+            resolve(checker.getSymbolAtLocation(property.initializer)),
+          ),
+        ) || commentBefore(property)
+    const code = [...text.matchAll(/```\w*\n([\s\S]*?)```/g)].map((m) =>
+      m[1].trimEnd(),
+    )
+    const description = text
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/\[([^\]]+)\]\([^)]*\.js\)/g, "$1")
+      .split(/\n\s*\n/)
+      // A paragraph is joined into one line, but a list keeps one line per
+      // item.
+      .map((paragraph) =>
+        paragraph
+          .trim()
+          .replace(/\s*\n\s*(?!- )/g, " ")
+          .replace(/\s*\n\s*(?=- )/g, "\n"),
+      )
+      // A paragraph that starts "In React" is advice for one environment, and
+      // TypeScript shows it in the editor. The manifest is read by the others,
+      // so it is left out there. Any other mention of React stops the build,
+      // so a general rule is never dropped because it names React.
+      .filter((paragraph) => {
+        if (/^In React\b/.test(paragraph)) {
+          // The whole paragraph goes, so it must be React advice and nothing
+          // else: a general rule after it would go with it.
+          if ((paragraph.match(/[.!?](\s|$)/g) ?? []).length > 1)
+            throw new Error(
+              `lt.${p.name}: the paragraph "${paragraph.slice(0, 60)}…" starts with "In React" and has more than one sentence. The manifest leaves it out whole, so put anything else in a paragraph of its own.`,
+            )
+          return false
+        }
+        if (/\bReact\b/.test(paragraph))
+          throw new Error(
+            `lt.${p.name}: a paragraph in the comment mentions React without starting with "In React": ${paragraph.slice(0, 80)}… The manifest leaves out only paragraphs that start that way.`,
+          )
+        return Boolean(paragraph)
+      })
+      .join("\n\n")
+    if (!description)
+      throw new Error(
+        `lt.${p.name} has no comment. Write one on the function: the manifest, the Kotlin API and the editors show it.`,
+      )
+    return {
+      description,
+      ...(code.length ? { example: code.join("\n\n") } : {}),
+    }
+  }
+
   const builderFunctions: BuilderFunction[] = []
   for (const p of checker.getTypeAtLocation(ltName).getProperties()) {
     const signature = checker.getTypeOfSymbol(p).getCallSignatures()[0]
@@ -204,6 +325,12 @@ export function readBuilderFunctions(): BuilderFunction[] {
           .trim()
           .split(/\n\s*\n/)[0]
           .replace(/\s*\n\s*/g, " ")
+        // The first paragraph goes to every language, so it must not be
+        // advice for React; that belongs in a later paragraph.
+        if (/\bReact\b/.test(description))
+          throw new Error(
+            `lt.${p.name}({ ${v.name} }): the first paragraph of the comment mentions React. It is what every other language shows, so put the React advice in a paragraph after it.`,
+          )
         options.push({
           name: v.name,
           required: (v.flags & ts.SymbolFlags.Optional) === 0,
@@ -217,6 +344,7 @@ export function readBuilderFunctions(): BuilderFunction[] {
     }
     builderFunctions.push({
       name: p.name,
+      ...documentation(p),
       options,
       returns: resultShape(signature.getReturnType(), `lt.${p.name}()`),
     })

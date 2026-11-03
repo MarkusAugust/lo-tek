@@ -92,13 +92,27 @@ class Generator(manifest: Map<String, Any?>) {
         }
     }
 
-    private data class Option(val name: String, val kind: String, val required: Boolean, val raw: Map<String, Any?>)
+    private data class Option(
+        val name: String,
+        val kind: String,
+        val required: Boolean,
+        val raw: Map<String, Any?>,
+        val description: String?,
+        val default: String?,
+    )
 
     @Suppress("UNCHECKED_CAST")
     private fun options(b: Map<String, Any?>): List<Option> =
         (b["options"] as List<Map<String, Any?>>).map {
             val type = it["type"] as Map<String, Any?>
-            Option(it["name"] as String, type["kind"] as String, it["required"] as Boolean, type)
+            Option(
+                it["name"] as String,
+                type["kind"] as String,
+                it["required"] as Boolean,
+                type,
+                it["description"] as String?,
+                it["default"] as String?,
+            )
         }
 
     @Suppress("UNCHECKED_CAST")
@@ -170,6 +184,7 @@ class Generator(manifest: Map<String, Any?>) {
             out.append("    override fun toString(): String = value\n\n")
             out.append("    companion object {\n")
             out.append("        /** The value with this text, or `null` when the text is not an allowed value. */\n")
+            out.append("        @JvmStatic\n")
             out.append("        fun of(value: String): $name? = entries.firstOrNull { it.value == value }\n")
             out.append("    }\n}\n")
         }
@@ -188,8 +203,118 @@ class Generator(manifest: Map<String, Any?>) {
         return if (o.required) base else "$base? = null"
     }
 
+    /**
+     * The documentation of a builder function, from the manifest: the comment
+     * on the TypeScript function, one `@param` per option with its default as
+     * the Kotlin constant, an example call, and the page.
+     */
+    private fun kdoc(b: Map<String, Any?>): String {
+        val name = b["name"] as String
+        val lines = mutableListOf<String>()
+        val description = b["description"] as String? ?: "`lt.$name`"
+        for (paragraph in description.split("\n\n")) {
+            if (lines.isNotEmpty()) lines.add("")
+            for (line in paragraph.split("\n")) lines.addAll(wrap(line))
+        }
+        lines.add("")
+        lines.add("```kotlin")
+        lines.add(example(b))
+        lines.add("```")
+        (b["docs"] as String?)?.let {
+            lines.add("")
+            lines.add("See [the component page]($it).")
+        }
+        // In the order of the signature, the required options first.
+        val params = options(b).sortedBy { !it.required }.filter { it.description != null }
+        if (params.isNotEmpty()) lines.add("")
+        for (o in params) {
+            var text = o.description!!
+            if (o.default != null) {
+                val constant = "[${enumName(ValueSet(o.name, values(o)!!), name)}.${constant(o.default)}]"
+                text = text.replace("Default: `${o.default}`", "Default: $constant")
+            }
+            val wrapped = wrap("@param ${identifier(o.name)} $text")
+            lines.add(wrapped.first())
+            lines.addAll(wrapped.drop(1).map { "  $it" })
+        }
+        val body = lines.joinToString("\n") { if (it.isEmpty()) "     *" else "     * ${escapeComment(it)}" }
+        return "    /**\n$body\n     */\n"
+    }
+
+    /*
+     * A slash and a star would open a comment inside the comment in Kotlin,
+     * and a star and a slash would close it, so the star is written as the
+     * entity `&#42;`. Markdown decodes an entity in text but not in a code
+     * span, so a code span with either pair loses its backticks: the accepted
+     * file types of the file upload show as written in Quick Documentation,
+     * and are copied as written. An invisible character between the two was
+     * tried, and was copied with the example. (This comment cannot show the
+     * pairs either.)
+     */
+    private fun escapeComment(text: String): String {
+        val star = { s: String -> s.replace("/*", "/&#42;").replace("*/", "&#42;/") }
+        return Regex("`([^`]*)`").replace(text) { m ->
+            val code = m.groupValues[1]
+            if ("/*" in code || "*/" in code) star(code) else m.value
+        }.let(star)
+    }
+
+    /** A line of prose broken at about 96 characters. A list item keeps its dash on the first line. */
+    private fun wrap(text: String): List<String> {
+        val out = mutableListOf<String>()
+        val line = StringBuilder()
+        for (word in text.split(' ')) {
+            if (line.isNotEmpty() && line.length + 1 + word.length > 96) {
+                out.add(line.toString())
+                line.setLength(0)
+                // A word that starts with `@` would begin a tag on a line of its own.
+                if (word.startsWith("@")) line.append("  ")
+            }
+            if (line.isNotEmpty() && !line.endsWith("  ")) line.append(' ')
+            line.append(word)
+        }
+        if (line.isNotEmpty()) out.add(line.toString())
+        return out
+    }
+
+    /**
+     * A call with what it needs: the required options, and the first option
+     * with a list set to a value other than its default. An id is made from a
+     * key in the data, as the documentation of the option asks.
+     */
+    private fun example(b: Map<String, Any?>): String {
+        val name = b["name"] as String
+        val arguments = mutableListOf<String>()
+        for (o in options(b)) {
+            val value = when {
+                o.required && o.kind == "text" && o.name == "id" -> "\"case-\${case.id}\""
+                o.required && o.kind == "text" && o.name.endsWith("Id") -> "\"case-\${case.id}-${o.name.removeSuffix("Id")}\""
+                o.required && o.kind == "text" -> "\"…\""
+                o.required && o.kind == "textList" -> "case.parts.map { it.key }"
+                o.required && o.kind == "number" -> "1"
+                o.required && o.kind == "flag" -> "true"
+                else -> null
+            }
+            if (value != null) arguments.add("${identifier(o.name)} = $value")
+        }
+        options(b).firstOrNull { !it.required && it.kind == "values" }?.let { o ->
+            val other = values(o)!!.firstOrNull { it != o.default }
+            if (other != null) {
+                arguments.add("${identifier(o.name)} = ${enumName(ValueSet(o.name, values(o)!!), name)}.${constant(other)}")
+            }
+        }
+        val call = "Lt.${identifier(name)}(${arguments.joinToString(", ")})"
+        return if (returnType(b) == "Attributes") call else "val ${identifier(name)} = $call"
+    }
+
+    /**
+     * The parameters, the required ones first. Kotlin passes them by name, so
+     * the order is only seen from Java, where `@JvmOverloads` leaves out
+     * options from the back: in the manifest's order `Lt.suggestion` needed
+     * nine `null`s before its `id`.
+     */
     private fun signature(b: Map<String, Any?>): String =
-        options(b).joinToString(",\n") { "        ${identifier(it.name)}: ${kotlinType(b, it)}" }
+        options(b).sortedBy { !it.required }.joinToString(",\n") { "        ${identifier(it.name)}: ${kotlinType(b, it)}" }
 
     private fun returnType(b: Map<String, Any?>): String =
         if (returns(b)["kind"] == "group") pascal(b["name"] as String) + "Parts" else "Attributes"
@@ -197,16 +322,27 @@ class Generator(manifest: Map<String, Any?>) {
     private fun ltFile(): String {
         val out = StringBuilder(header).append("package no.lotek\n\n")
         out.append("/**\n * The builder functions, with the same names and options as `lt` in TypeScript.\n *\n")
-        out.append(" * Each returns the attributes you put on the element. The builder functions\n")
-        out.append(" * whose options interact are in `Handwritten.kt`.\n */\n")
+        out.append(" * Each returns the attributes you put on the element. The ones whose options\n")
+        out.append(" * interact are written by hand in `Handwritten.kt`, and called from here, so\n")
+        out.append(" * every builder function has the same documentation and is reached the same\n")
+        out.append(" * way, also from Java: `Lt.button()`, `Lt.field(\"codename\")`.\n */\n")
         out.append("object Lt {\n")
         for (b in builders) {
             val name = b["name"] as String
             @Suppress("UNCHECKED_CAST")
             val table = b["table"] as Map<String, Any?>?
-            if (table != null) {
-                out.append("    /** `lt.$name` */\n")
-                val parameters = if (options(b).isEmpty()) "" else "\n${signature(b)},\n    "
+            out.append(kdoc(b))
+            out.append("    @JvmStatic\n")
+            // Without an option that can be left out there is no overload to write.
+            if (options(b).any { !it.required }) out.append("    @JvmOverloads\n")
+            val parameters = if (options(b).isEmpty()) "" else "\n${signature(b)},\n    "
+            if (table == null) {
+                // Written by hand: the options interact. The arguments are
+                // passed by name, so the order in `Handwritten.kt` is free.
+                val arguments = options(b).joinToString(", ") { "${identifier(it.name)} = ${identifier(it.name)}" }
+                out.append("    fun ${identifier(name)}($parameters): ${returnType(b)} =\n")
+                out.append("        Handwritten.${identifier(name)}($arguments)\n\n")
+            } else {
                 out.append("    fun ${identifier(name)}($parameters): ${returnType(b)} {\n")
                 @Suppress("UNCHECKED_CAST")
                 if (table["kind"] == "attributes") {
@@ -228,6 +364,7 @@ class Generator(manifest: Map<String, Any?>) {
                 val type = classesType(name)
                 val list = classes.keys.joinToString(", ") { "`Lt.${identifier(name)}.${identifier(it)}`" }
                 out.append("    /** The parts of `lt.$name` the template writes itself: $list, as in TypeScript. */\n")
+                out.append("    @JvmField\n")
                 out.append("    val ${identifier(name)}: $type = $type\n\n")
             }
         }
@@ -244,6 +381,7 @@ class Generator(manifest: Map<String, Any?>) {
             out.append("    object ${classesType(name)} {\n")
             for ((part, className) in classes) {
                 out.append("        /** `lt.$name.$part` in TypeScript: the class `$className`. */\n")
+                out.append("        @JvmField\n")
                 out.append("        val ${identifier(part)}: Attributes = Attributes(linkedMapOf(\"class\" to ${literal(className)}))\n\n")
             }
             out.setLength(out.length - 1)

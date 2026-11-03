@@ -190,11 +190,28 @@ export type BuilderReturns = { optional?: boolean } & (
  */
 export type Builder = {
   name: string
+  /**
+   * The comment on the function, without the code examples. Missing in a
+   * manifest from before 0.40, where the schema version was already 1.
+   */
+  description?: string
+  /** The code examples in the comment, in TypeScript. */
+  example?: string
+  /** The page the function is documented on. */
+  docs?: string
+  /**
+   * Which part of a frame component each set in the result fills, as
+   * `field.control` fills the control of `<lt-field>`. A set that fills no
+   * part is left out.
+   */
+  parts?: Record<string, { element: string; part: string }>
   options: {
     name: string
     required: boolean
     type: BuilderOptionType
     description?: string
+    /** The value that gives the same answer as leaving the option out. */
+    default?: string
   }[]
   returns: BuilderReturns
   /**

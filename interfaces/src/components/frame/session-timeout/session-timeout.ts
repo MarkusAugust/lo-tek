@@ -15,7 +15,12 @@ export const SESSION_EXTEND = "extend" as const
 export const SESSION_LOGOUT = "logout" as const
 
 export type SessionTimeoutOptions = {
-  /** Id of the heading. The dialog takes its name from it with `aria-labelledby`. */
+  /**
+   * Id of the heading. The dialog takes its name from it with
+   * `aria-labelledby`. Make it from a key in the data, never from the loop
+   * index or a counter, so it is unique on the page and the same on every
+   * render.
+   */
   titleId: string
   /** Seconds without activity before the warning appears. Default: 25 minutes. */
   warnAt?: number

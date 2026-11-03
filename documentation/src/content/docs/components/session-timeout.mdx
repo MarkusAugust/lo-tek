@@ -167,7 +167,52 @@ defineLtSessionTimeout()
 
     `data-ignore-morph` tells the morph to leave the warning alone. Without it the morph removes `open` and the number while the dialog is in the top layer. The component puts `open` back, and the number returns on the next tick, but with the attribute the number is there all the time.
   </TabItem>
+  <TabItem label="Kotlin">
+    On a Kotlin server you call `Lt.sessionTimeout()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the dialog and every text in it, in its own language.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltSessionTimeout
+
+    fun FlowContent.sessionWarning() {
+        val session = Lt.sessionTimeout(titleId = "session-title", warnAt = 1500, expiresAt = 1800)
+        ltSessionTimeout {
+            lt(session.host)
+            dialog {
+                lt(session.dialog)
+                h2 { lt(session.title); +"Your session is ending" }
+                p {
+                    lt(session.text)
+                    +"Your session on the Lattice ends in "
+                    span { lt(session.count) }
+                    +". Unsaved routes will be lost."
+                }
+                span { lt(session.live) }
+                form {
+                    lt(session.actions)
+                    attributes["method"] = "dialog"
+                    button { lt(Lt.button(), session.extend); +"Stay connected" }
+                    button { lt(Lt.button(variant = ButtonVariant.SECONDARY), session.logout); +"Log out" }
+                }
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        sessionWarning()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
+
+The heading's id comes from the template, and the dialog takes its name from it. Make it from a fixed value, never from a counter, so it is the same on every render: a morph recognises an element by its id. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 ## Why you write the dialog yourself
 

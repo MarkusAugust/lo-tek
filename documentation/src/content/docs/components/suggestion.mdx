@@ -185,6 +185,44 @@ defineLtSuggestion()
 
     The server answers with the list, `<ul class="lt-suggestion__list" id="breakers">` with the new `<li>` elements, and Datastar morphs it by its id. The id comes from the server, and the component leaves it alone. Here the server decides which options are shown, hence `prefiltered`. The component wires itself to the options the server sends, so choosing with the mouse also works after an update.
   </TabItem>
+  <TabItem label="Kotlin">
+    On a Kotlin server you call `Lt.suggestion()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The keys come from the data, so the options keep their ids when the server sends the list again.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltSuggestion
+
+    data class Breaker(val code: String, val name: String)
+
+    fun FlowContent.breakerSearch(
+        breakers: List<Breaker> = listOf(Breaker("crowbar", "Crowbar"), Breaker("needle", "Needle")),
+    ) {
+        val search = Lt.suggestion(id = "breaker", keys = breakers.map { it.code })
+        ltSuggestion {
+            id = "breaker-search"
+            label { lt(search.label); +"Breaker" }
+            input { lt(search.control); name = "breaker" }
+            ul {
+                lt(search.list)
+                breakers.zip(search.options).forEach { (breaker, option) -> li { lt(option); +breaker.name } }
+            }
+            p { lt(search.empty); +"No matches" }
+            span { lt(search.status) }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        breakerSearch()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ## The markup

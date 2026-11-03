@@ -181,7 +181,53 @@ defineLtErrorSummary()
 
     If the form fails again while the box is already visible, focus does not move, because the signal is that `hidden` is removed. Send two patches in the same response then: first the box with `hidden`, then the box without. The component sees that it was hidden and shown again, and moves focus. See [The markup](#the-markup).
   </TabItem>
+  <TabItem label="Kotlin">
+    On a Kotlin server you call `Lt.errorSummary()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the heading and the links, and the box is hidden when there are no errors.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.InputType
+    import no.lotek.html.lt
+    import no.lotek.html.ltErrorSummary
+
+    data class Fault(val field: String, val message: String)
+
+    fun FlowContent.orderForm(faults: List<Fault> = emptyList()) {
+        val summary = Lt.errorSummary(count = faults.size, id = "errors", titleId = "errors-title")
+        val fixer = Lt.field(id = "fixer", invalid = faults.any { it.field == "fixer" })
+        form {
+            attributes["novalidate"] = ""
+            ltErrorSummary {
+                lt(summary.host)
+                h2 {
+                    lt(summary.title)
+                    if (faults.isNotEmpty()) +(if (faults.size == 1) "The form has one error" else "The form has ${faults.size} errors")
+                }
+                ul {
+                    lt(Lt.list())
+                    for (fault in faults) li { a(href = "#${fault.field}") { +fault.message } }
+                }
+            }
+            label { lt(fixer.label); +"Fixer's address" }
+            input { lt(Lt.input(type = InputType.EMAIL), fixer.control); name = "fixer" }
+            button { lt(Lt.button()); +"Order the job" }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        orderForm()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
+
+The ids of the box and the heading come from the template. Make them from a key in the data, never from the loop index or a counter, so they are unique on the page and the same on every render: a morph recognises an element by its id. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 ## The markup
 
