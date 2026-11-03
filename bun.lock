@@ -14,6 +14,7 @@
       "name": "@lo-tek/documentation",
       "dependencies": {
         "@astrojs/markdown-remark": "7.3.5",
+        "@astrojs/mdx": "8.1.2",
         "@astrojs/starlight": "0.42.8",
         "@lo-tek/interfaces": "workspace:*",
         "astro": "7.4.5",
