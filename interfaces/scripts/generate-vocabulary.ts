@@ -306,7 +306,8 @@ export function snippets() {
 function kotlinRecipe(slug: string): string | undefined {
   const page = readFileSync(join(PAGES, `${slug}.mdx`), "utf8")
   // Both forms `ExtractRecipes` reads: the tab, and the slot in an <Example>.
-  const tabStart = page.indexOf('<TabItem label="kotlinx.html">')
+  // The same pattern as `tabStarts` in `ExtractRecipes`, spacing included.
+  const tabStart = page.search(/<TabItem\s+label\s*=\s*"kotlinx\.html"\s*>/)
   const slotStart = page.indexOf('<Fragment slot="kotlin">')
   const start = tabStart >= 0 ? tabStart : slotStart
   if (start < 0) return undefined

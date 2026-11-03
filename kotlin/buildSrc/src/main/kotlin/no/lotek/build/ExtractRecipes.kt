@@ -3,6 +3,8 @@ package no.lotek.build
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
@@ -28,6 +30,11 @@ abstract class ExtractRecipes : DefaultTask() {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val pages: ConfigurableFileCollection
 
+    /** `Example.astro`, whose kotlinx.html tab shows the stylesheet from the WebJar above the recipe. */
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val example: RegularFileProperty
+
     @get:OutputDirectory
     abstract val sources: DirectoryProperty
 
@@ -51,14 +58,28 @@ abstract class ExtractRecipes : DefaultTask() {
             if (html.isEmpty()) error("${page.name}: the HTML recipe next to the kotlinx.html tab is empty.")
             val pkg = "no.lotek.html.recipes.${name.replace("-", "")}"
             val dir = sourceDir.resolve(pkg.replace('.', '/')).apply { mkdirs() }
-            dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n")
+            // The other ```kotlin blocks in the tab are the page template, with
+            // the stylesheet and `defineLt()`. They are compiled too, as
+            // functions on `HTML`, so a name in them that changes stops here.
+            val templates = blocks(kotlin, "kotlin").filter { it != block }
+                .mapIndexed { i, t -> "\ninternal fun HTML.pageTemplate$i() {\n${t.prependIndent("    ")}\n}\n" }
+            dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n${templates.joinToString("")}")
             resourceDir.resolve("recipes").apply { mkdirs() }.resolve("$name.html").writeText(html.joinToString("\n"))
             val alias = "${name.replace("-", "")}_$function"
             imports.add("import $pkg.$function as $alias")
             entries.add("    Recipe(\"$name\", \"$function\") { $alias() },")
         }
         if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
+        // The stylesheet `Example.astro` shows above every recipe on a CSS page.
+        val astro = example.get().asFile.readText()
+        val stylesheet = Regex("""const kotlinStylesheet = `([^`]*)`""").find(astro)?.groupValues?.get(1)
+            ?: error("Example.astro has no kotlinStylesheet, which the kotlinx.html tab shows.")
         val registry = sourceDir.resolve("no/lotek/html/recipes").apply { mkdirs() }
+        registry.resolve("ExampleStylesheet.kt").writeText(
+            "package no.lotek.html.recipes\n\nimport kotlinx.html.*\nimport no.lotek.*\n\n" +
+                "/** What Example.astro shows above a recipe on a CSS page, compiled. */\n" +
+                "internal fun HTML.exampleStylesheet() {\n${stylesheet.prependIndent("    ")}\n}\n",
+        )
         registry.resolve("Recipes.kt").writeText(
             """
             |// Written by ExtractRecipes from the component pages. Do not edit.
@@ -121,15 +142,49 @@ abstract class ExtractRecipes : DefaultTask() {
             // The prop of the <Example> itself: before its first <Fragment>, so a
             // `code={`` in the prose of the TypeScript tab is never taken for it.
             val tag = text.substring(example, text.indexOf("<Fragment", example).takeIf { it in example..start } ?: start)
-            val literal = Regex("""code=\{`((?:[^`\\]|\\.)*)`\}""").find(tag)?.groupValues?.get(1)
+            val literal = Regex("""code=\{`((?:[^`\\]|\\[\s\S])*)`\}""").find(tag)?.groupValues?.get(1)
                 ?: error("$where: the <Example> has no code={`…`} to compare it with.")
-            // A JavaScript template literal: the escapes are resolved as the page
-            // resolves them, and an interpolation cannot be compared at all.
-            if (Regex("""(?<!\\)\$\{""").containsMatchIn(literal)) error("$where: code={`…`} has a \${…}, which the test cannot resolve.")
-            val code = literal.replace(Regex("""\\([`$\\])"""), "$1")
+            val code = cooked(literal) ?: error("$where: code={`…`} has a \${…}, which the test cannot resolve.")
             return Triple(text.substring(start, end), listOf(code.trim()), where)
         }
         return null
+    }
+
+    /**
+     * The text of a JavaScript template literal, as the page renders it: the
+     * escapes resolved, `\n`, `\u00e5` and a backslash before a line break
+     * included. `null` when it has an interpolation, `${…}` not escaped,
+     * which the test cannot resolve.
+     */
+    private fun cooked(literal: String): String? {
+        val out = StringBuilder()
+        var i = 0
+        while (i < literal.length) {
+            val c = literal[i]
+            if (c == '$' && literal.getOrNull(i + 1) == '{') return null
+            if (c != '\\') {
+                out.append(c)
+                i++
+                continue
+            }
+            val next = literal.getOrNull(i + 1) ?: break
+            i += 2
+            when (next) {
+                'n' -> out.append('\n')
+                't' -> out.append('\t')
+                'r' -> out.append('\r')
+                '\n' -> {}
+                'x' -> { out.append(literal.substring(i, i + 2).toInt(16).toChar()); i += 2 }
+                'u' -> if (literal.getOrNull(i) == '{') {
+                    val end = literal.indexOf('}', i)
+                    out.appendCodePoint(literal.substring(i + 1, end).toInt(16)); i = end + 1
+                } else {
+                    out.append(literal.substring(i, i + 4).toInt(16).toChar()); i += 4
+                }
+                else -> out.append(next)
+            }
+        }
+        return out.toString()
     }
 
     /**

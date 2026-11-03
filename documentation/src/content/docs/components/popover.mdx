@@ -217,6 +217,19 @@ defineLtPopover()
                 li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Charge the late fee" } }
             }
         }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const menu = document.getElementById("menu")
+                const panel = menu.querySelector(".lt-popover")
+
+                // Close the menu when an action has been chosen
+                menu.addEventListener("click", (event) => {
+                  if (panel.contains(event.target) && event.target.closest("button")) menu.hide()
+                })
+                """
+            }
+        }
     }
     ```
 

@@ -198,6 +198,21 @@ defineLtSessionTimeout()
                 }
             }
         }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const session = document.querySelector("lt-session-timeout")
+
+                session.addEventListener("session-extend", async () => {
+                  await fetch("/api/extend-session", { method: "POST" })
+                })
+
+                session.addEventListener("session-expired", () => {
+                  location.href = "/log-in?reason=expired"
+                })
+                """
+            }
+        }
     }
     ```
 

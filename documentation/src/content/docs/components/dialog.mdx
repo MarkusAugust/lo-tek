@@ -242,6 +242,25 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
                 button { lt(Lt.button(variant = ButtonVariant.DANGER)); value = "cancel"; +"Cancel the job" }
             }
         }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const dialog = document.getElementById("confirm")
+
+                document.getElementById("open-confirm").addEventListener("click", () => {
+                  // Escape and close() without a value leave the previous value in place.
+                  dialog.returnValue = ""
+                  dialog.showModal()
+                })
+
+                dialog.addEventListener("close", () => {
+                  if (dialog.returnValue === "cancel") {
+                    // Cancel the job here
+                  }
+                })
+                """
+            }
+        }
     }
     ```
 

@@ -54,15 +54,20 @@ defineLtConnectionStatus()
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
 
-      async function saveRoute(body) {
+      // Every form on the page is saved with fetch, and the bar says when the
+      // server did not answer. The methods exist once the component is registered.
+      document.addEventListener("submit", async (event) => {
+        event.preventDefault()
+        const form = event.target
+        await customElements.whenDefined("lt-connection-status")
         try {
-          const response = await fetch("/api/routes", { method: "POST", body })
+          const response = await fetch(form.action, { method: "POST", body: new FormData(form) })
           if (!response.ok) throw new Error(response.statusText)
           connection.reportSuccess()
         } catch {
           connection.reportFailure()
         }
-      }
+      })
     </script>
     ```
   </TabItem>
@@ -166,15 +171,20 @@ defineLtConnectionStatus()
                 const connection = document.querySelector("lt-connection-status")
                 if (!connection) throw new Error("element not found")
 
-                async function saveRoute(body) {
+                // Every form on the page is saved with fetch, and the bar says when the
+                // server did not answer. The methods exist once the component is registered.
+                document.addEventListener("submit", async (event) => {
+                  event.preventDefault()
+                  const form = event.target
+                  await customElements.whenDefined("lt-connection-status")
                   try {
-                    const response = await fetch("/api/routes", { method: "POST", body })
+                    const response = await fetch(form.action, { method: "POST", body: new FormData(form) })
                     if (!response.ok) throw new Error(response.statusText)
                     connection.reportSuccess()
                   } catch {
                     connection.reportFailure()
                   }
-                }
+                })
                 """
             }
         }

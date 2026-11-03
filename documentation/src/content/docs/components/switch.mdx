@@ -217,6 +217,41 @@ The switch promises that the change applies. So it also has to say when saving f
             label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
         }
         p { lt(Lt.helpText()); id = "auto-renew-status"; attributes["role"] = "status" }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const toggle = document.getElementById("auto-renew")
+                const status = document.getElementById("auto-renew-status")
+                let saving = false
+
+                // Another press while saving should not flip the switch. `disabled`
+                // would block it the same way, but take focus from it.
+                toggle.addEventListener("click", (event) => {
+                  if (saving) event.preventDefault()
+                })
+
+                toggle.addEventListener("change", async () => {
+                  const on = toggle.checked
+                  saving = true
+
+                  try {
+                    const response = await fetch("/api/subscription", {
+                      method: "PUT",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ autoRenew: on }),
+                    })
+                    if (!response.ok) throw new Error(response.statusText)
+                    status.textContent = on ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription."
+                  } catch {
+                    toggle.checked = !on
+                    status.textContent = "Could not save. Try again."
+                  } finally {
+                    saving = false
+                  }
+                })
+                """
+            }
+        }
     }
     ```
   </TabItem>

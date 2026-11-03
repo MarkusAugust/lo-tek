@@ -237,6 +237,15 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
                 }
             }
         }
+        script(type = "module") {
+            unsafe {
+                +"""
+                document.getElementById("claim-tabs").addEventListener("tab-select", (evt) => {
+                  console.log("selected tab", evt.detail.index)
+                })
+                """
+            }
+        }
     }
     ```
 

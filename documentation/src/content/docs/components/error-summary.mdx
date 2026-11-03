@@ -213,6 +213,41 @@ defineLtErrorSummary()
             input { lt(Lt.input(type = InputType.EMAIL), fixer.control); name = "fixer" }
             button { lt(Lt.button()); +"Order the job" }
         }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const box = document.getElementById("errors")
+
+                function showErrors(errors) {
+                  box.querySelector("ul").innerHTML = errors
+                    .map((e) => `<li><a href="#${'$'}{e.id}">${'$'}{e.message}</a></li>`)
+                    .join("")
+
+                  // The heading and hidden are written here, as a server would.
+                  if (errors.length > 0) {
+                    box.querySelector("h2").textContent =
+                      errors.length === 1 ? "The form has one error" : `The form has ${'$'}{errors.length} errors`
+                  }
+                  // Hidden and shown again, so focus also moves when the form fails
+                  // again while the box is already visible.
+                  box.hidden = true
+                  box.hidden = errors.length === 0
+                }
+
+                const fixer = document.getElementById("fixer")
+
+                document.querySelector("form").addEventListener("submit", (event) => {
+                  event.preventDefault()
+
+                  const errors = fixer.value.includes("@")
+                    ? []
+                    : [{ id: "fixer", message: "Enter the fixer's address with an @" }]
+
+                  showErrors(errors)
+                })
+                """
+            }
+        }
     }
     ```
 

@@ -211,6 +211,15 @@ defineLtSuggestion()
             p { lt(search.empty); +"No matches" }
             span { lt(search.status) }
         }
+        script(type = "module") {
+            unsafe {
+                +"""
+                document.getElementById("breaker-search").addEventListener("suggestion-select", (evt) => {
+                  console.log("selected", evt.detail.label, evt.detail.value)
+                })
+                """
+            }
+        }
     }
     ```
 

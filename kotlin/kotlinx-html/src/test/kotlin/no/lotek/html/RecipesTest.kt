@@ -31,6 +31,8 @@ import org.jsoup.nodes.TextNode
  * than tested again in a browser. The two are compared as trees, without
  * comments, `<script>` and `<link>`:
  *
+ *   - the same scripts, apart from the registration, which the Kotlin
+ *     recipe has once in the page template;
  *   - the same elements in the same order, and the same text, except a web
  *     component in [WIRING_ONLY], which the Kotlin recipe may leave out;
  *   - every attribute and class in the HTML recipe, with the same value;
@@ -66,6 +68,14 @@ class RecipesTest {
      * fields on the input and label pages included, is checked as a page.
      */
     private val PARTS_ON_THEIR_OWN = setOf("error-text", "help-text")
+
+    /**
+     * The recipes whose HTML tab validates in the browser, where the Kotlin
+     * recipe renders the field as invalid on the server instead. The script on
+     * the field page finds the error text through `<lt-field>`, which the
+     * Kotlin recipe leaves out (see [WIRING_ONLY]), so it cannot be the same.
+     */
+    private val VALIDATED_ON_THE_SERVER = setOf("field")
 
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
@@ -134,6 +144,7 @@ class RecipesTest {
     @Test
     fun `every Kotlin recipe renders the HTML recipe on its page`() {
         var compared = 0
+        val failures = mutableListOf<String>()
         for (recipe in recipes) {
             val expected = javaClass.getResource("/recipes/${recipe.page}.html")?.readText()
                 ?: fail("${recipe.page}: the HTML recipe was not extracted")
@@ -151,6 +162,14 @@ class RecipesTest {
             // where the HTML recipe has the component.
             for (tag in WIRING_ONLY) if (rendered.getElementsByTag(tag).isEmpty()) wanted.getElementsByTag(tag).forEach { it.unwrap() }
             compare(wanted, rendered, "body", problems, ids, pointers)
+            // The scripts are compared on their own: the tree leaves them out.
+            // The registration is left out too, since the Kotlin recipe has it
+            // once in the page template, as `defineLt()`.
+            fun scripts(e: Element) =
+                e.getElementsByTag("script").map { it.data().replace(Regex("\\s+"), " ").trim() }.filter { "defineLt" !in it }
+            if (recipe.page !in VALIDATED_ON_THE_SERVER && scripts(wanted) != scripts(rendered)) {
+                problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    ${scripts(wanted)}")
+            }
             for (p in pointers) {
                 val point = { id: String -> ids[id] ?: id }
                 when {
@@ -164,18 +183,27 @@ class RecipesTest {
                 }
             }
             if (problems.isNotEmpty()) {
-                fail("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
+                // Every page is compared before the test fails, so one run shows them all.
+                failures.add("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
+                continue
             }
             if (recipe.page in PARTS_ON_THEIR_OWN) {
-                // The page shows the part alone, and a whole page with it fails by design.
+                // The page shows the part alone, and a whole page with it fails
+                // by design, on that rule and on no other.
                 assertLotek(page, fragment = true)
-                val asPage = runCatching { assertLotek(page) }
-                assertTrue(asPage.isFailure, "${recipe.page} passes as a whole page now, so take it out of PARTS_ON_THEIR_OWN")
+                val asPage = runCatching { assertLotek(page) }.exceptionOrNull()
+                assertTrue(
+                    asPage is AssertionError && "[text-not-wired]" in asPage.message.orEmpty() && Regex("""\[(?!text-not-wired)[a-z-]+]""").find(asPage.message.orEmpty()) == null,
+                    "${recipe.page} as a whole page should fail on text-not-wired alone: ${asPage?.message}",
+                )
             } else {
                 assertLotek(page)
             }
             compared += 1
         }
+        val unknown = (PARTS_ON_THEIR_OWN + VALIDATED_ON_THE_SERVER) - recipes.map { it.page }.toSet()
+        if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
+        if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.
         assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a kotlinx.html tab")
         println("Compared $compared Kotlin recipes with their HTML recipes.")

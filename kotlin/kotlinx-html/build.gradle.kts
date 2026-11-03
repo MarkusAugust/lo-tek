@@ -31,6 +31,7 @@ dependencies {
 val componentPages = rootDir.resolve("../documentation/src/content/docs/components")
 val extractRecipes = tasks.register<no.lotek.build.ExtractRecipes>("extractRecipes") {
     this.pages.from(fileTree(componentPages) { include("*.mdx") })
+    example.set(rootDir.resolve("../documentation/src/components/Example.astro"))
     sources.set(layout.buildDirectory.dir("generated/recipes/kotlin"))
     resources.set(layout.buildDirectory.dir("generated/recipes/resources"))
 }
