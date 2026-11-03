@@ -39,7 +39,7 @@ const ring = document.querySelector<HTMLElement>("#waiting")
 lt.setAttributes(ring, lt.spinner({ size: "small", label: "Loading sectors" }))
 ```
 
-`label` gives both `role="status"` and `aria-label`, since the ring has no name without both. If you leave it out, the ring is just a shape. See [Type-safe use](../../type-safe-use/).
+`label` gives both `role="status"` and `aria-label`, since the ring has no name without both. If you leave it out, the ring is just a shape, and `lt.spinner()` hides it from screen readers with `aria-hidden="true"`. So give the name through `label`, never as `aria-label` by hand: a hand-written name would sit on a ring that is hidden. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
 <Fragment slot="kotlin">

@@ -204,6 +204,22 @@ The container is added once, and the messages come from your code. That is the d
     fun FlowContent.relay() {
         ltToast { lt(Lt.toast(label = "Messages").host); id = "messages" }
         button { lt(Lt.button()); id = "restart"; type = ButtonType.button; +"Restart relay 14" }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const messages = document.getElementById("messages")
+
+                document.getElementById("restart").addEventListener("click", async () => {
+                  try {
+                    await restartRelay(14)
+                    messages.show("Relay 14 is back", { color: "success" })
+                  } catch {
+                    messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })
+                  }
+                })
+                """
+            }
+        }
     }
     ```
 

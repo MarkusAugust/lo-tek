@@ -44,10 +44,6 @@ abstract class ExtractRecipes : DefaultTask() {
             val text = page.readText()
             val name = page.nameWithoutExtension
             val (kotlin, html, where) = recipeIn(page.name, text) ?: continue
-            // An example on a CSS page shows a part on its own, such as an
-            // error text without a field, and is checked as a fragment, as
-            // check-rendered reads the previews. A recipe in a tab is a page.
-            val fragment = where.endsWith("slot")
             val block = blocks(kotlin, "kotlin").singleOrNull { it.contains("fun FlowContent.") }
                 ?: error("$where must have exactly one ```kotlin block with a `fun FlowContent.…()`.")
             val function = Regex("""fun FlowContent\.(\w+)\(""").find(block)?.groupValues?.get(1)
@@ -59,7 +55,7 @@ abstract class ExtractRecipes : DefaultTask() {
             resourceDir.resolve("recipes").apply { mkdirs() }.resolve("$name.html").writeText(html.joinToString("\n"))
             val alias = "${name.replace("-", "")}_$function"
             imports.add("import $pkg.$function as $alias")
-            entries.add("    Recipe(\"$name\", \"$function\", fragment = $fragment) { $alias() },")
+            entries.add("    Recipe(\"$name\", \"$function\") { $alias() },")
         }
         if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
         val registry = sourceDir.resolve("no/lotek/html/recipes").apply { mkdirs() }
@@ -72,7 +68,7 @@ abstract class ExtractRecipes : DefaultTask() {
             |${imports.joinToString("\n")}
             |
             |/** A Kotlin recipe from a component page: the page, the function, and a call to it. */
-            |class Recipe(val page: String, val function: String, val fragment: Boolean, val render: FlowContent.() -> Unit)
+            |class Recipe(val page: String, val function: String, val render: FlowContent.() -> Unit)
             |
             |val recipes: List<Recipe> = listOf(
             |${entries.joinToString("\n")}
@@ -122,8 +118,15 @@ abstract class ExtractRecipes : DefaultTask() {
             if (example < 0 || end < 0 || text.indexOf("</Example>", example) < start) {
                 error("$where is not inside an <Example>.")
             }
-            val code = Regex("""code=\{`([\s\S]*?)`\}""").find(text.substring(example, start))?.groupValues?.get(1)
+            // The prop of the <Example> itself: before its first <Fragment>, so a
+            // `code={`` in the prose of the TypeScript tab is never taken for it.
+            val tag = text.substring(example, text.indexOf("<Fragment", example).takeIf { it in example..start } ?: start)
+            val literal = Regex("""code=\{`((?:[^`\\]|\\.)*)`\}""").find(tag)?.groupValues?.get(1)
                 ?: error("$where: the <Example> has no code={`…`} to compare it with.")
+            // A JavaScript template literal: the escapes are resolved as the page
+            // resolves them, and an interpolation cannot be compared at all.
+            if (Regex("""(?<!\\)\$\{""").containsMatchIn(literal)) error("$where: code={`…`} has a \${…}, which the test cannot resolve.")
+            val code = literal.replace(Regex("""\\([`$\\])"""), "$1")
             return Triple(text.substring(start, end), listOf(code.trim()), where)
         }
         return null

@@ -158,6 +158,26 @@ defineLtConnectionStatus()
 
     fun FlowContent.connection() {
         ltConnectionStatus { lt(Lt.connectionStatus()) }
+        // The bar shows by itself when the browser goes offline. That the
+        // server stopped answering, only the app knows, and says so here.
+        script(type = "module") {
+            unsafe {
+                +"""
+                const connection = document.querySelector("lt-connection-status")
+                if (!connection) throw new Error("element not found")
+
+                async function saveRoute(body) {
+                  try {
+                    const response = await fetch("/api/routes", { method: "POST", body })
+                    if (!response.ok) throw new Error(response.statusText)
+                    connection.reportSuccess()
+                  } catch {
+                    connection.reportFailure()
+                  }
+                }
+                """
+            }
+        }
     }
     ```
 

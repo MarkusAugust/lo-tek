@@ -335,14 +335,22 @@ for (const m of liveTemplates.matchAll(/id=&quot;([^&]*)&quot;/g))
     findings.push(
       `Live templates have id=&quot;${m[1]}&quot; without a variable`,
     )
-// The Kotlin live templates: one per web component with a kotlinx.html tab, counted in the
-// pages rather than in the file, and the ids empty there too.
+// The Kotlin live templates: one per web component with a kotlinx.html tab,
+// counted in the pages rather than in the file, and the ids empty there too.
+// The pages are read more loosely than the generator reads them, in either
+// form and any case, as `RecipesTest` does, so a recipe the generator missed
+// is a template that is missing here.
 const kotlinTemplates = generated["interfaces/live-templates-kotlin.xml"] ?? ""
 const pagesWithKotlin = elements.filter((element) =>
-  readFileSync(
-    join(ROOT, `documentation/src/content/docs/components/${element.slug}.mdx`),
-    "utf8",
-  ).includes('<TabItem label="kotlinx.html">'),
+  /<TabItem\b[^>]*kotlin[^>]*>|slot\s*=\s*["']kotlin/i.test(
+    readFileSync(
+      join(
+        ROOT,
+        `documentation/src/content/docs/components/${element.slug}.mdx`,
+      ),
+      "utf8",
+    ),
+  ),
 )
 const kotlinCount = [...kotlinTemplates.matchAll(/<template name="/g)].length
 if (pagesWithKotlin.length === 0 || kotlinCount !== pagesWithKotlin.length)

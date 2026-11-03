@@ -54,7 +54,7 @@ A builder function manages the attributes it has an option for, and only those:
 | `lt.switch()` | `disabled` | Removed. The switch has the option `disabled`, and you did not pass it |
 | `lt.spinner()` | `role`, `aria-label` | Removed, and `aria-hidden="true"` set instead. The spinner has the option `label`, and you did not pass it |
 
-So the rule is: if the builder function has an option for the attribute, you set it through the option, every time. If you write `aria-label` by hand on a spinner and call `lt.spinner({ size: "large" })`, the function removes it. `id` and `for` are never removed, and `data-testid`, `name` and your own classes are not touched.
+So the rule is: if the builder function has an option for the attribute, you set it through the option, every time. If you write `aria-label` by hand on a spinner and call `lt.spinner({ size: "large" })`, the function removes it, and hides the ring with `aria-hidden="true"`. `id` and `for` are never removed, and `data-testid`, `name` and your own classes are not touched.
 
 If two sets go on the same element, such as the field's appearance and the wiring from `lt.field()`, you pass them separately:
 

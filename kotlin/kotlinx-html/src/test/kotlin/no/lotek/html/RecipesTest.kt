@@ -45,9 +45,8 @@ import org.jsoup.nodes.TextNode
  *     since the builder functions give ids to the help text and the like.
  *
  * [assertLotek] then checks the Kotlin page as a whole: every pointer
- * resolves, and every field is wired. An example from a CSS page is checked
- * as a fragment, as `check-rendered.ts` reads the previews: it shows a part
- * on its own, such as an error text without a field.
+ * resolves, and every field is wired. The two examples that show a part on
+ * its own are checked as fragments, see [PARTS_ON_THEIR_OWN].
  */
 class RecipesTest {
     /**
@@ -59,6 +58,14 @@ class RecipesTest {
      * or the component"). The others carry behaviour, and must be there.
      */
     private val WIRING_ONLY = listOf("lt-field")
+
+    /**
+     * The pages whose example shows a part on its own, an error text or a help
+     * text without a field, so the page is checked as a fragment, as
+     * `check-rendered.ts` reads the previews. Every other recipe, the wired
+     * fields on the input and label pages included, is checked as a page.
+     */
+    private val PARTS_ON_THEIR_OWN = setOf("error-text", "help-text")
 
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
@@ -159,7 +166,14 @@ class RecipesTest {
             if (problems.isNotEmpty()) {
                 fail("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
             }
-            assertLotek(page, fragment = recipe.fragment)
+            if (recipe.page in PARTS_ON_THEIR_OWN) {
+                // The page shows the part alone, and a whole page with it fails by design.
+                assertLotek(page, fragment = true)
+                val asPage = runCatching { assertLotek(page) }
+                assertTrue(asPage.isFailure, "${recipe.page} passes as a whole page now, so take it out of PARTS_ON_THEIR_OWN")
+            } else {
+                assertLotek(page)
+            }
             compared += 1
         }
         // The expected number comes from the pages, not from the list the loop went through.

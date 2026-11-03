@@ -26,6 +26,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Breaking
 
+- **`lt.spinner()` without `label` writes `aria-hidden="true"`,** as
+  `lt.icon()` without a label does. The page told you to write it yourself,
+  so the HTML tab had it and the TypeScript tab had it by hand. A spinner
+  named by hand, `lt.spinner()` with `role="status"` and `aria-label` written
+  next to it, is now hidden from screen readers: pass the name as `label`,
+  which gives the role and the name and no `aria-hidden`.
 - **In Kotlin every builder function is a member of `Lt`.** `field`,
   `suggestion`, `tabs`, `errorSummary`, `label` and `legend` were extension
   functions on `Lt` in `Handwritten.kt`. A call such as `Lt.field(…)` reads
@@ -69,11 +75,6 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the page's HTML recipe, with `lotek check` on the result.
 
 ### Changed
-
-- **`lt.spinner()` without `label` writes `aria-hidden="true"`,** as
-  `lt.icon()` without a label does. The page told you to write it yourself,
-  so the HTML tab had it and the TypeScript tab had it by hand; a ring with a
-  `label` is a `role="status"`, as before.
 
 - **The snippets and the live templates leave the ids empty.** They filled
   in the id from the recipe, such as `codename`, and a snippet pasted twice

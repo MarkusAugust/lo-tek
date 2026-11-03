@@ -300,13 +300,17 @@ export function snippets() {
  * The Kotlin recipe on a component page: the ```kotlin block in the kotlinx.html tab
  * with `fun FlowContent.…`, the same code `RecipesTest` in
  * `kotlin/kotlinx-html` compiles and compares with the HTML recipe. `null`
- * when the page has no kotlinx.html tab.
+ * when the page has no kotlinx.html tab, as a `<TabItem>` or as a
+ * `<Fragment slot="kotlin">` in an `<Example>`.
  */
 function kotlinRecipe(slug: string): string | undefined {
   const page = readFileSync(join(PAGES, `${slug}.mdx`), "utf8")
-  const start = page.indexOf('<TabItem label="kotlinx.html">')
+  // Both forms `ExtractRecipes` reads: the tab, and the slot in an <Example>.
+  const tabStart = page.indexOf('<TabItem label="kotlinx.html">')
+  const slotStart = page.indexOf('<Fragment slot="kotlin">')
+  const start = tabStart >= 0 ? tabStart : slotStart
   if (start < 0) return undefined
-  const end = page.indexOf("</TabItem>", start)
+  const end = page.indexOf(tabStart >= 0 ? "</TabItem>" : "</Fragment>", start)
   const tab = page.slice(start, end < 0 ? page.length : end)
   const blocks = [
     ...tab.matchAll(/^([ \t]*)```kotlin\n([\s\S]*?)\n[ \t]*```/gm),

@@ -79,6 +79,13 @@ const hasTypeScript = Astro.slots.has("ts")
  * same markup.
  */
 const hasKotlin = Astro.slots.has("kotlin")
+/*
+ * The stylesheets on a Kotlin server, as the TypeScript tab has its imports
+ * and the Plain HTML tab its links: one file from the WebJar that comes with
+ * the package, in the page template.
+ */
+const kotlinStylesheet = `// Once for the whole app, in the page template: every stylesheet, from the WebJar.
+head { link(rel = "stylesheet", href = LotekWebJar.CSS) }`
 
 /*
  * The stylesheets, in the form the tab they are in can actually use.
@@ -144,6 +151,7 @@ const importLines = imports
 	{
 		hasKotlin && (
 			<TabItem label="kotlinx.html">
+				<Code code={kotlinStylesheet} lang="kotlin" />
 				<slot name="kotlin" />
 			</TabItem>
 		)
