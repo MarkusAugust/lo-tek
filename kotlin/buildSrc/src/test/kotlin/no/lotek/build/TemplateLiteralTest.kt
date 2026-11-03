@@ -1,7 +1,7 @@
 package no.lotek.build
 
-import groovy.json.JsonOutput
-import groovy.json.JsonSlurper
+import com.google.gson.Gson
+import com.google.gson.JsonParser
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -74,7 +74,7 @@ class TemplateLiteralTest {
     /** Each literal evaluated in Bun; `null` where it is a SyntaxError. */
     private fun evaluatedByBun(literals: List<String>): List<String?> {
         val input = File.createTempFile("literals", ".json").apply { deleteOnExit() }
-        input.writeText(JsonOutput.toJson(literals))
+        input.writeText(Gson().toJson(literals))
         val script = """
             const literals = JSON.parse(await Bun.file(process.argv[1]).text())
             const cooked = literals.map((literal) => {
@@ -90,7 +90,13 @@ class TemplateLiteralTest {
         }
         val output = process.inputStream.bufferedReader().readText()
         if (process.waitFor() != 0) fail("bun gave ${process.exitValue()}: $output")
-        @Suppress("UNCHECKED_CAST")
-        return (JsonSlurper().parseText(output) as List<String?>).also { assertEquals(literals.size, it.size, "bun answered $output") }
+        val answers = JsonParser.parseString(output).asJsonArray.map {
+            when {
+                it.isJsonNull -> null
+                it.isJsonPrimitive && it.asJsonPrimitive.isString -> it.asString
+                else -> fail("bun answered $it among $output, where a string or null was expected")
+            }
+        }
+        return answers.also { assertEquals(literals.size, it.size, "bun answered $output") }
     }
 }

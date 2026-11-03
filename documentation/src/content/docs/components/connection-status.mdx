@@ -105,13 +105,15 @@ defineLtConnectionStatus()
     export async function saveRoute(body: BodyInit) {
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
+      let response: Response | undefined
       try {
-        const response = await fetch("/api/routes", { method: "POST", body })
-        if (!response.ok) throw new Error(response.statusText)
-        await reportSuccess(connection)
-      } catch {
-        await reportFailure(connection)
-      }
+        response = await fetch("/api/routes", { method: "POST", body })
+      } catch {}
+      // No answer, or a gateway whose server is gone, is a lost connection.
+      // The save does not wait for the report.
+      if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+      else reportFailure(connection)
+      return response
     }
     ```
 
@@ -234,19 +236,18 @@ So the app reports it itself:
 const connection = document.querySelector("lt-connection-status")
 if (!connection) throw new Error("element not found")
 
+let response
 try {
-  const response = await fetch("/api/routes", { method: "POST", body })
-  if (!response.ok) throw new Error(response.statusText)
-  connection.reportSuccess()
-} catch {
-  connection.reportFailure()
-}
+  response = await fetch("/api/routes", { method: "POST", body })
+} catch {}
+if (response && ![502, 503, 504].includes(response.status)) connection.reportSuccess()
+else connection.reportFailure()
 ```
 
 | Method | When you call it |
 | --- | --- |
-| `reportFailure()` | A request to the server failed |
-| `reportSuccess()` | A request succeeded again |
+| `reportFailure()` | A request got no answer, or a gateway answered 502, 503 or 504 because the server behind it is gone |
+| `reportSuccess()` | The server answered, an error status included: a 400 or a 500 comes from a server that is there |
 
 `reportFailure(element)` and `reportSuccess(element)` from `@lo-tek/interfaces/connection-status` do the same, but first wait until the element is registered.
 

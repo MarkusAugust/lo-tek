@@ -111,8 +111,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the app's other scripts call it, as a comment there shows. It sends the
   request first, counts a request without an answer and a gateway's 502, 503
   or 504 as a lost connection and any other answer as the server being
-  there, and reports with `reportSuccess` and `reportFailure` without
-  waiting for them, since they wait for the registration.
+  there. It reports with `reportSuccess` and `reportFailure`, which wait for
+  the registration, and returns the answer without awaiting them. The React
+  tab and the example under "`navigator.onLine` is not enough" follow the
+  same rule.
 
 - **A date or time field fits its container in iOS Safari.** With the
   native appearance, `.lt-input` with `data-variant` `date`, `time` or
