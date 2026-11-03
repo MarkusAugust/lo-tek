@@ -20,7 +20,7 @@
             Live templates for Kotlin: type `ltfield` at the top level of a
             file and Tab, and the recipe from the component page is there, in
             kotlinx.html, with the ids as empty variables. The file is generated
-            in the design system from the Kotlin tabs and copied in by Gradle.
+            in the design system from the kotlinx.html tabs and copied in by Gradle.
         -->
         <defaultLiveTemplates file="/liveTemplates/LotekKotlin" />
 

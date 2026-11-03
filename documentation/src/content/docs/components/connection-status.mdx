@@ -54,14 +54,22 @@ defineLtConnectionStatus()
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
 
-      async function saveRoute(body) {
+      // A module keeps its names to itself, so the function the app saves through
+      // is put on window, where its other scripts call it:
+      //   form.addEventListener("submit", (event) => {
+      //     event.preventDefault()
+      //     saveRoute(new FormData(form))
+      //   })
+      window.saveRoute = async (body) => {
+        let answered = false
         try {
           const response = await fetch("/api/routes", { method: "POST", body })
-          if (!response.ok) throw new Error(response.statusText)
-          connection.reportSuccess()
-        } catch {
-          connection.reportFailure()
-        }
+          answered = response.ok
+        } catch {}
+        // Only the report waits for the component to be registered, never the save.
+        await customElements.whenDefined("lt-connection-status")
+        if (answered) connection.reportSuccess()
+        else connection.reportFailure()
       }
     </script>
     ```
@@ -146,6 +154,57 @@ defineLtConnectionStatus()
     ```
 
     Datastar keeps a long-lived stream open to the server. If it drops, the page looks right but stops updating. The browser only reports when the machine loses the network, not when the server stops answering, so the script at the bottom is what makes the bar appear in that case too.
+  </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.connectionStatus()` gives the bar its role and `data-ignore-morph`.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltConnectionStatus
+
+    fun FlowContent.connection() {
+        ltConnectionStatus { lt(Lt.connectionStatus()) }
+        // The bar shows by itself when the browser goes offline. That the
+        // server stopped answering, only the app knows, and says so here.
+        script(type = "module") {
+            unsafe {
+                +"""
+                const connection = document.querySelector("lt-connection-status")
+                if (!connection) throw new Error("element not found")
+
+                // A module keeps its names to itself, so the function the app saves through
+                // is put on window, where its other scripts call it:
+                //   form.addEventListener("submit", (event) => {
+                //     event.preventDefault()
+                //     saveRoute(new FormData(form))
+                //   })
+                window.saveRoute = async (body) => {
+                  let answered = false
+                  try {
+                    const response = await fetch("/api/routes", { method: "POST", body })
+                    answered = response.ok
+                  } catch {}
+                  // Only the report waits for the component to be registered, never the save.
+                  await customElements.whenDefined("lt-connection-status")
+                  if (answered) connection.reportSuccess()
+                  else connection.reportFailure()
+                }
+                """
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        connection()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
   </TabItem>
 </Tabs>
 

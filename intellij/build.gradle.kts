@@ -121,7 +121,7 @@ tasks.processResources {
         into("liveTemplates")
         rename { "Lotek.xml" }
     }
-    // The Kotlin templates, from the Kotlin tabs on the same pages. `lotek-kotlin.xml` points at them.
+    // The Kotlin templates, from the kotlinx.html tabs on the same pages. `lotek-kotlin.xml` points at them.
     from(rootDir.resolve("../interfaces/live-templates-kotlin.xml")) {
         into("liveTemplates")
         rename { "LotekKotlin.xml" }

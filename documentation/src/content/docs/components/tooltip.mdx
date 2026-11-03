@@ -63,6 +63,35 @@ lt.setAttributes(wrapper, lt.tooltip())
 `lt.tooltip.bubble` gives the class for the bubble. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.appraise() {
+    span {
+        lt(Lt.tooltip())
+        button {
+            lt(Lt.button(variant = ButtonVariant.GHOST))
+            type = ButtonType.button
+            attributes["aria-describedby"] = "appraise-hint"
+            +"Appraise"
+        }
+        span {
+            lt(Lt.tooltip.bubble)
+            attributes["role"] = "tooltip"
+            id = "appraise-hint"
+            +"All chrome is appraised at street value"
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 Two things must be right:

@@ -110,6 +110,13 @@ class WrongElementInspectionTest : KotlinTestCase() {
         assertTrue(found.single().second, found.single().second.contains("not on <form>"))
     }
 
+    fun `test the input tag is not the input builder function`() {
+        // `input { }` is the tag, not `Lt.input`. That it is not even resolved is an optimisation no test sees.
+        kotlin("fun FlowContent.x() { input { name = \"codename\" } }")
+        val call = com.intellij.psi.util.PsiTreeUtil.findChildrenOfType(myFixture.file, org.jetbrains.kotlin.psi.KtCallExpression::class.java).first { it.calleeExpression?.text == "input" }
+        assertNull(call.builderName())
+    }
+
     fun `test no fix onto the element of another field`() {
         kotlin(
             """

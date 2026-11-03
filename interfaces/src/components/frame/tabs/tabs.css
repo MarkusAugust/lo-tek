@@ -58,7 +58,7 @@
       cursor: not-allowed;
     }
 
-    /* Markup written without JavaScript comes without `hidden` on the panels,
+    /* Markup written without a builder function comes without `hidden` on the panels,
        and the web component sets it only once it is registered. Until then
        only one panel is shown, the one the web component is going to select,
        so the content does not jump when the rest are hidden:

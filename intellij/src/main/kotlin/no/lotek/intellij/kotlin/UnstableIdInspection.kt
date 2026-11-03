@@ -79,9 +79,12 @@ class UnstableIdInspection : LocalInspectionTool() {
                 is KtNameReferenceExpression -> {
                     // `parts[i].key` reads a key from the data by the index: that is stable.
                     if (isLookup(e)) continue
+                    // Undocumented: in 2026.1 an implicit `it` resolves to the
+                    // function literal of the lambda it belongs to, past the
+                    // tags and `with` in between, and an explicit `{ it -> }`
+                    // to its parameter (`UnstableIdInspectionTest`).
                     val target = e.target()
-                    // An explicit `{ it -> }` resolves to its parameter; the implicit `it` may not.
-                    val index = if (target is KtParameter || e.getReferencedName() != "it") isIndex(target) else isImplicitIndex(e)
+                    val index = if (target is KtFunctionLiteral) isIndexLambda(target.parent as? KtLambdaExpression) else isIndex(target)
                     if (index) return "it comes from the loop index, so it follows the position, not the row"
                 }
             }
@@ -99,39 +102,27 @@ class UnstableIdInspection : LocalInspectionTool() {
     }
 
     /**
-     * Whether `it` is the index: in `repeat(n) { … }`, or in a lambda over a
-     * range of numbers, `(0 until n).forEach { … }`. The lambda `it` belongs to
-     * is the nearest one without parameters that is not a tag: a tag of
-     * kotlinx.html is a lambda with a receiver and no `it`, so in
-     * `repeat(n) { li { … it … } }` the `it` is `repeat`'s.
+     * The function the call a lambda is passed to resolves to, when it is a
+     * loop of the standard library: `forEach`, `map` and the like, `repeat`
+     * and the `…Indexed` ones. Resolved, so an alias of `forEach` is a loop,
+     * and an app's own `map`, or the `map` tag of kotlinx.html, is not.
      */
-    private fun isImplicitIndex(it: KtNameReferenceExpression): Boolean {
-        var lambda = PsiTreeUtil.getParentOfType(it, KtLambdaExpression::class.java)
-        while (lambda != null) {
-            val owner = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java)
-            if (lambda.valueParameters.isEmpty() && owner?.enclosingTagOfLambda(lambda) == null) return isIndexLambda(lambda)
-            if (lambda.valueParameters.isNotEmpty()) return false
-            lambda = PsiTreeUtil.getParentOfType(lambda, KtLambdaExpression::class.java)
-        }
-        return false
+    private fun loopOf(lambda: KtLambdaExpression?): Pair<KtCallExpression, String>? {
+        val call = PsiTreeUtil.getParentOfType(lambda ?: return null, KtCallExpression::class.java) ?: return null
+        if (call.lambdaArguments.none { it.getLambdaExpression() == lambda } && call.valueArguments.none { it.getArgumentExpression() == lambda }) return null
+        val name = call.calledName() ?: return null
+        if (!name.startsWith("kotlin.")) return null
+        val short = name.substringAfterLast('.')
+        return if (short in LOOPS || short.endsWith("Indexed")) call to short else null
     }
 
-    /** The name of the call a lambda is passed to, as written: `forEach` in `xs.forEach { }`. */
-    private fun ownerName(lambda: KtLambdaExpression): String? =
-        PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java)?.calleeExpression?.text
+    /** Whether the call a lambda is passed to runs it once per row. */
+    private fun isLoop(lambda: KtLambdaExpression): Boolean = loopOf(lambda) != null
 
-    /** Whether the call a lambda is passed to runs it once per row: `forEach`, `map`, `repeat`, `*Indexed`. */
-    private fun isLoop(lambda: KtLambdaExpression): Boolean {
-        val name = ownerName(lambda) ?: return false
-        return name in LOOPS || name.endsWith("Indexed")
-    }
-
-    /** Whether the first parameter of the lambda is an index: `repeat`, `*Indexed`, or a loop over a range of numbers. */
-    private fun isIndexLambda(lambda: KtLambdaExpression): Boolean {
-        val call = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java) ?: return false
-        val name = call.calleeExpression?.text ?: return false
+    /** Whether the first parameter of the lambda, or its `it`, is an index: `repeat`, `…Indexed`, or a loop over a range of numbers. */
+    private fun isIndexLambda(lambda: KtLambdaExpression?): Boolean {
+        val (call, name) = loopOf(lambda) ?: return false
         if (name.endsWith("Indexed") || name == "repeat") return true
-        if (name !in LOOPS) return false
         val receiver = (call.parent as? KtDotQualifiedExpression)?.takeIf { it.selectorExpression == call }?.receiverExpression
         return isNumberRange(KtPsiUtil.safeDeparenthesize(receiver ?: return false))
     }

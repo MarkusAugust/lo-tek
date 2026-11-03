@@ -32,15 +32,19 @@ internal val builders: Map<String, Builder> by lazy { Lotek.manifest.builders.as
 
 /**
  * The builder function a call calls, like `field` for `Lt.field(…)`, or
- * `null`. Only a call written `Lt.name(…)` with a name from the manifest is
- * resolved: the inspections visit every call in every Kotlin file, and
- * resolving `div` and `listOf` on every pass costs for nothing.
+ * `null`, whatever the receiver is written as: `L.field` with an alias and
+ * `field(…)` in `with(Lt)` are builder calls too.
+ *
+ * The inspections visit every call in every Kotlin file, so a call is only
+ * resolved when its name is a builder function and it has no block: eleven
+ * builder functions share their name with a tag of kotlinx.html, `input`,
+ * `label`, `button` and others, and a tag is called with a block while a
+ * builder function never is. Resolving every `input { }` on every pass costs
+ * for nothing.
  */
 internal fun KtCallExpression.builderName(): String? {
     val name = calleeExpression?.text ?: return null
-    if (name !in builders) return null
-    // Resolved whatever the receiver is written as: `L.field` with an alias
-    // and `field(…)` in `with(Lt)` are builder calls too.
+    if (name !in builders || lambdaArguments.isNotEmpty()) return null
     return calledName()?.takeIf { it == "$LT$name" }?.let { name }
 }
 

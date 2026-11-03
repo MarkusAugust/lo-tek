@@ -55,10 +55,25 @@ class UnstableIdInspectionTest : KotlinTestCase() {
                 rows.indices.forEach { i -> Lt.field(id = "s-${'$'}i") }
                 repeat(n) { div { Lt.field(id = "li-${'$'}it") } }
                 (0 until n).forEach { it -> div { Lt.field(id = "d-${'$'}it") } }
+                repeat(n) { rows.forEach { row -> Lt.field(id = "f-${'$'}it") } }
+                repeat(n) { div { visit { Lt.field(id = "v-${'$'}it") } } }
+                repeat(n) { with(rows) { Lt.field(id = "w-${'$'}it") } }
             }
             """.trimIndent(),
         )
-        assertEquals("$found", 5, found.count { it.contains("loop index") })
+        assertEquals("$found", 8, found.count { it.contains("loop index") })
+    }
+
+    fun `test a function of the app called map is not a loop`() {
+        val found = reported(
+            """
+            fun <T> List<T>.map(block: (T) -> Unit) = Unit
+            fun FlowContent.x(rows: List<Row>) {
+                rows.map { Lt.field(id = "own") }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList<String>(), found)
     }
 
     fun `test it over the data is silent`() {

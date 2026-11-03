@@ -47,6 +47,23 @@ lt.setAttributes(field, lt.fileUpload({ multiple: true, accept: ".bin" }))
 `lt.fileUpload.list` gives the class for the list. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.firmware() {
+    label { lt(Lt.label()); htmlFor = "firmware"; +"Upload firmware" }
+    input { lt(Lt.fileUpload(multiple = true, accept = ".bin")); id = "firmware"; attributes["aria-describedby"] = "firmware-help" }
+    p { lt(Lt.helpText()); id = "firmware-help"; +"Deck firmware (.bin, up to 64 MB). Dump it before I open anything." }
+}
+```
+
+</Fragment>
 </Example>
 
 | Attribute | Effect |

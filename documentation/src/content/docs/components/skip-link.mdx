@@ -52,6 +52,21 @@ document.body.prepend(link)
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.skip() {
+    a(href = "#main-content") { lt(Lt.skipLink()); +"Skip to main content" }
+}
+```
+
+</Fragment>
 </Example>
 
 The placement is the only thing that comes in addition. The link should be the first thing in `<body>`, and the target has to be able to receive focus:

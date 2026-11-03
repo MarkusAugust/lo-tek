@@ -657,9 +657,9 @@ mod tests {
     #[test]
     fn a_missing_id_gives_a_message_without_trailing_space() {
         for (attribute, ends) in [
-            ("for", "lt.field({ id }) does it."),
-            ("aria-describedby", "lt.field({ id }) does it."),
-            ("aria-labelledby", "lt.field({ id }) does it."),
+            ("for", "Lt.field(id = ...) does it."),
+            ("aria-describedby", "Lt.field(id = ...) does it."),
+            ("aria-labelledby", "Lt.field(id = ...) does it."),
             ("aria-controls", "the wiring to what the element controls."),
         ] {
             let html = format!(r#"<label class="lt-label" {attribute}="borte">x</label>"#);

@@ -202,6 +202,59 @@ The switch promises that the change applies. So it also has to say when saving f
 
     The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `renew` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. The script that saves the choice is the same as in the HTML tab.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+
+    fun FlowContent.autoRenew() {
+        div {
+            lt(Lt.switch.row)
+            input { lt(Lt.`switch`()); id = "auto-renew" }
+            label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
+        }
+        p { lt(Lt.helpText()); id = "auto-renew-status"; attributes["role"] = "status" }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const toggle = document.getElementById("auto-renew")
+                const status = document.getElementById("auto-renew-status")
+                let saving = false
+
+                // Another press while saving should not flip the switch. `disabled`
+                // would block it the same way, but take focus from it.
+                toggle.addEventListener("click", (event) => {
+                  if (saving) event.preventDefault()
+                })
+
+                toggle.addEventListener("change", async () => {
+                  const on = toggle.checked
+                  saving = true
+
+                  try {
+                    const response = await fetch("/api/subscription", {
+                      method: "PUT",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ autoRenew: on }),
+                    })
+                    if (!response.ok) throw new Error(response.statusText)
+                    status.textContent = on ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription."
+                  } catch {
+                    toggle.checked = !on
+                    status.textContent = "Could not save. Try again."
+                  } finally {
+                    saving = false
+                  }
+                })
+                """
+            }
+        }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 `role="status"` makes screen readers announce the result without interrupting what the user is doing.

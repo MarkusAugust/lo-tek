@@ -48,6 +48,25 @@ lt.setAttributes(addition, lt.srOnly())
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.delete() {
+    button {
+        lt(Lt.button(variant = ButtonVariant.DANGER))
+        +"Delete"
+        span { lt(Lt.srOnly()); +" the report from 4 March" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 The button is read out as "Delete the report from 4 March", while it shows "Delete" on screen.

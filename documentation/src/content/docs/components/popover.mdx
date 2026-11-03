@@ -14,7 +14,7 @@ The component does the rest. The panel is opened in `manual` mode, not `auto`, s
 The positioning is also ours. `position-anchor` is not yet available in all browsers, so the component computes the position relative to the button and sets it as two variables on the panel.
 
 :::note[Two paths to the same markup]
-When the markup is produced with JavaScript, `lt.popover()` gives the wiring between button and panel, the id and the `popover` attribute, ready in the HTML. When it is produced without JavaScript, a button and a panel with the class `lt-popover` and an id are enough: the component sets `popover="manual"` and writes `aria-controls` on the button. The template writes the id, since `aria-controls` points to it. The component never creates one: a panel with an id the server did not send was replaced on the next update, along with focus. If the id is missing, the popover works, but the button is not wired to the panel, and the component, `lotek check` and the editors warn about it. The position, Escape and click outside come from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
+When the code that renders the markup can call a builder function, in TypeScript, Kotlin or Java, `lt.popover()` gives the wiring between button and panel, the id and the `popover` attribute, ready in the HTML. When it cannot, in a Go template, PHP or plain HTML, a button and a panel with the class `lt-popover` and an id are enough: the component sets `popover="manual"` and writes `aria-controls` on the button. The template writes the id, since `aria-controls` points to it. The component never creates one: a panel with an id the server did not send was replaced on the next update, along with focus. If the id is missing, the popover works, but the button is not wired to the panel, and the component, `lotek check` and the editors warn about it. The position, Escape and click outside come from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
 :::
 
 ```ts
@@ -196,7 +196,7 @@ defineLtPopover()
 
     `server-controlled` belongs with it when the signal controls `open`. Otherwise the component puts the attribute back when something removes it, since a removed attribute cannot be told apart from an update that tears it off, and then the panel could not be closed from the signal. If you control the panel from JavaScript instead, with `menu.open = false`, it is not needed: a property is a message the component can see.
   </TabItem>
-  <TabItem label="Kotlin">
+  <TabItem label="kotlinx.html">
     On a Kotlin server you call `Lt.popover()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the panel's, and the button points to it.
 
     ```kotlin
@@ -215,6 +215,19 @@ defineLtPopover()
                 lt(menu.panel)
                 li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Mark LDG-117 returned" } }
                 li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Charge the late fee" } }
+            }
+        }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const menu = document.getElementById("menu")
+                const panel = menu.querySelector(".lt-popover")
+
+                // Close the menu when an action has been chosen
+                menu.addEventListener("click", (event) => {
+                  if (panel.contains(event.target) && event.target.closest("button")) menu.hide()
+                })
+                """
             }
         }
     }
@@ -251,7 +264,7 @@ const box = lt.popover({ id: "actions", placement: "bottom-end" })
 
 The component recognises the panel by `popover` or the class `lt-popover`, and the button by `aria-controls` pointing to the panel, otherwise by it being the first button outside the panel that does not point to something else with `aria-controls`.
 
-When the markup is produced with JavaScript, `lt.popover()` writes the wiring, the id, the class and `popover`. When it comes from a template without JavaScript, the template writes the id on the panel, and the component sets `popover="manual"` and `aria-controls`, and leaves what the server wrote in place. The component also sets `open` on the host, `aria-expanded` on the button and the position on the panel. Everything it wrote, it puts back when an update from the server tears it away.
+When the markup is rendered with a builder function, `lt.popover()` writes the wiring, the id, the class and `popover`. When it comes from a template without one, the template writes the id on the panel, and the component sets `popover="manual"` and `aria-controls`, and leaves what the server wrote in place. The component also sets `open` on the host, `aria-expanded` on the button and the position on the panel. Everything it wrote, it puts back when an update from the server tears it away.
 
 The repair goes one way: if someone has asked for the popover to be open, it stays open. If the server sends `open`, it opens, because that is something the server actually said.
 

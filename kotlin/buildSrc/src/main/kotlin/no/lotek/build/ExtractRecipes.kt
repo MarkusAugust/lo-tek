@@ -3,6 +3,8 @@ package no.lotek.build
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.PathSensitive
@@ -13,12 +15,13 @@ import org.gradle.api.tasks.TaskAction
  * Takes the Kotlin recipes out of the component pages, so the tests can
  * compile them and compare what they render with the page's HTML recipe.
  *
- * A page with a `<TabItem label="Kotlin">` has a ```kotlin block there with
+ * A page with a `<TabItem label="kotlinx.html">`, or an `<Example>` with a
+ * `<Fragment slot="kotlin">`, has a ```kotlin block there with
  * one `fun FlowContent.<name>()`, whose parameters all have a default, so the
  * test can call it without arguments. It is written as a source file in a package
  * of its own, `no.lotek.html.recipes.<page>`, and the blocks in the page's
  * "Plain HTML" tab as a resource next to it. `Recipes.kt` lists them, so a
- * Kotlin tab on a new page is tested without anything else to write.
+ * kotlinx.html tab on a new page is tested without anything else to write.
  *
  * Run by the tests in `kotlinx-html`, not by the build of the package.
  */
@@ -26,6 +29,11 @@ abstract class ExtractRecipes : DefaultTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val pages: ConfigurableFileCollection
+
+    /** `Example.astro`, whose kotlinx.html tab shows the stylesheet from the WebJar above the recipe. */
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val example: RegularFileProperty
 
     @get:OutputDirectory
     abstract val sources: DirectoryProperty
@@ -41,40 +49,38 @@ abstract class ExtractRecipes : DefaultTask() {
         val imports = mutableListOf<String>()
         for (page in pages.files.sortedBy { it.name }) {
             val text = page.readText()
-            val starts = tabStarts(text, "Kotlin")
-            // A Kotlin tab written another way, `label='Kotlin'` or with an icon, would be skipped in silence.
-            val loose = Regex("""<TabItem\b[^>]*Kotlin[^>]*>""").findAll(text).count()
-            if (loose != starts.size) error("${page.name}: write the Kotlin tab as <TabItem label=\"Kotlin\">, or the recipe test does not find it.")
-            if (starts.isEmpty()) continue
             val name = page.nameWithoutExtension
-            val where = "${page.name}, the Kotlin tab"
-            if (starts.size > 1) error("${page.name} has ${starts.size} Kotlin tabs. The test compares one per page.")
-            val kotlin = tabAt(text, starts.single())
-            // The HTML recipe is the one in the same `<Tabs>` as the Kotlin tab.
-            val groupStart = text.lastIndexOf("<Tabs>", starts.single())
-            val groupEnd = text.indexOf("</Tabs>", starts.single())
-            if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < starts.single()) {
-                error("$where is not inside a <Tabs> with a Plain HTML tab.")
-            }
-            val group = text.substring(groupStart, groupEnd)
+            val (kotlin, html, where) = recipeIn(page.name, text) ?: continue
             val block = blocks(kotlin, "kotlin").singleOrNull { it.contains("fun FlowContent.") }
                 ?: error("$where must have exactly one ```kotlin block with a `fun FlowContent.…()`.")
             val function = Regex("""fun FlowContent\.(\w+)\(""").find(block)?.groupValues?.get(1)
                 ?: error("$where: the recipe must be a `fun FlowContent.name()`.")
-            val plain = tabStarts(group, "Plain HTML").singleOrNull()
-                ?: error("${page.name}: the <Tabs> with the Kotlin tab must have one Plain HTML tab to compare it with.")
-            val html = blocks(tabAt(group, plain), "html")
-            if (html.isEmpty()) error("${page.name}: the Plain HTML tab has no ```html block.")
+            if (html.isEmpty()) error("${page.name}: the HTML recipe next to the kotlinx.html tab is empty.")
             val pkg = "no.lotek.html.recipes.${name.replace("-", "")}"
             val dir = sourceDir.resolve(pkg.replace('.', '/')).apply { mkdirs() }
-            dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n")
+            // The other ```kotlin blocks in the tab are the page template, with
+            // the stylesheet and `defineLt()`. They are compiled too, as
+            // functions on `HTML`, so a name in them that changes stops here.
+            val templates = blocks(kotlin, "kotlin").filter { it != block }
+                .mapIndexed { i, t -> "\ninternal fun HTML.pageTemplate$i() {\n${t.prependIndent("    ")}\n}\n" }
+            dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n${templates.joinToString("")}")
             resourceDir.resolve("recipes").apply { mkdirs() }.resolve("$name.html").writeText(html.joinToString("\n"))
             val alias = "${name.replace("-", "")}_$function"
             imports.add("import $pkg.$function as $alias")
             entries.add("    Recipe(\"$name\", \"$function\") { $alias() },")
         }
-        if (entries.isEmpty()) error("No component page has a Kotlin tab, so the recipe test would check nothing.")
+        if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
+        // The stylesheet `Example.astro` shows above every recipe on a CSS page.
+        val astro = example.get().asFile.readText()
+        val stylesheet = Regex("""const kotlinStylesheet = `((?:[^`\\]|\\[\s\S])*)`""").find(astro)?.groupValues?.get(1)
+            ?.let { cooked(it) ?: error("kotlinStylesheet in Example.astro has a \${…}, which the test cannot resolve.") }
+            ?: error("Example.astro has no kotlinStylesheet, which the kotlinx.html tab shows.")
         val registry = sourceDir.resolve("no/lotek/html/recipes").apply { mkdirs() }
+        registry.resolve("ExampleStylesheet.kt").writeText(
+            "package no.lotek.html.recipes\n\nimport kotlinx.html.*\nimport no.lotek.*\n\n" +
+                "/** What Example.astro shows above a recipe on a CSS page, compiled. */\n" +
+                "internal fun HTML.exampleStylesheet() {\n${stylesheet.prependIndent("    ")}\n}\n",
+        )
         registry.resolve("Recipes.kt").writeText(
             """
             |// Written by ExtractRecipes from the component pages. Do not edit.
@@ -94,8 +100,119 @@ abstract class ExtractRecipes : DefaultTask() {
     }
 
     /**
+     * The kotlinx.html recipe on a page and the HTML it is compared with, or
+     * `null` when the page has none. There are two forms:
+     *
+     *   - a `<TabItem label="kotlinx.html">` in the same `<Tabs>` as a
+     *     `<TabItem label="Plain HTML">`, on the pages with a web component;
+     *   - a `<Fragment slot="kotlin">` in an `<Example code={…}>`, on the
+     *     pages of the CSS components, where `code` is what the Plain HTML
+     *     tab shows.
+     *
+     * A page has one of them at most, written as above: anything else with
+     * "kotlin" in a tab or a slot stops the build rather than being skipped.
+     */
+    private fun recipeIn(page: String, text: String): Triple<String, List<String>, String>? {
+        val tabs = tabStarts(text, "kotlinx.html")
+        val slots = Regex("""<Fragment slot="kotlin">""").findAll(text).map { it.range.first }.toList()
+        val loose = Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>|slot\s*=\s*["']kotlin""").findAll(text).count()
+        if (loose != tabs.size + slots.size) {
+            error("$page: write the kotlinx.html tab as <TabItem label=\"kotlinx.html\"> or <Fragment slot=\"kotlin\">, or the recipe test does not find it.")
+        }
+        if (tabs.size + slots.size > 1) error("$page has ${tabs.size + slots.size} kotlinx.html tabs. The test compares one per page.")
+        tabs.singleOrNull()?.let { start ->
+            val where = "$page, the kotlinx.html tab"
+            // The HTML recipe is the one in the same `<Tabs>` as the kotlinx.html tab.
+            val groupStart = text.lastIndexOf("<Tabs>", start)
+            val groupEnd = text.indexOf("</Tabs>", start)
+            if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < start) {
+                error("$where is not inside a <Tabs> with a Plain HTML tab.")
+            }
+            val group = text.substring(groupStart, groupEnd)
+            val plain = tabStarts(group, "Plain HTML").singleOrNull()
+                ?: error("$page: the <Tabs> with the kotlinx.html tab must have one Plain HTML tab to compare it with.")
+            return Triple(tabAt(text, start), blocks(tabAt(group, plain), "html"), where)
+        }
+        slots.singleOrNull()?.let { start ->
+            val where = "$page, the kotlinx.html slot"
+            val example = text.lastIndexOf("<Example", start)
+            val end = text.indexOf("</Fragment>", start)
+            if (example < 0 || end < 0 || text.indexOf("</Example>", example) < start) {
+                error("$where is not inside an <Example>.")
+            }
+            // The prop of the <Example> itself: before its first <Fragment>, so a
+            // `code={`` in the prose of the TypeScript tab is never taken for it.
+            val tag = text.substring(example, text.indexOf("<Fragment", example).takeIf { it in example..start } ?: start)
+            val literal = Regex("""code=\{`((?:[^`\\]|\\[\s\S])*)`\}""").find(tag)?.groupValues?.get(1)
+                ?: error("$where: the <Example> has no code={`…`} to compare it with.")
+            val code = cooked(literal) ?: error("$where: code={`…`} has a \${…}, which the test cannot resolve.")
+            return Triple(text.substring(start, end), listOf(code.trim()), where)
+        }
+        return null
+    }
+
+    /**
+     * The text of a JavaScript template literal, as the page renders it: the
+     * escapes resolved, `\n`, `\u00e5` and a backslash before a line break
+     * included. `null` when it has an interpolation, `${…}` not escaped,
+     * which the test cannot resolve.
+     */
+    private fun cooked(literal: String): String? {
+        // A template literal reads CRLF and a lone CR as LF, also after a backslash.
+        val text = literal.replace("\r\n", "\n").replace('\r', '\n')
+        val out = StringBuilder()
+        var i = 0
+        fun hex(from: Int, length: Int): Int {
+            val digits = text.substring(from, (from + length).coerceAtMost(text.length))
+            require(digits.length == length && digits.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }) {
+                "A \\x or \\u escape in a template literal needs $length hex digits, and has \"$digits\""
+            }
+            return digits.toInt(16)
+        }
+        while (i < text.length) {
+            val c = text[i]
+            if (c == '$' && text.getOrNull(i + 1) == '{') return null
+            if (c != '\\') {
+                out.append(c)
+                i++
+                continue
+            }
+            val next = text.getOrNull(i + 1) ?: break
+            i += 2
+            when (next) {
+                'n' -> out.append('\n')
+                't' -> out.append('\t')
+                'r' -> out.append('\r')
+                'b' -> out.append('\b')
+                'f' -> out.append('\u000C')
+                'v' -> out.append('\u000B')
+                // `\0` only when no digit follows; `\01` and `\1` to `\9` are a
+                // SyntaxError in a template literal, so the page could not build.
+                '0' -> {
+                    require(text.getOrNull(i) !in '0'..'9') { "\\0 followed by a digit is a SyntaxError in a template literal" }
+                    out.append('\u0000')
+                }
+                in '1'..'9' -> error("\\$next is a SyntaxError in a template literal")
+                '\n', '\u2028', '\u2029' -> {}
+                'x' -> { out.append(hex(i, 2).toChar()); i += 2 }
+                'u' -> if (text.getOrNull(i) == '{') {
+                    val end = text.indexOf('}', i)
+                    require(end > i + 1) { "A \\u{…} escape in a template literal is not closed" }
+                    val point = hex(i + 1, end - i - 1)
+                    require(point <= 0x10FFFF) { "\\u{${text.substring(i + 1, end)}} is past the last code point, a SyntaxError in a template literal" }
+                    out.appendCodePoint(point); i = end + 1
+                } else {
+                    out.append(hex(i, 4).toChar()); i += 4
+                }
+                else -> out.append(next)
+            }
+        }
+        return out.toString()
+    }
+
+    /**
      * Where each `<TabItem label="…">` with this label starts. The pattern
-     * allows the spacing MDX allows, and `RecipesTest` counts the Kotlin tabs
+     * allows the spacing MDX allows, and `RecipesTest` counts the kotlinx.html tabs
      * in the pages with the same pattern, so a tab this task missed fails it.
      */
     private fun tabStarts(text: String, label: String): List<Int> =

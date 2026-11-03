@@ -60,6 +60,8 @@ class WrongElementInspection : LocalInspectionTool() {
      */
     private fun target(from: KtCallExpression, tags: List<String>, set: SetOfBuilder): KtCallExpression? {
         val answer = set.answer()
+        // A name that does not resolve, in code half written, says nothing for certain.
+        if (set.receiver != null && answer == null) return null
         val function = from.enclosingFunction() ?: return null
         return PsiTreeUtil.findChildrenOfType(function, KtCallExpression::class.java)
             .filter { it != from && it.isLt() && it.enclosingTag() in tags }

@@ -49,6 +49,29 @@ lt.setAttributes(trail, lt.breadcrumbs())
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.trail() {
+    nav {
+        attributes["aria-label"] = "You are here"
+        ol {
+            lt(Lt.breadcrumbs())
+            li { a(href = "#") { +"Home" } }
+            li { a(href = "#") { +"My claims" } }
+            li { a(href = "#") { attributes["aria-current"] = "page"; +"Claim AV-2079-0481" } }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 Three things have to be in the markup:

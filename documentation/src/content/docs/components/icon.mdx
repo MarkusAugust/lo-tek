@@ -52,6 +52,46 @@ lt.setAttributes(icon, lt.icon({ label: "Warning" }))
 Without `label`, `lt.icon()` gives `aria-hidden="true"`. With `label` it gives `role="img"` and `aria-label` instead. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.tickets() {
+    button {
+        lt(Lt.button())
+        type = ButtonType.button
+        svg {
+            lt(Lt.icon())
+            attributes["viewBox"] = "0 0 24 24"
+            attributes["fill"] = "none"
+            attributes["stroke"] = "currentColor"
+            attributes["stroke-width"] = "2"
+            unsafe { +"""<path d="M12 5v14M5 12h14" />""" }
+        }
+        +"New ticket"
+    }
+    button {
+        lt(Lt.button(variant = ButtonVariant.GHOST))
+        type = ButtonType.button
+        attributes["aria-label"] = "Delete ticket #0331"
+        svg {
+            lt(Lt.icon())
+            attributes["viewBox"] = "0 0 24 24"
+            attributes["fill"] = "none"
+            attributes["stroke"] = "currentColor"
+            attributes["stroke-width"] = "2"
+            unsafe { +"""<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />""" }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 The first button has text, and the icon is decoration next to it. The second has only the icon, and gets its name from `aria-label` on the button.

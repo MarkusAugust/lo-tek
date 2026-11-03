@@ -45,7 +45,7 @@ Analysis API are marked experimental in 2026.1.
   same text in every row of a loop, a weak warning; and `Lt.field(error = true)`
   where `field.error` is never used. Each is silent when the code does not say it
   for certain, and each silence has a test.
-- **Live templates**: `ltfield` and the six others insert the Kotlin recipe from
+- **Live templates**: `ltfield`, `lttabs` and one for each of the other web components insert the Kotlin recipe from
   the component page at the top level of a file, with the ids as empty
   variables. `interfaces/live-templates-kotlin.xml` is generated from the Kotlin
   tabs, the same code `RecipesTest` in `kotlin/kotlinx-html` compiles, and

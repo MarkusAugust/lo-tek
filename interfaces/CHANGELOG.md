@@ -26,6 +26,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Breaking
 
+- **`lt.spinner()` without `label` writes `aria-hidden="true"`,** as
+  `lt.icon()` without a label does. The page told you to write it yourself,
+  so the HTML tab had it and the TypeScript tab had it by hand. A spinner
+  named by hand, `lt.spinner()` with `role="status"` and `aria-label` written
+  next to it, is now hidden from screen readers: pass the name as `label`,
+  which gives the role and the name and no `aria-hidden`.
 - **In Kotlin every builder function is a member of `Lt`.** `field`,
   `suggestion`, `tabs`, `errorSummary`, `label` and `legend` were extension
   functions on `Lt` in `Handwritten.kt`. A call such as `Lt.field(…)` reads
@@ -61,12 +67,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
   elements in HTML.
 - **`live-templates-kotlin.xml`, live templates for Kotlin in IntelliJ,**
-  one per page with a Kotlin tab, generated from the tab. The ids are empty
-  variables, as in `live-templates.xml`.
-- **The pages for field, suggestion, tabs, popover, dialog, error summary
-  and session timeout have a Kotlin tab.** `RecipesTest` compiles each,
-  renders it, and requires the elements, the texts, the classes and the
-  attributes of the page's HTML recipe, with `lotek check` on the result.
+  one per web component, generated from the kotlinx.html tab on its page.
+  The ids are empty variables, as in `live-templates.xml`.
+- **Every component page has a kotlinx.html tab,** for a Kotlin or Java
+  server with `lo-tek-kotlinx-html`. `RecipesTest` compiles each, renders it,
+  and requires the elements, the texts, the classes and the attributes of
+  the page's HTML recipe, with `lotek check` on the result.
 
 ### Changed
 
@@ -75,6 +81,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   on a page, or in a loop, then gave two fields with the same id, which a
   morph matches wrongly. The id is still one tab stop, mirrored in `for`
   and `href`.
+- **The documentation says "with a builder function" where it said "with
+  JavaScript".** A Kotlin or Java server renders without JavaScript and calls
+  `Lt.field()` all the same, so the line between `lt.field()` and
+  `<lt-field>` is whether the code that renders can call a builder function.
+  The description of `<lt-field>` in the vocabulary, which the editors show,
+  says the same.
 - **The documentation of every id option says to make it from a key in the
   data**, never from the loop index or a counter, so it is unique on the
   page and the same on every render. The message when `Lt.field` and the
@@ -91,6 +103,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   without a name suggests `aria-label="Parts of the claim"`.
 
 ### Fixed
+
+- **The recipe for the connection status reports a server that stopped
+  answering.** Its script declared `saveRoute` inside a module, where no
+  other code on the page could call it, and called the methods without
+  waiting for the registration. It now puts `saveRoute` on `window`, where
+  the app's other scripts call it, as a comment there shows, and waits with
+  `customElements.whenDefined`.
 
 - **A date or time field fits its container in iOS Safari.** With the
   native appearance, `.lt-input` with `data-variant` `date`, `time` or

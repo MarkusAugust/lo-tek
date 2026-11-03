@@ -124,10 +124,11 @@ function readControlWord(control: Element): ControlWord {
 /**
  * Connects label, control, help text and error text in plain DOM.
  *
- * The component is for markup produced without JavaScript: a Go template, a
- * PHP file, a Razor view or handwritten HTML. When the markup is written with
- * JavaScript, wherever the code runs, `lt.field()` should write the
- * attributes instead, and this element is not needed.
+ * The component is for markup from code that cannot call a builder function:
+ * a Go template, a PHP file, a Razor view or handwritten HTML. When the code
+ * can, in TypeScript wherever it runs, or in Kotlin or Java, `lt.field()` or
+ * `Lt.field()` should write the attributes instead, and this element is not
+ * needed.
  *
  * The component renders nothing. It used to insert a `<slot>` element into
  * plain DOM, and since the server did not know about it, Datastar's morph

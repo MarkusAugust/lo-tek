@@ -22,7 +22,7 @@ import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 
 /**
- * The Kotlin tab on a component page renders the markup of the page's HTML
+ * The kotlinx.html tab on a component page renders the markup of the page's HTML
  * recipe, with the builder functions doing the wiring.
  *
  * The HTML recipe is the answer. It is the one checked against the morphers
@@ -31,7 +31,10 @@ import org.jsoup.nodes.TextNode
  * than tested again in a browser. The two are compared as trees, without
  * comments, `<script>` and `<link>`:
  *
- *   - the same elements in the same order, and the same text;
+ *   - the same scripts, apart from the registration, which the Kotlin
+ *     recipe has once in the page template;
+ *   - the same elements in the same order, and the same text, except a web
+ *     component in [WIRING_ONLY], which the Kotlin recipe may leave out;
  *   - every attribute and class in the HTML recipe, with the same value;
  *   - an attribute or class the HTML recipe lacks only if a builder function
  *     writes it in some answer in the build cases, since the builder
@@ -44,9 +47,93 @@ import org.jsoup.nodes.TextNode
  *     since the builder functions give ids to the help text and the like.
  *
  * [assertLotek] then checks the Kotlin page as a whole: every pointer
- * resolves, and every field is wired.
+ * resolves, and every field is wired. The two examples that show a part on
+ * its own are checked as fragments, see [PARTS_ON_THEIR_OWN].
  */
 class RecipesTest {
+    /**
+     * The web components that do nothing but the wiring, which a builder
+     * function writes itself. The HTML recipe has them because it has no
+     * builder function, and the Kotlin recipe leaves them out, as the React
+     * tab does: `<lt-field>` is not needed when `Lt.field()` has written the
+     * field (markup-and-behaviour, "The wiring: either the builder function
+     * or the component"). The others carry behaviour, and must be there.
+     */
+    private val WIRING_ONLY = listOf("lt-field")
+
+    /**
+     * The pages whose example shows a part on its own, an error text or a help
+     * text without a field, so the page is checked as a fragment, as
+     * `check-rendered.ts` reads the previews. Every other recipe, the wired
+     * fields on the input and label pages included, is checked as a page.
+     */
+    private val PARTS_ON_THEIR_OWN = setOf("error-text", "help-text")
+
+    private val WHITESPACE = Regex("\\s+")
+    private val NAMED_IMPORT = Regex("""import\s*\{([^}]*)\}\s*from\s*(["'][^"']*["'])(\s*;)?""")
+    private val REGISTER_IMPORT = Regex("""import\s*(?:\*\s*as\s*(\w+)\s*from\s*|(\w+)\s*from\s*)?["'][^"']*/register(?:\.js)?["']\s*;?""")
+
+    /**
+     * A script's text without the registration, since the Kotlin recipe
+     * registers once in the page template with `defineLt()`: the `defineLt…`
+     * names in an import, an alias of one among them, an import of
+     * `register`, and every call of those names, also on the namespace of a
+     * `register` import. The calls are found outside strings and comments,
+     * with their arguments to the matching parenthesis, so a call that only
+     * stands in a comment is compared as text. Whatever else the script does
+     * stays, and the whitespace is collapsed.
+     */
+    internal fun withoutRegistration(script: String): String {
+        val callees = mutableSetOf<String>()
+        var text = NAMED_IMPORT.replace(script) { m ->
+            val kept = m.groupValues[1].split(',').map { it.trim() }.filter { it.isNotEmpty() }.filterNot { name ->
+                val (imported, local) = name.split(Regex("""\s+as\s+""")).let { it[0] to (it.getOrNull(1) ?: it[0]) }
+                imported.startsWith("defineLt").also { if (it) callees += local }
+            }
+            if (kept.isEmpty()) "" else "import { ${kept.joinToString(", ")} } from ${m.groupValues[2]}${m.groupValues[3]}"
+        }
+        text = REGISTER_IMPORT.replace(text) { m ->
+            (m.groupValues[1].ifEmpty { m.groupValues[2] }).takeIf { it.isNotEmpty() }?.let { callees += "$it.defineLt" }
+            ""
+        }
+        val out = StringBuilder()
+        var i = 0
+        var quote: Char? = null
+        while (i < text.length) {
+            val c = text[i]
+            when {
+                quote != null -> {
+                    out.append(c)
+                    if (c == '\\' && i + 1 < text.length) { out.append(text[i + 1]); i++ } else if (c == quote) quote = null
+                    i++
+                }
+                c == '"' || c == '\'' || c == '`' -> { quote = c; out.append(c); i++ }
+                text.startsWith("//", i) -> { val end = text.indexOf('\n', i).let { if (it < 0) text.length else it }; out.append(text, i, end); i = end }
+                text.startsWith("/*", i) -> { val end = text.indexOf("*/", i).let { if (it < 0) text.length else it + 2 }; out.append(text, i, end); i = end }
+                else -> {
+                    val name = Regex("""[\w.]+""").matchAt(text, i)?.value
+                    val calls = name != null && text.getOrNull(i + name.length) == '(' && (i == 0 || !(text[i - 1].isLetterOrDigit() || text[i - 1] == '_' || text[i - 1] == '.')) &&
+                        (name.substringAfterLast('.').startsWith("defineLt") || name in callees || callees.any { name.startsWith("$it") })
+                    if (calls && name != null) {
+                        var depth = 0
+                        var j = i + name.length
+                        while (j < text.length) {
+                            if (text[j] == '(') depth++
+                            if (text[j] == ')') { depth--; if (depth == 0) { j++; break } }
+                            j++
+                        }
+                        if (text.getOrNull(j) == ';') j++
+                        i = j
+                    } else {
+                        out.append(c)
+                        i++
+                    }
+                }
+            }
+        }
+        return out.toString().replace(WHITESPACE, " ").trim()
+    }
+
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
         "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant",
@@ -93,26 +180,45 @@ class RecipesTest {
     }
 
     /**
-     * The pages with a Kotlin tab, found more loosely than `ExtractRecipes`
-     * finds them: any `<TabItem` tag with `Kotlin` in it, whatever the quotes,
+     * The pages with a kotlinx.html tab, found more loosely than `ExtractRecipes`
+     * finds them: any `<TabItem` tag with `kotlin` in it, or a slot called
+     * `kotlin`, in any case and whatever the quotes,
      * the spacing or the other attributes. The expected number therefore does
      * not come from the list the test goes through.
      */
     private val pagesWithKotlin: List<String> =
         File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
-            .filter { Regex("""<TabItem\b[^>]*Kotlin[^>]*>""").containsMatchIn(it.readText()) }
+            .filter { Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>|slot\s*=\s*["']kotlin""").containsMatchIn(it.readText()) }
             .map { it.nameWithoutExtension }
             .sorted()
 
     @Test
-    fun `every Kotlin tab on the pages is extracted`() {
-        assertTrue(pagesWithKotlin.isNotEmpty(), "found no Kotlin tab in the pages")
+    fun `the registration is taken out of a script, and only the registration`() {
+        val cases = mapOf(
+            """import { defineLtToast } from "x.js"; defineLtToast()""" to "",
+            """import { defineLtToast, showToast } from "x.js"; defineLtToast(); showToast("a")""" to """import { showToast } from "x.js"; showToast("a")""",
+            """import { defineLtField as define } from "x.js"; define()""" to "",
+            """import * as lotek from "https://cdn/dist/register.js"; lotek.defineLt()""" to "",
+            """import "@lo-tek/interfaces/register"""" to "",
+            """defineLtToast(tagName("app")); go()""" to "go()",
+            """// call defineLt() first
+            go()""" to "// call defineLt() first go()",
+            """console.log("defineLt() is called once")""" to """console.log("defineLt() is called once")""",
+        )
+        for ((script, expected) in cases) assertEquals(expected, withoutRegistration(script), script)
+    }
+
+    @Test
+    fun `every tab for kotlinx html on the pages is extracted`() {
+        assertTrue(pagesWithKotlin.isNotEmpty(), "found no kotlinx.html tab in the pages")
         assertEquals(pagesWithKotlin, recipes.map { it.page }.sorted())
     }
 
     @Test
     fun `every Kotlin recipe renders the HTML recipe on its page`() {
         var compared = 0
+        var exempted = 0
+        val failures = mutableListOf<String>()
         for (recipe in recipes) {
             val expected = javaClass.getResource("/recipes/${recipe.page}.html")?.readText()
                 ?: fail("${recipe.page}: the HTML recipe was not extracted")
@@ -123,27 +229,86 @@ class RecipesTest {
             val problems = mutableListOf<String>()
             val ids = mutableMapOf<String, String>()
             val pointers = mutableListOf<Pointer>()
-            compare(Jsoup.parseBodyFragment(expected).body(), Jsoup.parse(page).body(), "body", problems, ids, pointers)
+            val wanted = Jsoup.parseBodyFragment(expected).body()
+            val rendered = Jsoup.parse(page).body()
+            // A web component that only wires is left out where the builder
+            // function does the wiring, so the Kotlin recipe has its children
+            // where the HTML recipe has the component.
+            val removed = WIRING_ONLY.filter { rendered.getElementsByTag(it).isEmpty() && wanted.getElementsByTag(it).isNotEmpty() }
+            for (tag in removed) wanted.getElementsByTag(tag).forEach { it.unwrap() }
+            compare(wanted, rendered, "body", problems, ids, pointers)
             for (p in pointers) {
                 val point = { id: String -> ids[id] ?: id }
                 when {
                     p.name in idLists -> {
-                        val missing = p.wanted.split(Regex("\\s+")).filter { it.isNotEmpty() }.map(point) - p.got.split(Regex("\\s+")).toSet()
+                        val missing = p.wanted.split(WHITESPACE).filter { it.isNotEmpty() }.map(point) - p.got.split(WHITESPACE).toSet()
                         if (missing.isNotEmpty()) problems.add("${p.path}: ${p.name}=\"${p.got}\" does not point at $missing, as the HTML recipe does")
                     }
-                    p.name == "for" -> if (p.got != point(p.wanted)) problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at the element with id ${point(p.wanted)}")
+                    // A list of ids on `<output>`, one id on `<label>`.
+                    p.name == "for" -> {
+                        val expected = p.wanted.split(WHITESPACE).filter { it.isNotEmpty() }.map(point)
+                        if (p.got.split(WHITESPACE).filter { it.isNotEmpty() } != expected) problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at ${expected.joinToString(" ")}")
+                    }
                     p.wanted.startsWith("#") -> if (p.got != "#" + point(p.wanted.drop(1))) problems.add("${p.path}: href=\"${p.got}\", where the HTML recipe points at #${point(p.wanted.drop(1))}")
                     else -> if (p.got != p.wanted) problems.add("${p.path}: href is \"${p.got}\", the HTML recipe has \"${p.wanted}\"")
                 }
             }
-            if (problems.isNotEmpty()) {
-                fail("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
+            // The scripts are compared on their own, the tree leaves them out:
+            // the type, the source and the text, with the registration taken
+            // out, see [withoutRegistration]. A script that works through a
+            // web component the Kotlin recipe leaves out (see [WIRING_ONLY])
+            // cannot be the same: on the field page it validates in the
+            // browser and finds the error text with `closest("lt-field")`,
+            // where the Kotlin recipe renders the field invalid on the server.
+            // Such a script names the tag as a string of its own, and only
+            // that exempts it, on both sides; every exemption is counted.
+            fun scripts(e: Element) =
+                e.getElementsByTag("script")
+                    .map { Triple(it.attr("type"), it.attr("src"), withoutRegistration(it.data())) }
+                    .filter { it.second.isNotEmpty() || it.third.isNotEmpty() }
+                    .filterNot { script ->
+                        removed.any { tag -> Regex("""["']${Regex.escape(tag)}["']""").containsMatchIn(script.third) }
+                            .also { if (it) exempted += 1 }
+                    }
+            if (scripts(wanted) != scripts(rendered)) {
+                problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    ${scripts(wanted)}")
             }
-            assertLotek(page)
+            if (problems.isNotEmpty()) {
+                // Every page is compared before the test fails, so one run shows them all.
+                failures.add("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
+                continue
+            }
+            // A finding from the check is collected like a difference, so one
+            // run shows every page that is wrong.
+            try {
+                if (recipe.page in PARTS_ON_THEIR_OWN) {
+                    // The page shows the part alone, and a whole page with it fails
+                    // by design, on that rule and on no other.
+                    assertLotek(page, fragment = true)
+                    val asPage = runCatching { assertLotek(page) }.exceptionOrNull()
+                    assertTrue(
+                        asPage is AssertionError && "[text-not-wired]" in asPage.message.orEmpty() && Regex("""\[(?!text-not-wired)[a-z-]+]""").find(asPage.message.orEmpty()) == null,
+                        "${recipe.page} as a whole page should fail on text-not-wired alone: ${asPage?.message}",
+                    )
+                } else {
+                    assertLotek(page)
+                }
+            } catch (e: AssertionError) {
+                // Only a finding is collected. Anything else, a core that does
+                // not load, stops the test at once with its stack trace.
+                failures.add("${recipe.page}.mdx, ${recipe.function}(): ${e.message}")
+                continue
+            }
             compared += 1
         }
+        // The exemption for a script through a left-out component must still be
+        // needed, or it is a condition that switches the check off for nothing.
+        if (exempted == 0) failures.add("No script was exempt for working through a web component in WIRING_ONLY, so the exemption has no use left: take it out")
+        val unknown = PARTS_ON_THEIR_OWN - recipes.map { it.page }.toSet()
+        if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
+        if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.
-        assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a Kotlin tab")
+        assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a kotlinx.html tab")
         println("Compared $compared Kotlin recipes with their HTML recipes.")
     }
 
@@ -170,8 +335,13 @@ class RecipesTest {
             problems.add("$path: <${actual.tagName()}> where the HTML recipe has <${expected.tagName()}>")
             return
         }
-        // kotlinx.html writes a flag as `required="required"`, which means the same as `required` in HTML.
-        fun values(e: Element) = e.attributes().associate { it.key to if (it.value.equals(it.key, ignoreCase = true)) "" else it.value }
+        // kotlinx.html writes a flag as `required="required"`, which means the
+        // same as `required` in HTML, and `xmlns` on `<svg>`, which the HTML
+        // parser ignores: an `<svg>` in HTML is in the SVG namespace either way.
+        fun values(e: Element) =
+            e.attributes()
+                .filterNot { it.key == "xmlns" && e.tagName() == "svg" }
+                .associate { it.key to if (it.value.equals(it.key, ignoreCase = true)) "" else it.value }
         val wanted = values(expected)
         val got = values(actual)
         val wantedClasses = wanted["class"].orEmpty().split(' ').filter { it.isNotEmpty() }.toSet()
