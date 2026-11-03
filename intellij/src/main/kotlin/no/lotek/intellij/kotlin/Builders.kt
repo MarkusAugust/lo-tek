@@ -39,8 +39,8 @@ internal val builders: Map<String, Builder> by lazy { Lotek.manifest.builders.as
 internal fun KtCallExpression.builderName(): String? {
     val name = calleeExpression?.text ?: return null
     if (name !in builders) return null
-    val receiver = (parent as? KtDotQualifiedExpression)?.takeIf { it.selectorExpression == this }?.receiverExpression?.text ?: return null
-    if (receiver != "Lt" && receiver != "no.lotek.Lt") return null
+    // Resolved whatever the receiver is written as: `L.field` with an alias
+    // and `field(…)` in `with(Lt)` are builder calls too.
     return calledName()?.takeIf { it == "$LT$name" }?.let { name }
 }
 
@@ -63,6 +63,12 @@ internal fun KtCallExpression.isLt(): Boolean = calleeExpression?.text == "lt" &
 internal fun KtCallExpression.enclosingTag(): String? {
     val lambda = PsiTreeUtil.getParentOfType(this, KtLambdaExpression::class.java, true, KtNamedFunction::class.java) ?: return null
     val owner = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java, true) ?: return null
+    return owner.enclosingTagOfLambda(lambda)
+}
+
+/** The tag this call makes, when [lambda] is its block: `label` for `label { … }`, `null` for anything that is not a tag. */
+internal fun KtCallExpression.enclosingTagOfLambda(lambda: KtLambdaExpression): String? {
+    val owner = this
     if (owner.lambdaArguments.none { it.getLambdaExpression() == lambda }) return null
     val callee = owner.calleeExpression as? KtReferenceExpression ?: return null
     val function = callee.target() as? KtNamedFunction ?: return null
@@ -70,8 +76,13 @@ internal fun KtCallExpression.enclosingTag(): String? {
     return when {
         name.startsWith("kotlinx.html.") -> {
             val block = function.valueParameters.lastOrNull()?.typeReference?.typeElement as? KtFunctionType ?: return null
-            val receiver = block.receiverTypeReference?.text?.substringAfterLast('.')?.substringBefore('<') ?: return null
-            // kotlinx.html names a tag class after the tag in capitals: INPUT, H2, TEXTAREA.
+            val receiver = block.receiverTypeReference?.text?.substringBefore('<')?.substringAfterLast('.') ?: return null
+            // `fun <T : Tag> T.visit(block: T.() -> Unit)` has a type parameter, not a tag.
+            if (function.typeParameters.any { it.name == receiver }) return null
+            // Undocumented: kotlinx.html 0.12.0 names a tag class after the tag
+            // in capitals, INPUT, H2, TEXTAREA, in the generated gen-tags-*.kt
+            // files; the interfaces it also has, FlowContent and HtmlBlockTag,
+            // are not all capitals.
             receiver.takeIf { it.isNotEmpty() && it.all { c -> c.isUpperCase() || c.isDigit() } }?.lowercase()
         }
         name.startsWith("no.lotek.html.lt") && name.count { it == '.' } == 3 ->
@@ -82,11 +93,14 @@ internal fun KtCallExpression.enclosingTag(): String? {
 
 /**
  * A set from a builder function with several sets: `field.control` is
- * `field`'s `control`. [answer] is what the variable the set is read from
- * resolves to, so two fields in one function can be told apart; `null` when
- * the set is not read from a name.
+ * `field`'s `control`. [receiver] is the name the set is read from, `field`,
+ * so two fields in one function can be told apart; `null` when the set is not
+ * read from a name. It is resolved only when it is needed, by [answer].
  */
-internal data class SetOfBuilder(val builder: String, val field: String, val answer: PsiElement?)
+internal data class SetOfBuilder(val builder: String, val field: String, val receiver: KtNameReferenceExpression?) {
+    /** What the name the set is read from stands for, or `null`. */
+    fun answer(): PsiElement? = receiver?.target()
+}
 
 /**
  * Which set an argument to `lt(…)` is, read from the property it reads:
@@ -106,8 +120,7 @@ internal fun KtExpression.setOfBuilder(): SetOfBuilder? {
     val fqName = (selector.target() as? KtNamedDeclaration)?.fqName?.asString() ?: return null
     val match = Regex("""^no\.lotek\.(\w+)Parts\.(\w+)$""").find(fqName) ?: return null
     val builder = match.groupValues[1].replaceFirstChar { it.lowercase() }
-    val answer = ((e as KtDotQualifiedExpression).receiverExpression as? KtNameReferenceExpression)?.target()
-    return SetOfBuilder(builder, match.groupValues[2], answer)
+    return SetOfBuilder(builder, match.groupValues[2], (e as KtDotQualifiedExpression).receiverExpression as? KtNameReferenceExpression)
 }
 
 /** The part a set fills, and the tags its selector allows, or `null` when the selector does not name a tag in every alternative. */

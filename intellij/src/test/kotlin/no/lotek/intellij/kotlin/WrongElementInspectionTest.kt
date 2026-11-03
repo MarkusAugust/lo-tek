@@ -31,6 +31,33 @@ class WrongElementInspectionTest : KotlinTestCase() {
         assertEquals(emptyList<Pair<String, String>>(), problems())
     }
 
+    fun `test visit with a type parameter is silent`() {
+        kotlin(
+            """
+            fun FlowContent.form() {
+                val field = Lt.field(id = "codename")
+                label { lt(field.label) }
+                div { visit { lt(field.control) } }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList<Pair<String, String>>(), problems())
+    }
+
+    fun `test the fix is offered when the set is not read from a name`() {
+        kotlin(
+            """
+            fun FlowContent.form() {
+                label { lt(Lt.field(id = "codename").control) }
+                input { lt(Lt.input()) }
+            }
+            """.trimIndent(),
+        )
+        myFixture.enableInspections(WrongElementInspection())
+        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf(".control") + 2)
+        assertNotEmpty(myFixture.filterAvailableIntentions("Move the set to the element it belongs on"))
+    }
+
     fun `test a lambda of something else than a tag is silent`() {
         kotlin(
             """

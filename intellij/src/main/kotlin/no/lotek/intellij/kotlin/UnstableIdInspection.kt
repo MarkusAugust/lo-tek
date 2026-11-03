@@ -79,7 +79,9 @@ class UnstableIdInspection : LocalInspectionTool() {
                 is KtNameReferenceExpression -> {
                     // `parts[i].key` reads a key from the data by the index: that is stable.
                     if (isLookup(e)) continue
-                    val index = if (e.getReferencedName() == "it") isImplicitIndex(e) else isIndex(e.target())
+                    val target = e.target()
+                    // An explicit `{ it -> }` resolves to its parameter; the implicit `it` may not.
+                    val index = if (target is KtParameter || e.getReferencedName() != "it") isIndex(target) else isImplicitIndex(e)
                     if (index) return "it comes from the loop index, so it follows the position, not the row"
                 }
             }
@@ -96,11 +98,32 @@ class UnstableIdInspection : LocalInspectionTool() {
         return call.calleeExpression?.text in setOf("get", "elementAt", "getOrNull")
     }
 
-    /** Whether `it` is the index: in `repeat(n) { … }`, or in a lambda over a range of numbers, `(0 until n).forEach { … }`. */
+    /**
+     * Whether `it` is the index: in `repeat(n) { … }`, or in a lambda over a
+     * range of numbers, `(0 until n).forEach { … }`. The lambda `it` belongs to
+     * is the nearest one without parameters that is not a tag: a tag of
+     * kotlinx.html is a lambda with a receiver and no `it`, so in
+     * `repeat(n) { li { … it … } }` the `it` is `repeat`'s.
+     */
     private fun isImplicitIndex(it: KtNameReferenceExpression): Boolean {
-        val lambda = PsiTreeUtil.getParentOfType(it, KtLambdaExpression::class.java) ?: return false
-        if (lambda.valueParameters.isNotEmpty()) return false
-        return isIndexLambda(lambda)
+        var lambda = PsiTreeUtil.getParentOfType(it, KtLambdaExpression::class.java)
+        while (lambda != null) {
+            val owner = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java)
+            if (lambda.valueParameters.isEmpty() && owner?.enclosingTagOfLambda(lambda) == null) return isIndexLambda(lambda)
+            if (lambda.valueParameters.isNotEmpty()) return false
+            lambda = PsiTreeUtil.getParentOfType(lambda, KtLambdaExpression::class.java)
+        }
+        return false
+    }
+
+    /** The name of the call a lambda is passed to, as written: `forEach` in `xs.forEach { }`. */
+    private fun ownerName(lambda: KtLambdaExpression): String? =
+        PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java)?.calleeExpression?.text
+
+    /** Whether the call a lambda is passed to runs it once per row: `forEach`, `map`, `repeat`, `*Indexed`. */
+    private fun isLoop(lambda: KtLambdaExpression): Boolean {
+        val name = ownerName(lambda) ?: return false
+        return name in LOOPS || name.endsWith("Indexed")
     }
 
     /** Whether the first parameter of the lambda is an index: `repeat`, `*Indexed`, or a loop over a range of numbers. */
@@ -120,7 +143,6 @@ class UnstableIdInspection : LocalInspectionTool() {
                 // `for (i in xs.indices)`, `for (i in 0 until n)`.
                 val loop = declaration.parent as? KtForExpression
                 if (loop != null && loop.loopParameter == declaration) return isNumberRange(loop.loopRange)
-                // The first parameter of the lambda of `forEachIndexed { i, x -> }` and the like.
                 // The first parameter of the lambda of `forEachIndexed { i, x -> }`,
                 // `repeat(n) { i -> }` and `xs.indices.forEach { i -> }`.
                 val literal = (declaration.parent?.parent as? KtFunctionLiteral) ?: return false
@@ -163,10 +185,7 @@ class UnstableIdInspection : LocalInspectionTool() {
         while (e != null && e !is KtNamedFunction) {
             when {
                 e is KtForExpression || e is KtWhileExpressionBase -> return "the same text in every row of the loop, so the rows share one id"
-                e is KtLambdaExpression -> {
-                    val owner = PsiTreeUtil.getParentOfType(e, KtCallExpression::class.java)?.calledName()?.substringAfterLast('.')
-                    if (owner in LOOPS || owner?.endsWith("Indexed") == true) return "the same text in every row of the loop, so the rows share one id"
-                }
+                e is KtLambdaExpression -> if (isLoop(e)) return "the same text in every row of the loop, so the rows share one id"
             }
             e = e.parent
         }

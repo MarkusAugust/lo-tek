@@ -16,6 +16,12 @@ class OptionCompletionTest : KotlinTestCase() {
         assertTrue("the tail was $tail", tail!!.contains("How weighty the action is. Default: primary"))
     }
 
+    fun `test a builder function reached through with(Lt) has the descriptions too`() {
+        kotlin("fun x() = with(Lt) { button(<caret>) }")
+        myFixture.completeBasic()
+        assertTrue("the tail was ${tail("variant =")}", tail("variant =").orEmpty().contains("How weighty"))
+    }
+
     fun `test the other suggestions are all still there`() {
         kotlin("fun FlowContent.x() { val f = Lt.field(<caret>) }")
         val offered = myFixture.completeBasic()?.map { it.lookupString }.orEmpty()

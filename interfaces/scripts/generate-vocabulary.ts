@@ -369,8 +369,36 @@ export function kotlinLiveTemplates(): string {
         [...body.matchAll(/\b(?:id|titleId) = "([^"$]+)"/g)].map((m) => m[1]),
       ),
     ]
+    // Checked on the recipe as it stands, before any id is a variable.
+    for (const id of ids) {
+      // The variable name is the id with `-` as `_`, so check-vocabulary can
+      // tell which id it stands for. An id that stands inside a longer text,
+      // `"#codename"` or `"codename-help"`, would keep the old id after the
+      // user typed a new one, so the generator stops on both.
+      if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id))
+        throw new Error(
+          `${element.slug}.mdx: the Kotlin recipe has the id "${id}". A template variable is the id with - as _, so an id may have letters, digits and - only.`,
+        )
+      // A text without spaces, as a reference to an id is; "Enter a
+      // codename." is prose, and does not point at anything.
+      const inside = [
+        ...body.matchAll(
+          new RegExp(
+            `"[^"\\s]*(?:[^"\\s]${escapeRegex(id)}|${escapeRegex(id)}[^"\\s])[^"\\s]*"`,
+            "g",
+          ),
+        ),
+      ]
+        .map((m) => m[0])
+        // `"errors-title"` is an id of its own, with its own variable.
+        .find((text) => !ids.includes(text.slice(1, -1)))
+      if (inside)
+        throw new Error(
+          `${element.slug}.mdx: the Kotlin recipe has the id "${id}" inside the text ${inside}. Make it from the variable the builder function gives, or the text keeps the old id in the template.`,
+        )
+    }
     const variables = ids.map((id) => {
-      const name = id.replace(/[^A-Za-z0-9_]/g, "_")
+      const name = id.replace(/-/g, "_")
       // Every place the id stands as a text, not only `id = "…"`: the error
       // summary also compares `it.field == "fixer"`, and a field that got
       // another id would never be marked invalid. The field's `name` is often

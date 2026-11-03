@@ -59,12 +59,16 @@ class WrongElementInspection : LocalInspectionTool() {
      * has `b.control` is not where `a.control` goes.
      */
     private fun target(from: KtCallExpression, tags: List<String>, set: SetOfBuilder): KtCallExpression? {
-        val answer = set.answer ?: return null
+        val answer = set.answer()
         val function = from.enclosingFunction() ?: return null
         return PsiTreeUtil.findChildrenOfType(function, KtCallExpression::class.java)
             .filter { it != from && it.isLt() && it.enclosingTag() in tags }
             .filter { candidate ->
-                candidate.valueArguments.mapNotNull { it.getArgumentExpression()?.setOfBuilder() }.all { it.answer == answer }
+                // A set read from something other than a name cannot be told
+                // apart from another answer's, so then only an element with no
+                // set from a builder function with several sets will do.
+                val others = candidate.valueArguments.mapNotNull { it.getArgumentExpression()?.setOfBuilder() }
+                if (answer == null) others.isEmpty() else others.all { it.answer() == answer }
             }
             .singleOrNull()
     }

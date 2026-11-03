@@ -53,10 +53,12 @@ class UnstableIdInspectionTest : KotlinTestCase() {
                 repeat(n) { Lt.field(id = "row-${'$'}it") }
                 (0 until n).forEach { Lt.field(id = "r-${'$'}it") }
                 rows.indices.forEach { i -> Lt.field(id = "s-${'$'}i") }
+                repeat(n) { div { Lt.field(id = "li-${'$'}it") } }
+                (0 until n).forEach { it -> div { Lt.field(id = "d-${'$'}it") } }
             }
             """.trimIndent(),
         )
-        assertEquals("$found", 3, found.count { it.contains("loop index") })
+        assertEquals("$found", 5, found.count { it.contains("loop index") })
     }
 
     fun `test it over the data is silent`() {
