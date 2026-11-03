@@ -349,6 +349,20 @@ if (pagesWithKotlin.length === 0 || kotlinCount !== pagesWithKotlin.length)
   findings.push(
     `${pagesWithKotlin.length} pages have a Kotlin tab, and there are ${kotlinCount} Kotlin live templates`,
   )
+// Every place an id stands is the variable, not only `id = "…"`: a literal
+// left behind, such as `it.field == "fixer"`, no longer matches the id the
+// user typed.
+for (const t of kotlinTemplates.matchAll(
+  /<template name="([^"]+)" value="([^"]*)"[^>]*>([\s\S]*?)<\/template>/g,
+)) {
+  const value = t[2].replace(/&quot;/g, '"')
+  for (const v of t[3].matchAll(/<variable name="([^"]+)"/g))
+    for (const literal of new Set([v[1], v[1].replace(/_/g, "-")]))
+      if (value.includes(`"${literal}"`))
+        findings.push(
+          `The Kotlin live template ${t[1]} has the id "${literal}" as text next to the variable $${v[1]}$`,
+        )
+}
 for (const m of kotlinTemplates.matchAll(/defaultValue="([^"]*)"/g))
   if (m[1] !== "")
     findings.push(

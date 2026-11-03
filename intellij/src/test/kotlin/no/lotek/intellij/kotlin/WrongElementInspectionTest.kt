@@ -67,6 +67,40 @@ class WrongElementInspectionTest : KotlinTestCase() {
         assertTrue(problems().single().second.contains("not on <lt-field>"))
     }
 
+    fun `test an input helper of kotlinx_html is an input`() {
+        kotlin(
+            """
+            fun FlowContent.form() {
+                val field = Lt.field(id = "codename")
+                label { lt(field.label); +"Codename" }
+                textInput(name = "codename") { lt(field.control) }
+                postForm { lt(field.control) }
+            }
+            """.trimIndent(),
+        )
+        val found = problems()
+        assertEquals("$found", 1, found.size)
+        assertTrue(found.single().second, found.single().second.contains("not on <form>"))
+    }
+
+    fun `test no fix onto the element of another field`() {
+        kotlin(
+            """
+            fun FlowContent.form() {
+                val a = Lt.field(id = "a")
+                val b = Lt.field(id = "b")
+                label { lt(a.label, a.control) }
+                input { name = "a" }
+                label { lt(b.label) }
+                input { lt(b.control) }
+            }
+            """.trimIndent(),
+        )
+        myFixture.enableInspections(WrongElementInspection())
+        myFixture.editor.caretModel.moveToOffset(myFixture.file.text.indexOf("a.control") + 1)
+        assertEmpty(myFixture.filterAvailableIntentions("Move the set to the element it belongs on"))
+    }
+
     fun `test the fix moves the set to the only element it can go on`() {
         kotlin(
             """

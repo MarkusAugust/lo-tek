@@ -333,8 +333,12 @@ function kotlinRecipe(slug: string): string | undefined {
  * full, `no.lotek.Lt` and `no.lotek.RequiredMarker.SYMBOL`, and the template
  * has `toShortenFQNames`, which shortens them and adds the imports. A value of
  * LO-TEK's is told from one of kotlinx.html's by its case: `ButtonVariant.GHOST`
- * against `ButtonType.submit`. The extensions `lt` and `ltField` cannot be
- * written in full, and need `import no.lotek.html.*`, as the description says.
+ * against `ButtonType.submit`. That is a guess about every name written
+ * `Name.CONSTANT`, so `KotlinLiveTemplateTest` inserts every template and
+ * requires it to compile: `Int.MAX_VALUE` in a recipe would fail there. The
+ * extensions `lt` and `ltField` and the tags of kotlinx.html cannot be written
+ * in full, and need `import kotlinx.html.*` and `import no.lotek.html.*`, as
+ * the description says.
  *
  * Every id the recipe gives, `id = "codename"` and `titleId = "…"`, becomes
  * an empty variable, mirrored where the same id stands again, as in the HTML
@@ -367,14 +371,18 @@ export function kotlinLiveTemplates(): string {
     ]
     const variables = ids.map((id) => {
       const name = id.replace(/[^A-Za-z0-9_]/g, "_")
+      // Every place the id stands as a text, not only `id = "…"`: the error
+      // summary also compares `it.field == "fixer"`, and a field that got
+      // another id would never be marked invalid. The field's `name` is often
+      // the same text, and follows the id too, as the field page advises.
       body = body.replace(
-        new RegExp(`\\b(id|titleId) = "${escapeRegex(id)}"`, "g"),
-        (_, option: string) => `${option} = "$${name}$"`,
+        new RegExp(`"${escapeRegex(id)}"`, "g"),
+        () => `"$${name}$"`,
       )
       return `    <variable name="${name}" expression="" defaultValue="" alwaysStopAt="true" />`
     })
     const key = `lt${element.slug.replace(/-/g, "")}`
-    const description = `The Kotlin recipe from the ${element.slug} page, in kotlinx.html. Needs import no.lotek.html.* for lt and the web components.`
+    const description = `The Kotlin recipe from the ${element.slug} page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted.`
     templates.push(
       [
         `  <template name="${key}" value="${xml(body)}" description="${xml(description)}" toReformat="true" toShortenFQNames="true">`,

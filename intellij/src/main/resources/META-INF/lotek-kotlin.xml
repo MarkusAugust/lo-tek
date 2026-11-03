@@ -4,9 +4,12 @@
         <!--
             The description of each option of a builder function next to it.
             Adds, never filters. It must run before Kotlin's own contributor,
-            whose id is KotlinCompletionContributor in both K1 and K2, and which
-            is "first" too: otherwise Kotlin's results are already in the list
-            and cannot be passed through.
+            or Kotlin's results are already in the list and cannot be passed
+            through. Undocumented: in 2026.1 that contributor is registered as
+            id="KotlinCompletionContributor" order="first", in
+            intellij.kotlin.completion.impl.xml in kotlin-plugin.jar. If the id
+            changes, the order is ignored and the descriptions stop showing;
+            OptionCompletionTest fails then.
         -->
         <completion.contributor
             language="kotlin"

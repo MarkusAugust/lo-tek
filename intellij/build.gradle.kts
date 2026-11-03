@@ -3,9 +3,11 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    // The Kotlin of the IDE: the Kotlin plugin in 2026.1 is compiled with
-    // metadata 2.4, and an older compiler cannot read its Analysis API. The
-    // plugin runs on the IDE's own standard library, see gradle.properties.
+    // The Kotlin of the IDE. Undocumented: the Kotlin plugin in 2026.1 is
+    // compiled with metadata 2.4, and Kotlin 2.2.21 stopped with "Module was
+    // compiled with an incompatible version of Kotlin. The binary version of
+    // its metadata is 2.4.0" on kotlin-plugin.jar. The plugin runs on the
+    // IDE's own standard library, see gradle.properties.
     kotlin("jvm") version "2.4.0"
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }

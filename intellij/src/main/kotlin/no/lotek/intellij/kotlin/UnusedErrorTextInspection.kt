@@ -31,7 +31,9 @@ class UnusedErrorTextInspection : LocalInspectionTool() {
                 if ((error.getArgumentExpression() as? KtConstantExpression)?.text != "true") return
                 val variable = call.assignedTo() ?: return
                 val function = call.enclosingFunction() ?: return
-                val uses = PsiTreeUtil.findChildrenOfType(function, KtNameReferenceExpression::class.java).filter { it.target() == variable }
+                // By name first, so only the references that can be the variable are resolved.
+                val uses = PsiTreeUtil.findChildrenOfType(function, KtNameReferenceExpression::class.java)
+                    .filter { it.getReferencedName() == variable.name && it.target() == variable }
                 if (uses.isEmpty()) return
                 for (use in uses) {
                     val qualified = use.parent as? KtDotQualifiedExpression

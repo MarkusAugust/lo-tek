@@ -46,6 +46,31 @@ class UnstableIdInspectionTest : KotlinTestCase() {
         assertTrue("$found", found.single().contains("same text in every row"))
     }
 
+    fun `test it in repeat and in a loop over a range`() {
+        val found = reported(
+            """
+            fun FlowContent.x(rows: List<Row>, n: Int) {
+                repeat(n) { Lt.field(id = "row-${'$'}it") }
+                (0 until n).forEach { Lt.field(id = "r-${'$'}it") }
+                rows.indices.forEach { i -> Lt.field(id = "s-${'$'}i") }
+            }
+            """.trimIndent(),
+        )
+        assertEquals("$found", 3, found.count { it.contains("loop index") })
+    }
+
+    fun `test it over the data is silent`() {
+        val found = reported(
+            """
+            fun FlowContent.x(rows: List<Row>) {
+                rows.forEach { Lt.field(id = "row-${'$'}{it.key}") }
+                rows.first().let { Lt.field(id = "first-${'$'}{it.key}") }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList<String>(), found)
+    }
+
     fun `test a key from the data is silent, also with an index next to it`() {
         val found = reported(
             """
@@ -54,6 +79,8 @@ class UnstableIdInspectionTest : KotlinTestCase() {
                 for (row in rows) Lt.field(id = "amount-${'$'}{row.key}")
                 Lt.field(id = "codename")
                 Lt.tabs(id = "claim", keys = rows.map { it.key }, label = "Parts of the claim")
+                for ((i, row) in rows.withIndex()) Lt.field(id = "part-${'$'}{rows[i].key}")
+                for (i in rows.indices) Lt.field(id = "get-${'$'}{rows.get(i).key}")
             }
             """.trimIndent(),
         )

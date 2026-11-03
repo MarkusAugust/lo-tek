@@ -6,8 +6,8 @@ import com.intellij.codeInspection.ProblemsHolder
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiElementVisitor
 import com.intellij.psi.util.PsiTreeUtil
-import no.lotek.Lotek
 import org.jetbrains.kotlin.lexer.KtTokens
+import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDestructuringDeclaration
@@ -21,8 +21,10 @@ import org.jetbrains.kotlin.psi.KtLiteralStringTemplateEntry
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParameter
+import org.jetbrains.kotlin.psi.KtPsiUtil
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtUnaryExpression
+import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtVisitorVoid
 import org.jetbrains.kotlin.psi.KtWhileExpressionBase
 
@@ -46,7 +48,7 @@ class UnstableIdInspection : LocalInspectionTool() {
         object : KtVisitorVoid() {
             override fun visitCallExpression(call: KtCallExpression) {
                 val builder = call.builderName() ?: return
-                val options = Lotek.manifest.builders.firstOrNull { it.name == builder }?.options ?: return
+                val options = builders[builder]?.options ?: return
                 // The members of `Lt` take the required options first.
                 val order = options.sortedBy { !it.required }.map { it.name }
                 for ((i, argument) in call.valueArguments.withIndex()) {
@@ -74,10 +76,41 @@ class UnstableIdInspection : LocalInspectionTool() {
                 is KtUnaryExpression -> if (e.operationToken == KtTokens.PLUSPLUS || e.operationToken == KtTokens.MINUSMINUS) {
                     return "it comes from a counter, so it is new on every render"
                 }
-                is KtNameReferenceExpression -> if (isIndex(e.target())) return "it comes from the loop index, so it follows the position, not the row"
+                is KtNameReferenceExpression -> {
+                    // `parts[i].key` reads a key from the data by the index: that is stable.
+                    if (isLookup(e)) continue
+                    val index = if (e.getReferencedName() == "it") isImplicitIndex(e) else isIndex(e.target())
+                    if (index) return "it comes from the loop index, so it follows the position, not the row"
+                }
             }
         }
         return null
+    }
+
+    /** Whether a name is the index in `xs[i]` or `xs.get(i)`, a lookup in the data rather than the id itself. */
+    private fun isLookup(name: KtNameReferenceExpression): Boolean {
+        val access = PsiTreeUtil.getParentOfType(name, KtArrayAccessExpression::class.java)
+        if (access != null && access.indexExpressions.any { PsiTreeUtil.isAncestor(it, name, false) }) return true
+        val argument = PsiTreeUtil.getParentOfType(name, KtValueArgument::class.java) ?: return false
+        val call = PsiTreeUtil.getParentOfType(argument, KtCallExpression::class.java) ?: return false
+        return call.calleeExpression?.text in setOf("get", "elementAt", "getOrNull")
+    }
+
+    /** Whether `it` is the index: in `repeat(n) { … }`, or in a lambda over a range of numbers, `(0 until n).forEach { … }`. */
+    private fun isImplicitIndex(it: KtNameReferenceExpression): Boolean {
+        val lambda = PsiTreeUtil.getParentOfType(it, KtLambdaExpression::class.java) ?: return false
+        if (lambda.valueParameters.isNotEmpty()) return false
+        return isIndexLambda(lambda)
+    }
+
+    /** Whether the first parameter of the lambda is an index: `repeat`, `*Indexed`, or a loop over a range of numbers. */
+    private fun isIndexLambda(lambda: KtLambdaExpression): Boolean {
+        val call = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java) ?: return false
+        val name = call.calleeExpression?.text ?: return false
+        if (name.endsWith("Indexed") || name == "repeat") return true
+        if (name !in LOOPS) return false
+        val receiver = (call.parent as? KtDotQualifiedExpression)?.takeIf { it.selectorExpression == call }?.receiverExpression
+        return isNumberRange(KtPsiUtil.safeDeparenthesize(receiver ?: return false))
     }
 
     /** Whether a declaration is the index of a loop: of `forEachIndexed`, of `withIndex()`, or a loop over a range of numbers. */
@@ -88,12 +121,12 @@ class UnstableIdInspection : LocalInspectionTool() {
                 val loop = declaration.parent as? KtForExpression
                 if (loop != null && loop.loopParameter == declaration) return isNumberRange(loop.loopRange)
                 // The first parameter of the lambda of `forEachIndexed { i, x -> }` and the like.
+                // The first parameter of the lambda of `forEachIndexed { i, x -> }`,
+                // `repeat(n) { i -> }` and `xs.indices.forEach { i -> }`.
                 val literal = (declaration.parent?.parent as? KtFunctionLiteral) ?: return false
                 if (literal.valueParameters.firstOrNull() != declaration) return false
                 val lambda = literal.parent as? KtLambdaExpression ?: return false
-                val call = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java) ?: return false
-                val name = call.calledName()?.substringAfterLast('.') ?: return false
-                return name.endsWith("Indexed") || name == "repeat"
+                return isIndexLambda(lambda)
             }
             // `for ((i, x) in xs.withIndex())` and `xs.withIndex().forEach { (i, x) -> }`.
             is KtDestructuringDeclarationEntry -> {

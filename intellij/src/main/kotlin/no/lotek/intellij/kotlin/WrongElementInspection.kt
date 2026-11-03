@@ -42,7 +42,7 @@ class WrongElementInspection : LocalInspectionTool() {
                     val placement = set.placement() ?: continue
                     if (tag in placement.tags) continue
                     val allowed = placement.tags.joinToString(" or ") { "<$it>" }
-                    val target = target(call, placement.tags)
+                    val target = target(call, placement.tags, set)
                     holder.registerProblem(
                         expression,
                         "${set.builder}.${set.field} goes on $allowed, the ${placement.part} of <${placement.element}>, not on <$tag>",
@@ -52,11 +52,20 @@ class WrongElementInspection : LocalInspectionTool() {
             }
         }
 
-    /** The one other `lt(…)` in the function that stands in an allowed tag, or `null` when there is none or more than one. */
-    private fun target(from: KtCallExpression, tags: List<String>): KtCallExpression? {
+    /**
+     * The one other `lt(…)` in the function that stands in an allowed tag and
+     * carries no set from another answer, or `null` when there is none or more
+     * than one. With two fields in one function, the `<input>` that already
+     * has `b.control` is not where `a.control` goes.
+     */
+    private fun target(from: KtCallExpression, tags: List<String>, set: SetOfBuilder): KtCallExpression? {
+        val answer = set.answer ?: return null
         val function = from.enclosingFunction() ?: return null
         return PsiTreeUtil.findChildrenOfType(function, KtCallExpression::class.java)
             .filter { it != from && it.isLt() && it.enclosingTag() in tags }
+            .filter { candidate ->
+                candidate.valueArguments.mapNotNull { it.getArgumentExpression()?.setOfBuilder() }.all { it.answer == answer }
+            }
             .singleOrNull()
     }
 

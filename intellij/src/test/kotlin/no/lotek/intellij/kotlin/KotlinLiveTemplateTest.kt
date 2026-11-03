@@ -30,4 +30,25 @@ class KotlinLiveTemplateTest : KotlinTestCase() {
             assertFalse("${template.key} fills in an id: $text", Regex("""\b(id|titleId) = "[^"]""").containsMatchIn(text))
         }
     }
+
+    fun `test a template next to kotlinx_html's own InputType still compiles`() {
+        TemplateManagerImpl.setTemplateTesting(testRootDisposable)
+        // The imports a kotlinx.html file has, as the description asks, and a
+        // use of kotlinx.html's own InputType that an import of LO-TEK's
+        // InputType would shadow.
+        myFixture.configureByText(
+            "Page.kt",
+            """
+            |import kotlinx.html.*
+            |import no.lotek.html.*
+            |
+            |fun FlowContent.search() { input(type = InputType.search) }
+            |
+            |<caret>
+            """.trimMargin(),
+        )
+        TemplateManager.getInstance(project).startTemplate(myFixture.editor, templates.first { it.key == "ltfield" })
+        val errors = myFixture.doHighlighting().filter { it.severity == HighlightSeverity.ERROR }.map { it.description }
+        assertTrue("$errors\n${myFixture.editor.document.text}", errors.isEmpty())
+    }
 }

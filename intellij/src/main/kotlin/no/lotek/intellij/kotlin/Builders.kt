@@ -2,17 +2,20 @@ package no.lotek.intellij.kotlin
 
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
+import no.lotek.Builder
 import no.lotek.Lotek
 import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
+import org.jetbrains.kotlin.psi.KtFunctionType
 import org.jetbrains.kotlin.psi.KtLambdaExpression
 import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtNamedDeclaration
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.KtParenthesizedExpression
 import org.jetbrains.kotlin.psi.KtProperty
+import org.jetbrains.kotlin.psi.KtReferenceExpression
 
 /*
  * What the inspections need to know about a builder function in Kotlin code:
@@ -24,38 +27,66 @@ import org.jetbrains.kotlin.psi.KtProperty
 internal const val LT = "no.lotek.Lt."
 internal const val LT_EXTENSION = "no.lotek.html.lt"
 
-/** The builder function a call calls, like `field` for `Lt.field(…)`, or `null`. */
-internal fun KtCallExpression.builderName(): String? =
-    calledName()?.takeIf { it.startsWith(LT) }?.removePrefix(LT)?.takeIf { '.' !in it }
-
-/** Whether the call is `lt(…)` from `lo-tek-kotlinx-html`. */
-internal fun KtCallExpression.isLt(): Boolean = calledName() == LT_EXTENSION
+/** The builder functions in the manifest of the plugin, by name. */
+internal val builders: Map<String, Builder> by lazy { Lotek.manifest.builders.associateBy { it.name } }
 
 /**
- * The tag a call such as `lt(…)` stands in: `label` in `label { lt(…) }`, and
- * `lt-field` in `ltField { … }`.
+ * The builder function a call calls, like `field` for `Lt.field(…)`, or
+ * `null`. Only a call written `Lt.name(…)` with a name from the manifest is
+ * resolved: the inspections visit every call in every Kotlin file, and
+ * resolving `div` and `listOf` on every pass costs for nothing.
+ */
+internal fun KtCallExpression.builderName(): String? {
+    val name = calleeExpression?.text ?: return null
+    if (name !in builders) return null
+    val receiver = (parent as? KtDotQualifiedExpression)?.takeIf { it.selectorExpression == this }?.receiverExpression?.text ?: return null
+    if (receiver != "Lt" && receiver != "no.lotek.Lt") return null
+    return calledName()?.takeIf { it == "$LT$name" }?.let { name }
+}
+
+/** Whether the call is `lt(…)` from `lo-tek-kotlinx-html`. Resolved only when it is written `lt`. */
+internal fun KtCallExpression.isLt(): Boolean = calleeExpression?.text == "lt" && calledName() == LT_EXTENSION
+
+/**
+ * The tag a call such as `lt(…)` stands in: `label` in `label { lt(…) }`,
+ * `input` in `textInput { lt(…) }`, and `lt-field` in `ltField { … }`.
  *
- * It is the call the nearest lambda belongs to, and only when that call is a
- * tag from kotlinx.html or a web component from `lo-tek-kotlinx-html`. In a
- * lambda of anything else, `with`, `apply`, `repeat` or a helper of the app,
- * the receiver is unknown, and the answer is `null`. A `for` or an `if` has no
- * lambda, so `div { for (x in xs) lt(…) }` is in the `div`.
+ * It is the call the nearest lambda belongs to. For kotlinx.html the tag is
+ * the receiver type of that lambda, `INPUT` for both `input` and
+ * `textInput`, read from the declaration of the function; the function name
+ * alone gave `textinput`. For `lo-tek-kotlinx-html` it is the name of the
+ * function. In a lambda of anything else, `with`, `apply`, `repeat` or a
+ * helper of the app, or with a receiver that is not one tag, such as
+ * `FlowContent`, the answer is `null`. A `for` or an `if` has no lambda, so
+ * `div { for (x in xs) lt(…) }` is in the `div`.
  */
 internal fun KtCallExpression.enclosingTag(): String? {
     val lambda = PsiTreeUtil.getParentOfType(this, KtLambdaExpression::class.java, true, KtNamedFunction::class.java) ?: return null
     val owner = PsiTreeUtil.getParentOfType(lambda, KtCallExpression::class.java, true) ?: return null
     if (owner.lambdaArguments.none { it.getLambdaExpression() == lambda }) return null
-    val name = owner.calledName() ?: return null
+    val callee = owner.calleeExpression as? KtReferenceExpression ?: return null
+    val function = callee.target() as? KtNamedFunction ?: return null
+    val name = function.fqName?.asString() ?: return null
     return when {
-        name.startsWith("kotlinx.html.") && name.count { it == '.' } == 2 -> name.substringAfterLast('.').lowercase()
+        name.startsWith("kotlinx.html.") -> {
+            val block = function.valueParameters.lastOrNull()?.typeReference?.typeElement as? KtFunctionType ?: return null
+            val receiver = block.receiverTypeReference?.text?.substringAfterLast('.')?.substringBefore('<') ?: return null
+            // kotlinx.html names a tag class after the tag in capitals: INPUT, H2, TEXTAREA.
+            receiver.takeIf { it.isNotEmpty() && it.all { c -> c.isUpperCase() || c.isDigit() } }?.lowercase()
+        }
         name.startsWith("no.lotek.html.lt") && name.count { it == '.' } == 3 ->
             "lt" + name.substringAfterLast(".lt").replace(Regex("[A-Z]")) { "-" + it.value.lowercase() }
         else -> null
     }
 }
 
-/** A set from a builder function with several sets: `field.control` is `field`'s `control`. */
-internal data class SetOfBuilder(val builder: String, val field: String)
+/**
+ * A set from a builder function with several sets: `field.control` is
+ * `field`'s `control`. [answer] is what the variable the set is read from
+ * resolves to, so two fields in one function can be told apart; `null` when
+ * the set is not read from a name.
+ */
+internal data class SetOfBuilder(val builder: String, val field: String, val answer: PsiElement?)
 
 /**
  * Which set an argument to `lt(…)` is, read from the property it reads:
@@ -75,16 +106,16 @@ internal fun KtExpression.setOfBuilder(): SetOfBuilder? {
     val fqName = (selector.target() as? KtNamedDeclaration)?.fqName?.asString() ?: return null
     val match = Regex("""^no\.lotek\.(\w+)Parts\.(\w+)$""").find(fqName) ?: return null
     val builder = match.groupValues[1].replaceFirstChar { it.lowercase() }
-    return SetOfBuilder(builder, match.groupValues[2])
+    val answer = ((e as KtDotQualifiedExpression).receiverExpression as? KtNameReferenceExpression)?.target()
+    return SetOfBuilder(builder, match.groupValues[2], answer)
 }
 
 /** The part a set fills, and the tags its selector allows, or `null` when the selector does not name a tag in every alternative. */
 internal data class Placement(val element: String, val part: String, val tags: List<String>)
 
 internal fun SetOfBuilder.placement(): Placement? {
-    val manifest = Lotek.manifest
-    val target = manifest.builders.firstOrNull { it.name == builder }?.parts?.get(field) ?: return null
-    val selector = manifest.elements[target.element]?.parts?.get(target.part)?.selector ?: return null
+    val target = builders[builder]?.parts?.get(field) ?: return null
+    val selector = Lotek.manifest.elements[target.element]?.parts?.get(target.part)?.selector ?: return null
     val tags = tagsOf(selector) ?: return null
     return Placement(target.element, target.part, tags)
 }

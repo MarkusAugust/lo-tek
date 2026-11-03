@@ -8,7 +8,6 @@ import com.intellij.codeInsight.lookup.LookupElementDecorator
 import com.intellij.codeInsight.lookup.LookupElementPresentation
 import com.intellij.psi.util.PsiTreeUtil
 import no.lotek.BuilderOption
-import no.lotek.Lotek
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 
@@ -42,8 +41,7 @@ class OptionCompletion : CompletionContributor() {
         val at = parameters.originalFile.findElementAt(parameters.offset) ?: parameters.originalFile.findElementAt(parameters.offset - 1)
         val list = PsiTreeUtil.getParentOfType(at, KtValueArgumentList::class.java, false) ?: return null
         val call = list.parent as? KtCallExpression ?: return null
-        val name = call.calledName()?.removePrefix("no.lotek.Lt.")?.takeIf { '.' !in it } ?: return null
-        return Lotek.manifest.builders.firstOrNull { it.name == name }?.options?.associateBy { it.name }
+        return builders[call.builderName() ?: return null]?.options?.associateBy { it.name }
     }
 
     private class Described(delegate: LookupElement, private val summary: String) : LookupElementDecorator<LookupElement>(delegate) {
