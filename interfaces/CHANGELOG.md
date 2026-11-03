@@ -30,12 +30,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the HTML snippets and live templates the error summary and the field post
   to the server, the popover's actions are forms that post, and the session
   timeout logs out with a post. In the Kotlin live templates the error
-  summary and the field have no script and take what was typed, the dialog's
-  Cancel and the session timeout's Log out post to the server, the toast
-  tells a refused restart from one that got no answer, and the tabs and the
-  suggestion no longer have scripts that only logged to the console. The
-  Kotlin live template for the error summary inserted the browser validation
-  from the HTML recipe, which a Kotlin server does itself.
+  summary has no script, and it and the field take what was typed; the
+  popover, the tabs and the suggestion have no script; the dialog's Cancel
+  and the session timeout's Log out post to the server; and the toast tells
+  a refused restart from one that got no answer. The Kotlin live template
+  for the error summary inserted the browser validation from the HTML
+  recipe, which a Kotlin server does itself.
 
 ## 0.40.0 (2026-11-03)
 

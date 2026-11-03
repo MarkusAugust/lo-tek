@@ -1,6 +1,6 @@
 ---
 title: Dialog
-description: Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().
+description: Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.
 ---
 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
@@ -17,11 +17,11 @@ import "@lo-tek/interfaces/dialog.css"
 
 Opening it **must** be a call. `showModal()` moves focus inside, keeps focus within the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup does none of this, and is just a box on the page. HTML now has a way without a script, a button with `commandfor` and `command="show-modal"`, which has been [Baseline since December 2025](https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/command). In a browser from before that the button does nothing, so the recipes open the dialog with `showModal()`.
 
-That is a problem for only one kind of app: one with nowhere to make the call from, because all markup is produced on the server. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`.
+A click in the page makes the call with one line of script. When it is the server that decides the dialog is open, as with an answer that asks the user to confirm or a patch from Datastar, there is nowhere to make the call from. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`.
 
 ## How to use it
 
-The "Try it" tab is the dialog in action. The other four are the dialog written for one environment each, and each of them is the complete recipe. The first three make the call themselves; the Datastar version lets `<lt-dialog>` do it, because a server that only sends HTML has nowhere to call from. The stylesheets are the same in all four, and are listed in each tab.
+The "Try it" tab is the dialog in action. The other five are the dialog written for one environment each, and each of them is the complete recipe. Plain HTML, React, Astro and kotlinx.html open it on a click, with `showModal()`; the Datastar version lets the server decide that it is open, and `<lt-dialog>` makes the call. The stylesheets are the same in all five, and are listed in each tab.
 
 <Tabs>
   <TabItem label="Try it">
@@ -270,9 +270,9 @@ The heading's id comes from the template, and the dialog takes its name from it.
 
 The button in "Try it" does what a server would otherwise do: it sets `open` on `<lt-dialog>`, as the Datastar recipe does. The dialog in "Try it" also has a coloured header with a subtitle, described under [Coloured header](#coloured-header).
 
-## What all four have in common
+## What the recipes have in common
 
-Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. The first three recipes make the call themselves; the Datastar recipe lets `<lt-dialog>` do it, because a server that only sends HTML has nowhere to call from. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
+Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. Plain HTML, React, Astro and kotlinx.html make the call on a click; the Datastar recipe lets the server decide that the dialog is open, and `<lt-dialog>` makes the call. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
 
 `<form method="dialog">` closes the dialog when a button is pressed, and puts the button's `value` in `dialog.returnValue`. Then you need no listeners on the buttons, and Enter works as expected. A button with `formmethod="post"` submits the form to its `formaction` instead, and the dialog stays open until the next page arrives, as "Cancel the job" in the recipes does.
 

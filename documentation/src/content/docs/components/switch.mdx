@@ -90,7 +90,7 @@ The switch promises that the change applies. So it also has to say when saving f
   <TabItem label="Plain HTML">
     ```html
     <div class="lt-switch-row">
-      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew" />
+      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew" autocomplete="off" />
       <label class="lt-label" for="auto-renew">Auto-renew</label>
     </div>
     <p class="lt-help-text" id="auto-renew-status" role="status"></p>
@@ -203,7 +203,7 @@ The switch promises that the change applies. So it also has to say when saving f
     The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `renew` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. The server renders the saved choice with `on`. A switch takes effect the moment it is pressed, with no button to submit, so saving it is the one thing that needs a script: it sends the choice to the server with `fetch`, as in the HTML tab.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. The server renders the saved choice with `on`, and `autocomplete="off"` makes it stand after a reload: [Firefox otherwise keeps the checked state from before](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/checkbox#checked). A switch takes effect the moment it is pressed, with no button to submit, so saving it is the one thing that needs a script: it sends the choice to the server with `fetch`, as in the HTML tab.
 
     ```kotlin
     import kotlinx.html.*
@@ -213,7 +213,9 @@ The switch promises that the change applies. So it also has to say when saving f
     fun FlowContent.autoRenew(on: Boolean = false) {
         div {
             lt(Lt.switch.row)
-            input { lt(Lt.`switch`()); id = "auto-renew"; checked = on }
+            // autocomplete="off": Firefox otherwise keeps the state from before a
+            // reload over the one the server rendered.
+            input { lt(Lt.`switch`()); id = "auto-renew"; autoComplete = "off"; checked = on }
             label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
         }
         p { lt(Lt.helpText()); id = "auto-renew-status"; attributes["role"] = "status" }

@@ -962,7 +962,7 @@ export const classes: Classes = {
   "lt-dialog": {
     "component": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "free",
     "parts": {
@@ -1013,7 +1013,7 @@ export const classes: Classes = {
   "lt-dialog__body": {
     "component": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "free",
     "partOf": "lt-dialog",
@@ -1022,7 +1022,7 @@ export const classes: Classes = {
   "lt-dialog__title": {
     "component": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "text",
     "partOf": "lt-dialog",
@@ -1031,7 +1031,7 @@ export const classes: Classes = {
   "lt-dialog__footer": {
     "component": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "free",
     "partOf": "lt-dialog",
@@ -1040,7 +1040,7 @@ export const classes: Classes = {
   "lt-dialog__header": {
     "component": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "parts",
     "partOf": "lt-dialog",
@@ -1062,7 +1062,7 @@ export const classes: Classes = {
   "lt-dialog__subtitle": {
     "component": "dialog",
     "title": "Dialog",
-    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+    "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "text",
     "partOf": "lt-dialog",

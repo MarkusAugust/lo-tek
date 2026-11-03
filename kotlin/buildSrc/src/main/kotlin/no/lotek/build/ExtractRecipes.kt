@@ -66,6 +66,14 @@ abstract class ExtractRecipes : DefaultTask() {
             // here.
             val others = blocks(kotlin, "kotlin").filter { it != block }
             val (declarations, pageTemplates) = others.partition(::declaresOnly)
+            // A declaration is compiled but never rendered, so a script in one
+            // would escape every rule on the scripts. A page template written as
+            // a function, `fun HTML.page() { … script … }`, would be one.
+            for (d in declarations) {
+                if (Regex("""\bscript\s*\(|\bunsafe\b|<script""").containsMatchIn(d)) {
+                    error("$where: a ```kotlin block that declares, beginning with `fun` or `class`, writes a script. The test does not render it: write the page template as statements, as the other tabs do.")
+                }
+            }
             val templates = pageTemplates
                 .mapIndexed { i, t -> "\ninternal fun HTML.pageTemplate$i() {\n${t.prependIndent("    ")}\n}\n" }
             dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n${declarations.joinToString("\n")}\n${templates.joinToString("")}")

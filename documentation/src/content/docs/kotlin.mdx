@@ -229,7 +229,7 @@ fun Application.jobs() {
 }
 ```
 
-The forms on the component pages post, so a real app needs the protection against cross-site request forgery it already has. kotlinx.html writes no token by itself, as a template engine with a security integration might. With Spring Security, pass the `CsrfToken` into the function and write it as a hidden field, `hiddenInput(name = csrf.parameterName) { value = csrf.token }`, and send it as the header `csrf.headerName` with `fetch`. With Ktor, the CSRF plugin is in `io.ktor:ktor-server-csrf`.
+The forms on the component pages post, so a real app needs the protection against cross-site request forgery it already has. kotlinx.html writes no token by itself, as a template engine with a security integration might. With Spring Security, pass the `CsrfToken` into the function and write it as a hidden field in each form, `hiddenInput(name = csrf.parameterName) { value = csrf.token }`. A script that posts with `fetch` cannot see the Kotlin value, so render it into the page as well, `meta(name = "_csrf", content = csrf.token)` and `meta(name = "_csrf_header", content = csrf.headerName)` in `head`, and send it as that header from there, as Spring Security's own documentation does. With Ktor, the CSRF plugin is in `io.ktor:ktor-server-csrf`.
 
 ## Templates: JTE, Thymeleaf and the others
 

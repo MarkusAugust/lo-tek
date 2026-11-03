@@ -661,32 +661,32 @@
         },
         {
           "name": "lt-dialog",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__body",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__title",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__footer",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__header",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__subtitle",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {

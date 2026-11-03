@@ -61,8 +61,10 @@ The container is added once, and the messages come from your code. That is the d
         try {
           answer = await fetch("/relays/14/restart", { method: "POST" })
         } catch {}
-        // An answer that is not ok means the server is there and said no; no
-        // answer at all means it was not reached.
+        // A gateway whose server is gone answers 502, 503 or 504, which is no
+        // answer from the relay either. Any other answer that is not ok means
+        // the server is there and said no.
+        if (answer && [502, 503, 504].includes(answer.status)) answer = undefined
         if (answer?.ok) {
           messages.show("Relay 14 is back", { color: "success" })
         } else if (answer) {
@@ -221,8 +223,10 @@ The container is added once, and the messages come from your code. That is the d
                   try {
                     answer = await fetch("/relays/14/restart", { method: "POST" })
                   } catch {}
-                  // An answer that is not ok means the server is there and said no; no
-                  // answer at all means it was not reached.
+                  // A gateway whose server is gone answers 502, 503 or 504, which is no
+                  // answer from the relay either. Any other answer that is not ok means
+                  // the server is there and said no.
+                  if (answer && [502, 503, 504].includes(answer.status)) answer = undefined
                   if (answer?.ok) {
                     messages.show("Relay 14 is back", { color: "success" })
                   } else if (answer) {

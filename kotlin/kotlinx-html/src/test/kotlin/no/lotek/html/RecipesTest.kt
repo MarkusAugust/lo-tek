@@ -38,10 +38,13 @@ import org.jsoup.nodes.TextNode
  * comments, `<script>` and `<link>`:
  *
  *   - the same scripts, apart from the registration, which the Kotlin
- *     recipe has once in the page template, and apart from the pages in
- *     [SERVER_DOES_IT], where the Kotlin recipe has no script at all;
- *   - no script in the Kotlin recipe that does the server's job: it takes
- *     over a form's `submit`, or writes markup with `innerHTML`;
+ *     recipe has once in the page template, and apart from the one HTML
+ *     script each entry in [SERVER_DOES_IT] names, which does a job the
+ *     Kotlin server does itself; the server's answers are then rendered and
+ *     checked instead, see [serverAnswer];
+ *   - no script in the Kotlin recipe that does the server's job by
+ *     [SERVERS_JOB]: takes over the submission, sends the form itself, or
+ *     writes markup;
  *   - the same elements in the same order, and the same text, except a web
  *     component in [WIRING_ONLY], which the Kotlin recipe may leave out;
  *   - every attribute and class in the HTML recipe, with the same value;
@@ -96,6 +99,8 @@ class RecipesTest {
         val passed: FlowContent.() -> Unit,
         /** What the failed answer must echo, by the field's name. */
         val echo: Map<String, String> = emptyMap(),
+        /** What the valid answer must echo, by the field's name. */
+        val passedEcho: Map<String, String> = emptyMap(),
         /** How many links the error summary in the failed answer must have, when it has one. */
         val links: Int? = null,
     )
@@ -108,14 +113,18 @@ class RecipesTest {
             failed = { errorSummaryForm("nobody", errorSummaryFaults("nobody")) },
             passed = { errorSummaryForm("fixer@relay.example", errorSummaryFaults("fixer@relay.example")) },
             echo = mapOf("fixer" to "nobody"),
+            passedEcho = mapOf("fixer" to "fixer@relay.example"),
             links = 1,
         ),
         Exemption(
             page = "field",
             marker = "codenameInput.focus()",
             reason = "the script shows the error text when the codename is empty, which the server renders with invalid = true",
+            // The page has no validation function: the rule, an empty codename, is
+            // one call in the handler, and the prose gives it.
             failed = { fieldForm(codename = "", invalid = true) },
             passed = { fieldForm(codename = "Kestrel") },
+            passedEcho = mapOf("codename" to "Kestrel"),
         ),
     )
 
@@ -450,8 +459,8 @@ class RecipesTest {
             }
             compared += 1
         }
-        val unknown = (PARTS_ON_THEIR_OWN + SERVER_DOES_IT.map { it.page }) - recipes.map { it.page }.toSet()
-        if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
+        failures += unknownExceptions(PARTS_ON_THEIR_OWN + SERVER_DOES_IT.map { it.page }, recipes.map { it.page }.toSet())
+        failures += duplicateExemptions(SERVER_DOES_IT)
         if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.
         assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a kotlinx.html tab")
@@ -471,12 +480,10 @@ class RecipesTest {
         val failures = mutableListOf<String>()
         for (exemption in SERVER_DOES_IT) {
             val failed = createHTML().html { head { title(exemption.page) }; body { exemption.failed(this) } }
-            val (problems, rules) = serverAnswer(failed, exemption)
-            if (rules == 0) problems.add("no rule applied to the failed answer, so it shows no error the check knows")
-            for (p in problems) failures.add("${exemption.page}, the failed answer: $p")
+            for (p in serverAnswer(failed, exemption).first) failures.add("${exemption.page}, the failed answer: $p")
             runCatching { assertLotek(failed) }.exceptionOrNull()?.let { failures.add("${exemption.page}, the failed answer: ${it.message}") }
             val passed = createHTML().html { head { title(exemption.page) }; body { exemption.passed(this) } }
-            for (p in stillFailing(passed)) failures.add("${exemption.page}, the valid answer: $p")
+            for (p in stillFailing(passed) + echoed(Jsoup.parse(passed), exemption.passedEcho)) failures.add("${exemption.page}, the valid answer: $p")
             runCatching { assertLotek(passed) }.exceptionOrNull()?.let { failures.add("${exemption.page}, the valid answer: ${it.message}") }
         }
         assertTrue(SERVER_DOES_IT.isNotEmpty(), "SERVER_DOES_IT is empty, so this checks nothing")
@@ -514,12 +521,48 @@ class RecipesTest {
             val described = doc.select("[aria-invalid=true]").any { id.isNotEmpty() && id in it.attr("aria-describedby").split(WHITESPACE) }
             if (!described) problems.add("the visible error text \"${error.text()}\" describes no control marked invalid")
         }
-        for ((name, value) in exemption.echo) {
-            rules += 1
-            val field = doc.selectFirst("[name=$name]")
-            if (field?.attr("value") != value) problems.add("the field $name has the value \"${field?.attr("value")}\", and the user typed \"$value\"")
-        }
+        problems += echoed(doc, exemption.echo)
+        rules += exemption.echo.size
+        if (rules == 0) problems.add("no rule applied to the failed answer, so it shows no error the check knows")
         return problems to rules
+    }
+
+    /** The fields whose value is not what the user typed. */
+    private fun echoed(doc: org.jsoup.nodes.Document, echo: Map<String, String>): List<String> =
+        echo.mapNotNull { (name, value) ->
+            val field = doc.selectFirst("[name=$name]")
+            if (field?.attr("value") == value) null
+            else "the field $name has the value \"${field?.attr("value")}\", and the user typed \"$value\""
+        }
+
+    /** The names in a list of exceptions that no page has a recipe for. */
+    internal fun unknownExceptions(listed: Collection<String>, pages: Set<String>): List<String> =
+        (listed.toSet() - pages).takeIf { it.isNotEmpty() }?.let { listOf("$it are listed as exceptions, and no page has that recipe") }.orEmpty()
+
+    /** Two entries for the same script on the same page. */
+    internal fun duplicateExemptions(entries: List<Exemption>): List<String> =
+        entries.groupBy { it.page to it.marker }.filter { it.value.size > 1 }.map { "the script \"${it.key.second}\" on ${it.key.first} is in SERVER_DOES_IT ${it.value.size} times" }
+
+    /**
+     * What is wrong with the scripts of a page template: the template calls
+     * the recipe, whose scripts are held to the HTML recipe above, so as many
+     * copies of each as the recipe renders are taken off; what is left must
+     * be a registration written inline. Returns the problems and whether the
+     * template registers at all.
+     */
+    internal fun templateProblems(template: String, recipe: String): Pair<List<String>, Boolean> {
+        val own = Jsoup.parse(recipe).getElementsByTag("script").map { it.outerHtml() }.toMutableList()
+        val problems = mutableListOf<String>()
+        var registers = false
+        for (script in Jsoup.parse(template).getElementsByTag("script")) {
+            if (own.remove(script.outerHtml())) continue
+            if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
+                problems.add("the page template has a script that does more than register: ${script.outerHtml().take(120)}")
+            } else {
+                registers = true
+            }
+        }
+        return problems to registers
     }
 
     /** What still shows an error in an answer that should show none. */
@@ -563,6 +606,25 @@ class RecipesTest {
         assertEquals(3, stillFailing(right).size)
     }
 
+    @Test
+    fun `the lists and the page templates are held to their rules`() {
+        assertEquals(emptyList<String>(), unknownExceptions(listOf("field"), setOf("field", "tabs")))
+        assertTrue(unknownExceptions(listOf("field", "gone"), setOf("field")).single().contains("[gone]"), "a name without a page")
+        val entry = Exemption("field", "x", "y", {}, {})
+        assertEquals(emptyList<String>(), duplicateExemptions(listOf(entry, Exemption("field", "z", "y", {}, {}))))
+        assertTrue(duplicateExemptions(listOf(entry, entry)).single().contains("2 times"), "one script listed twice")
+        val registration = """<script type="module">import { defineLt } from "/webjars/x/register.js"; defineLt()</script>"""
+        val recipe = """<html><body><p>x</p><script type="module">go()</script></body></html>"""
+        val template = { extra: String -> "<html><head></head><body><p>x</p><script type=\"module\">go()</script>$extra$registration</body></html>" }
+        assertEquals(emptyList<String>() to true, templateProblems(template(""), recipe))
+        assertTrue(templateProblems(template("""<script type="module">more()</script>"""), recipe).first.single().contains("more than register"), "a script of its own")
+        assertTrue(templateProblems(template("""<script type="module" src="/app.js"></script>"""), recipe).first.single().contains("more than register"), "a script loaded from elsewhere")
+        assertTrue(templateProblems(template("""<script type="module">go()</script>"""), recipe).first.single().contains("more than register"), "the recipe's script run twice")
+        assertEquals(emptyList<String>() to false, templateProblems("<html><body><p>x</p><script type=\"module\">go()</script></body></html>", recipe), "a template that registers nothing")
+        // A failed answer that shows no error the check knows is a problem in itself.
+        assertTrue(serverAnswer("<html><body><p>Thanks</p></body></html>", Exemption("page", "x", "y", {}, {})).first.any { "no rule applied" in it })
+    }
+
     /**
      * The page template in each kotlinx.html tab, with the stylesheet and
      * `defineLt()`, is rendered too, and may have no script but the
@@ -572,28 +634,32 @@ class RecipesTest {
     @Test
     fun `the page templates have no script but the registration`() {
         var rendered = 0
+        var registering = 0
         val failures = mutableListOf<String>()
         for (recipe in recipes) {
-            // The template calls the recipe, whose scripts the comparison above
-            // has already held to the HTML recipe; only the template's own count.
-            val own = Jsoup.parse(createHTML().html { body { recipe.render(this) } }).getElementsByTag("script").map { it.outerHtml() }
+            val alone = createHTML().html { body { recipe.render(this) } }
+            var registers = false
             for (template in recipe.templates) {
-                val page = createHTML().html { template() }
-                for (script in Jsoup.parse(page).getElementsByTag("script").filterNot { it.outerHtml() in own }) {
-                    if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
-                        failures.add("${recipe.page}: the page template has a script that does more than register: ${script.outerHtml().take(120)}")
-                    }
-                }
+                val (problems, registered) = templateProblems(createHTML().html { template() }, alone)
+                failures += problems.map { "${recipe.page}: $it" }
+                registers = registers || registered
                 rendered += 1
             }
+            // A page whose HTML recipe has a web component must register it.
+            val hasWebComponent = javaClass.getResource("/recipes/${recipe.page}.html")?.readText()?.contains("<lt-") == true
+            if (recipe.templates.isNotEmpty() && hasWebComponent && !registers) failures.add("${recipe.page}: the page template does not register the web components")
+            if (registers) registering += 1
         }
         // Counted from the pages, not from the list the loop went through:
-        // every kotlinx.html tab has its page template.
+        // every kotlinx.html tab is on a page with a web component or none to
+        // register, and its template shows the whole page.
         val tabs = File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
-            .count { Regex("""<TabItem\b[^>]*label="kotlinx\.html"""").containsMatchIn(it.readText()) }
-        val withTemplate = recipes.count { it.templates.isNotEmpty() }
+            .filter { Regex("""<TabItem\b[^>]*label="kotlinx\.html"""").containsMatchIn(it.readText()) }
+            .map { it.nameWithoutExtension }.toSet()
+        val withTemplate = recipes.filter { it.templates.isNotEmpty() }.map { it.page }.toSet()
         if (failures.isNotEmpty()) fail(failures.joinToString("\n"))
-        assertTrue(rendered > 0 && withTemplate == tabs, "rendered $rendered page templates, $withTemplate recipes have one, and $tabs pages have a kotlinx.html tab")
+        assertEquals(tabs, withTemplate, "the pages with a kotlinx.html tab, and the recipes with a page template")
+        assertTrue(rendered > 0 && registering > 0, "rendered $rendered page templates, and $registering register the web components")
         println("Rendered $rendered page templates.")
     }
 
