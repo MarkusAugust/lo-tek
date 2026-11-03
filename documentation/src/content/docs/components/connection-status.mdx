@@ -147,6 +147,29 @@ defineLtConnectionStatus()
 
     Datastar keeps a long-lived stream open to the server. If it drops, the page looks right but stops updating. The browser only reports when the machine loses the network, not when the server stops answering, so the script at the bottom is what makes the bar appear in that case too.
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.connectionStatus()` gives the bar its role and `data-ignore-morph`.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltConnectionStatus
+
+    fun FlowContent.connection() {
+        ltConnectionStatus { lt(Lt.connectionStatus()) }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        connection()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ## Why it creates the content itself

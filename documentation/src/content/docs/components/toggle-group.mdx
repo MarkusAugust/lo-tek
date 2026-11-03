@@ -66,6 +66,27 @@ group.addEventListener("change", (event) => {
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.view() {
+    fieldSet {
+        lt(Lt.toggleGroup())
+        legend { lt(Lt.srOnly()); +"View" }
+        label { lt(Lt.toggleGroup.option); radioInput(name = "view") { value = "dry"; checked = true }; +" Dry" }
+        label { lt(Lt.toggleGroup.option); radioInput(name = "view") { value = "seasonal" }; +" Seasonal" }
+        label { lt(Lt.toggleGroup.option); radioInput(name = "view") { value = "all" }; +" All" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 `<legend>` is required even when it is hidden. Without it, someone listening to the page does not know what the three options choose between.

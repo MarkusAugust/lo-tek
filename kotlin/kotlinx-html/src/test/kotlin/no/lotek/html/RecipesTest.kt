@@ -45,7 +45,9 @@ import org.jsoup.nodes.TextNode
  *     since the builder functions give ids to the help text and the like.
  *
  * [assertLotek] then checks the Kotlin page as a whole: every pointer
- * resolves, and every field is wired.
+ * resolves, and every field is wired. An example from a CSS page is checked
+ * as a fragment, as `check-rendered.ts` reads the previews: it shows a part
+ * on its own, such as an error text without a field.
  */
 class RecipesTest {
     /**
@@ -105,13 +107,14 @@ class RecipesTest {
 
     /**
      * The pages with a kotlinx.html tab, found more loosely than `ExtractRecipes`
-     * finds them: any `<TabItem` tag with `kotlin` in it, in any case and whatever the quotes,
+     * finds them: any `<TabItem` tag with `kotlin` in it, or a slot called
+     * `kotlin`, in any case and whatever the quotes,
      * the spacing or the other attributes. The expected number therefore does
      * not come from the list the test goes through.
      */
     private val pagesWithKotlin: List<String> =
         File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
-            .filter { Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>""").containsMatchIn(it.readText()) }
+            .filter { Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>|slot\s*=\s*["']kotlin""").containsMatchIn(it.readText()) }
             .map { it.nameWithoutExtension }
             .sorted()
 
@@ -156,7 +159,7 @@ class RecipesTest {
             if (problems.isNotEmpty()) {
                 fail("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
             }
-            assertLotek(page)
+            assertLotek(page, fragment = recipe.fragment)
             compared += 1
         }
         // The expected number comes from the pages, not from the list the loop went through.
@@ -187,8 +190,13 @@ class RecipesTest {
             problems.add("$path: <${actual.tagName()}> where the HTML recipe has <${expected.tagName()}>")
             return
         }
-        // kotlinx.html writes a flag as `required="required"`, which means the same as `required` in HTML.
-        fun values(e: Element) = e.attributes().associate { it.key to if (it.value.equals(it.key, ignoreCase = true)) "" else it.value }
+        // kotlinx.html writes a flag as `required="required"`, which means the
+        // same as `required` in HTML, and `xmlns` on `<svg>`, which the HTML
+        // parser ignores: an `<svg>` in HTML is in the SVG namespace either way.
+        fun values(e: Element) =
+            e.attributes()
+                .filterNot { it.key == "xmlns" && e.tagName() == "svg" }
+                .associate { it.key to if (it.value.equals(it.key, ignoreCase = true)) "" else it.value }
         val wanted = values(expected)
         val got = values(actual)
         val wantedClasses = wanted["class"].orEmpty().split(' ').filter { it.isNotEmpty() }.toSet()

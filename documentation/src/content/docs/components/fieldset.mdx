@@ -58,6 +58,34 @@ lt.setAttributes(title, lt.legend({ required: "symbol" }))
 The group and the label are two functions, because they are set on two elements. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.crew() {
+    fieldSet {
+        lt(Lt.fieldset())
+        legend { lt(Lt.legend(required = RequiredMarker.SYMBOL)); +"Who takes the job?" }
+        div {
+            lt(Lt.radio.row)
+            input { lt(Lt.radio()); id = "any-crew"; name = "crew"; value = "any"; checked = true }
+            label { lt(Lt.label()); htmlFor = "any-crew"; +"Any crew" }
+        }
+        div {
+            lt(Lt.radio.row)
+            input { lt(Lt.radio()); id = "named-crew"; name = "crew"; value = "named" }
+            label { lt(Lt.label()); htmlFor = "named-crew"; +"A crew the fixer names" }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | Attribute on `.lt-legend` | Effect |

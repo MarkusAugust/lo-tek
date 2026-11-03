@@ -325,7 +325,7 @@ function kotlinRecipe(slug: string): string | undefined {
 }
 
 /**
- * Live templates for Kotlin in IntelliJ, one per page with a kotlinx.html tab:
+ * Live templates for Kotlin in IntelliJ, one per web component with a kotlinx.html tab:
  * `ltfield` inserts the recipe from the field page, the function and the data
  * classes it uses, at the top level of a file.
  *

@@ -45,6 +45,26 @@ lt.setAttributes(title, lt.heading({ size: "m" }))
 If the size comes from outside content, validate it with `lt.heading.isSize(x)`. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.terms() {
+    h1 { lt(Lt.heading(size = HeadingSize.MEGA)); +"Runner's policy terms" }
+    h2 { lt(Lt.heading(size = HeadingSize.XL)); +"About the policyholder" }
+    h2 { lt(Lt.heading()); +"What we cover" }
+    h3 { lt(Lt.heading(size = HeadingSize.M)); +"Exclusions" }
+    h4 { lt(Lt.heading(size = HeadingSize.S)); +"Acts of God" }
+    h5 { lt(Lt.heading(size = HeadingSize.XS)); +"Last changed" }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-size` | Font |

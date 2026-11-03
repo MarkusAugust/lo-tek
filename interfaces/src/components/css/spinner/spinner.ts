@@ -19,15 +19,17 @@ export type SpinnerAttributes = {
   "data-size"?: NonDefaultSpinnerSize
   role?: "status"
   "aria-label"?: string
+  "aria-hidden"?: "true"
 }
 
 /**
  * The attributes for a loading indicator.
  *
- * Without `label` the ring is only a shape, and screen readers announce
- * nothing. With `label` it becomes a `role="status"` that says what is going
- * on. If you already have a visible text next to it, let that carry the
- * message and drop `label`, so the same thing is not announced twice.
+ * Without `label` the ring is only a shape, and is hidden from screen readers
+ * with `aria-hidden`, as an icon without a label is. With `label` it becomes a
+ * `role="status"` that says what is going on. If you already have a visible
+ * text next to it, let that carry the message and drop `label`, so the same
+ * thing is not announced twice.
  *
  * ```ts
  * <span {...spinner({ label: "Loading sectors" })} />
@@ -40,6 +42,7 @@ export const spinner = Object.assign(
       "data-size": size === "medium" ? undefined : size,
       role: label ? ("status" as const) : undefined,
       "aria-label": label,
+      "aria-hidden": label ? undefined : ("true" as const),
     }),
   {
     sizes: spinnerSizes,

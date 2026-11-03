@@ -67,6 +67,39 @@ function mark(invalid: boolean) {
 You set `name` yourself, since only you know what the group is called. `lt.radio.row` gives the class for the row around it. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.lease() {
+    fieldSet {
+        lt(Lt.fieldset())
+        legend { lt(Lt.legend(required = RequiredMarker.SYMBOL)); +"Lease length" }
+        div {
+            lt(Lt.radio.row)
+            input { lt(Lt.radio()); id = "lease-1"; name = "lease"; value = "1"; checked = true }
+            label { lt(Lt.label()); htmlFor = "lease-1"; +"One month" }
+        }
+        div {
+            lt(Lt.radio.row)
+            input { lt(Lt.radio()); id = "lease-6"; name = "lease"; value = "6" }
+            label { lt(Lt.label()); htmlFor = "lease-6"; +"Six months" }
+        }
+        div {
+            lt(Lt.radio.row)
+            input { lt(Lt.radio()); id = "lease-12"; name = "lease"; value = "12"; disabled = true }
+            label { lt(Lt.label()); htmlFor = "lease-12"; +"Twelve months" }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 The group always belongs in a [Fieldset](../fieldset/). Without it only the option is read out, not the question it answers.

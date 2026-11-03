@@ -43,8 +43,20 @@
       <option name="KOTLIN_TOPLEVEL" value="true" />
     </context>
   </template>
+  <template name="lttoast" value="fun FlowContent.relay() {&#10;    ltToast { lt(no.lotek.Lt.toast(label = &quot;Messages&quot;).host); id = &quot;$messages$&quot; }&#10;    button { lt(no.lotek.Lt.button()); id = &quot;$restart$&quot;; type = ButtonType.button; +&quot;Restart relay 14&quot; }&#10;}" description="The Kotlin recipe from the toast page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
+    <variable name="messages" expression="" defaultValue="" alwaysStopAt="true" />
+    <variable name="restart" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="KOTLIN_TOPLEVEL" value="true" />
+    </context>
+  </template>
   <template name="ltsessiontimeout" value="fun FlowContent.sessionWarning() {&#10;    val session = no.lotek.Lt.sessionTimeout(titleId = &quot;$session_title$&quot;, warnAt = 1500, expiresAt = 1800)&#10;    ltSessionTimeout {&#10;        lt(session.host)&#10;        dialog {&#10;            lt(session.dialog)&#10;            h2 { lt(session.title); +&quot;Your session is ending&quot; }&#10;            p {&#10;                lt(session.text)&#10;                +&quot;Your session on the Lattice ends in &quot;&#10;                span { lt(session.count) }&#10;                +&quot;. Unsaved routes will be lost.&quot;&#10;            }&#10;            span { lt(session.live) }&#10;            form {&#10;                lt(session.actions)&#10;                attributes[&quot;method&quot;] = &quot;dialog&quot;&#10;                button { lt(no.lotek.Lt.button(), session.extend); +&quot;Stay connected&quot; }&#10;                button { lt(no.lotek.Lt.button(variant = no.lotek.ButtonVariant.SECONDARY), session.logout); +&quot;Log out&quot; }&#10;            }&#10;        }&#10;    }&#10;}" description="The Kotlin recipe from the session-timeout page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
     <variable name="session_title" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="KOTLIN_TOPLEVEL" value="true" />
+    </context>
+  </template>
+  <template name="ltconnectionstatus" value="fun FlowContent.connection() {&#10;    ltConnectionStatus { lt(no.lotek.Lt.connectionStatus()) }&#10;}" description="The Kotlin recipe from the connection-status page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
     <context>
       <option name="KOTLIN_TOPLEVEL" value="true" />
     </context>

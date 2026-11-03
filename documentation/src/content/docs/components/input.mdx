@@ -66,6 +66,29 @@ field.addEventListener("blur", () => {
 Values from outside: `lt.input.isType(x)` and `lt.input.isState(x)`. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.InputType
+import no.lotek.html.lt
+
+fun FlowContent.fixer() {
+    label { lt(Lt.label()); htmlFor = "fixer"; +"Fixer's address" }
+    input { lt(Lt.input(type = InputType.EMAIL)); id = "fixer"; name = "fixer"; placeholder = "fixer@relay.example" }
+    label { lt(Lt.label()); htmlFor = "confirm"; +"Confirm the fixer's address" }
+    input { lt(Lt.input(type = InputType.EMAIL, state = FieldState.SUCCESS)); id = "confirm"; value = "fixer@relay.example" }
+    label { lt(Lt.label()); htmlFor = "backup"; +"Backup fixer" }
+    input { lt(Lt.input(type = InputType.EMAIL, state = FieldState.INVALID)); id = "backup"; value = "fixer@" }
+    label { lt(Lt.label()); htmlFor = "registered"; +"Fixer on file" }
+    input { lt(Lt.input(type = InputType.EMAIL)); id = "registered"; value = "fixer@relay.example"; disabled = true }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-state` | Used for |

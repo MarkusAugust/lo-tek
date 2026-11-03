@@ -13,7 +13,8 @@ import org.gradle.api.tasks.TaskAction
  * Takes the Kotlin recipes out of the component pages, so the tests can
  * compile them and compare what they render with the page's HTML recipe.
  *
- * A page with a `<TabItem label="kotlinx.html">` has a ```kotlin block there with
+ * A page with a `<TabItem label="kotlinx.html">`, or an `<Example>` with a
+ * `<Fragment slot="kotlin">`, has a ```kotlin block there with
  * one `fun FlowContent.<name>()`, whose parameters all have a default, so the
  * test can call it without arguments. It is written as a source file in a package
  * of its own, `no.lotek.html.recipes.<page>`, and the blocks in the page's
@@ -41,37 +42,24 @@ abstract class ExtractRecipes : DefaultTask() {
         val imports = mutableListOf<String>()
         for (page in pages.files.sortedBy { it.name }) {
             val text = page.readText()
-            val starts = tabStarts(text, "kotlinx.html")
-            // A kotlinx.html tab written another way, `label='kotlinx.html'` or with an icon, would be skipped in silence.
-            val loose = Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>""").findAll(text).count()
-            if (loose != starts.size) error("${page.name}: write the kotlinx.html tab as <TabItem label=\"kotlinx.html\">, or the recipe test does not find it.")
-            if (starts.isEmpty()) continue
             val name = page.nameWithoutExtension
-            val where = "${page.name}, the kotlinx.html tab"
-            if (starts.size > 1) error("${page.name} has ${starts.size} kotlinx.html tabs. The test compares one per page.")
-            val kotlin = tabAt(text, starts.single())
-            // The HTML recipe is the one in the same `<Tabs>` as the kotlinx.html tab.
-            val groupStart = text.lastIndexOf("<Tabs>", starts.single())
-            val groupEnd = text.indexOf("</Tabs>", starts.single())
-            if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < starts.single()) {
-                error("$where is not inside a <Tabs> with a Plain HTML tab.")
-            }
-            val group = text.substring(groupStart, groupEnd)
+            val (kotlin, html, where) = recipeIn(page.name, text) ?: continue
+            // An example on a CSS page shows a part on its own, such as an
+            // error text without a field, and is checked as a fragment, as
+            // check-rendered reads the previews. A recipe in a tab is a page.
+            val fragment = where.endsWith("slot")
             val block = blocks(kotlin, "kotlin").singleOrNull { it.contains("fun FlowContent.") }
                 ?: error("$where must have exactly one ```kotlin block with a `fun FlowContent.…()`.")
             val function = Regex("""fun FlowContent\.(\w+)\(""").find(block)?.groupValues?.get(1)
                 ?: error("$where: the recipe must be a `fun FlowContent.name()`.")
-            val plain = tabStarts(group, "Plain HTML").singleOrNull()
-                ?: error("${page.name}: the <Tabs> with the kotlinx.html tab must have one Plain HTML tab to compare it with.")
-            val html = blocks(tabAt(group, plain), "html")
-            if (html.isEmpty()) error("${page.name}: the Plain HTML tab has no ```html block.")
+            if (html.isEmpty()) error("${page.name}: the HTML recipe next to the kotlinx.html tab is empty.")
             val pkg = "no.lotek.html.recipes.${name.replace("-", "")}"
             val dir = sourceDir.resolve(pkg.replace('.', '/')).apply { mkdirs() }
             dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n")
             resourceDir.resolve("recipes").apply { mkdirs() }.resolve("$name.html").writeText(html.joinToString("\n"))
             val alias = "${name.replace("-", "")}_$function"
             imports.add("import $pkg.$function as $alias")
-            entries.add("    Recipe(\"$name\", \"$function\") { $alias() },")
+            entries.add("    Recipe(\"$name\", \"$function\", fragment = $fragment) { $alias() },")
         }
         if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
         val registry = sourceDir.resolve("no/lotek/html/recipes").apply { mkdirs() }
@@ -84,13 +72,61 @@ abstract class ExtractRecipes : DefaultTask() {
             |${imports.joinToString("\n")}
             |
             |/** A Kotlin recipe from a component page: the page, the function, and a call to it. */
-            |class Recipe(val page: String, val function: String, val render: FlowContent.() -> Unit)
+            |class Recipe(val page: String, val function: String, val fragment: Boolean, val render: FlowContent.() -> Unit)
             |
             |val recipes: List<Recipe> = listOf(
             |${entries.joinToString("\n")}
             |)
             |""".trimMargin(),
         )
+    }
+
+    /**
+     * The kotlinx.html recipe on a page and the HTML it is compared with, or
+     * `null` when the page has none. There are two forms:
+     *
+     *   - a `<TabItem label="kotlinx.html">` in the same `<Tabs>` as a
+     *     `<TabItem label="Plain HTML">`, on the pages with a web component;
+     *   - a `<Fragment slot="kotlin">` in an `<Example code={…}>`, on the
+     *     pages of the CSS components, where `code` is what the Plain HTML
+     *     tab shows.
+     *
+     * A page has one of them at most, written as above: anything else with
+     * "kotlin" in a tab or a slot stops the build rather than being skipped.
+     */
+    private fun recipeIn(page: String, text: String): Triple<String, List<String>, String>? {
+        val tabs = tabStarts(text, "kotlinx.html")
+        val slots = Regex("""<Fragment slot="kotlin">""").findAll(text).map { it.range.first }.toList()
+        val loose = Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>|slot\s*=\s*["']kotlin""").findAll(text).count()
+        if (loose != tabs.size + slots.size) {
+            error("$page: write the kotlinx.html tab as <TabItem label=\"kotlinx.html\"> or <Fragment slot=\"kotlin\">, or the recipe test does not find it.")
+        }
+        if (tabs.size + slots.size > 1) error("$page has ${tabs.size + slots.size} kotlinx.html tabs. The test compares one per page.")
+        tabs.singleOrNull()?.let { start ->
+            val where = "$page, the kotlinx.html tab"
+            // The HTML recipe is the one in the same `<Tabs>` as the kotlinx.html tab.
+            val groupStart = text.lastIndexOf("<Tabs>", start)
+            val groupEnd = text.indexOf("</Tabs>", start)
+            if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < start) {
+                error("$where is not inside a <Tabs> with a Plain HTML tab.")
+            }
+            val group = text.substring(groupStart, groupEnd)
+            val plain = tabStarts(group, "Plain HTML").singleOrNull()
+                ?: error("$page: the <Tabs> with the kotlinx.html tab must have one Plain HTML tab to compare it with.")
+            return Triple(tabAt(text, start), blocks(tabAt(group, plain), "html"), where)
+        }
+        slots.singleOrNull()?.let { start ->
+            val where = "$page, the kotlinx.html slot"
+            val example = text.lastIndexOf("<Example", start)
+            val end = text.indexOf("</Fragment>", start)
+            if (example < 0 || end < 0 || text.indexOf("</Example>", example) < start) {
+                error("$where is not inside an <Example>.")
+            }
+            val code = Regex("""code=\{`([\s\S]*?)`\}""").find(text.substring(example, start))?.groupValues?.get(1)
+                ?: error("$where: the <Example> has no code={`…`} to compare it with.")
+            return Triple(text.substring(start, end), listOf(code.trim()), where)
+        }
+        return null
     }
 
     /**

@@ -4313,7 +4313,7 @@
     },
     {
       "name": "spinner",
-      "description": "The attributes for a loading indicator.\n\nWithout `label` the ring is only a shape, and screen readers announce nothing. With `label` it becomes a `role=\"status\"` that says what is going on. If you already have a visible text next to it, let that carry the message and drop `label`, so the same thing is not announced twice.",
+      "description": "The attributes for a loading indicator.\n\nWithout `label` the ring is only a shape, and is hidden from screen readers with `aria-hidden`, as an icon without a label is. With `label` it becomes a `role=\"status\"` that says what is going on. If you already have a visible text next to it, let that carry the message and drop `label`, so the same thing is not announced twice.",
       "example": "<span {...spinner({ label: \"Loading sectors\" })} />",
       "options": [
         {
@@ -4346,7 +4346,8 @@
         "kind": "attributes",
         "table": {
           "base": {
-            "class": "lt-spinner"
+            "class": "lt-spinner",
+            "aria-hidden": "true"
           },
           "options": {
             "size": {
@@ -4363,6 +4364,7 @@
             "label": {
               "cases": {},
               "template": {
+                "aria-hidden": null,
                 "role": "status",
                 "aria-label": "{label}"
               },

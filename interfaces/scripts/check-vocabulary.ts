@@ -335,7 +335,7 @@ for (const m of liveTemplates.matchAll(/id=&quot;([^&]*)&quot;/g))
     findings.push(
       `Live templates have id=&quot;${m[1]}&quot; without a variable`,
     )
-// The Kotlin live templates: one per page with a kotlinx.html tab, counted in the
+// The Kotlin live templates: one per web component with a kotlinx.html tab, counted in the
 // pages rather than in the file, and the ids empty there too.
 const kotlinTemplates = generated["interfaces/live-templates-kotlin.xml"] ?? ""
 const pagesWithKotlin = elements.filter((element) =>

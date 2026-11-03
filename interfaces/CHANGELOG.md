@@ -61,14 +61,19 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
   elements in HTML.
 - **`live-templates-kotlin.xml`, live templates for Kotlin in IntelliJ,**
-  one per page with a kotlinx.html tab, generated from the tab. The ids are empty
-  variables, as in `live-templates.xml`.
-- **The pages for field, suggestion, tabs, popover, dialog, error summary
-  and session timeout have a kotlinx.html tab.** `RecipesTest` compiles each,
-  renders it, and requires the elements, the texts, the classes and the
-  attributes of the page's HTML recipe, with `lotek check` on the result.
+  one per web component, generated from the kotlinx.html tab on its page.
+  The ids are empty variables, as in `live-templates.xml`.
+- **Every component page has a kotlinx.html tab,** for a Kotlin or Java
+  server with `lo-tek-kotlinx-html`. `RecipesTest` compiles each, renders it,
+  and requires the elements, the texts, the classes and the attributes of
+  the page's HTML recipe, with `lotek check` on the result.
 
 ### Changed
+
+- **`lt.spinner()` without `label` writes `aria-hidden="true"`,** as
+  `lt.icon()` without a label does. The page told you to write it yourself,
+  so the HTML tab had it and the TypeScript tab had it by hand; a ring with a
+  `label` is a `role="status"`, as before.
 
 - **The snippets and the live templates leave the ids empty.** They filled
   in the id from the recipe, such as `codename`, and a snippet pasted twice

@@ -72,6 +72,13 @@ const combinedPreviewCss = [customCss, previewCss].filter(Boolean).join("\n")
  * is made is in the same section, on every page.
  */
 const hasTypeScript = Astro.slots.has("ts")
+/*
+ * The kotlinx.html tab, for a Kotlin or Java server with
+ * `lo-tek-kotlinx-html`. `RecipesTest` in `kotlin/kotlinx-html` compiles the
+ * block and compares what it renders with `code`, so the two tabs show the
+ * same markup.
+ */
+const hasKotlin = Astro.slots.has("kotlin")
 
 /*
  * The stylesheets, in the form the tab they are in can actually use.
@@ -131,6 +138,13 @@ const importLines = imports
 			<TabItem label="TypeScript">
 				{importLines && <Code code={importLines} lang="ts" />}
 				<slot name="ts" />
+			</TabItem>
+		)
+	}
+	{
+		hasKotlin && (
+			<TabItem label="kotlinx.html">
+				<slot name="kotlin" />
 			</TabItem>
 		)
 	}

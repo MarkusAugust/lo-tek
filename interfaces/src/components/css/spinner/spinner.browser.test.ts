@@ -40,8 +40,8 @@ describe("lt-spinner", () => {
     expect(style.borderTopColor).not.toBe(style.borderBottomColor)
   })
 
-  it("sets a role only when it has something to announce", () => {
-    expect(spinner()).toEqual({ class: "lt-spinner" })
+  it("sets a role only when it has something to announce, and hides itself otherwise", () => {
+    expect(spinner()).toEqual({ class: "lt-spinner", "aria-hidden": "true" })
     expect(spinner({ size: "large", label: "Loading sectors" })).toEqual({
       class: "lt-spinner",
       "data-size": "large",

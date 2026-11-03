@@ -192,6 +192,30 @@ The container is added once, and the messages come from your code. That is the d
 
     The messages are not state to be mirrored in a signal. They are something that happens, which is why `data-on:click` calls the method directly.
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltToast
+
+    fun FlowContent.relay() {
+        ltToast { lt(Lt.toast(label = "Messages").host); id = "messages" }
+        button { lt(Lt.button()); id = "restart"; type = ButtonType.button; +"Restart relay 14" }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        relay()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ## The markup

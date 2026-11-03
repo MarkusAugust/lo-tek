@@ -55,6 +55,24 @@ lt.setAttributes(line, lt.skeleton({ variant: "text" }))
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.loading() {
+    div { lt(Lt.skeleton(variant = SkeletonVariant.CIRCLE)) }
+    div { lt(Lt.skeleton(variant = SkeletonVariant.TEXT)) }
+    div(classes = "sector-last-line") { lt(Lt.skeleton(variant = SkeletonVariant.TEXT)) }
+    div(classes = "sector-map") { lt(Lt.skeleton()) }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

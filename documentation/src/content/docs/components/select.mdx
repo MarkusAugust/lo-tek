@@ -67,6 +67,43 @@ field.addEventListener("change", () => {
 Every call sets the whole state. If you leave out `picker`, `data-picker` is removed in the same way as `data-state`, so pass the options the field should keep.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.building() {
+    label { lt(Lt.label()); htmlFor = "building"; +"Building" }
+    select {
+        lt(Lt.select())
+        id = "building"
+        name = "building"
+        option { value = ""; +"Choose a building" }
+        option { +"Breakwater House" }
+        option { selected = true; +"Saltline Tower" }
+        option { +"The Lantern Block" }
+    }
+    label { lt(Lt.label()); htmlFor = "floor"; +"Floor" }
+    select {
+        lt(Lt.select(state = FieldState.INVALID))
+        id = "floor"
+        option { value = ""; selected = true; +"Choose a floor" }
+    }
+    label { lt(Lt.label()); htmlFor = "landlord"; +"Landlord" }
+    select {
+        lt(Lt.select())
+        id = "landlord"
+        disabled = true
+        option { selected = true; +"Tidewall Holdings" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-state` | Used for |
