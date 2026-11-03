@@ -88,21 +88,20 @@ defineLtErrorSummary()
 
       const fixer = document.getElementById("fixer")
 
-      // There is no server on this page, so the script stands in for it:
-      // it stops the submission and writes what the server would send.
+      // There is no server on this page, so the script stands in for it: it
+      // stops a submission that fails, and writes what the server would send.
       document.querySelector("form").addEventListener("submit", (event) => {
-        event.preventDefault()
-
         const errors = fixer.value.includes("@")
           ? []
           : [{ id: "fixer", message: "Enter the fixer's address with an @" }]
 
+        if (errors.length > 0) event.preventDefault()
         showErrors(errors)
       })
     </script>
     ```
 
-    The component moves focus here as soon as `hidden` is removed. The script only stands in for a server: with one, the server renders the box filled in and without `hidden`, as in the kotlinx.html tab, and the page needs no script beyond the registration. The messages are set with `textContent`, never through `innerHTML`, since they can contain what the user typed.
+    The component moves focus here as soon as `hidden` is removed. The script only stands in for a server: with one, the server renders the box filled in and without `hidden`, as in [The markup](#the-markup) and the kotlinx.html tab, and the page needs no script beyond the registration. The messages are set with `textContent`, never through `innerHTML`, since they can contain what the user typed.
   </TabItem>
   <TabItem label="React">
     ```ts

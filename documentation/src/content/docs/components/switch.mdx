@@ -254,6 +254,13 @@ The switch promises that the change applies. So it also has to say when saving f
         }
     }
     ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. The switch is CSS alone,
+    // so there is no web component to register.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body { autoRenew() }
+    ```
   </TabItem>
 </Tabs>
 

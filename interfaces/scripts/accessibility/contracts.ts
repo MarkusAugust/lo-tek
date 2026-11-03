@@ -45,8 +45,8 @@ const dialog: Contract = {
     {
       name: "focus sent away after the close",
       replace: [
-        'dialog.addEventListener("close", () => {',
-        'dialog.addEventListener("close", () => { requestAnimationFrame(() => document.activeElement.blur())',
+        "dialog.showModal()",
+        'dialog.showModal(); dialog.addEventListener("close", () => requestAnimationFrame(() => document.activeElement.blur()), { once: true })',
       ],
       failsAt: "close",
     },
@@ -431,14 +431,15 @@ const toast: Contract = {
       focus: { role: "button", name: "Restart relay 14" },
     },
     {
-      // The recipe's restartRelay() is a placeholder that is not defined, so
-      // the click takes the error path. A message never takes the focus.
+      // The fixture server answers 404 for the recipe's POST to
+      // /relays/14/restart, so the click takes the path where the server is
+      // there and says no. A message never takes the focus.
       name: "restart-fails",
       do: [{ press: "Enter" }],
       focus: { role: "button", name: "Restart relay 14" },
       announce: {
         politeness: "polite",
-        text: "Relay 14 did not answer. Try again.",
+        text: "Relay 14 refused the restart. Try again.",
       },
     },
     {
@@ -468,8 +469,8 @@ const toast: Contract = {
       // is one announcement, and this must still be two.
       name: "the same message shown twice",
       replace: [
-        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })',
-        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 }); messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })',
+        'messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })',
+        'messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 }); messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })',
       ],
       failsAt: "restart-fails",
     },
@@ -477,8 +478,8 @@ const toast: Contract = {
       // And two frames apart: the count is by event, not by text.
       name: "the same message shown again a frame later",
       replace: [
-        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })',
-        'messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 }); requestAnimationFrame(() => requestAnimationFrame(() => messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })))',
+        'messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })',
+        'messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 }); requestAnimationFrame(() => requestAnimationFrame(() => messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })))',
       ],
       failsAt: "restart-fails",
     },

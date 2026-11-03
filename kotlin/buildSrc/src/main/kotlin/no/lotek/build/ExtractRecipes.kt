@@ -58,16 +58,26 @@ abstract class ExtractRecipes : DefaultTask() {
             if (html.isEmpty()) error("${page.name}: the HTML recipe next to the kotlinx.html tab is empty.")
             val pkg = "no.lotek.html.recipes.${name.replace("-", "")}"
             val dir = sourceDir.resolve(pkg.replace('.', '/')).apply { mkdirs() }
-            // The other ```kotlin blocks in the tab are the page template, with
-            // the stylesheet and `defineLt()`. They are compiled too, as
-            // functions on `HTML`, so a name in them that changes stops here.
-            val templates = blocks(kotlin, "kotlin").filter { it != block }
+            // The other ```kotlin blocks in the tab are either declarations the
+            // recipe's server uses, such as the validation, which are compiled
+            // at the top level so the test can call them, or the page template,
+            // with the stylesheet and `defineLt()`, compiled as a function on
+            // `HTML` that the test renders. A name in either that changes stops
+            // here.
+            val others = blocks(kotlin, "kotlin").filter { it != block }
+            val (declarations, pageTemplates) = others.partition(::declaresOnly)
+            val templates = pageTemplates
                 .mapIndexed { i, t -> "\ninternal fun HTML.pageTemplate$i() {\n${t.prependIndent("    ")}\n}\n" }
-            dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n${templates.joinToString("")}")
+            dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n${declarations.joinToString("\n")}\n${templates.joinToString("")}")
             resourceDir.resolve("recipes").apply { mkdirs() }.resolve("$name.html").writeText(html.joinToString("\n"))
             val alias = "${name.replace("-", "")}_$function"
             imports.add("import $pkg.$function as $alias")
-            entries.add("    Recipe(\"$name\", \"$function\") { $alias() },")
+            val templateCalls = pageTemplates.indices.map { i ->
+                val templateAlias = "${name.replace("-", "")}_pageTemplate$i"
+                imports.add("import $pkg.pageTemplate$i as $templateAlias")
+                "{ $templateAlias() }"
+            }
+            entries.add("    Recipe(\"$name\", \"$function\", listOf(${templateCalls.joinToString(", ")})) { $alias() },")
         }
         if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
         // The stylesheet `Example.astro` shows above every recipe on a CSS page.
@@ -87,10 +97,11 @@ abstract class ExtractRecipes : DefaultTask() {
             |package no.lotek.html.recipes
             |
             |import kotlinx.html.FlowContent
+            |import kotlinx.html.HTML
             |${imports.joinToString("\n")}
             |
-            |/** A Kotlin recipe from a component page: the page, the function, and a call to it. */
-            |class Recipe(val page: String, val function: String, val render: FlowContent.() -> Unit)
+            |/** A Kotlin recipe from a component page: the page, the function, the page templates in its tab, and a call to it. */
+            |class Recipe(val page: String, val function: String, val templates: List<HTML.() -> Unit>, val render: FlowContent.() -> Unit)
             |
             |val recipes: List<Recipe> = listOf(
             |${entries.joinToString("\n")}
@@ -163,6 +174,17 @@ abstract class ExtractRecipes : DefaultTask() {
     private fun tabAt(text: String, start: Int): String {
         val end = text.indexOf("</TabItem>", start)
         return text.substring(start, if (end < 0) text.length else end)
+    }
+
+    /**
+     * Whether a block only declares, a `fun` or a `class` at its top, such as
+     * the validation next to the recipe, rather than being the page template.
+     * Comments and blank lines are skipped; the first line of code decides.
+     */
+    private fun declaresOnly(block: String): Boolean {
+        val code = block.lines().map { it.trimEnd() }.firstOrNull { it.isNotBlank() && !it.trimStart().startsWith("//") }
+            ?: return false
+        return Regex("""^(fun |data class |class |enum class )""").containsMatchIn(code)
     }
 
     /** The code blocks in a language, without the indentation the tab gives them. */

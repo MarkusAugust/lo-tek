@@ -2,7 +2,8 @@
  * That the scripts in the "Plain HTML" recipes run as the reader pastes them.
  *
  * `check-recipes.ts` reads the pages as text, and the Kotlin comparison
- * requires the same scripts in both tabs, but neither runs one. A recipe
+ * requires the same scripts in both tabs, apart from the ones a server does
+ * the job of (`SERVER_DOES_IT` in `RecipesTest`), but neither runs one. A recipe
  * whose script throws, warns, loads a module that does not exist or takes
  * over every form on the page passed them all: the connection status once
  * called `preventDefault()` on every `submit`, and then a `<form

@@ -142,7 +142,7 @@
       "    <span class=\"lt-sr-only\" role=\"status\"></span>",
       "    <form method=\"dialog\" class=\"lt-session-timeout__actions\">",
       "      <button class=\"lt-button\" value=\"extend\">Stay connected</button>",
-      "      <button class=\"lt-button\" data-variant=\"secondary\" value=\"logout\">Log out</button>",
+      "      <button class=\"lt-button\" data-variant=\"secondary\" value=\"logout\" formmethod=\"post\" formaction=\"/log-out\">Log out</button>",
       "    </form>",
       "  </dialog>",
       "</lt-session-timeout>"

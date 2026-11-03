@@ -141,23 +141,17 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
       </div>
       <form method="dialog" {...box.footer}>
         <button {...lt.button({ variant: "secondary" })} value="keep">Keep the job</button>
-        <button {...lt.button({ variant: "danger" })} value="cancel">Cancel the job</button>
+        <button {...lt.button({ variant: "danger" })} formmethod="post" formaction="/jobs/222-0481/cancel">Cancel the job</button>
       </form>
     </dialog>
 
     <script>
       const dialog = document.getElementById("confirm") as HTMLDialogElement
 
+      // showModal() and not commandfor, which does nothing in a browser from
+      // before December 2025. This is the one script the recipe needs.
       document.getElementById("open-confirm")?.addEventListener("click", () => {
-        // Escape and close() without a value leave the previous value in place.
-        dialog.returnValue = ""
         dialog.showModal()
-      })
-
-      dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "cancel") {
-          // Cancel the job here
-        }
       })
     </script>
     ```
@@ -280,7 +274,7 @@ The button in "Try it" does what a server would otherwise do: it sets `open` on 
 
 Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. The first three recipes make the call themselves; the Datastar recipe lets `<lt-dialog>` do it, because a server that only sends HTML has nowhere to call from. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
 
-`<form method="dialog">` closes the dialog when a button is pressed, and puts the button's `value` in `dialog.returnValue`. Then you need no listeners on the buttons, and Enter works as expected.
+`<form method="dialog">` closes the dialog when a button is pressed, and puts the button's `value` in `dialog.returnValue`. Then you need no listeners on the buttons, and Enter works as expected. A button with `formmethod="post"` submits the form to its `formaction` instead, and the dialog stays open until the next page arrives, as "Cancel the job" in the recipes does.
 
 Escape closes the dialog on its own. To prevent that, for example in the middle of a save, cancel the `cancel` event. Do it rarely: a dialog that cannot be closed is a trap.
 
@@ -313,9 +307,9 @@ Without `showModal()` the markup is a box on the page. That is the state the ser
 
 ## When the server opens the dialog
 
-This section only applies to apps without code of their own in the browser. If you have JavaScript there, skip it: `showModal()` is one call, and a component in between gives you nothing.
+This section applies when the server decides that the dialog is open, not a click in the browser: an answer that asks the user to confirm, or a patch from Datastar or htmx. When a click opens it, as in the recipes above, `showModal()` is one call, and a component in between gives you nothing.
 
-An app in Datastar, htmx, a Go template or a Razor view has no such place. It sends `open` on `<lt-dialog>`, and the component makes the call.
+The server has nowhere to call `showModal()` from. It sends `open` on `<lt-dialog>`, and the component makes the call.
 
 ```js
 import { defineLtDialog } from "@lo-tek/interfaces/dialog"

@@ -8,6 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.test.fail
+import kotlinx.html.FlowContent
 import kotlinx.html.body
 import kotlinx.html.head
 import kotlinx.html.html
@@ -17,6 +18,9 @@ import no.lotek.Lotek
 import no.lotek.LotekWebJar
 import no.lotek.Returns
 import no.lotek.assertLotek
+import no.lotek.html.recipes.errorsummary.faultsIn as errorSummaryFaults
+import no.lotek.html.recipes.errorsummary.orderForm as errorSummaryForm
+import no.lotek.html.recipes.field.orderForm as fieldForm
 import no.lotek.html.recipes.recipes
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Comment
@@ -67,26 +71,79 @@ class RecipesTest {
     private val WIRING_ONLY = listOf("lt-field")
 
     /**
-     * The pages whose HTML script does what a Kotlin server does itself, so
-     * the Kotlin recipe leaves it out and has no script but the registration.
-     * The HTML recipe has no server behind it, and the Kotlin one is the
-     * server: a copy of the script there did the server's job again in the
-     * browser, and taught the reader that a Kotlin page needs JavaScript.
-     * Every other script must be in the Kotlin recipe, which is what caught
-     * eight recipes without the script their HTML tab has, among them the
-     * dialog, which then never opened. An entry whose HTML recipe has no
-     * script left to leave out fails, and so does a name without a page.
+     * One script in an HTML recipe that does a server's job, which the Kotlin
+     * recipe leaves out because a Kotlin server does that job itself. The HTML
+     * recipe has no server behind it, and the Kotlin one is the server: a copy
+     * of the script there did the server's job again in the browser, and
+     * taught the reader that a Kotlin page needs JavaScript.
+     *
+     * [marker] names the script: it must be found in exactly one HTML script
+     * on the page, in the code without its comments, and that script must do
+     * a server's job by [SERVERS_JOB]. Every other script on the page is still
+     * compared, which is what caught eight recipes without the script their
+     * HTML tab has, among them the dialog, which then never opened.
+     *
+     * [failed] and [passed] are the proof that the server does it: the recipe
+     * rendered as the server answers a failed and a valid submission, through
+     * the page's own validation where it has one. Both are rendered and
+     * checked, see [serverAnswer].
      */
-    private val SERVER_DOES_IT = mapOf(
-        "error-summary" to "the script validates the field and writes the summary, which the server renders from the faults",
-        "connection-status" to "the script wraps the page's own fetch calls, and a page that saves with form submissions makes none",
+    internal class Exemption(
+        val page: String,
+        val marker: String,
+        val reason: String,
+        val failed: FlowContent.() -> Unit,
+        val passed: FlowContent.() -> Unit,
+        /** What the failed answer must echo, by the field's name. */
+        val echo: Map<String, String> = emptyMap(),
+        /** How many links the error summary in the failed answer must have, when it has one. */
+        val links: Int? = null,
     )
 
-    /** What a script in a Kotlin recipe must not do, since the server does it. */
-    private val SERVERS_JOB = listOf(
-        Regex("""addEventListener\(\s*["']submit["']""") to "takes over the form's submission, which the server answers",
-        Regex("""\.innerHTML\b""") to "writes markup with innerHTML, which the server renders",
+    private val SERVER_DOES_IT = listOf(
+        Exemption(
+            page = "error-summary",
+            marker = "showErrors(errors)",
+            reason = "the script validates the field and writes the summary, which the server renders from the faults",
+            failed = { errorSummaryForm("nobody", errorSummaryFaults("nobody")) },
+            passed = { errorSummaryForm("fixer@relay.example", errorSummaryFaults("fixer@relay.example")) },
+            echo = mapOf("fixer" to "nobody"),
+            links = 1,
+        ),
+        Exemption(
+            page = "field",
+            marker = "codenameInput.focus()",
+            reason = "the script shows the error text when the codename is empty, which the server renders with invalid = true",
+            failed = { fieldForm(codename = "", invalid = true) },
+            passed = { fieldForm(codename = "Kestrel") },
+        ),
     )
+
+    /**
+     * What a script in a Kotlin recipe must not do, since the server does it:
+     * take over the form's submission, or write markup. Matched on the code
+     * without its comments. This is a tripwire, not a proof: a script that
+     * takes over the submission from a `click` on the button, or builds the
+     * markup with `createElement`, is not caught here. On the pages in
+     * [SERVER_DOES_IT] the proof is [serverAnswer]; on the others the Kotlin
+     * script is a copy of the HTML one, and goes through the same review.
+     */
+    private val SERVERS_JOB = listOf(
+        Regex("""addEventListener\(\s*["'`]submit["'`]""") to "takes over the form's submission, which the server answers",
+        Regex("""\.onsubmit\s*=(?!=)""") to "takes over the form's submission, which the server answers",
+        Regex("""\brequestSubmit\s*\(""") to "submits the form from a script, which the server answers",
+        Regex("""\bnew\s+FormData\s*\(""") to "reads the form to send it itself, which the server answers",
+        Regex("""\.(?:innerHTML|outerHTML)\s*\+?=(?!=)""") to "writes markup, which the server renders",
+        Regex("""\b(?:insertAdjacentHTML|setHTMLUnsafe)\s*\(""") to "writes markup, which the server renders",
+        Regex("""\bdocument\.write(?:ln)?\s*\(""") to "writes markup, which the server renders",
+    )
+
+    /** A script's code without its comments, collapsed, as [SERVERS_JOB] and the markers read it. */
+    internal fun code(script: String): String =
+        script.replace(Regex("""/\*[\s\S]*?\*/"""), "").replace(Regex("""(?m)^\s*//.*$"""), "").replace(WHITESPACE, " ").trim()
+
+    /** What a script does of the server's job, by [SERVERS_JOB]. */
+    internal fun serversJob(script: String): List<String> = code(script).let { c -> SERVERS_JOB.filter { it.first.containsMatchIn(c) }.map { it.second } }
 
     /**
      * The pages whose example shows a part on its own, an error text or a help
@@ -215,7 +272,7 @@ class RecipesTest {
             <script type="module">go("codename")</script>
             </body></html>
         """.trimIndent()
-        assertEquals(emptyList<String>(), differences(html, right).first, "a correct page")
+        assertEquals(emptyList<String>(), differences(html, right), "a correct page")
         val mistakes = mapOf(
             "the label points at another field" to (""" for="c">""" to """ for="c-help">""") to "for=",
             "the label names its field twice" to (""" for="c">""" to """ for="c c">""") to "for=",
@@ -239,57 +296,94 @@ class RecipesTest {
             val (name, edit) = case
             val (from, to) = edit
             assertTrue(from in right, "the case \"$name\" edits nothing")
-            val found = differences(html, right.replace(from, to)).first
+            val found = differences(html, right.replace(from, to))
             assertTrue(found.any { mistake in it }, "$name: expected a difference with \"$mistake\", got $found")
         }
     }
 
+    private fun exemption(marker: String) = Exemption("page", marker, "the server does it", failed = {}, passed = {})
+
     @Test
-    fun `a page where the server does it has no script, and a Kotlin script never does the server's job`() {
-        val html = """
-            <form action="/jobs" method="post"><input id="fixer"></form>
-            <script type="module">document.querySelector("form").addEventListener("submit", (e) => e.preventDefault())</script>
-        """.trimIndent()
-        val page = """<html><body><form action="/jobs" method="post"><input id="fixer"></form></body></html>"""
-        // Listed: the HTML script is left out, and the Kotlin page has none.
-        assertEquals(emptyList<String>(), differences(html, page, serverDoesIt = true).first)
-        // Not listed: the script must be there, as before.
-        assertTrue(differences(html, page).first.any { "the scripts differ" in it }, "an unlisted page without the script")
-        // Listed, and the Kotlin page still has a script.
-        val withScript = page.replace("</body>", """<script type="module">go()</script></body>""")
-        assertTrue(differences(html, withScript, serverDoesIt = true).first.any { "no script but the registration" in it }, "a listed page with a script")
-        // Listed, and the HTML recipe has no script left to leave out.
-        val noScript = html.substringBefore("<script")
-        assertTrue(differences(noScript, page, serverDoesIt = true).first.any { "take it out of the list" in it }, "a stale entry")
-        // A Kotlin script that does the server's job fails even when the HTML
-        // recipe has the same one, written as a copy would be.
-        val copied = page.replace("</body>", html.substringAfter("</form>").trim() + "</body>")
-        assertTrue(differences(html, copied).first.any { "takes over the form's submission" in it }, "a submit listener")
-        val markup = """<ul id="l"></ul><script type="module">document.getElementById("l").innerHTML = "<li>x</li>"</script>"""
-        assertTrue(differences(markup, "<html><body>$markup</body></html>").first.any { "writes markup with innerHTML" in it }, "innerHTML")
+    fun `an exemption leaves out the one script its marker names, and only when it does a server's job`() {
+        val validation = """<script type="module">// Stands in for the server
+            document.querySelector("form").addEventListener("submit", (e) => { if (!valid()) e.preventDefault() })</script>"""
+        val opener = """<script type="module">document.getElementById("open").addEventListener("click", () => dialog.showModal())</script>"""
+        val form = """<form action="/jobs" method="post"><input id="fixer"></form>"""
+        val html = "$form\n$validation\n$opener"
+        val withOpener = "<html><body>$form$opener</body></html>"
+        // The validation is left out, the opener is still compared.
+        assertEquals(emptyList<String>(), differences(html, withOpener, listOf(exemption("valid()"))))
+        // Without the entry the validation must be there.
+        assertTrue(differences(html, withOpener).any { "the scripts differ" in it }, "no entry")
+        // The needed script on the same page cannot go missing.
+        assertTrue(differences(html, "<html><body>$form</body></html>", listOf(exemption("valid()"))).any { "the scripts differ" in it }, "the opener dropped")
+        // An entry for a script that does no server's job: the dialog's opener.
+        assertTrue(differences(html, "<html><body>$form</body></html>", listOf(exemption("showModal()"))).any { "does no server's job" in it }, "the dialog case")
+        // A marker that names no script, or two.
+        assertTrue(differences(html, withOpener, listOf(exemption("gone()"))).any { "names 0 scripts" in it }, "a stale marker")
+        assertTrue(differences(html, withOpener, listOf(exemption("addEventListener"))).any { "names 2 scripts" in it }, "a marker on two scripts")
+        // A marker found only in a comment names nothing.
+        assertTrue(differences(html, withOpener, listOf(exemption("Stands in for the server"))).any { "names 0 scripts" in it }, "a marker in a comment")
+        // A Kotlin copy of the exempted script fails, and says why it was left out.
+        val copied = "<html><body>$form$validation$opener</body></html>"
+        val found = differences(html, copied, listOf(exemption("valid()")))
+        assertTrue(found.any { "is left out because the server does it" in it }, "the reason in the message: $found")
     }
 
     @Test
-    fun `a web component that only wires may be left out, and so may a script through it`() {
+    fun `a Kotlin script never does the server's job, however it is written`() {
+        val takeovers = listOf(
+            """form.addEventListener("submit", go)""",
+            """form.addEventListener('submit', go)""",
+            "form.addEventListener(`submit`, go)",
+            """form.onsubmit = go""",
+            """form.requestSubmit()""",
+            """fetch(form.action, { method: "POST", body: new FormData(form) })""",
+            """list.innerHTML = "<li>x</li>"""",
+            """list.innerHTML += "<li>x</li>"""",
+            """box.outerHTML = "<div></div>"""",
+            """list.insertAdjacentHTML("beforeend", "<li>x</li>")""",
+            """box.setHTMLUnsafe("<p>x</p>")""",
+            """document.write("<p>x</p>")""",
+        )
+        for (script in takeovers) {
+            val page = """<script type="module">$script</script>"""
+            val found = differences(page, "<html><body>$page</body></html>")
+            assertTrue(found.any { "a script in the Kotlin recipe" in it }, "$script: $found")
+        }
+        val harmless = listOf(
+            """if (list.innerHTML === "") go()""",
+            """// form.addEventListener("submit", go) is what the page does without a server
+               go()""",
+            """/* list.innerHTML = "" */ go()""",
+            """toggle.addEventListener("click", (event) => { if (saving) event.preventDefault() })""",
+        )
+        for (script in harmless) {
+            val page = """<script type="module">$script</script>"""
+            assertEquals(emptyList<String>(), differences(page, "<html><body>$page</body></html>"), script)
+        }
+    }
+
+    @Test
+    fun `a web component that only wires may be left out, and a Kotlin script through it is broken`() {
         val html = """
             <lt-field><label class="lt-label" for="codename">Codename</label><input class="lt-input" id="codename"></lt-field>
-            <script type="module">document.querySelector("input").closest("lt-field")</script>
+            <script type="module">document.querySelector("form").addEventListener("submit", () => document.querySelector("input").closest("lt-field"))</script>
         """.trimIndent()
         val page = """<html><body><label class="lt-label" for="c">Codename</label><input class="lt-input" id="c"></body></html>"""
-        assertEquals(emptyList<String>() to 1, differences(html, page))
+        assertEquals(emptyList<String>(), differences(html, page, listOf(exemption("closest("))))
         // A script in the Kotlin recipe that names the left-out component is broken.
         val broken = page.replace("</body>", """<script type="module">document.querySelector("input").closest("lt-field")</script></body>""")
-        assertTrue(differences(html, broken).first.any { "names lt-field" in it }, "a Kotlin script through a left-out component")
+        assertTrue(differences(html, broken, listOf(exemption("closest("))).any { "names lt-field" in it }, "a Kotlin script through a left-out component")
+        // Without an entry, a script through the component is compared like any other.
+        assertTrue(differences(html, page).any { "the scripts differ" in it }, "no entry")
         // A module of the package from the CDN and from the WebJar is one file.
         val cdn = """<script type="module">import { a } from "https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/x.js"; a()</script>"""
         val webJar = """<html><body><script type="module">import { a } from "${LotekWebJar.ROOT}/dist/x.js"; a()</script></body></html>"""
-        assertEquals(emptyList<String>() to 0, differences(cdn, webJar))
+        assertEquals(emptyList<String>(), differences(cdn, webJar))
         // Another library with the same path after `dist/` is another file.
         val otherLibrary = webJar.replace(LotekWebJar.ROOT, "/webjars/other/1.0")
-        assertTrue(differences(cdn, otherLibrary).first.any { "the scripts differ" in it }, "another library with the same dist path")
-        // A script that only mentions the class `lt-fieldset` is not exempt.
-        val other = html.replace(""".closest("lt-field")""", """.closest(".lt-fieldset")""")
-        assertTrue(differences(other, page).first.any { "the scripts differ" in it })
+        assertTrue(differences(cdn, otherLibrary).any { "the scripts differ" in it }, "another library with the same dist path")
     }
 
     @Test
@@ -319,7 +413,6 @@ class RecipesTest {
     @Test
     fun `every Kotlin recipe renders the HTML recipe on its page`() {
         var compared = 0
-        var exempted = 0
         val failures = mutableListOf<String>()
         for (recipe in recipes) {
             val expected = javaClass.getResource("/recipes/${recipe.page}.html")?.readText()
@@ -328,8 +421,7 @@ class RecipesTest {
                 head { title(recipe.page) }
                 body { recipe.render(this) }
             }
-            val (problems, exemptions) = differences(expected, page, serverDoesIt = recipe.page in SERVER_DOES_IT)
-            exempted += exemptions
+            val problems = differences(expected, page, SERVER_DOES_IT.filter { it.page == recipe.page })
             if (problems.isNotEmpty()) {
                 // Every page is compared before the test fails, so one run shows them all.
                 failures.add("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
@@ -358,10 +450,7 @@ class RecipesTest {
             }
             compared += 1
         }
-        // The exemption for a script through a left-out component must still be
-        // needed, or it is a condition that switches the check off for nothing.
-        if (exempted == 0) failures.add("No script was exempt for working through a web component in WIRING_ONLY, so the exemption has no use left: take it out")
-        val unknown = (PARTS_ON_THEIR_OWN + SERVER_DOES_IT.keys) - recipes.map { it.page }.toSet()
+        val unknown = (PARTS_ON_THEIR_OWN + SERVER_DOES_IT.map { it.page }) - recipes.map { it.page }.toSet()
         if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
         if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.
@@ -370,14 +459,153 @@ class RecipesTest {
     }
 
     /**
-     * What differs between an HTML recipe and the page a Kotlin recipe
-     * renders, one line per difference, and how many scripts were exempt for
-     * working through a left-out web component. Empty when they agree. The
-     * test of every page calls it, and `the comparison reports each kind of
-     * difference` gives it one known mistake at a time, so a rule that stops
-     * working, or is deleted in a rewrite, fails there.
+     * The pages in [SERVER_DOES_IT] leave a script out because the server
+     * does its job, so the server's answers are rendered and checked: the
+     * failed one must show the errors as a server would, wired, and the valid
+     * one must show none. Without this, "the server does it" was a claim:
+     * the recipes were only ever rendered with their defaults, where nothing
+     * has failed.
      */
-    internal fun differences(expected: String, page: String, serverDoesIt: Boolean = false): Pair<List<String>, Int> {
+    @Test
+    fun `the server renders what the left-out scripts did`() {
+        val failures = mutableListOf<String>()
+        for (exemption in SERVER_DOES_IT) {
+            val failed = createHTML().html { head { title(exemption.page) }; body { exemption.failed(this) } }
+            val (problems, rules) = serverAnswer(failed, exemption)
+            if (rules == 0) problems.add("no rule applied to the failed answer, so it shows no error the check knows")
+            for (p in problems) failures.add("${exemption.page}, the failed answer: $p")
+            runCatching { assertLotek(failed) }.exceptionOrNull()?.let { failures.add("${exemption.page}, the failed answer: ${it.message}") }
+            val passed = createHTML().html { head { title(exemption.page) }; body { exemption.passed(this) } }
+            for (p in stillFailing(passed)) failures.add("${exemption.page}, the valid answer: $p")
+            runCatching { assertLotek(passed) }.exceptionOrNull()?.let { failures.add("${exemption.page}, the valid answer: ${it.message}") }
+        }
+        assertTrue(SERVER_DOES_IT.isNotEmpty(), "SERVER_DOES_IT is empty, so this checks nothing")
+        if (failures.isNotEmpty()) fail(failures.joinToString("\n"))
+    }
+
+    /**
+     * The rules a failed answer is held to, keyed to what it contains, and
+     * how many of them applied. An error summary must be visible, named by a
+     * heading with text, and have links to fields that exist and are marked
+     * invalid; a visible error text must describe a control marked invalid;
+     * what the entry says must be echoed, is.
+     */
+    internal fun serverAnswer(html: String, exemption: Exemption): Pair<MutableList<String>, Int> {
+        val problems = mutableListOf<String>()
+        var rules = 0
+        val doc = Jsoup.parse(html)
+        for (box in doc.getElementsByTag("lt-error-summary")) {
+            rules += 1
+            if (box.hasAttr("hidden")) problems.add("the error summary is hidden")
+            val title = box.attr("aria-labelledby").takeIf { it.isNotBlank() }?.let { doc.getElementById(it) }
+            if (title == null || title.text().isBlank()) problems.add("the error summary is not named by a heading with text")
+            val links = box.select("li a[href^=#]")
+            if (links.isEmpty()) problems.add("the error summary has no links to the fields")
+            if (exemption.links != null && links.size != exemption.links) problems.add("the error summary has ${links.size} links, and the answer has ${exemption.links} faults")
+            for (link in links) {
+                val target = doc.getElementById(link.attr("href").drop(1))
+                if (target == null) problems.add("the link ${link.attr("href")} points at no element")
+                else if (target.attr("aria-invalid") != "true") problems.add("the link ${link.attr("href")} points at a field that is not marked invalid")
+            }
+        }
+        for (error in doc.select(".lt-error-text:not([hidden])")) {
+            rules += 1
+            val id = error.id()
+            val described = doc.select("[aria-invalid=true]").any { id.isNotEmpty() && id in it.attr("aria-describedby").split(WHITESPACE) }
+            if (!described) problems.add("the visible error text \"${error.text()}\" describes no control marked invalid")
+        }
+        for ((name, value) in exemption.echo) {
+            rules += 1
+            val field = doc.selectFirst("[name=$name]")
+            if (field?.attr("value") != value) problems.add("the field $name has the value \"${field?.attr("value")}\", and the user typed \"$value\"")
+        }
+        return problems to rules
+    }
+
+    /** What still shows an error in an answer that should show none. */
+    internal fun stillFailing(html: String): List<String> {
+        val doc = Jsoup.parse(html)
+        return doc.select("lt-error-summary:not([hidden])").map { "the error summary is visible" } +
+            doc.select(".lt-error-text:not([hidden])").map { "the error text \"${it.text()}\" is visible" } +
+            doc.select("[aria-invalid=true]").map { "<${it.tagName()}> is marked invalid" }
+    }
+
+    @Test
+    fun `the check of the server's answer fails each kind of mistake`() {
+        val right = """
+            <html><body>
+            <lt-error-summary aria-labelledby="t"><h2 id="t">The form has one error</h2><ul><li><a href="#fixer">Enter the address</a></li></ul></lt-error-summary>
+            <input id="fixer" name="fixer" value="nobody" aria-invalid="true" aria-describedby="fixer-error">
+            <p class="lt-error-text" id="fixer-error">Enter the address</p>
+            </body></html>
+        """.trimIndent()
+        val entry = Exemption("page", "x", "y", failed = {}, passed = {}, echo = mapOf("fixer" to "nobody"), links = 1)
+        assertEquals(emptyList<String>() to 3, serverAnswer(right, entry).let { it.first.toList() to it.second })
+        val mistakes = mapOf(
+            "the box is hidden" to ("""<lt-error-summary aria-labelledby="t">""" to """<lt-error-summary aria-labelledby="t" hidden>""") to "is hidden",
+            "an empty heading" to (""">The form has one error<""" to """><""") to "not named by a heading",
+            "a link to nothing" to ("""href="#fixer"""" to """href="#Enter the address"""") to "points at no element",
+            "a field not marked invalid" to (""" aria-invalid="true" aria-describedby""" to """ aria-describedby""") to "not marked invalid",
+            "a fault dropped" to ("""<li><a href="#fixer">Enter the address</a></li>""" to "") to "has 0 links",
+            "the error text not wired" to ("""aria-describedby="fixer-error"""" to """aria-describedby="other"""") to "describes no control",
+            "what was typed is lost" to ("""value="nobody"""" to """value=""""") to "the user typed",
+        )
+        for ((case, mistake) in mistakes) {
+            val (name, edit) = case
+            val (from, to) = edit
+            assertTrue(from in right, "the case \"$name\" edits nothing")
+            val found = serverAnswer(right.replace(from, to), entry).first
+            assertTrue(found.any { mistake in it }, "$name: expected \"$mistake\", got $found")
+        }
+        // An answer with no error the check knows applies no rule.
+        assertEquals(0, serverAnswer("<html><body><p>Thanks</p></body></html>", Exemption("page", "x", "y", {}, {})).second)
+        assertEquals(emptyList<String>(), stillFailing("<html><body><lt-error-summary hidden></lt-error-summary><p class=\"lt-error-text\" hidden>x</p></body></html>"))
+        assertEquals(3, stillFailing(right).size)
+    }
+
+    /**
+     * The page template in each kotlinx.html tab, with the stylesheet and
+     * `defineLt()`, is rendered too, and may have no script but the
+     * registration: a script moved there would otherwise escape every rule
+     * above.
+     */
+    @Test
+    fun `the page templates have no script but the registration`() {
+        var rendered = 0
+        val failures = mutableListOf<String>()
+        for (recipe in recipes) {
+            // The template calls the recipe, whose scripts the comparison above
+            // has already held to the HTML recipe; only the template's own count.
+            val own = Jsoup.parse(createHTML().html { body { recipe.render(this) } }).getElementsByTag("script").map { it.outerHtml() }
+            for (template in recipe.templates) {
+                val page = createHTML().html { template() }
+                for (script in Jsoup.parse(page).getElementsByTag("script").filterNot { it.outerHtml() in own }) {
+                    if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
+                        failures.add("${recipe.page}: the page template has a script that does more than register: ${script.outerHtml().take(120)}")
+                    }
+                }
+                rendered += 1
+            }
+        }
+        // Counted from the pages, not from the list the loop went through:
+        // every kotlinx.html tab has its page template.
+        val tabs = File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
+            .count { Regex("""<TabItem\b[^>]*label="kotlinx\.html"""").containsMatchIn(it.readText()) }
+        val withTemplate = recipes.count { it.templates.isNotEmpty() }
+        if (failures.isNotEmpty()) fail(failures.joinToString("\n"))
+        assertTrue(rendered > 0 && withTemplate == tabs, "rendered $rendered page templates, $withTemplate recipes have one, and $tabs pages have a kotlinx.html tab")
+        println("Rendered $rendered page templates.")
+    }
+
+    /**
+     * What differs between an HTML recipe and the page a Kotlin recipe
+     * renders, one line per difference. Empty when they agree. [exemptions]
+     * are the page's entries in [SERVER_DOES_IT]. The test of every page calls
+     * it, and the tests of the comparison give it one known mistake at a
+     * time, so a rule that stops working, or is deleted in a rewrite, fails
+     * there.
+     */
+    internal fun differences(expected: String, page: String, exemptions: List<Exemption> = emptyList()): List<String> {
         val problems = mutableListOf<String>()
         val ids = mutableMapOf<String, String>()
         val pointers = mutableListOf<Pointer>()
@@ -417,47 +645,49 @@ class RecipesTest {
         // The scripts are compared on their own, the tree leaves them out: the
         // type, the source and the whole text, with only a script that does
         // nothing but register left out, see [isRegistration], and a module of
-        // the package compared by its path, see [packageRoot].
+        // the package compared by its path, see [packageRoot]. The code without
+        // comments is what [SERVERS_JOB] and the markers read.
         fun scripts(e: Element) =
             e.getElementsByTag("script")
                 .filterNot { isRegistration(it.data()) }
-                .map {
-                    Triple(
-                        it.attr("type"),
-                        packageRoot(it.attr("src")),
-                        packageRoot(it.data()).replace(WHITESPACE, " ").trim(),
-                    )
-                }
-                .filter { it.second.isNotEmpty() || it.third.isNotEmpty() }
-        // A script in the HTML recipe that works through a web component the
-        // Kotlin recipe leaves out (see [WIRING_ONLY]) cannot be the same: on
-        // the field page it validates in the browser and finds the error text
-        // with `closest("lt-field")`, where the Kotlin recipe renders the field
-        // invalid on the server. It names the tag as a string of its own, and
-        // only that exempts it, on the HTML side alone. In the Kotlin recipe a
-        // script that names a left-out tag is broken, since the element is not
-        // there.
-        val namesRemoved = { script: Triple<String, String, String> ->
-            removed.any { tag -> Regex("""["']${Regex.escape(tag)}["']""").containsMatchIn(script.third) }
-        }
+                .map { ScriptText(it.attr("type"), packageRoot(it.attr("src")), packageRoot(it.data()).replace(WHITESPACE, " ").trim(), code(packageRoot(it.data()))) }
+                .filter { it.src.isNotEmpty() || it.text.isNotEmpty() }
         val htmlScripts = scripts(wanted)
         val kotlinScripts = scripts(rendered)
-        val compared = htmlScripts.filterNot(namesRemoved)
-        for (script in kotlinScripts.filter(namesRemoved)) {
-            problems.add("a script in the Kotlin recipe names ${removed.joinToString(", ")}, which the Kotlin recipe leaves out: ${script.third.take(80)}")
-        }
-        for (script in kotlinScripts) {
-            for ((pattern, why) in SERVERS_JOB) {
-                if (pattern.containsMatchIn(script.third)) problems.add("a script in the Kotlin recipe $why: ${script.third.take(80)}")
+        // An exemption leaves out the one HTML script its marker names, and
+        // only when that script does a server's job. A marker that names no
+        // script or several, or a script that does no server's job, is an entry
+        // that switches the comparison off for nothing.
+        val exempted = mutableListOf<ScriptText>()
+        for (exemption in exemptions) {
+            val named = htmlScripts.filter { exemption.marker in it.code }
+            when {
+                named.size != 1 -> problems.add("the exemption \"${exemption.marker}\" on ${exemption.page} names ${named.size} scripts in the HTML recipe, not one")
+                serversJob(named.single().code).isEmpty() -> problems.add("the script \"${exemption.marker}\" on ${exemption.page} does no server's job, so the Kotlin recipe must have it: take it out of SERVER_DOES_IT")
+                else -> exempted += named.single()
             }
         }
-        if (serverDoesIt) {
-            if (compared.isEmpty()) problems.add("the page is in SERVER_DOES_IT, but its HTML recipe has no script to leave out: take it out of the list")
-            if (kotlinScripts.isNotEmpty()) problems.add("the page is in SERVER_DOES_IT, so the Kotlin recipe has no script but the registration, and it has:\n    $kotlinScripts")
-        } else if (compared != kotlinScripts) {
-            problems.add("the scripts differ from the HTML recipe's:\n    $kotlinScripts\n  against\n    $compared")
+        // In the Kotlin recipe a script that names a web component it leaves
+        // out (see [WIRING_ONLY]) is broken, since the element is not there.
+        for (script in kotlinScripts) {
+            if (removed.any { tag -> Regex("""["']${Regex.escape(tag)}["']""").containsMatchIn(script.code) }) {
+                problems.add("a script in the Kotlin recipe names ${removed.joinToString(", ")}, which the Kotlin recipe leaves out: ${script.text.take(80)}")
+            }
+            for (why in serversJob(script.code)) problems.add("a script in the Kotlin recipe $why: ${script.text.take(80)}")
         }
-        return problems to htmlScripts.size - compared.size
+        val compared = htmlScripts - exempted.toSet()
+        if (compared != kotlinScripts) {
+            val copied = exemptions.filter { e -> kotlinScripts.any { e.marker in it.code } }
+            val why = copied.joinToString("") { "\n  The HTML script \"${it.marker}\" is left out because ${it.reason}." }
+            problems.add("the scripts differ from the HTML recipe's:\n    ${kotlinScripts.map { it.text }}\n  against\n    ${compared.map { it.text }}$why")
+        }
+        return problems
+    }
+
+    /** A script as the comparison reads it. Equal when the type, the source and the text are. */
+    internal data class ScriptText(val type: String, val src: String, val text: String, val code: String) {
+        override fun equals(other: Any?) = other is ScriptText && type == other.type && src == other.src && text == other.text
+        override fun hashCode() = listOf(type, src, text).hashCode()
     }
 
     /** The children that count: elements and text, without comments, scripts and stylesheet links. */

@@ -57,11 +57,17 @@ The container is added once, and the messages come from your code. That is the d
       const messages = document.getElementById("messages")
 
       document.getElementById("restart").addEventListener("click", async () => {
+        let answer
         try {
-          const answer = await fetch("/relays/14/restart", { method: "POST" })
-          if (!answer.ok) throw new Error(answer.statusText)
+          answer = await fetch("/relays/14/restart", { method: "POST" })
+        } catch {}
+        // An answer that is not ok means the server is there and said no; no
+        // answer at all means it was not reached.
+        if (answer?.ok) {
           messages.show("Relay 14 is back", { color: "success" })
-        } catch {
+        } else if (answer) {
+          messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })
+        } else {
           messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })
         }
       })
@@ -194,7 +200,7 @@ The container is added once, and the messages come from your code. That is the d
     The messages are not state to be mirrored in a signal. They are something that happens, which is why `data-on:click` calls the method directly.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone. The script is the one part that has to run in the browser: `show()` answers a request the page makes itself with `fetch`, and the server only answers that request. After an ordinary form submission and a redirect, the next page renders an [alert](/components/alert/) instead.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone. The toast exists only in the browser: the page calls `show()` when its own `fetch` has been answered, so this is the one part that needs a script. After an ordinary form submission and a redirect, the next page renders an [alert](/components/alert/) instead, as in [With Ktor](/kotlin/#with-ktor).
 
     ```kotlin
     import kotlinx.html.*
@@ -211,11 +217,17 @@ The container is added once, and the messages come from your code. That is the d
                 const messages = document.getElementById("messages")
 
                 document.getElementById("restart").addEventListener("click", async () => {
+                  let answer
                   try {
-                    const answer = await fetch("/relays/14/restart", { method: "POST" })
-                    if (!answer.ok) throw new Error(answer.statusText)
+                    answer = await fetch("/relays/14/restart", { method: "POST" })
+                  } catch {}
+                  // An answer that is not ok means the server is there and said no; no
+                  // answer at all means it was not reached.
+                  if (answer?.ok) {
                     messages.show("Relay 14 is back", { color: "success" })
-                  } catch {
+                  } else if (answer) {
+                    messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })
+                  } else {
                     messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })
                   }
                 })

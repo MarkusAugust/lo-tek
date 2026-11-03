@@ -57,12 +57,10 @@ defineLtConnectionStatus()
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
 
-      // A module keeps its names to itself, so the function the app saves through
-      // is put on window, where its other scripts call it:
-      //   form.addEventListener("submit", (event) => {
-      //     event.preventDefault()
-      //     saveRoute(new FormData(form))
-      //   })
+      // The page's own saves go through this function, so every answer from the
+      // server, or the lack of one, is reported. A module keeps its names to
+      // itself, so it is put on window, where the page's other scripts call it
+      // with what they save.
       // A request that got no answer is a lost connection, and so is an answer
       // from a gateway whose server is gone (502, 503, 504). Any other answer, an
       // error status included, means the server is there. reportSuccess and
@@ -164,7 +162,7 @@ defineLtConnectionStatus()
     Datastar keeps a long-lived stream open to the server. If it drops, the page looks right but stops updating. The browser only reports when the machine loses the network, not when the server stops answering, so the script at the bottom is what makes the bar appear in that case too.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.connectionStatus()` gives the bar its role and `data-ignore-morph`. The bar shows by itself when the browser goes offline, so a page that saves with ordinary form submissions needs no script. A page that also saves with `fetch` reports what the server answered, as in the Plain HTML tab, and with Datastar the listener in the Datastar tab does it.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.connectionStatus()` gives the bar its role and `data-ignore-morph`. The bar shows by itself when the browser loses the network. That the server stopped answering, only the page can tell, and only for the requests it makes itself: when the server does not answer an ordinary form submission, the browser shows its own error page instead of the next one, and the bar is not there to say anything. The script is for a page that saves with `fetch`, and with Datastar the listener in the Datastar tab does the same.
 
     ```kotlin
     import kotlinx.html.*
@@ -174,6 +172,38 @@ defineLtConnectionStatus()
 
     fun FlowContent.connection() {
         ltConnectionStatus { lt(Lt.connectionStatus()) }
+        // The bar shows by itself when the browser goes offline. That the
+        // server stopped answering, only the app knows, and says so here.
+        script(type = "module") {
+            unsafe {
+                +"""
+                import { reportFailure, reportSuccess } from
+                  "${LotekWebJar.ROOT}/dist/components/standalone/connection-status/lt-connection-status.js"
+
+                const connection = document.querySelector("lt-connection-status")
+                if (!connection) throw new Error("element not found")
+
+                // The page's own saves go through this function, so every answer from the
+                // server, or the lack of one, is reported. A module keeps its names to
+                // itself, so it is put on window, where the page's other scripts call it
+                // with what they save.
+                // A request that got no answer is a lost connection, and so is an answer
+                // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+                // error status included, means the server is there. reportSuccess and
+                // reportFailure wait for the component to be registered, and warn when it
+                // never is; the save does not wait for them.
+                window.saveRoute = async (body) => {
+                  let response
+                  try {
+                    response = await fetch("/api/routes", { method: "POST", body })
+                  } catch {}
+                  if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+                  else reportFailure(connection)
+                  return response
+                }
+                """
+            }
+        }
     }
     ```
 

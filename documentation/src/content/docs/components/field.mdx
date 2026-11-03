@@ -245,7 +245,7 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     `data-attr:hidden` hides the error text when the field is valid and shows it when it is invalid. `<lt-field>` sees that the error text is visible, and sets `aria-invalid` and `aria-describedby` on the field. The field has no id the component created, so a patch from the server recognises it, and what the user has typed stays.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.field()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the whole wiring every time it renders the form, and the error text is shown when it renders the field as invalid, so the field needs no `<lt-field>` and no script, as in the React tab. The handler for `POST /jobs` renders the form again with what was typed and `invalid = true` when the codename is empty, see [With Ktor](/kotlin/#with-ktor).
+    On a Kotlin server you call `Lt.field()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the whole wiring every time it renders the form, and the error text is shown when it renders the field as invalid, so the field needs no `<lt-field>` and no script, as in the React tab. The handler for `POST /jobs` renders the form again with what was typed and `invalid = codename.isBlank()`, in the same shape as the round trip in [With Ktor](/kotlin/#with-ktor). The invalid field gets `autofocus`, so it takes focus when the page arrives, as the HTML tab focuses it in its script. Only the first invalid field in a form should have it, and none when the form has an [error summary](/components/error-summary/): then the summary takes focus, and its links lead to the fields.
 
     ```kotlin
     import kotlinx.html.*
@@ -265,6 +265,7 @@ Both use the same function underneath, so the contract cannot drift apart. The o
                 required = true
                 // What the user typed comes back, so a failed submission loses nothing.
                 if (codename.isNotEmpty()) value = codename
+                if (invalid) autoFocus = true
             }
             p { lt(Lt.errorText(), field.error); +"Enter a codename." }
             button { lt(Lt.button()); type = ButtonType.submit; +"Order the job" }
