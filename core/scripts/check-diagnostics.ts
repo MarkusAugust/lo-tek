@@ -1062,18 +1062,15 @@ cases.push(
 // The snippets from the component pages must be clean, also as whole pages:
 // they must work when pasted in, wiring included.
 /**
- * The snippet as it stands in the document after the user has accepted the
- * tab stops: `${1:handle}` becomes `handle`, and `$1` the same, as VS Code
- * mirrors them. The escaping is removed last.
+ * The snippet as it stands in the document after the user has typed the ids:
+ * the tab stops are empty (`check-vocabulary.ts` requires it), so `$1`
+ * becomes `id-1` everywhere it stands, as VS Code mirrors it. The escaping is
+ * removed last.
  */
 function withoutTabStops(body: string[]): string {
-  const text = body.join("\n")
-  const defaults = new Map<string, string>()
-  for (const m of text.matchAll(/\$\{(\d+):([^}]*)\}/g))
-    defaults.set(m[1], m[2])
-  return text
-    .replace(/\$\{(\d+):([^}]*)\}/g, (_, _n, value: string) => value)
-    .replace(/(?<!\\)\$(\d+)\b/g, (_, n: string) => defaults.get(n) ?? "")
+  return body
+    .join("\n")
+    .replace(/(?<!\\)\$(\d+)\b/g, (_, n: string) => `id-${n}`)
     .replace(/\\\$/g, "$")
     .replace(/\\\\/g, "\\")
 }

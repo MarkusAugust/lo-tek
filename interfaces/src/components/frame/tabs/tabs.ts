@@ -6,7 +6,9 @@ export const TABS_PANEL_CLASS = "lt-tabs__panel" as const
 export type TabsOptions = {
   /**
    * The shared id stem. The panels become `${id}-${key}`, and the headings in
-   * them `${id}-${key}-heading`.
+   * them `${id}-${key}-heading`. Make it from a key in the data, never from
+   * the loop index or a counter, so it is unique on the page and the same on
+   * every render.
    */
   id: string
   /**

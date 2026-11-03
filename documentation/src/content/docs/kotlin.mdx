@@ -76,6 +76,8 @@ val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, 
 
 A flag such as `hidden` has the empty text as its value, and is written as the name alone.
 
+The id is required, and an empty one throws. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render: a morph recognises an element by its id, and replaces one whose id changed, along with what the user typed. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
+
 The parts a template writes itself, such as the heading in a card or an option in a toggle group, have their classes on the builder function, with the same names as in TypeScript. Each is a set with the class, so it goes where every other answer goes. The exception is a part the answer already gives, such as the header of `Lt.dialog`: there the set in the answer is the way, and the constant TypeScript also has is left out.
 
 ```kotlin
@@ -90,9 +92,27 @@ The parts a template writes itself, such as the heading in a card or an option i
 
 The builder functions are generated from the manifest LO-TEK writes from the TypeScript code, and the few where the options interact, such as `field` and `tabs`, are written by hand. All are tested against more than a thousand build cases with the answer from TypeScript. If one builder function gives one attribute differently, the package is not released.
 
+### From Java
+
+The builder functions are static methods on `Lt`, and the options can be left out from the back:
+
+```java
+import no.lotek.*;
+
+Attributes save = Lt.button(ButtonVariant.SECONDARY);
+FieldParts field = Lt.field("fixer");
+ButtonVariant variant = ButtonVariant.of(request.getParameter("variant"));
+```
+
+An option in the middle of the list needs the ones before it, as `null` when they are left out. `JavaCallTest` compiles these calls in Java on every build.
+
+### In the editor
+
+The documentation on each builder function, the options with their defaults and a link to the component page, comes from the same manifest, so IntelliJ shows it in Quick Documentation on `Lt.button(…)` from the sources jar.
+
 ## kotlinx.html
 
-`io.github.markusaugust:lo-tek-kotlinx-html` has one extension, `lt(…)`, which puts the attributes from the builder functions on a tag. It is a separate package, so the main package does not bring kotlinx.html to those who do not use it.
+`io.github.markusaugust:lo-tek-kotlinx-html` has one extension, `lt(…)`, which puts the attributes from the builder functions on a tag, and one function per web component, such as `ltField { … }` for `<lt-field>`, since kotlinx.html knows only the elements in HTML. It is a separate package, so the main package does not bring kotlinx.html to those who do not use it.
 
 ```kotlin
 import kotlinx.html.*
@@ -108,6 +128,8 @@ fun FlowContent.fixerField(invalid: Boolean) {
     p { lt(Lt.errorText(), field.error); +"Enter a valid address." }
 }
 ```
+
+Each component page with a builder function that gives several sets has a Kotlin tab in this form. `RecipesTest` compiles every one, renders it, and compares it with the HTML recipe on the same page.
 
 Several sets are applied in order, and a later one wins, like `{...a} {...b}` in JSX. The classes are added to those the tag has, so `div(classes = "my-own") { lt(Lt.card()) }` gives both. `InputType` is imported on its own, since kotlinx.html has one with the same name.
 

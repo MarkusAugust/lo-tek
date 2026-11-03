@@ -39,6 +39,11 @@ export type Option = {
   type: OptionType
   /** The JSDoc of the option in the builder function's type, when it has one. */
   description?: string
+  /**
+   * The value that gives the same answer as leaving the option out, for an
+   * option with a closed list. Set by `generate-manifest.ts`.
+   */
+  default?: string
 }
 
 export type ResultShape =
@@ -53,6 +58,14 @@ export type ResultShape =
 
 export type BuilderFunction = {
   name: string
+  /**
+   * The comment on the builder function, without the code examples: what it
+   * is for and what the template has to know. A link to a source file keeps
+   * only its text, since the reader of the manifest has no source tree.
+   */
+  description: string
+  /** The code examples in the comment, in TypeScript, when it has any. */
+  example?: string
   options: Option[]
   returns: ResultShape
 }
@@ -182,6 +195,95 @@ export function readBuilderFunctions(): BuilderFunction[] {
     )
   }
 
+  /** The `/** … *\/` comment right before a node, as text without the stars. */
+  function commentBefore(node: ts.Node | undefined): string {
+    if (!node) return ""
+    const file = node.getSourceFile()
+    const ranges = (
+      ts.getLeadingCommentRanges(file.text, node.getFullStart()) ?? []
+    ).filter((r) => file.text.startsWith("/**", r.pos))
+    const range = ranges[ranges.length - 1]
+    if (!range) return ""
+    return file.text
+      .slice(range.pos + 3, range.end - 2)
+      .split("\n")
+      .map((line) => line.replace(/^\s*\* ?/, ""))
+      .join("\n")
+      .trim()
+  }
+
+  /** The statement a declaration stands in, which is where its comment is. */
+  function statementOf(symbol: ts.Symbol | undefined): ts.Node | undefined {
+    let node: ts.Node | undefined = symbol?.valueDeclaration
+    while (
+      node &&
+      !ts.isVariableStatement(node) &&
+      !ts.isFunctionDeclaration(node)
+    )
+      node = node.parent
+    return node
+  }
+
+  /**
+   * The comment on the function itself. The comment is read as text rather
+   * than through the checker, which takes `@` in an example, like an address
+   * with `@` in it, for a tag and cuts the comment there. A function listed
+   * in `lt` has its comment where it is declared, also one listed under
+   * another name, as `switch: switchControl`; a declaration without one, as
+   * `computeFieldAttributes`, has it on the property in `lt`. A paragraph
+   * about React is left out: it is advice for one environment, and the
+   * manifest is read by the others.
+   */
+  function documentation(p: ts.Symbol): {
+    description: string
+    example?: string
+  } {
+    const property = p.valueDeclaration
+    const resolve = (symbol: ts.Symbol | undefined) =>
+      symbol && symbol.flags & ts.SymbolFlags.Alias
+        ? checker.getAliasedSymbol(symbol)
+        : symbol
+    let text = ""
+    if (property && ts.isShorthandPropertyAssignment(property))
+      text = commentBefore(
+        statementOf(
+          resolve(checker.getShorthandAssignmentValueSymbol(property)),
+        ),
+      )
+    else if (property && ts.isPropertyAssignment(property))
+      text =
+        commentBefore(
+          statementOf(
+            resolve(checker.getSymbolAtLocation(property.initializer)),
+          ),
+        ) || commentBefore(property)
+    const code = [...text.matchAll(/```\w*\n([\s\S]*?)```/g)].map((m) =>
+      m[1].trimEnd(),
+    )
+    const description = text
+      .replace(/```[\s\S]*?```/g, "")
+      .replace(/\[([^\]]+)\]\([^)]*\.js\)/g, "$1")
+      .split(/\n\s*\n/)
+      // A paragraph is joined into one line, but a list keeps one line per
+      // item.
+      .map((paragraph) =>
+        paragraph
+          .trim()
+          .replace(/\s*\n\s*(?!- )/g, " ")
+          .replace(/\s*\n\s*(?=- )/g, "\n"),
+      )
+      .filter((paragraph) => paragraph && !/\bReact\b/.test(paragraph))
+      .join("\n\n")
+    if (!description)
+      throw new Error(
+        `lt.${p.name} has no comment. Write one on the function: the manifest, the Kotlin API and the editors show it.`,
+      )
+    return {
+      description,
+      ...(code.length ? { example: code.join("\n\n") } : {}),
+    }
+  }
+
   const builderFunctions: BuilderFunction[] = []
   for (const p of checker.getTypeAtLocation(ltName).getProperties()) {
     const signature = checker.getTypeOfSymbol(p).getCallSignatures()[0]
@@ -217,6 +319,7 @@ export function readBuilderFunctions(): BuilderFunction[] {
     }
     builderFunctions.push({
       name: p.name,
+      ...documentation(p),
       options,
       returns: resultShape(signature.getReturnType(), `lt.${p.name}()`),
     })

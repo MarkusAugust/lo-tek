@@ -260,9 +260,11 @@ async function suite() {
     text.includes('id="codename"') && text.includes('for="codename"'),
     `id and for do not follow each other in the snippet: ${text}`,
   )
+  // The ids are empty tab stops: a filled-in one gave two equal ids when the
+  // snippet was pasted twice on a page.
   assert.ok(
-    text.includes('id="order-form"'),
-    `the first tab stop should have been left untouched: ${text}`,
+    text.includes('<form id=""'),
+    `the first tab stop should have been left empty: ${text}`,
   )
   assert.ok(
     !text.includes('id="name"'),

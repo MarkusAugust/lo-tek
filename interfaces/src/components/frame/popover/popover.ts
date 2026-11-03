@@ -16,7 +16,11 @@ export function isPopoverPlacement(value: unknown): value is PopoverPlacement {
 }
 
 export type PopoverOptions = {
-  /** Id of the panel. Connects the button to the panel with `aria-controls`. */
+  /**
+   * Id of the panel. Connects the button to the panel with `aria-controls`.
+   * Make it from a key in the data, never from the loop index or a counter,
+   * so it is unique on the page and the same on every render.
+   */
   id: string
   /** The panel is open. Default: closed. */
   open?: boolean

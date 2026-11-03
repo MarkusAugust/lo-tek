@@ -449,6 +449,82 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
   }),
 }
 
+/** Where a set from a builder function goes: a part of a frame component. */
+export type BuilderPart = { element: string; part: string }
+
+/**
+ * Which part of a frame component each set from a builder function fills:
+ * `field.control` is the control in `<lt-field>`. The selector stays on the
+ * part, so what a set may go on is said in one place, the same place the
+ * component and `lotek check` read. `null` is a set that fills no part, such
+ * as the host itself or a box only the stylesheet knows.
+ *
+ * Every set a builder function returns must be here, with a part that exists:
+ * `generate-manifest.ts` stops otherwise, so a new set gets a decision rather
+ * than a hole. The editors read it from `builders[].parts` in the manifest.
+ */
+export const BUILDER_PARTS: Record<
+  string,
+  Record<string, BuilderPart | null>
+> = {
+  dialog: {
+    host: null,
+    dialog: { element: LT_DIALOG_TAG, part: "dialog" },
+    header: null,
+    title: { element: LT_DIALOG_TAG, part: "title" },
+    subtitle: null,
+    body: { element: LT_DIALOG_TAG, part: "body" },
+    footer: null,
+  },
+  errorSummary: {
+    host: null,
+    title: { element: LT_ERROR_SUMMARY_TAG, part: "title" },
+  },
+  field: {
+    label: { element: LT_FIELD_TAG, part: "label" },
+    control: { element: LT_FIELD_TAG, part: "control" },
+    help: { element: LT_FIELD_TAG, part: "help" },
+    error: { element: LT_FIELD_TAG, part: "error" },
+  },
+  popover: {
+    host: null,
+    trigger: { element: LT_POPOVER_TAG, part: "trigger" },
+    panel: { element: LT_POPOVER_TAG, part: "panel" },
+  },
+  sessionTimeout: {
+    host: null,
+    dialog: { element: LT_SESSION_TIMEOUT_TAG, part: "dialog" },
+    title: { element: LT_SESSION_TIMEOUT_TAG, part: "title" },
+    text: { element: LT_SESSION_TIMEOUT_TAG, part: "text" },
+    count: { element: LT_SESSION_TIMEOUT_TAG, part: "count" },
+    live: { element: LT_SESSION_TIMEOUT_TAG, part: "status" },
+    actions: null,
+    extend: { element: LT_SESSION_TIMEOUT_TAG, part: "button" },
+    logout: { element: LT_SESSION_TIMEOUT_TAG, part: "button" },
+  },
+  suggestion: {
+    label: { element: LT_SUGGESTION_TAG, part: "label" },
+    control: { element: LT_SUGGESTION_TAG, part: "control" },
+    list: { element: LT_SUGGESTION_TAG, part: "list" },
+    options: { element: LT_SUGGESTION_TAG, part: "option" },
+    empty: { element: LT_SUGGESTION_TAG, part: "empty" },
+    status: { element: LT_SUGGESTION_TAG, part: "status" },
+    value: { element: LT_SUGGESTION_TAG, part: "value" },
+    // The help text and the error text of a suggestion field are those of
+    // the field around it, which `<lt-suggestion>` does not read.
+    help: null,
+    error: null,
+  },
+  tableSort: { header: null, button: null },
+  tabs: {
+    list: { element: LT_TABS_TAG, part: "list" },
+    tabs: { element: LT_TABS_TAG, part: "tab" },
+    panels: { element: LT_TABS_TAG, part: "panel" },
+    headings: null,
+  },
+  toast: { host: null, message: null, close: null },
+}
+
 const flag = (description: string): AttributeDoc => ({
   description,
   value: "flag",

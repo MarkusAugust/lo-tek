@@ -299,15 +299,24 @@ for (const element of elements) {
     findings.push(
       `The snippet for <${element.tag}> does not contain the element`,
     )
-  // Every id is a tab stop, and every tab stop is defined once: the id is
-  // typed once, and `for` and `href` follow it.
+  // Every id is an empty tab stop, and every pointer mirrors one of them: the
+  // id is typed once, and `for` and `href` follow it. A tab stop with the id
+  // from the recipe filled in gave two equal ids when the snippet was pasted
+  // twice on a page.
   const text = body.join("\n")
-  for (const m of text.matchAll(/\bid="([^"]*)"/g))
-    if (!/^\$\{\d+:[^}]+\}$/.test(m[1]))
+  const defined = new Set<string>()
+  for (const m of text.matchAll(/\bid="([^"]*)"/g)) {
+    const stop = m[1].match(/^\$(\d+)$/)
+    if (stop) defined.add(stop[1])
+    else
       findings.push(
-        `The snippet for <${element.tag}> has id="${m[1]}" without a tab stop`,
+        `The snippet for <${element.tag}> has id="${m[1]}", which is not an empty tab stop`,
       )
-  const defined = new Set([...text.matchAll(/\$\{(\d+):/g)].map((m) => m[1]))
+  }
+  for (const m of text.matchAll(/(?<!\\)\$\{(\d+):/g))
+    findings.push(
+      `The snippet for <${element.tag}> fills in tab stop ${m[1]}. The ids are left empty.`,
+    )
   for (const m of text.matchAll(/(?<!\\)\$(\d+)\b/g))
     if (!defined.has(m[1]))
       findings.push(
@@ -325,6 +334,11 @@ for (const m of liveTemplates.matchAll(/id=&quot;([^&]*)&quot;/g))
   if (!/^\$[A-Za-z0-9_]+\$$/.test(m[1]))
     findings.push(
       `Live templates have id=&quot;${m[1]}&quot; without a variable`,
+    )
+for (const m of liveTemplates.matchAll(/defaultValue="([^"]*)"/g))
+  if (m[1] !== "")
+    findings.push(
+      `A live template fills in ${m[1]}. The ids are left empty, as in the snippets.`,
     )
 
 // 4. Count, last. Both equal to the expected number and greater than zero.

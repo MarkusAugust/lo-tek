@@ -25,7 +25,12 @@ export const dialogColors = [
 export type DialogColor = (typeof dialogColors)[number]
 
 export type DialogOptions = {
-  /** Id of the heading. The dialog takes its name from it with `aria-labelledby`. */
+  /**
+   * Id of the heading. The dialog takes its name from it with
+   * `aria-labelledby`. Make it from a key in the data, never from the loop
+   * index or a counter, so it is unique on the page and the same on every
+   * render.
+   */
   titleId: string
   /**
    * The dialog is open. Default: closed.
@@ -36,7 +41,7 @@ export type DialogOptions = {
    */
   open?: boolean
   /**
-   * Colour of the header. Default: none.
+   * Colour of the header. Default: `neutral`, which gives none.
    *
    * The colour applies to `header`, so the header must be in the markup for
    * it to show: `<div {...box.header}>` around the heading. Without a header

@@ -65,11 +65,15 @@
               "type": "object",
               "required": ["text", "replacedBy"],
               "properties": {
-                "text": { "type": "string" },
+                "text": {
+                  "type": "string"
+                },
                 "replacedBy": {
                   "type": "array",
                   "description": "The attributes that replace the text. Any one of them is enough.",
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "additionalProperties": false
@@ -138,14 +142,24 @@
               "type": "object",
               "required": ["variable", "text", "attribute"],
               "properties": {
-                "variable": { "type": "string" },
-                "text": { "type": "string" },
-                "attribute": { "type": "string" },
-                "value": { "type": "string" },
+                "variable": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "attribute": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                },
                 "unless": {
                   "type": "array",
                   "description": "Attributes that keep the text from showing.",
-                  "items": { "type": "string" }
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "additionalProperties": false
@@ -214,6 +228,35 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string",
+            "description": "The comment on the builder function, without the code examples and without advice for React: what it is for and what the template has to know. Paragraphs are separated by an empty line. Added after schemaVersion 1 was set, so an older manifest does not have it."
+          },
+          "example": {
+            "type": "string",
+            "description": "The code examples in the comment, in TypeScript."
+          },
+          "docs": {
+            "type": "string",
+            "format": "uri",
+            "description": "The page the builder function is documented on."
+          },
+          "parts": {
+            "type": "object",
+            "description": "Which part of a frame component each set in the result fills, as field.control fills the control of lt-field. The part's selector in elements is what the set may go on. A set that fills no part is left out.",
+            "additionalProperties": {
+              "type": "object",
+              "required": ["element", "part"],
+              "properties": {
+                "element": {
+                  "type": "string"
+                },
+                "part": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "options": {
             "type": "array",
             "items": {
@@ -232,6 +275,10 @@
                 "description": {
                   "type": "string",
                   "description": "What the option does, taken from the comment on the option in the type."
+                },
+                "default": {
+                  "type": "string",
+                  "description": "For an option with a closed list: the value that gives the same answer as leaving the option out, read from the answers. The description says the same."
                 }
               }
             }

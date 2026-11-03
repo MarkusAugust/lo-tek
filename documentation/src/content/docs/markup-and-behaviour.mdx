@@ -250,6 +250,12 @@ Then the tabs and the form are not touched at all, and nothing can be
 lost. This is the usual way to use Datastar, and it removes the whole
 problem.
 
+Send a field and its error text in the same patch. If the server clears an
+error by sending only the `<input>`, the old error text stays visible, and
+`<lt-field>` reads a visible error text as invalid, so it writes
+`aria-invalid` back. Without `<lt-field>`, a patch with only the error text
+leaves the field with the wiring from the render before.
+
 The rest of this section applies when you still have to send a larger region
 again.
 
@@ -330,8 +336,10 @@ is tied to the link itself, and the text the user typed is in the field itself.
 If the element is replaced, it is gone, and no component can bring it back.
 
 The morph recognises an element by its id. An element without an id is kept. An
-element with an id the server did not send is replaced: Datastar and idiomorph both
-do this, on purpose. That is why the components never write an id on the field in
+element with an id the server did not send is replaced. Neither Datastar nor
+idiomorph documents what happens to an element without an id; this is what
+`update.browser.test.ts` checks against Datastar 1.0.4 and idiomorph 0.8.0, in
+all three engines. That is why the components never write an id on the field in
 `<lt-field>` and `<lt-suggestion>`. `for` and `id` are written by the template, as HTML
 requires anyway for the field to have a name before the script has run, or else
 the label wraps the field and no id is needed. The latter has a cost: without an id

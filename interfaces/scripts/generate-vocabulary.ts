@@ -253,14 +253,22 @@ function mirror(
     .replace(new RegExp(`\\bhref="#${esc}"`, "g"), () => write("href", "#"))
 }
 
-/** The snippet with tab stops: `${1:name}` where the id is, `$1` where it is pointed to. */
+/**
+ * The snippet with tab stops: an empty `$1` where the id is, and the same
+ * `$1` where it is pointed to.
+ *
+ * The id from the recipe is not filled in. It compiled and ran when the
+ * snippet was pasted twice on a page, or in a loop, and two fields with the
+ * same id are matched wrongly by a morph. An empty id is a mistake you see:
+ * `lotek check` reports that the label is not wired to the field.
+ */
 function withTabstops(body: string): string {
   let out = body
   idsIn(body).forEach((id, i) => {
     const n = i + 1
     out = out.replace(
       new RegExp(`\\bid="${escapeRegex(id)}"`, "g"),
-      () => `id="\${${n}:${id}}"`,
+      () => `id="$${n}"`,
     )
     out = mirror(
       out,
@@ -316,7 +324,8 @@ export function liveTemplates(): string {
         id,
         (attribute, prefix) => `${attribute}="${prefix}$${name}$"`,
       )
-      return `    <variable name="${name}" expression="" defaultValue="${xml(JSON.stringify(id))}" alwaysStopAt="true" />`
+      // Empty, as in the snippets: see `withTabstops`.
+      return `    <variable name="${name}" expression="" defaultValue="" alwaysStopAt="true" />`
     })
     return [
       `  <template name="${element.tag}" value="${xml(body)}" description="${xml(element.description)}" toReformat="false" toShortenFQNames="false">`,

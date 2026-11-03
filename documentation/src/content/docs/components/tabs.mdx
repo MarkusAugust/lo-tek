@@ -205,6 +205,50 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
 
     Hide the panels with `hidden="until-found"`, not bare `hidden`, so find in page can find the text in them. The component writes `hidden` back in the form the server used.
   </TabItem>
+  <TabItem label="Kotlin">
+    On a Kotlin server you call `Lt.tabs()`, here with kotlinx.html and `lo-tek-kotlinx-html`. It writes the links, the ids and the classes, and the panels get their ids from the keys.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltTabs
+
+    data class Part(val key: String, val title: String, val text: String)
+
+    fun FlowContent.claimTabs(
+        parts: List<Part> = listOf(
+            Part("claim", "Claim", "Claim AV-2079-0481 was filed on 4 March 2079."),
+            Part("attachments", "Attachments", "Three attachments have been uploaded."),
+        ),
+    ) {
+        val tabs = Lt.tabs(id = "claim-tabs", keys = parts.map { it.key }, label = "Parts of the claim")
+        ltTabs {
+            id = "claim-tabs"
+            ul {
+                lt(tabs.list)
+                parts.zip(tabs.tabs).forEach { (part, tab) -> li { a { lt(tab); +part.title } } }
+            }
+            for ((i, part) in parts.withIndex()) {
+                section {
+                    lt(tabs.panels[i])
+                    h2 { lt(tabs.headings[i]); +part.title }
+                    p { +part.text }
+                }
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        claimTabs()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ## Tabs or accordion
