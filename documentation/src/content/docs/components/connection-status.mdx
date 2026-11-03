@@ -51,6 +51,9 @@ defineLtConnectionStatus()
     </script>
 
     <script type="module">
+      import { reportFailure, reportSuccess } from
+        "https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/connection-status/lt-connection-status.js"
+
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
 
@@ -60,16 +63,19 @@ defineLtConnectionStatus()
       //     event.preventDefault()
       //     saveRoute(new FormData(form))
       //   })
+      // A request that got no answer is a lost connection, and so is an answer
+      // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+      // error status included, means the server is there. reportSuccess and
+      // reportFailure wait for the component to be registered, and warn when it
+      // never is; the save does not wait for them.
       window.saveRoute = async (body) => {
-        let answered = false
+        let response
         try {
-          const response = await fetch("/api/routes", { method: "POST", body })
-          answered = response.ok
+          response = await fetch("/api/routes", { method: "POST", body })
         } catch {}
-        // Only the report waits for the component to be registered, never the save.
-        await customElements.whenDefined("lt-connection-status")
-        if (answered) connection.reportSuccess()
-        else connection.reportFailure()
+        if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+        else reportFailure(connection)
+        return response
       }
     </script>
     ```
@@ -171,6 +177,9 @@ defineLtConnectionStatus()
         script(type = "module") {
             unsafe {
                 +"""
+                import { reportFailure, reportSuccess } from
+                  "${LotekWebJar.ROOT}/dist/components/standalone/connection-status/lt-connection-status.js"
+
                 const connection = document.querySelector("lt-connection-status")
                 if (!connection) throw new Error("element not found")
 
@@ -180,16 +189,19 @@ defineLtConnectionStatus()
                 //     event.preventDefault()
                 //     saveRoute(new FormData(form))
                 //   })
+                // A request that got no answer is a lost connection, and so is an answer
+                // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+                // error status included, means the server is there. reportSuccess and
+                // reportFailure wait for the component to be registered, and warn when it
+                // never is; the save does not wait for them.
                 window.saveRoute = async (body) => {
-                  let answered = false
+                  let response
                   try {
-                    const response = await fetch("/api/routes", { method: "POST", body })
-                    answered = response.ok
+                    response = await fetch("/api/routes", { method: "POST", body })
                   } catch {}
-                  // Only the report waits for the component to be registered, never the save.
-                  await customElements.whenDefined("lt-connection-status")
-                  if (answered) connection.reportSuccess()
-                  else connection.reportFailure()
+                  if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+                  else reportFailure(connection)
+                  return response
                 }
                 """
             }

@@ -108,8 +108,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   answering.** Its script declared `saveRoute` inside a module, where no
   other code on the page could call it, and called the methods without
   waiting for the registration. It now puts `saveRoute` on `window`, where
-  the app's other scripts call it, as a comment there shows, and waits with
-  `customElements.whenDefined`.
+  the app's other scripts call it, as a comment there shows. It sends the
+  request first, counts a request without an answer and a gateway's 502, 503
+  or 504 as a lost connection and any other answer as the server being
+  there, and reports with `reportSuccess` and `reportFailure` without
+  waiting for them, since they wait for the registration.
 
 - **A date or time field fits its container in iOS Safari.** With the
   native appearance, `.lt-input` with `data-variant` `date`, `time` or
