@@ -51,10 +51,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   page and an `@param` per option with the default as the Kotlin constant,
   in the sources jar, so IntelliJ shows it in Quick Documentation.
 - **The builder functions can be called from Java.** They are `@JvmStatic`
-  and `@JvmOverloads`, `ButtonVariant.of(…)` and the other lookups are
-  static, and `Lt.card.title` is a field: `Lt.field("fixer")` rather than
-  `HandwrittenKt.field(Lt.INSTANCE, "fixer", null, …)`. `JavaCallTest`
-  compiles the calls in Java.
+  and `@JvmOverloads`, with the required options first, `ButtonVariant.of(…)`
+  and the other lookups are static, and `Lt.card.title` is a field:
+  `Lt.field("fixer")` rather than `HandwrittenKt.field(Lt.INSTANCE, "fixer",
+  null, …)`. In Kotlin the options are passed by name as before, but
+  `Lt.suggestion` called with its options in order now has `id` first.
+  `JavaCallTest` compiles the calls in Java.
 - **`lo-tek-kotlinx-html` has one function per web component**, such as
   `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
   elements in HTML.

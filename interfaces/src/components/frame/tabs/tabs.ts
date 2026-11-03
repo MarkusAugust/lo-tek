@@ -75,8 +75,8 @@ function prepare(
  * address, such as `#file-attachments`, or from `selected` and `select()` on
  * `<lt-tabs>`.
  *
- * A React app uses `lt.tabs()` from `@lo-tek/interfaces/react`, which gives
- * the whole state, so React hydrates without mismatches.
+ * In React, use `lt.tabs()` from `@lo-tek/interfaces/react`, which gives the
+ * whole state, so React hydrates without mismatches.
  *
  * ```ts
  * const tabs = lt.tabs({ id: "file", keys: ["claim", "attachments"], label: "Parts of the claim" })

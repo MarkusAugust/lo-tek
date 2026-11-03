@@ -41,6 +41,13 @@ class JavaCallTest {
     }
 
     @Test
+    void theRequiredIdComesFirstAlsoWhenTheManifestListsItLater() {
+        // The manifest lists nine options before `id` in `lt.suggestion`.
+        SuggestionParts search = Lt.suggestion("breaker");
+        assertEquals("breaker-list", search.getList().get("id"));
+    }
+
+    @Test
     void anEmptyIdThrowsAsInKotlin() {
         assertThrows(IllegalArgumentException.class, () -> Lt.field(""));
     }

@@ -87,25 +87,21 @@ private fun isJsWhitespace(c: Char): Boolean =
         c == ' ' || c == ' ' || c == ' ' || c == '　' || c == '﻿'
 
 internal object Handwritten {
-    /** `lt.label`: a label. The marker is only visual, so set `required` on the field too. */
+    /** `Lt.label`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun label(
         required: RequiredMarker? = null,
         optional: Boolean? = null,
         disabled: Boolean? = null,
     ): Attributes = Attributes(marked("lt-label", required, optional, disabled))
 
-    /** `lt.legend`: the label for a group, with the same marker as [label]. */
+    /** `Lt.legend`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun legend(
         required: RequiredMarker? = null,
         optional: Boolean? = null,
         disabled: Boolean? = null,
     ): Attributes = Attributes(marked("lt-legend", required, optional, disabled))
 
-    /**
-     * `lt.errorSummary`: the error summary. The box is hidden when [count] is zero,
-     * and takes its name from the heading with [titleId], by default [id] with
-     * `-title`. An empty one counts as none; one with whitespace throws.
-     */
+    /** `Lt.errorSummary`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun errorSummary(
         count: Number? = null,
         id: String? = null,
@@ -127,15 +123,7 @@ internal object Handwritten {
         return ErrorSummaryParts(host = Attributes(host), title = Attributes(title))
     }
 
-    /**
-     * `lt.field`: wires the label, control, help text and error text.
-     *
-     * ```kotlin
-     * val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
-     * "<label ${field.label.toHtml()}>Fixer's address</label>"
-     * "<input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>"
-     * ```
-     */
+    /** `Lt.field`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun field(
         id: String,
         help: Boolean? = null,
@@ -197,7 +185,7 @@ internal object Handwritten {
         )
     }
 
-    /** `lt.suggestion`: a field with a suggestion list. `<lt-suggestion>` handles the keyboard and the filtering. */
+    /** `Lt.suggestion`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun suggestion(
         invalid: Boolean? = null,
         error: Boolean? = null,
@@ -280,14 +268,7 @@ internal object Handwritten {
         )
     }
 
-    /**
-     * `lt.tabs`: a tab list where the tabs are links to the panels. Only links,
-     * ids and classes: without JavaScript the list is a table of contents, and
-     * the panels follow one another. `<lt-tabs>` writes the roles, the selection
-     * and `hidden`. The panels get ids from [keys], and [label] is the name of
-     * the list; an empty one throws. The first tab is selected; another comes
-     * from the address, like `#case-attachments`.
-     */
+    /** `Lt.tabs`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun tabs(
         id: String,
         keys: List<String>,

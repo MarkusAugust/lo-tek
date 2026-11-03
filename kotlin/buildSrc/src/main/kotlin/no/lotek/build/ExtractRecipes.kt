@@ -41,14 +41,23 @@ abstract class ExtractRecipes : DefaultTask() {
         val imports = mutableListOf<String>()
         for (page in pages.files.sortedBy { it.name }) {
             val text = page.readText()
-            val kotlin = tab(text, "Kotlin") ?: continue
+            val starts = tabStarts(text, "Kotlin")
+            if (starts.isEmpty()) continue
             val name = page.nameWithoutExtension
             val where = "${page.name}, the Kotlin tab"
+            if (starts.size > 1) error("${page.name} has ${starts.size} Kotlin tabs. The test compares one per page.")
+            val kotlin = tabAt(text, starts.single())
+            // The HTML recipe is the one in the same `<Tabs>` as the Kotlin tab.
+            val groupStart = text.lastIndexOf("<Tabs", starts.single()).coerceAtLeast(0)
+            val groupEnd = text.indexOf("</Tabs>", starts.single()).let { if (it < 0) text.length else it }
+            val group = text.substring(groupStart, groupEnd)
             val block = blocks(kotlin, "kotlin").singleOrNull { it.contains("fun FlowContent.") }
                 ?: error("$where must have exactly one ```kotlin block with a `fun FlowContent.…()`.")
             val function = Regex("""fun FlowContent\.(\w+)\(""").find(block)?.groupValues?.get(1)
                 ?: error("$where: the recipe must be a `fun FlowContent.name()`.")
-            val html = blocks(tab(text, "Plain HTML") ?: error("${page.name} has a Kotlin tab, but no Plain HTML tab to compare it with."), "html")
+            val plain = tabStarts(group, "Plain HTML").singleOrNull()
+                ?: error("${page.name}: the <Tabs> with the Kotlin tab must have one Plain HTML tab to compare it with.")
+            val html = blocks(tabAt(group, plain), "html")
             if (html.isEmpty()) error("${page.name}: the Plain HTML tab has no ```html block.")
             val pkg = "no.lotek.html.recipes.${name.replace("-", "")}"
             val dir = sourceDir.resolve(pkg.replace('.', '/')).apply { mkdirs() }
@@ -78,9 +87,16 @@ abstract class ExtractRecipes : DefaultTask() {
         )
     }
 
-    /** The content of `<TabItem label="…">` up to its `</TabItem>`. */
-    private fun tab(text: String, label: String): String? {
-        val start = text.indexOf("<TabItem label=\"$label\">").takeIf { it >= 0 } ?: return null
+    /**
+     * Where each `<TabItem label="…">` with this label starts. The pattern
+     * allows the spacing MDX allows, and `RecipesTest` counts the Kotlin tabs
+     * in the pages with the same pattern, so a tab this task missed fails it.
+     */
+    private fun tabStarts(text: String, label: String): List<Int> =
+        Regex("""<TabItem\s+label\s*=\s*"${Regex.escape(label)}"\s*>""").findAll(text).map { it.range.first }.toList()
+
+    /** The content of the tab that starts at [start], up to its `</TabItem>`. */
+    private fun tabAt(text: String, start: Int): String {
         val end = text.indexOf("</TabItem>", start)
         return text.substring(start, if (end < 0) text.length else end)
     }

@@ -230,9 +230,8 @@ export function readBuilderFunctions(): BuilderFunction[] {
    * with `@` in it, for a tag and cuts the comment there. A function listed
    * in `lt` has its comment where it is declared, also one listed under
    * another name, as `switch: switchControl`; a declaration without one, as
-   * `computeFieldAttributes`, has it on the property in `lt`. A paragraph
-   * about React is left out: it is advice for one environment, and the
-   * manifest is read by the others.
+   * `computeFieldAttributes`, has it on the property in `lt`, and so does a
+   * shorthand whose declaration has none.
    */
   function documentation(p: ts.Symbol): {
     description: string
@@ -245,11 +244,12 @@ export function readBuilderFunctions(): BuilderFunction[] {
         : symbol
     let text = ""
     if (property && ts.isShorthandPropertyAssignment(property))
-      text = commentBefore(
-        statementOf(
-          resolve(checker.getShorthandAssignmentValueSymbol(property)),
-        ),
-      )
+      text =
+        commentBefore(
+          statementOf(
+            resolve(checker.getShorthandAssignmentValueSymbol(property)),
+          ),
+        ) || commentBefore(property)
     else if (property && ts.isPropertyAssignment(property))
       text =
         commentBefore(
@@ -272,7 +272,18 @@ export function readBuilderFunctions(): BuilderFunction[] {
           .replace(/\s*\n\s*(?!- )/g, " ")
           .replace(/\s*\n\s*(?=- )/g, "\n"),
       )
-      .filter((paragraph) => paragraph && !/\bReact\b/.test(paragraph))
+      // A paragraph that starts "In React" is advice for one environment, and
+      // TypeScript shows it in the editor. The manifest is read by the others,
+      // so it is left out there. Any other mention of React stops the build,
+      // so a general rule is never dropped because it names React.
+      .filter((paragraph) => {
+        if (/^In React\b/.test(paragraph)) return false
+        if (/\bReact\b/.test(paragraph))
+          throw new Error(
+            `lt.${p.name}: a paragraph in the comment mentions React without starting with "In React": ${paragraph.slice(0, 80)}… The manifest leaves out only paragraphs that start that way.`,
+          )
+        return Boolean(paragraph)
+      })
       .join("\n\n")
     if (!description)
       throw new Error(

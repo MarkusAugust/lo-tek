@@ -98,7 +98,7 @@ val compileCore = tasks.register<no.lotek.build.CompileCore>("compileCore") {
     sources.set(layout.buildDirectory.dir("chicory/sources"))
 }
 
-// The API is generated from the manifest: the values as `enum`s, and the builder functions that have a table.
+// The API is generated from the manifest: the values as `enum`s, and a member of `Lt` for every builder function, with its documentation.
 val generateApi = tasks.register<no.lotek.build.GenerateApi>("generateApi") {
     manifest.set(manifestFile)
     output.set(layout.buildDirectory.dir("generated/lotek"))

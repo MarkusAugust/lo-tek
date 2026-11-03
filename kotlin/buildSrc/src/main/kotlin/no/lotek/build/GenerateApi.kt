@@ -240,8 +240,13 @@ class Generator(manifest: Map<String, Any?>) {
         return "    /**\n$body\n     */\n"
     }
 
-    /** `/*` would open a comment inside the comment in Kotlin, and `*/` would close it. */
-    private fun escapeComment(text: String): String = text.replace("/*", "/&#42;").replace("*/", "*&#47;")
+    /**
+     * `/*` would open a comment inside the comment in Kotlin, and `*/` would
+     * close it. A zero-width space between the two characters breaks both and
+     * reads the same; an entity like `&#42;` showed as written, since the text
+     * is usually in a code span, where Markdown does not decode it.
+     */
+    private fun escapeComment(text: String): String = text.replace("/*", "/\u200B*").replace("*/", "*\u200B/")
 
     /** A line of prose broken at about 96 characters. A list item keeps its dash on the first line. */
     private fun wrap(text: String): List<String> {
@@ -291,8 +296,14 @@ class Generator(manifest: Map<String, Any?>) {
         return if (returnType(b) == "Attributes") call else "val ${identifier(name)} = $call"
     }
 
+    /**
+     * The parameters, the required ones first. Kotlin passes them by name, so
+     * the order is only seen from Java, where `@JvmOverloads` leaves out
+     * options from the back: in the manifest's order `Lt.suggestion` needed
+     * nine `null`s before its `id`.
+     */
     private fun signature(b: Map<String, Any?>): String =
-        options(b).joinToString(",\n") { "        ${identifier(it.name)}: ${kotlinType(b, it)}" }
+        options(b).sortedBy { !it.required }.joinToString(",\n") { "        ${identifier(it.name)}: ${kotlinType(b, it)}" }
 
     private fun returnType(b: Map<String, Any?>): String =
         if (returns(b)["kind"] == "group") pascal(b["name"] as String) + "Parts" else "Attributes"
@@ -311,7 +322,8 @@ class Generator(manifest: Map<String, Any?>) {
             val table = b["table"] as Map<String, Any?>?
             out.append(kdoc(b))
             out.append("    @JvmStatic\n")
-            if (options(b).isNotEmpty()) out.append("    @JvmOverloads\n")
+            // Without an option that can be left out there is no overload to write.
+            if (options(b).any { !it.required }) out.append("    @JvmOverloads\n")
             val parameters = if (options(b).isEmpty()) "" else "\n${signature(b)},\n    "
             if (table == null) {
                 // Written by hand: the options interact. The arguments are

@@ -19,6 +19,8 @@ dependencies {
     testImplementation(kotlin("test"))
     // Parses the rendered recipes and the HTML recipes the same way, so the two can be compared as trees.
     testImplementation("org.jsoup:jsoup:1.22.2")
+    // Reads the answers in the build cases, for the attributes a builder function can write.
+    testImplementation("com.google.code.gson:gson:2.11.0")
 }
 
 /*
@@ -51,5 +53,8 @@ tasks.test {
     val interfaces = rootDir.resolve("../interfaces")
     inputs.file(interfaces.resolve("manifest/build-cases.json")).withPathSensitivity(PathSensitivity.NONE)
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)
+    // The test counts the Kotlin tabs in the pages itself, so a tab `extractRecipes` missed fails it.
+    systemProperty("pages", componentPages.absolutePath)
+    inputs.dir(componentPages).withPathSensitivity(PathSensitivity.RELATIVE)
     testLogging { events("failed") }
 }
