@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.40.0 (2026-11-03)
+
 ### Breaking
 
 - **`lt.spinner()` without `label` writes `aria-hidden="true"`,** as
