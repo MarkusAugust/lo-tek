@@ -51,17 +51,31 @@ defineLtConnectionStatus()
     </script>
 
     <script type="module">
+      import { reportFailure, reportSuccess } from
+        "https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/connection-status/lt-connection-status.js"
+
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
 
-      async function saveRoute(body) {
+      // A module keeps its names to itself, so the function the app saves through
+      // is put on window, where its other scripts call it:
+      //   form.addEventListener("submit", (event) => {
+      //     event.preventDefault()
+      //     saveRoute(new FormData(form))
+      //   })
+      // A request that got no answer is a lost connection, and so is an answer
+      // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+      // error status included, means the server is there. reportSuccess and
+      // reportFailure wait for the component to be registered, and warn when it
+      // never is; the save does not wait for them.
+      window.saveRoute = async (body) => {
+        let response
         try {
-          const response = await fetch("/api/routes", { method: "POST", body })
-          if (!response.ok) throw new Error(response.statusText)
-          connection.reportSuccess()
-        } catch {
-          connection.reportFailure()
-        }
+          response = await fetch("/api/routes", { method: "POST", body })
+        } catch {}
+        if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+        else reportFailure(connection)
+        return response
       }
     </script>
     ```
@@ -91,13 +105,15 @@ defineLtConnectionStatus()
     export async function saveRoute(body: BodyInit) {
       const connection = document.querySelector("lt-connection-status")
       if (!connection) throw new Error("element not found")
+      let response: Response | undefined
       try {
-        const response = await fetch("/api/routes", { method: "POST", body })
-        if (!response.ok) throw new Error(response.statusText)
-        await reportSuccess(connection)
-      } catch {
-        await reportFailure(connection)
-      }
+        response = await fetch("/api/routes", { method: "POST", body })
+      } catch {}
+      // No answer, or a gateway whose server is gone, is a lost connection.
+      // The save does not wait for the report.
+      if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+      else reportFailure(connection)
+      return response
     }
     ```
 
@@ -147,6 +163,63 @@ defineLtConnectionStatus()
 
     Datastar keeps a long-lived stream open to the server. If it drops, the page looks right but stops updating. The browser only reports when the machine loses the network, not when the server stops answering, so the script at the bottom is what makes the bar appear in that case too.
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.connectionStatus()` gives the bar its role and `data-ignore-morph`.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltConnectionStatus
+
+    fun FlowContent.connection() {
+        ltConnectionStatus { lt(Lt.connectionStatus()) }
+        // The bar shows by itself when the browser goes offline. That the
+        // server stopped answering, only the app knows, and says so here.
+        script(type = "module") {
+            unsafe {
+                +"""
+                import { reportFailure, reportSuccess } from
+                  "${LotekWebJar.ROOT}/dist/components/standalone/connection-status/lt-connection-status.js"
+
+                const connection = document.querySelector("lt-connection-status")
+                if (!connection) throw new Error("element not found")
+
+                // A module keeps its names to itself, so the function the app saves through
+                // is put on window, where its other scripts call it:
+                //   form.addEventListener("submit", (event) => {
+                //     event.preventDefault()
+                //     saveRoute(new FormData(form))
+                //   })
+                // A request that got no answer is a lost connection, and so is an answer
+                // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+                // error status included, means the server is there. reportSuccess and
+                // reportFailure wait for the component to be registered, and warn when it
+                // never is; the save does not wait for them.
+                window.saveRoute = async (body) => {
+                  let response
+                  try {
+                    response = await fetch("/api/routes", { method: "POST", body })
+                  } catch {}
+                  if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+                  else reportFailure(connection)
+                  return response
+                }
+                """
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        connection()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ## Why it creates the content itself
@@ -163,19 +236,18 @@ So the app reports it itself:
 const connection = document.querySelector("lt-connection-status")
 if (!connection) throw new Error("element not found")
 
+let response
 try {
-  const response = await fetch("/api/routes", { method: "POST", body })
-  if (!response.ok) throw new Error(response.statusText)
-  connection.reportSuccess()
-} catch {
-  connection.reportFailure()
-}
+  response = await fetch("/api/routes", { method: "POST", body })
+} catch {}
+if (response && ![502, 503, 504].includes(response.status)) connection.reportSuccess()
+else connection.reportFailure()
 ```
 
 | Method | When you call it |
 | --- | --- |
-| `reportFailure()` | A request to the server failed |
-| `reportSuccess()` | A request succeeded again |
+| `reportFailure()` | A request got no answer, or a gateway answered 502, 503 or 504 because the server behind it is gone |
+| `reportSuccess()` | The server answered, an error status included: a 400 or a 500 comes from a server that is there |
 
 `reportFailure(element)` and `reportSuccess(element)` from `@lo-tek/interfaces/connection-status` do the same, but first wait until the element is registered.
 

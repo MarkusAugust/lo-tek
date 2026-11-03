@@ -324,12 +324,14 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      # The Kotlin package is built from the npm package and needs neither
-      # Rust nor Bun. The tarball is packed here anyway, from this commit,
-      # since the code is newer than what is on npm.
+      # The Kotlin package is built from the npm package and needs no Rust.
+      # The tarball is packed here, from this commit, since the code is newer
+      # than what is on npm. The test of the recipe reader in buildSrc needs
+      # Bun, which reads the template literals as the reference.
       - name: Pack the npm package
         run: bun --filter @lo-tek/interfaces pack
 
       - name: Kotlin
         working-directory: kotlin
-        run: ./gradlew test -Plotek.package=../interfaces
+        # `test` does not reach the build logic, so `:buildSrc:test` is named.
+        run: ./gradlew test :buildSrc:test -Plotek.package=../interfaces

@@ -15,7 +15,7 @@ use crate::types::*;
 const LINK: &str = "https://lo-tek.sobernetics.no/components/field/";
 const SUMMARY_LINK: &str = "https://lo-tek.sobernetics.no/components/error-summary/";
 
-const HOW: &str = "Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it.";
+const HOW: &str = "Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it.";
 
 /// The attributes that point at ids, and what the screen reader loses when they miss.
 const REFERENCES: &[(&str, &str)] = &[

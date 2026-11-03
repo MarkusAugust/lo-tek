@@ -6,7 +6,9 @@ export const TABS_PANEL_CLASS = "lt-tabs__panel" as const
 export type TabsOptions = {
   /**
    * The shared id stem. The panels become `${id}-${key}`, and the headings in
-   * them `${id}-${key}-heading`.
+   * them `${id}-${key}-heading`. Make it from a key in the data, never from
+   * the loop index or a counter, so it is unique on the page and the same on
+   * every render.
    */
   id: string
   /**
@@ -73,8 +75,8 @@ function prepare(
  * address, such as `#file-attachments`, or from `selected` and `select()` on
  * `<lt-tabs>`.
  *
- * A React app uses `lt.tabs()` from `@lo-tek/interfaces/react`, which gives
- * the whole state, so React hydrates without mismatches.
+ * In React, use `lt.tabs()` from `@lo-tek/interfaces/react`, which gives the
+ * whole state, so React hydrates without mismatches.
  *
  * ```ts
  * const tabs = lt.tabs({ id: "file", keys: ["claim", "attachments"], label: "Parts of the claim" })

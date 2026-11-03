@@ -67,6 +67,40 @@ box.addEventListener("change", () => {
 `lt.checkbox()` sets `type` for you, so the box cannot become a text field with the checkbox's style. `lt.checkbox.row` gives the class for the row around it. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.leaseTerms() {
+    div {
+        lt(Lt.checkbox.row)
+        input { lt(Lt.checkbox()); id = "seasonal" }
+        label { lt(Lt.label()); htmlFor = "seasonal"; +"I accept that floors below 12 are seasonal." }
+    }
+    div {
+        lt(Lt.checkbox.row)
+        input { lt(Lt.checkbox()); id = "vacancies"; checked = true }
+        label { lt(Lt.label()); htmlFor = "vacancies"; +"Tell me when a dry floor comes free" }
+    }
+    div {
+        lt(Lt.checkbox.row)
+        input { lt(Lt.checkbox(state = FieldState.INVALID)); id = "confirm" }
+        label { lt(Lt.label()); htmlFor = "confirm"; +"I confirm that I have read the lease" }
+    }
+    div {
+        lt(Lt.checkbox.row)
+        input { lt(Lt.checkbox()); id = "deposit"; checked = true; disabled = true }
+        label { lt(Lt.label()); htmlFor = "deposit"; +"The deposit is paid" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-state` | Used for |

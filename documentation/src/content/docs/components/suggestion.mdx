@@ -17,7 +17,7 @@ The server writes the field and the list. The component filters as the user type
 The browser's own `<datalist>` does some of the same, but cannot be styled, behaves differently in every browser, and says nothing about how many matches there were.
 
 :::note[Two paths to the same markup]
-When the markup is produced with JavaScript, `lt.suggestion()` gives the roles, the ids and the wiring between label, field and list, ready in the HTML. When it is produced without JavaScript, the template writes `for` on the label and `id` on the field, which HTML requires for the field to have a name before the script has run. Beyond that, it is enough to have a `.lt-suggestion__list` with `<li>` elements and a status element. The component sets the roles, gives the list and the options ids, wires the list to the field and keeps it closed until the user touches the field. The filtering, the arrow keys and the number of matches come from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
+When the code that renders the markup can call a builder function, in TypeScript, Kotlin or Java, `lt.suggestion()` gives the roles, the ids and the wiring between label, field and list, ready in the HTML. When it cannot, in a Go template, PHP or plain HTML, the template writes `for` on the label and `id` on the field, which HTML requires for the field to have a name before the script has run. Beyond that, it is enough to have a `.lt-suggestion__list` with `<li>` elements and a status element. The component sets the roles, gives the list and the options ids, wires the list to the field and keeps it closed until the user touches the field. The filtering, the arrow keys and the number of matches come from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
 :::
 
 ```ts
@@ -185,6 +185,53 @@ defineLtSuggestion()
 
     The server answers with the list, `<ul class="lt-suggestion__list" id="breakers">` with the new `<li>` elements, and Datastar morphs it by its id. The id comes from the server, and the component leaves it alone. Here the server decides which options are shown, hence `prefiltered`. The component wires itself to the options the server sends, so choosing with the mouse also works after an update.
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin server you call `Lt.suggestion()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The keys come from the data, so the options keep their ids when the server sends the list again.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltSuggestion
+
+    data class Breaker(val code: String, val name: String)
+
+    fun FlowContent.breakerSearch(
+        breakers: List<Breaker> = listOf(Breaker("crowbar", "Crowbar"), Breaker("needle", "Needle")),
+    ) {
+        val search = Lt.suggestion(id = "breaker", keys = breakers.map { it.code })
+        ltSuggestion {
+            id = "breaker-search"
+            label { lt(search.label); +"Breaker" }
+            input { lt(search.control); name = "breaker" }
+            ul {
+                lt(search.list)
+                breakers.zip(search.options).forEach { (breaker, option) -> li { lt(option); +breaker.name } }
+            }
+            p { lt(search.empty); +"No matches" }
+            span { lt(search.status) }
+        }
+        script(type = "module") {
+            unsafe {
+                +"""
+                document.getElementById("breaker-search").addEventListener("suggestion-select", (evt) => {
+                  console.log("selected", evt.detail.label, evt.detail.value)
+                })
+                """
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        breakerSearch()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ## The markup
@@ -216,7 +263,7 @@ const suggestion = lt.suggestion({ id: "breaker", keys: ["LDG-117", "LDG-042"], 
 
 The field is a real `<input>` with `name`, so it is included in the submission before the script has run. The component used to create the whole field itself, and then there was neither a label nor an input field for a user waiting for JavaScript. See [Markup and behaviour](/markup-and-behaviour/).
 
-When the markup comes from a template without JavaScript, the template writes `for` on the label and `id` on the field, as the "Plain HTML" recipe shows, or puts the label around the field. The component sets the roles, gives the list and the options ids, writes `aria-controls` on the field, and keeps the list closed until the user touches the field. Every `<li>` in the list becomes an option; a heading in the list needs `role="presentation"` to be left alone. What the server wrote stays, and what the component filled in is put back if an update removes it. The status element must be in the markup: it is content the server sends, and without it the number of matches is not announced.
+When the markup comes from a template that cannot call a builder function, the template writes `for` on the label and `id` on the field, as the "Plain HTML" recipe shows, or puts the label around the field. The component sets the roles, gives the list and the options ids, writes `aria-controls` on the field, and keeps the list closed until the user touches the field. Every `<li>` in the list becomes an option; a heading in the list needs `role="presentation"` to be left alone. What the server wrote stays, and what the component filled in is put back if an update removes it. The status element must be in the markup: it is content the server sends, and without it the number of matches is not announced.
 
 The component never writes an id on the field. Datastar and idiomorph recognise an element by its id, and a field with an id the server did not send would be replaced on the next update, along with focus and what the user has typed. The component writes `for` on the label from the field's id when the label is not around the field, as `<lt-field>` does; write it in the template too, since that is what gives the field a name without JavaScript. The options get ids from the key in `keys`, like the catalogue number, so an update recognises them. A key that is empty, contains whitespace or appears twice throws, in TypeScript as in Kotlin. If the ids are missing, as in a template without a builder function, the component gives the list and the options ids. If the server sends the whole list again, they are replaced, and that costs nothing: the component wires them again and finds the highlighted option again by its text.
 

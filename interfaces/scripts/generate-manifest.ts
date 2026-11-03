@@ -54,6 +54,7 @@ import {
   readBuilderFunctions,
   setsOf,
 } from "./builder-functions.js"
+import { BUILDER_PARTS, type BuilderPart } from "./metadata.js"
 
 const PACKAGE = fileURLToPath(new URL("..", import.meta.url))
 const OUT = `${PACKAGE}manifest/`
@@ -63,6 +64,9 @@ const version: string = JSON.parse(
 ).version
 
 type BuilderFunction = Base & {
+  /** The page the builder function is documented on. */
+  docs?: string
+  parts?: Record<string, BuilderPart>
   table?: Tables
   classes?: Record<string, string>
 }
@@ -410,6 +414,123 @@ for (const b of builderFunctions) {
       )
   const constants = strings.filter(([, value]) => !written.has(value))
   if (constants.length > 0) b.classes = Object.fromEntries(constants)
+}
+
+/*
+ * The default of an option with a closed list: the value whose answer is the
+ * same as the answer without the option, in the call with only what is
+ * required. It is read from the answers, so it is what the function does,
+ * and the comment on the option must say the same: a comment that names
+ * another default, or none, stops the build. The comment is what TypeScript
+ * shows, and the field is what the other languages generate theirs from.
+ */
+for (const b of builderFunctions) {
+  const own = cases.filter((t) => t.builder === b.name && t.expected)
+  const required = b.options.filter((o) => o.required).map((o) => o.name)
+  const base = own.find(
+    (t) =>
+      Object.keys(t.options).length === required.length &&
+      required.every((name) => name in t.options),
+  )
+  for (const option of b.options) {
+    if (option.type.kind !== "values" || option.required) continue
+    const values = option.type.values
+    const found = base
+      ? values.filter((value) =>
+          own.some(
+            (t) =>
+              equal(t.options, { ...base.options, [option.name]: value }) &&
+              equal(t.expected, base.expected),
+          ),
+        )
+      : []
+    const written = option.description?.match(/Default: `([^`]+)`/)?.[1]
+    const where = `lt.${b.name}({ ${option.name} })`
+    if (found.length > 1)
+      throw new Error(
+        `${where}: ${found.join(" and ")} both give the same answer as no value. Only one of them can be the default.`,
+      )
+    const value = found[0]
+    if (value !== undefined && written !== value)
+      throw new Error(
+        `${where}: the default is \`${value}\`, read from the answers, but the comment on the option ${written ? `says \`${written}\`` : "does not say so"}. End the comment with "Default: \`${value}\`."`,
+      )
+    if (value === undefined && written !== undefined)
+      throw new Error(
+        `${where}: the comment says the default is \`${written}\`, but no value gives the same answer as leaving the option out.`,
+      )
+    if (value !== undefined) option.default = value
+  }
+}
+
+/*
+ * The page each builder function is documented on: the element with the
+ * same name, otherwise the class, otherwise the first class in its answer
+ * that has a page. `lt.tableSort` is on the table's page that way.
+ */
+const kebab = (name: string) =>
+  name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
+const linkOf = (className: string): string | undefined =>
+  (classes as Record<string, { link?: string }>)[className]?.link
+for (const b of builderFunctions) {
+  const name = `lt-${kebab(b.name)}`
+  const answer = cases.find((t) => t.builder === b.name && t.expected)
+  const fromAnswer = setsOf(answer?.expected)
+    .flatMap(([, set]) => String(set.class ?? "").split(/\s+/))
+    .map(linkOf)
+    .find(Boolean)
+  const link =
+    (elements as Record<string, { link?: string }>)[name]?.link ??
+    linkOf(name) ??
+    fromAnswer
+  if (!link)
+    throw new Error(
+      `lt.${b.name} has no page: no element or class called ${name}, and no class in its answer with a link.`,
+    )
+  b.docs = link
+}
+
+/*
+ * Which part of a frame component each set fills, from `BUILDER_PARTS` in
+ * `metadata.ts`. Every set must be there, and every part must exist, so
+ * the list cannot drift from the functions or from the components.
+ */
+for (const b of builderFunctions) {
+  if (b.returns.kind !== "group") {
+    if (BUILDER_PARTS[b.name])
+      throw new Error(
+        `BUILDER_PARTS has lt.${b.name}, which returns one set. Take it out.`,
+      )
+    continue
+  }
+  const sets = Object.entries(b.returns.fields)
+    .filter(
+      ([, shape]) =>
+        shape.kind === "attributes" ||
+        (shape.kind === "list" && shape.of.kind === "attributes"),
+    )
+    .map(([field]) => field)
+  const listed = BUILDER_PARTS[b.name] ?? {}
+  const missing = sets.filter((field) => !(field in listed))
+  const extra = Object.keys(listed).filter((field) => !sets.includes(field))
+  if (missing.length || extra.length)
+    throw new Error(
+      `BUILDER_PARTS for lt.${b.name} must list exactly its sets, ${sets.join(", ")}.${missing.length ? ` Missing: ${missing.join(", ")}.` : ""}${extra.length ? ` Not a set: ${extra.join(", ")}.` : ""} Give each a part, or null when it fills none.`,
+    )
+  const parts: Record<string, BuilderPart> = {}
+  for (const field of sets) {
+    const target = listed[field]
+    if (!target) continue
+    const element = (
+      elements as Record<string, { parts?: Record<string, unknown> }>
+    )[target.element]
+    if (!element?.parts?.[target.part])
+      throw new Error(
+        `BUILDER_PARTS says lt.${b.name}().${field} fills ${target.element}'s ${target.part}, and that part does not exist.`,
+      )
+    parts[field] = target
+  }
+  if (Object.keys(parts).length) b.parts = parts
 }
 
 /*

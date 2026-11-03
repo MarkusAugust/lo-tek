@@ -77,6 +77,48 @@ lt.setAttributes(table, lt.table({ variant: "striped", hoverable: true }))
 `lt.table.scroll` gives the class for the container around it. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+data class Item(val name: String, val condition: String, val offer: String)
+
+fun FlowContent.appraisal(
+    items: List<Item> = listOf(
+        Item("Smartgun link, left eye", "Removed intact", "EB 1,800"),
+        Item("Subdermal plating, torso", "Dented", "EB 950"),
+        Item("Boosted reflexes", "Still running", "EB 4,400"),
+    ),
+) {
+    table {
+        lt(Lt.table(variant = TableVariant.STRIPED))
+        caption { +"Appraisal LR-2079-0112" }
+        thead {
+            tr {
+                th(ThScope.col) { +"Item" }
+                th(ThScope.col) { +"Condition" }
+                th(ThScope.col) { attributes["data-align"] = "end"; +"Offer" }
+            }
+        }
+        tbody {
+            for (item in items) {
+                tr {
+                    th(ThScope.row) { +item.name }
+                    td { +item.condition }
+                    td { attributes["data-align"] = "end"; +item.offer }
+                }
+            }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | Attribute | Effect |

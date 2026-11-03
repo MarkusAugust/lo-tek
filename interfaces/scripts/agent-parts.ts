@@ -311,7 +311,7 @@ const HELPERS = new Set([
   "states",
 ])
 
-/** The builder functions in `lt`, which are the ones a project with types can use. */
+/** The builder functions in `lt`. Kotlin and Java have the same ones in `Lt`. */
 export function builderFunctions(): string {
   const name = Object.keys(lt)
     .filter((key) => !HELPERS.has(key))

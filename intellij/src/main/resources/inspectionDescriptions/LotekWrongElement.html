@@ -1,0 +1,6 @@
+<html lang="en">
+<body>
+Reports a set from a LO-TEK builder function that is put on an element its part cannot be, such as <code>label { lt(field.control) }</code>: the control of a field belongs on the <code>&lt;input&gt;</code>, <code>&lt;textarea&gt;</code> or <code>&lt;select&gt;</code>. The wiring then points at something that is not the field.
+<p>It reports only what the code says for certain: the tag is read from the kotlinx.html call the <code>lt(…)</code> stands in, and only parts whose selector names a tag are judged. The quick fix moves the set when exactly one other <code>lt(…)</code> in the function stands in a tag the part allows.</p>
+</body>
+</html>

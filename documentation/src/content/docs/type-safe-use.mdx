@@ -9,7 +9,7 @@ Classes and data attributes make the components framework-independent, but every
 <button class="lt-button" data-variant="secundary">Save draft</button>
 ```
 
-The button gets the primary style. No error message, just a variant that silently never took effect. That is why `lt` exists. If you write HTML without TypeScript, the [extension for VS Code](../the-editor/) catches the same mistake.
+The button gets the primary style. No error message, just a variant that silently never took effect. That is why `lt` exists. In Kotlin and Java, `Lt` gives the same check with enums, see [Kotlin and Java](../kotlin/). If the markup is written where no builder function can be called, the [editor](../the-editor/) catches the same mistake.
 
 ## The `lt` namespace
 
@@ -52,9 +52,9 @@ A builder function manages the attributes it has an option for, and only those:
 | --- | --- | --- |
 | `lt.button({ variant })` | `disabled`, `type="submit"` | Both stay. The button function has no option for them |
 | `lt.switch()` | `disabled` | Removed. The switch has the option `disabled`, and you did not pass it |
-| `lt.spinner()` | `role`, `aria-label` | Removed. The spinner has the option `label`, which writes both |
+| `lt.spinner()` | `role`, `aria-label` | Removed, and `aria-hidden="true"` set instead. The spinner has the option `label`, and you did not pass it |
 
-So the rule is: if the builder function has an option for the attribute, you set it through the option, every time. If you write `aria-label` by hand on a spinner and call `lt.spinner({ size: "large" })`, the function removes it. `id` and `for` are never removed, and `data-testid`, `name` and your own classes are not touched.
+So the rule is: if the builder function has an option for the attribute, you set it through the option, every time. If you write `aria-label` by hand on a spinner and call `lt.spinner({ size: "large" })`, the function removes it, and hides the ring with `aria-hidden="true"`. `id` and `for` are never removed, and `data-testid`, `name` and your own classes are not touched.
 
 If two sets go on the same element, such as the field's appearance and the wiring from `lt.field()`, you pass them separately:
 

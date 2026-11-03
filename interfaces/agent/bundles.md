@@ -327,9 +327,8 @@ the attribute names, and that does not apply here.
 
 ## 6. Typed builder functions
 
-If the project has TypeScript, the classes can come from `lt` instead of being
-written as strings. A variant that does not exist then becomes a compile
-error:
+The classes can come from `lt` instead of being written as strings. With
+TypeScript, a variant that does not exist then becomes a compile error:
 
 ```ts
 import { lt } from "@lo-tek/interfaces"
@@ -368,7 +367,8 @@ Call it again to change state. Three rules:
 
 - **When the builder function has an option for an attribute, a call without
   the option removes the attribute.** So pass the options again every time.
-  `lt.spinner()` without `label` removes `role` and `aria-label`.
+  `lt.spinner()` without `label` removes `role` and `aria-label`, and writes
+  `aria-hidden`.
 - **What the builder function has no option for stays.** `lt.button()` does
   not touch `disabled` or `type`. `id` and `for` are never removed.
 - **Two sets on the same element are passed separately**, as above. If they

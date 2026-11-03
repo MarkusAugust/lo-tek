@@ -335,6 +335,7 @@
     "dist",
     "web-types.json",
     "live-templates.xml",
+    "live-templates-kotlin.xml",
     "manifest/manifest.json",
     "manifest/files.json",
     "core/lotek-core.wasm",

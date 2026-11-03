@@ -15,7 +15,7 @@ import ScreenReaderContract from "../../../components/ScreenReaderContract.astro
 The tabs are links to their panels. Without JavaScript the row is a table of contents, and the panels follow one after another below it. With JavaScript the component turns the links into tabs: Tab skips past the whole row and into the selected panel, the arrow keys move between the tabs, and the screen reader says "tab, 2 of 3, selected" where it would otherwise have said "link".
 
 :::note[Two paths to the same markup]
-When the markup is produced with JavaScript, `lt.tabs()` writes the links, the ids on the panels and the headings, and the classes. When it is produced without JavaScript, in a Go template or plain HTML, you write the same by hand: a `.lt-tabs__list` with links and one `.lt-tabs__panel` per link, with the id the link points to. The component writes the rest in both cases: the roles, `aria-selected`, `aria-controls` from `href`, the tab stops, `hidden="until-found"` on the panels that are not selected, and the panel's name. Only the panels need an id, and it comes from `href`. The links have none, and the component never writes one: an update from the server therefore recognises them, and the selection stays. See [Markup and behaviour](/markup-and-behaviour/#ids-that-survive-an-update).
+When the code that renders the markup can call a builder function, in TypeScript, Kotlin or Java, `lt.tabs()` writes the links, the ids on the panels and the headings, and the classes. When it cannot, in a Go template or plain HTML, you write the same by hand: a `.lt-tabs__list` with links and one `.lt-tabs__panel` per link, with the id the link points to. The component writes the rest in both cases: the roles, `aria-selected`, `aria-controls` from `href`, the tab stops, `hidden="until-found"` on the panels that are not selected, and the panel's name. Only the panels need an id, and it comes from `href`. The links have none, and the component never writes one: an update from the server therefore recognises them, and the selection stays. See [Markup and behaviour](/markup-and-behaviour/#ids-that-survive-an-update).
 
 The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes the whole state, see the React tab below.
 :::
@@ -204,6 +204,59 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     The signal `$selectedTab` is sent with the next action Datastar makes against the server, like `@get` or `@post`, so the server knows which tab the user chose and writes `hidden` on the panels accordingly. Then it is the server that controls the tab, and `server-controlled` belongs with it. Without it the two fight over the same thing: the component puts back the tab the user chose, while the server sends its own. If you leave the signal out, nothing is needed, and the component keeps the selection itself.
 
     Hide the panels with `hidden="until-found"`, not bare `hidden`, so find in page can find the text in them. The component writes `hidden` back in the form the server used.
+  </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin server you call `Lt.tabs()`, here with kotlinx.html and `lo-tek-kotlinx-html`. It writes the links, the ids and the classes, and the panels get their ids from the keys.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltTabs
+
+    data class Part(val key: String, val title: String, val text: String)
+
+    fun FlowContent.claimTabs(
+        parts: List<Part> = listOf(
+            Part("claim", "Claim", "Claim AV-2079-0481 was filed on 4 March 2079."),
+            Part("attachments", "Attachments", "Three attachments have been uploaded."),
+        ),
+    ) {
+        val tabs = Lt.tabs(id = "claim-tabs", keys = parts.map { it.key }, label = "Parts of the claim")
+        ltTabs {
+            id = "claim-tabs"
+            ul {
+                lt(tabs.list)
+                parts.zip(tabs.tabs).forEach { (part, tab) -> li { a { lt(tab); +part.title } } }
+            }
+            for ((i, part) in parts.withIndex()) {
+                section {
+                    lt(tabs.panels[i])
+                    h2 { lt(tabs.headings[i]); +part.title }
+                    p { +part.text }
+                }
+            }
+        }
+        script(type = "module") {
+            unsafe {
+                +"""
+                document.getElementById("claim-tabs").addEventListener("tab-select", (evt) => {
+                  console.log("selected tab", evt.detail.index)
+                })
+                """
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        claimTabs()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
   </TabItem>
 </Tabs>
 

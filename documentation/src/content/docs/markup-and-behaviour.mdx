@@ -56,12 +56,12 @@ This is the question people get stuck on. The answer depends on whether the code
 
 The wiring between the parts is markup: `for` and `id` in a field, `href` from the tab to the panel in a tab list, `popover` and `aria-controls` in a popover, `role="combobox"` and `role="listbox"` in a suggestion field, `aria-labelledby` on a dialog, `role="alert"` and `tabindex="-1"` on an error summary. The builder function and the component write the same wiring, so you use one of them.
 
-| Do you create the markup with JavaScript? | Use |
+| Can the code that creates the markup call a builder function? | Use |
 | --- | --- |
-| **Yes.** React, Astro, a Node server, or an app with no server at all | `lt.field()`, `lt.tabs()`, `lt.popover()`, `lt.suggestion()`, `lt.dialog()`, `lt.errorSummary()`. The attributes are already in the HTML |
-| **No.** A Go template, a PHP file, a Razor view, a CMS or hand-written HTML | The structure, with `for` and `id` on the field. The component sets the roles, the wiring and the ids on help texts and lists in the browser |
+| **Yes.** React, Astro, a Node server, an app with no server at all, or a Kotlin or Java server | `lt.field()`, `lt.tabs()`, `lt.popover()`, `lt.suggestion()`, `lt.dialog()`, `lt.errorSummary()`, or `Lt.field()` and the others in Kotlin and Java. The attributes are already in the HTML |
+| **No.** A Go template, a PHP file, a Razor view, a JTE or Thymeleaf template, a CMS or hand-written HTML | The structure, with `for` and `id` on the field. The component sets the roles, the wiring and the ids on help texts and lists in the browser |
 
-The builder functions are TypeScript. If the code that creates the HTML can call them, that is the shortest path: the browser needs no registered component for the semantics to be right. If it cannot, the component fills in what is missing, leaves what the server wrote, and sets it again if a patch removes it. `<lt-field>` does not need the component at all when `lt.field()` has written the field, and a dialog does not need it when the app calls `showModal()` itself. The others need it regardless, for the behaviour.
+The builder functions are TypeScript, with the same functions in Kotlin and Java, `Lt.field()` and the others (see [Kotlin and Java](/kotlin/)). If the code that creates the HTML can call them, that is the shortest path: the browser needs no registered component for the semantics to be right. If it cannot, the component fills in what is missing, leaves what the server wrote, and sets it again if a patch removes it. `<lt-field>` does not need the component at all when `lt.field()` has written the field, and a dialog does not need it when the app calls `showModal()` itself. The others need it regardless, for the behaviour.
 
 ### The behaviour: always the component
 
@@ -168,11 +168,11 @@ If the server alone should decide the state, say so on the host element:
 
 Then the component does not restore what the user did, and each update decides. That is the option a server needs when it should be able to move the tab itself. The component still does the wiring and the keyboard. What the attribute means for each component is on the pages for [the tabs](/components/tabs/#when-the-server-decides-the-tab), [the dialog](/components/dialog/#attributes), [the popover](/components/popover/#attributes) and [the suggestion field](/components/suggestion/#attributes).
 
-## When the markup is not made with JavaScript
+## When the markup is not made with a builder function
 
-`lt.field()` is a TypeScript function. If you create the markup with JavaScript, you call it, and it does not matter where the code runs: React, Astro, a Node server or an app with no server at all.
+`lt.field()` is a TypeScript function, and `Lt.field()` the same function in Kotlin and Java. If the code that creates the markup can call one of them, you call it, and it does not matter where the code runs: React, Astro, a Node server, a Kotlin server or an app with no server at all.
 
-If the markup comes about without JavaScript, in a Go template, a PHP file, a Razor view or hand-written HTML, that option does not exist. Then `<lt-field>` does the same wiring in the browser instead. That is all a page the server sends once needs.
+If the markup comes about in a Go template, a PHP file, a Razor view or hand-written HTML, that option does not exist. Then `<lt-field>` does the same wiring in the browser instead. That is all a page the server sends once needs.
 
 ### When the server sends the same region again
 
@@ -250,6 +250,12 @@ Then the tabs and the form are not touched at all, and nothing can be
 lost. This is the usual way to use Datastar, and it removes the whole
 problem.
 
+Send a field and its error text in the same patch. If the server clears an
+error by sending only the `<input>`, the old error text stays visible, and
+`<lt-field>` reads a visible error text as invalid, so it writes
+`aria-invalid` back. Without `<lt-field>`, a patch with only the error text
+leaves the field with the wiring from the render before.
+
 The rest of this section applies when you still have to send a larger region
 again.
 
@@ -286,9 +292,10 @@ the help text and the error message, which hold nothing the user can lose. If
 the template renders the error message only when the field is invalid, the field is valid when it is not
 there.
 
-This holds whatever language the server is written in. A Go template, a
-PHP file or a Ktor app writes the same thing, and none of them needs to
-know the rules. That is the whole point of the wiring living in the component.
+This holds whatever language the server is written in. A Go template or a
+PHP file writes the same thing, and neither needs to know the rules. A Kotlin
+or Java server can call `Lt.field()` instead, which writes the whole wiring on
+every render. That is the whole point of the wiring living in the component.
 
 The patch tears the wiring away, since none of it was in the HTML the server
 sent. The component sees that it is gone, and sets it again. The ids on
@@ -330,8 +337,10 @@ is tied to the link itself, and the text the user typed is in the field itself.
 If the element is replaced, it is gone, and no component can bring it back.
 
 The morph recognises an element by its id. An element without an id is kept. An
-element with an id the server did not send is replaced: Datastar and idiomorph both
-do this, on purpose. That is why the components never write an id on the field in
+element with an id the server did not send is replaced. Neither Datastar nor
+idiomorph documents what happens to an element without an id; this is what
+`update.browser.test.ts` checks against Datastar 1.0.4 and idiomorph 0.8.0, in
+all three engines. That is why the components never write an id on the field in
 `<lt-field>` and `<lt-suggestion>`. `for` and `id` are written by the template, as HTML
 requires anyway for the field to have a name before the script has run, or else
 the label wraps the field and no id is needed. The latter has a cost: without an id
@@ -479,7 +488,7 @@ Two components cannot follow the rule, and they are described in [the architectu
 
 [`<lt-toast>`](/components/toast/) shows messages the app creates while the page is open. The server has no version of them to send.
 
-Both must have `data-ignore-morph`, which tells the morph to leave the content alone. So should [`<lt-session-timeout>`](/components/session-timeout/): the dialog is your markup, but the number is written by the component, and a morph would empty it until the next tick. `open`, which `showModal()` sets, the component restores itself. The region in [`<lt-suggestion>`](/components/suggestion/) that announces the number of matches does not need it: if a patch empties it, the component writes the number again. The builder functions write the attribute where it is needed. If you write the markup by hand, in a Go or Kotlin template, you have to write it yourself: the components do not set it.
+Both must have `data-ignore-morph`, which tells the morph to leave the content alone. So should [`<lt-session-timeout>`](/components/session-timeout/): the dialog is your markup, but the number is written by the component, and a morph would empty it until the next tick. `open`, which `showModal()` sets, the component restores itself. The region in [`<lt-suggestion>`](/components/suggestion/) that announces the number of matches does not need it: if a patch empties it, the component writes the number again. The builder functions write the attribute where it is needed. If the markup comes from a template that cannot call a builder function, such as Go or JTE, you write it yourself: the components do not set it.
 
 Repair is not enough here. An attribute the component set itself, it can set again. A message it created, and that a patch emptied, is gone. The name `data-ignore-morph` is the morpher's own, not LO-TEK's.
 

@@ -10,4 +10,11 @@ repositories {
 dependencies {
     // Turns the WebAssembly module into JVM bytecode when the package is built.
     implementation("com.dylibso.chicory:build-time-compiler:1.7.5")
+    testImplementation(kotlin("test"))
+    testImplementation("com.google.code.gson:gson:2.11.0")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging { events("failed") }
 }

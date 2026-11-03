@@ -68,6 +68,33 @@ const show = (color: AlertColor, text: string) => {
 If the colour comes from a response from outside, validate it with `lt.alert.isColor(x)`. `lt.alert.title` gives the class for the heading. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.alerts() {
+    div {
+        lt(Lt.alert())
+        p { lt(Lt.alert.title); +"Incident LAT-0412 has been logged" }
+        p { +"The duty crew reports back within the hour." }
+    }
+    div { lt(Lt.alert(color = AlertColor.INFO)); p { +"The console has been updated. You need to sign in again." } }
+    div { lt(Lt.alert(color = AlertColor.SUCCESS)); p { +"Relay 14 is back. Traffic for sector 9 runs through it again." } }
+    div { lt(Lt.alert(color = AlertColor.WARNING)); p { +"Someone is on the wire in sector 3." } }
+    div {
+        lt(Lt.alert(color = AlertColor.DANGER))
+        p { lt(Lt.alert.title); +"Sector 9 is dark" }
+        p { +"Crews are on the way." }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-color` | Used for |

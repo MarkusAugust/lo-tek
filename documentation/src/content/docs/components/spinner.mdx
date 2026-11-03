@@ -24,7 +24,7 @@ A ring that spins while something loads. If you know how long it takes, or how f
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<span {...lt.spinner({ size: "small" })} aria-hidden="true" />
+<span {...lt.spinner({ size: "small" })} />
 ```
 
 The import goes to `/react` here, since the block is JSX. From there the keys are called `className` and `htmlFor`. In Astro and anything else without React you import `@lo-tek/interfaces` and get `class` and `for`.
@@ -39,7 +39,24 @@ const ring = document.querySelector<HTMLElement>("#waiting")
 lt.setAttributes(ring, lt.spinner({ size: "small", label: "Loading sectors" }))
 ```
 
-`label` gives both `role="status"` and `aria-label`, since the ring has no name without both. If you leave it out, the ring is just a shape. See [Type-safe use](../../type-safe-use/).
+`label` gives both `role="status"` and `aria-label`, since the ring has no name without both. If you leave it out, the ring is just a shape, and `lt.spinner()` hides it from screen readers with `aria-hidden="true"`. So give the name through `label`, never as `aria-label` by hand: a hand-written name would sit on a ring that is hidden. See [Type-safe use](../../type-safe-use/).
+
+</Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.spinners() {
+    span { lt(Lt.spinner(size = Size.SMALL)) }
+    span { lt(Lt.spinner()) }
+    span { lt(Lt.spinner(size = Size.LARGE)) }
+}
+```
 
 </Fragment>
 </Example>
@@ -61,7 +78,7 @@ Someone listening to the page gets nothing from a ring. Let a visible text carry
 </p>
 `} />
 
-If the text is visible, set `aria-hidden="true"` on the ring. If the ring also has a name, the wait is otherwise announced twice.
+If the text is visible, the ring has no `label`, and `lt.spinner()` then writes `aria-hidden="true"` on it. If the ring also had a name, the wait would be announced twice.
 
 The paragraph is announced when the text is inserted into it. So leave `<p role="status">` empty in the page beforehand, and write the ring and the text into it when the wait begins.
 

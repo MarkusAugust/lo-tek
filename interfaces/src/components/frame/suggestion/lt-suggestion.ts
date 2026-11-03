@@ -64,9 +64,10 @@ const OPTION_SELECTOR = LT_SUGGESTION_PARTS.option
 /**
  * The keyboard and the filtering in a field with a suggestion list.
  *
- * The server writes the field and the list. When the markup is made with
- * JavaScript, `lt.suggestion()` writes the roles, the ids and the wiring.
- * When it comes from a template without JavaScript, the template writes
+ * The server writes the field and the list. When the code that renders the
+ * markup can call a builder function, `lt.suggestion()` or `Lt.suggestion()`
+ * writes the roles, the ids and the wiring. When it comes from a template that
+ * cannot, the template writes
  * `for` on the label and `id` on the field, or wraps the field in the label,
  * which HTML requires for the field to have a name without JavaScript. The
  * rest is enough: a `.lt-suggestion__list` with `<li>` and a

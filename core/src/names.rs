@@ -27,7 +27,7 @@ use crate::types::*;
 
 const ICON_LINK: &str = "https://lo-tek.sobernetics.no/components/icon/";
 
-const HOW: &str = "Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it.";
+const HOW: &str = "Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it.";
 
 /// The roles of the fields: their name is a label.
 const FIELDS: &[&str] = &[

@@ -47,6 +47,22 @@ function update(isValid: boolean) {
 [`lt.field()`](../field/) sets all three things that have to agree: `data-state`, `aria-invalid` and `aria-describedby`. `field.error` contains `hidden` when the field is valid, and the error text is then left out of `aria-describedby` too, since a hidden message should not be pointed to.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.errors() {
+    p { lt(Lt.errorText()); +"Enter the fixer's address with an at sign, for example fixer@relay.example." }
+    p { lt(Lt.errorText(variant = ErrorTextVariant.WARNING)); +"No fixer on file has this address. Check it before the board writes." }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

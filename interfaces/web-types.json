@@ -8,7 +8,7 @@
       "elements": [
         {
           "name": "lt-field",
-          "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup produced without JavaScript. When the markup is produced with JavaScript, use `lt.field()` instead.",
+          "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
           "doc-url": "https://lo-tek.sobernetics.no/components/field/",
           "attributes": [
             {

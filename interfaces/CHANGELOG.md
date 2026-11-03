@@ -24,8 +24,74 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **`lt.spinner()` without `label` writes `aria-hidden="true"`,** as
+  `lt.icon()` without a label does. The page told you to write it yourself,
+  so the HTML tab had it and the TypeScript tab had it by hand. A spinner
+  named by hand, `lt.spinner()` with `role="status"` and `aria-label` written
+  next to it, is now hidden from screen readers: pass the name as `label`,
+  which gives the role and the name and no `aria-hidden`.
+- **In Kotlin every builder function is a member of `Lt`.** `field`,
+  `suggestion`, `tabs`, `errorSummary`, `label` and `legend` were extension
+  functions on `Lt` in `Handwritten.kt`. A call such as `Lt.field(…)` reads
+  the same, but `import no.lotek.field` no longer compiles and has to go,
+  and code compiled against the old version calls a method that is gone, so
+  it must be compiled again.
+
+### Added
+
+- **Each builder function in the manifest has `description`, `example` and
+  `docs`, and an option with a closed list has `default`.** The description
+  is the comment on the function in TypeScript without the code examples,
+  the example is those examples, and `docs` is the component page. The
+  default is read from the answers: the value that gives the same answer as
+  leaving the option out, and the build stops when the comment on the
+  option names another one. A builder function with several sets has
+  `parts`, which says which part of a web component each set fills:
+  `field.control` fills `control` in `lt-field`, with its selector there.
+  All are optional, so `schemaVersion` is still 1, and a manifest from
+  before reads as before.
+- **The Kotlin API has the documentation from the manifest.** Every member
+  of `Lt` has the description, an example call, a link to the component
+  page and an `@param` per option with the default as the Kotlin constant,
+  in the sources jar, so IntelliJ shows it in Quick Documentation.
+- **The builder functions can be called from Java.** They are `@JvmStatic`
+  and `@JvmOverloads`, with the required options first, `ButtonVariant.of(…)`
+  and the other lookups are static, and `Lt.card.title` is a field:
+  `Lt.field("fixer")` rather than `HandwrittenKt.field(Lt.INSTANCE, "fixer",
+  null, …)`. In Kotlin the options are passed by name as before, but
+  `Lt.suggestion` called with its options in order now has `id` first.
+  `JavaCallTest` compiles the calls in Java.
+- **`lo-tek-kotlinx-html` has one function per web component**, such as
+  `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
+  elements in HTML.
+- **`live-templates-kotlin.xml`, live templates for Kotlin in IntelliJ,**
+  one per web component, generated from the kotlinx.html tab on its page.
+  The ids are empty variables, as in `live-templates.xml`.
+- **Every component page has a kotlinx.html tab,** for a Kotlin or Java
+  server with `lo-tek-kotlinx-html`. `RecipesTest` compiles each, renders it,
+  and requires the elements, the texts, the classes and the attributes of
+  the page's HTML recipe, with `lotek check` on the result.
+
 ### Changed
 
+- **The snippets and the live templates leave the ids empty.** They filled
+  in the id from the recipe, such as `codename`, and a snippet pasted twice
+  on a page, or in a loop, then gave two fields with the same id, which a
+  morph matches wrongly. The id is still one tab stop, mirrored in `for`
+  and `href`.
+- **The documentation says "with a builder function" where it said "with
+  JavaScript".** A Kotlin or Java server renders without JavaScript and calls
+  `Lt.field()` all the same, so the line between `lt.field()` and
+  `<lt-field>` is whether the code that renders can call a builder function.
+  The description of `<lt-field>` in the vocabulary, which the editors show,
+  says the same.
+- **The documentation of every id option says to make it from a key in the
+  data**, never from the loop index or a counter, so it is unique on the
+  page and the same on every render. The message when `Lt.field` and the
+  others get an empty id in Kotlin says the same; it used to suggest "the
+  field's name or another fixed id", which in a loop is the duplicate.
 - **The examples come from the world LO-TEK belongs to, not from a housing
   benefit application.** Every recipe, demo, snippet, live template and
   rulebook now shows a system LO-TEK delivered to a client: the job
@@ -37,6 +103,18 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   without a name suggests `aria-label="Parts of the claim"`.
 
 ### Fixed
+
+- **The recipe for the connection status reports a server that stopped
+  answering.** Its script declared `saveRoute` inside a module, where no
+  other code on the page could call it, and called the methods without
+  waiting for the registration. It now puts `saveRoute` on `window`, where
+  the app's other scripts call it, as a comment there shows. It sends the
+  request first, counts a request without an answer and a gateway's 502, 503
+  or 504 as a lost connection and any other answer as the server being
+  there. It reports with `reportSuccess` and `reportFailure`, which wait for
+  the registration, and returns the answer without awaiting them. The React
+  tab and the example under "`navigator.onLine` is not enough" follow the
+  same rule.
 
 - **A date or time field fits its container in iOS Safari.** With the
   native appearance, `.lt-input` with `data-variant` `date`, `time` or

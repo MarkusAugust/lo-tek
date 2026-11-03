@@ -27,8 +27,6 @@ import no.lotek.LotekWebJar
 import no.lotek.InputType
 import no.lotek.RequiredMarker
 import no.lotek.assertLotek
-import no.lotek.errorSummary
-import no.lotek.field
 
 /**
  * That a page built with kotlinx.html and LO-TEK's builder functions is

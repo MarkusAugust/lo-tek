@@ -50,7 +50,7 @@
     display: none;
   }
 
-  /* Markup written without JavaScript arrives without `hidden` on the list,
+  /* Markup written without a builder function arrives without `hidden` on the list,
      and the web component only closes it once it is registered. Until then
      it is hidden, so it does not stand open below a field nobody has
      touched. */

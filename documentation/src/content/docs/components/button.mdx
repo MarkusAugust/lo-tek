@@ -86,6 +86,24 @@ If the team changes framework, it is this one component that is rewritten, not t
 `ComponentProps<"button">` includes `ref`, which since React 19 is an ordinary prop and is passed through `{...rest}` without `forwardRef`. `ComponentPropsWithRef` and `ComponentPropsWithoutRef` are no longer needed.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.buttons() {
+    button { lt(Lt.button()); +"Order the job" }
+    button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); +"Save draft" }
+    button { lt(Lt.button(variant = ButtonVariant.GHOST)); +"Attach floor plans" }
+    button { lt(Lt.button(variant = ButtonVariant.DANGER)); +"Cancel the job" }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

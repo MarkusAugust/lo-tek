@@ -44,6 +44,27 @@ lt.setAttributes(rule, lt.divider({ variant: "subtle" }))
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.recovery() {
+    p { +"The recovery order has been registered." }
+    hr { lt(Lt.divider()) }
+    p { +"The appraisal follows within three days." }
+    hr { lt(Lt.divider(variant = DividerVariant.STRONG)) }
+    p { +"Next of kin: not found." }
+    hr { lt(Lt.divider(variant = DividerVariant.SUBTLE)) }
+    p { +"Recovery reference LR-2079-0112." }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

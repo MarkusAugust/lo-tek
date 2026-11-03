@@ -4,10 +4,11 @@ Completion, hover, snippets, diagnostics and quick fixes for
 [LO-TEK](https://lo-tek.sobernetics.no/): the `<lt-*>` elements, the `lt-` classes
 and their variants, in HTML and in template languages.
 
-If you write JSX, you do not need the extension: there the same comes from the types
-in `@lo-tek/interfaces/react-jsx`. The extension is for markup that is produced
-without JavaScript, such as a Go template, a Razor view or hand-written HTML,
-where no compiler looks at the attributes.
+If you write JSX, or call `Lt` in Kotlin, you do not need the extension: there the
+same comes from the types in `@lo-tek/interfaces/react-jsx` and from the enums. The
+extension is for markup written where no builder function can be called, such as a
+Go template, a Razor view or hand-written HTML, where no compiler looks at the
+attributes.
 
 ## Getting started
 

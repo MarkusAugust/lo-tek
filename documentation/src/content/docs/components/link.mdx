@@ -47,6 +47,25 @@ else link?.removeAttribute("href")
 `href` belongs to the app, not the builder function, so you set and remove it yourself. If the payout statement becomes ready later, run the lines again. `aria-disabled`, `role` and `tabindex` are then removed, and the link works again. `lt.link()` manages all three, so a `role` or `tabindex` you set yourself on the same link is removed too. If the link needs them, set them after `setAttributes`.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.filed() {
+    p {
+        +"Your claim has been filed. The terms that apply are in "
+        a(href = "#") { lt(Lt.link()); +"the small print" }
+        +", and we will write to you when the claim has been processed."
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 ## Disabled link
