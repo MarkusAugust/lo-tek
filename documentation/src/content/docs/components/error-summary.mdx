@@ -10,7 +10,7 @@ import ScreenReaderContract from "../../../components/ScreenReaderContract.astro
 When a submission stops, the user should learn why, and reach the field in one click. The server writes the heading and the list. The component does the two things the browser does not do by itself: it moves focus here when the box becomes visible, and it gives focus to the control itself when a link is followed.
 
 :::note[Two routes to the same markup]
-When the markup is made with JavaScript, `lt.errorSummary({ id })` gives the box the class, `role="alert"`, `tabindex="-1"`, and its name from the heading, whose id it makes from the box's (`errors-title`), already in the HTML. When it is made without JavaScript, the template writes the heading's `id` and the box's `aria-labelledby`, as it writes `for` and `id` on a field, and the component sets the class, the role and `tabindex`. The component never writes an id: a morph replaces an element whose id the server did not send. Focus moving here, and on to the field, comes from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
+When the code that renders the markup can call a builder function, in TypeScript, Kotlin or Java, `lt.errorSummary({ id })` gives the box the class, `role="alert"`, `tabindex="-1"`, and its name from the heading, whose id it makes from the box's (`errors-title`), already in the HTML. When it cannot, in a Go template, PHP or plain HTML, the template writes the heading's `id` and the box's `aria-labelledby`, as it writes `for` and `id` on a field, and the component sets the class, the role and `tabindex`. The component never writes an id: a morph replaces an element whose id the server did not send. Focus moving here, and on to the field, comes from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
 :::
 
 ```ts
@@ -181,7 +181,7 @@ defineLtErrorSummary()
 
     If the form fails again while the box is already visible, focus does not move, because the signal is that `hidden` is removed. Send two patches in the same response then: first the box with `hidden`, then the box without. The component sees that it was hidden and shown again, and moves focus. See [The markup](#the-markup).
   </TabItem>
-  <TabItem label="Kotlin">
+  <TabItem label="kotlinx.html">
     On a Kotlin server you call `Lt.errorSummary()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the heading and the links, and the box is hidden when there are no errors.
 
     ```kotlin
@@ -245,7 +245,7 @@ const box = lt.errorSummary({ count: errors.length, id: "errors" })
 </lt-error-summary>
 ```
 
-The server writes the heading and the list. The component used to create the heading itself, and then it disappeared at the first update from the server and never came back. `lt.errorSummary({ id })` writes the class, `role="alert"`, `tabindex="-1"` and the name from the heading when the markup is made with JavaScript; otherwise the component sets the class, the role and `tabindex`, and puts them back if a patch removes them. If the server has written a different role, it stays. The name needs an id on the heading, which the template writes: when the heading has one and the box no name, the component points `aria-labelledby` at it, and follows a heading a patch has replaced; when the heading has none, it says so in the console. See [Markup and behaviour](/markup-and-behaviour/).
+The server writes the heading and the list. The component used to create the heading itself, and then it disappeared at the first update from the server and never came back. When the code that renders the markup can call a builder function, `lt.errorSummary({ id })` or `Lt.errorSummary()` writes the class, `role="alert"`, `tabindex="-1"` and the name from the heading; otherwise the component sets the class, the role and `tabindex`, and puts them back if a patch removes them. If the server has written a different role, it stays. The name needs an id on the heading, which the template writes: when the heading has one and the box no name, the component points `aria-labelledby` at it, and follows a heading a patch has replaced; when the heading has none, it says so in the console. See [Markup and behaviour](/markup-and-behaviour/).
 
 When there are no errors, the builder function sets `hidden` on the box. An empty summary with the heading "The form has 0 errors" is worse than none.
 

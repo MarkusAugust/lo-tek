@@ -6,14 +6,14 @@ import com.intellij.codeInsight.template.impl.TemplateSettings
 import com.intellij.lang.annotation.HighlightSeverity
 
 /**
- * The Kotlin live templates: one per page with a Kotlin tab, and each one
+ * The Kotlin live templates: one per page with a kotlinx.html tab, and each one
  * compiles where it is inserted, at the top level of a file, with the names
  * from LO-TEK shortened to imports.
  */
 class KotlinLiveTemplateTest : KotlinTestCase() {
     private val templates get() = TemplateSettings.getInstance().templates.filter { it.groupName == "LO-TEK Kotlin" }
 
-    fun `test there is a template for every Kotlin tab`() {
+    fun `test there is a template for every tab for kotlinx html`() {
         val names = templates.map { it.key }.sorted()
         assertEquals(listOf("ltdialog", "lterrorsummary", "ltfield", "ltpopover", "ltsessiontimeout", "ltsuggestion", "lttabs"), names)
     }

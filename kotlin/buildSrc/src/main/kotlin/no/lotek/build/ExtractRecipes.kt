@@ -13,12 +13,12 @@ import org.gradle.api.tasks.TaskAction
  * Takes the Kotlin recipes out of the component pages, so the tests can
  * compile them and compare what they render with the page's HTML recipe.
  *
- * A page with a `<TabItem label="Kotlin">` has a ```kotlin block there with
+ * A page with a `<TabItem label="kotlinx.html">` has a ```kotlin block there with
  * one `fun FlowContent.<name>()`, whose parameters all have a default, so the
  * test can call it without arguments. It is written as a source file in a package
  * of its own, `no.lotek.html.recipes.<page>`, and the blocks in the page's
  * "Plain HTML" tab as a resource next to it. `Recipes.kt` lists them, so a
- * Kotlin tab on a new page is tested without anything else to write.
+ * kotlinx.html tab on a new page is tested without anything else to write.
  *
  * Run by the tests in `kotlinx-html`, not by the build of the package.
  */
@@ -41,16 +41,16 @@ abstract class ExtractRecipes : DefaultTask() {
         val imports = mutableListOf<String>()
         for (page in pages.files.sortedBy { it.name }) {
             val text = page.readText()
-            val starts = tabStarts(text, "Kotlin")
-            // A Kotlin tab written another way, `label='Kotlin'` or with an icon, would be skipped in silence.
-            val loose = Regex("""<TabItem\b[^>]*Kotlin[^>]*>""").findAll(text).count()
-            if (loose != starts.size) error("${page.name}: write the Kotlin tab as <TabItem label=\"Kotlin\">, or the recipe test does not find it.")
+            val starts = tabStarts(text, "kotlinx.html")
+            // A kotlinx.html tab written another way, `label='kotlinx.html'` or with an icon, would be skipped in silence.
+            val loose = Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>""").findAll(text).count()
+            if (loose != starts.size) error("${page.name}: write the kotlinx.html tab as <TabItem label=\"kotlinx.html\">, or the recipe test does not find it.")
             if (starts.isEmpty()) continue
             val name = page.nameWithoutExtension
-            val where = "${page.name}, the Kotlin tab"
-            if (starts.size > 1) error("${page.name} has ${starts.size} Kotlin tabs. The test compares one per page.")
+            val where = "${page.name}, the kotlinx.html tab"
+            if (starts.size > 1) error("${page.name} has ${starts.size} kotlinx.html tabs. The test compares one per page.")
             val kotlin = tabAt(text, starts.single())
-            // The HTML recipe is the one in the same `<Tabs>` as the Kotlin tab.
+            // The HTML recipe is the one in the same `<Tabs>` as the kotlinx.html tab.
             val groupStart = text.lastIndexOf("<Tabs>", starts.single())
             val groupEnd = text.indexOf("</Tabs>", starts.single())
             if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < starts.single()) {
@@ -62,7 +62,7 @@ abstract class ExtractRecipes : DefaultTask() {
             val function = Regex("""fun FlowContent\.(\w+)\(""").find(block)?.groupValues?.get(1)
                 ?: error("$where: the recipe must be a `fun FlowContent.name()`.")
             val plain = tabStarts(group, "Plain HTML").singleOrNull()
-                ?: error("${page.name}: the <Tabs> with the Kotlin tab must have one Plain HTML tab to compare it with.")
+                ?: error("${page.name}: the <Tabs> with the kotlinx.html tab must have one Plain HTML tab to compare it with.")
             val html = blocks(tabAt(group, plain), "html")
             if (html.isEmpty()) error("${page.name}: the Plain HTML tab has no ```html block.")
             val pkg = "no.lotek.html.recipes.${name.replace("-", "")}"
@@ -73,7 +73,7 @@ abstract class ExtractRecipes : DefaultTask() {
             imports.add("import $pkg.$function as $alias")
             entries.add("    Recipe(\"$name\", \"$function\") { $alias() },")
         }
-        if (entries.isEmpty()) error("No component page has a Kotlin tab, so the recipe test would check nothing.")
+        if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
         val registry = sourceDir.resolve("no/lotek/html/recipes").apply { mkdirs() }
         registry.resolve("Recipes.kt").writeText(
             """
@@ -95,7 +95,7 @@ abstract class ExtractRecipes : DefaultTask() {
 
     /**
      * Where each `<TabItem label="…">` with this label starts. The pattern
-     * allows the spacing MDX allows, and `RecipesTest` counts the Kotlin tabs
+     * allows the spacing MDX allows, and `RecipesTest` counts the kotlinx.html tabs
      * in the pages with the same pattern, so a tab this task missed fails it.
      */
     private fun tabStarts(text: String, label: String): List<Int> =

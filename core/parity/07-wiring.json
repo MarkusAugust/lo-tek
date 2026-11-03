@@ -6,14 +6,14 @@
       "end": 26,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "for=\"does-not-exist\" points at the id \"does-not-exist\", which does not exist on the page. The screen reader loses the label. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "for=\"does-not-exist\" points at the id \"does-not-exist\", which does not exist on the page. The screen reader loses the label. Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it."
     },
     {
       "start": 44,
       "end": 49,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/input/",
-      "message": "<input> has no label: no <label for> pointing at it, no <label> around it, and no aria-label or aria-labelledby. A screen reader announces the field without a name. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it.",
+      "message": "<input> has no label: no <label for> pointing at it, no <label> around it, and no aria-label or aria-labelledby. A screen reader announces the field without a name. Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it.",
       "fix": {
         "title": "Add a label",
         "edits": [
@@ -31,7 +31,7 @@
       "end": 116,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "aria-describedby=\"budget-help nowhere\" points at the id \"nowhere\", which does not exist on the page. The screen reader loses the description. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "aria-describedby=\"budget-help nowhere\" points at the id \"nowhere\", which does not exist on the page. The screen reader loses the description. Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it."
     },
     {
       "start": 194,

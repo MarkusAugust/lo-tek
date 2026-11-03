@@ -269,10 +269,10 @@ const TAB_NAMES = new Set([
   "Astro",
   "Datastar",
   "TypeScript",
-  // The Kotlin tabs are compiled, rendered and compared with the page's HTML
+  // The kotlinx.html tabs are compiled, rendered and compared with the page's HTML
   // recipe by `RecipesTest` in `kotlin/kotlinx-html`, which no text rule here
   // could do.
-  "Kotlin",
+  "kotlinx.html",
 ])
 
 /**

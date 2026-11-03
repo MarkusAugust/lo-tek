@@ -327,9 +327,8 @@ the attribute names, and that does not apply here.
 
 ## 6. Typed builder functions
 
-If the project has TypeScript, the classes can come from `lt` instead of being
-written as strings. A variant that does not exist then becomes a compile
-error:
+The classes can come from `lt` instead of being written as strings. With
+TypeScript, a variant that does not exist then becomes a compile error:
 
 ```ts
 import { lt } from "@lo-tek/interfaces"

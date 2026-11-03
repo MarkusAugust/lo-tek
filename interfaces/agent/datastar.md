@@ -381,8 +381,8 @@ The attribute exists on `<lt-tabs>`, `<lt-popover>`, `<lt-dialog>` and
 `<lt-suggestion>`. Without it the server and the component would fight over
 the same state.
 
-`lt` can be used on the server or in a build step. Datastar does not need it
-in the browser.
+`lt`, or `Lt` on a Kotlin or Java server, can be used on the server or in a
+build step. Datastar does not need it in the browser.
 
 ## Known pitfalls
 

@@ -523,8 +523,15 @@ and web components, that is, things the browser understands directly, so a
 Go template gets the same components as a React app without taking in any
 JavaScript framework.
 
+In Kotlin or Java code that writes the HTML, the builder functions are
+\`Lt.field()\`, \`Lt.button()\` and the others, with enums for the values,
+and \`Lt.field()\` makes \`<lt-field>\` unnecessary. See
+https://lo-tek.sobernetics.no/kotlin/. The rest of this file is for templates
+that cannot call them.
+
 It is also the environment with the smallest safety net. No compiler looks at
-the attributes in a template, and no type stops \`data-variant="outlined"\`.
+the attributes in a template that cannot call a builder function, and no type
+stops \`data-variant="outlined"\`.
 That is why item 5 applies more strictly here than anywhere else: the check is
 the only thing that reads your markup.`,
     stylesheetRule: `**One \`<link>\` to \`lotek.css\` in the page template,** once
@@ -682,7 +689,8 @@ template languages. WebStorm and IntelliJ IDEA Ultimate read
 HTML in a string marked with \`@Language("HTML")\` or \`// language=HTML\`.
 
 On the JVM without Node there is LO-TEK for Kotlin
-(https://lo-tek.sobernetics.no/kotlin/). \`lotek.jar\` is the command line as
+(https://lo-tek.sobernetics.no/kotlin/), with the builder functions as \`Lt\`
+and the check as \`assertLotek(html)\`. \`lotek.jar\` is the command line as
 \`java -jar lotek.jar check\`, and is attached to every release on GitHub:
 https://github.com/MarkusAugust/lo-tek/releases/latest. The Maven package
 \`io.github.markusaugust:lo-tek-interfaces\` with \`assertLotek(html)\` and the
@@ -776,9 +784,8 @@ The markup is ordinary HTML, in whatever template your framework uses:
 rewrites the attribute names, and that does not apply here.`,
     extra: `## 6. Typed builder functions
 
-If the project has TypeScript, the classes can come from \`lt\` instead of
-being written as strings. A variant that does not exist then becomes a
-compile error:
+The classes can come from \`lt\` instead of being written as strings. With
+TypeScript, a variant that does not exist then becomes a compile error:
 
 \`\`\`ts
 import { lt } from "@lo-tek/interfaces"
@@ -1275,8 +1282,8 @@ The attribute exists on \`<lt-tabs>\`, \`<lt-popover>\`, \`<lt-dialog>\` and
 \`<lt-suggestion>\`. Without it the server and the component would fight over
 the same state.
 
-\`lt\` can be used on the server or in a build step. Datastar does not need it
-in the browser.`,
+\`lt\`, or \`Lt\` on a Kotlin or Java server, can be used on the server or in
+a build step. Datastar does not need it in the browser.`,
     pitfalls: [
       BUNDLE_MISSING,
       NO_DEFINE,

@@ -129,7 +129,7 @@ fun FlowContent.fixerField(invalid: Boolean) {
 }
 ```
 
-Each component page with a builder function that gives several sets has a Kotlin tab in this form. `RecipesTest` compiles every one, renders it, and compares it with the HTML recipe on the same page.
+Each component page with a builder function that gives several sets has a kotlinx.html tab in this form. `RecipesTest` compiles every one, renders it, and compares it with the HTML recipe on the same page.
 
 Several sets are applied in order, and a later one wins, like `{...a} {...b}` in JSX. The classes are added to those the tag has, so `div(classes = "my-own") { lt(Lt.card()) }` gives both. `InputType` is imported on its own, since kotlinx.html has one with the same name.
 
@@ -181,7 +181,7 @@ fun `the form is wired correctly`() {
 
 ```text
 LO-TEK found 2 findings:
-12:30: error: for="fixer" points to the id "fixer", which does not exist on the page. … [id-not-found]
+12:30: error: for="fixer" points at the id "fixer", which does not exist on the page. … [id-not-found]
 18:9: warning: The class "lt-buton" does not exist in LO-TEK. Did you mean lt-button? [unknown-class]
 ```
 

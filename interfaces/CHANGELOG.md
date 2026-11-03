@@ -61,10 +61,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
   elements in HTML.
 - **`live-templates-kotlin.xml`, live templates for Kotlin in IntelliJ,**
-  one per page with a Kotlin tab, generated from the tab. The ids are empty
+  one per page with a kotlinx.html tab, generated from the tab. The ids are empty
   variables, as in `live-templates.xml`.
 - **The pages for field, suggestion, tabs, popover, dialog, error summary
-  and session timeout have a Kotlin tab.** `RecipesTest` compiles each,
+  and session timeout have a kotlinx.html tab.** `RecipesTest` compiles each,
   renders it, and requires the elements, the texts, the classes and the
   attributes of the page's HTML recipe, with `lotek check` on the result.
 
@@ -75,6 +75,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   on a page, or in a loop, then gave two fields with the same id, which a
   morph matches wrongly. The id is still one tab stop, mirrored in `for`
   and `href`.
+- **The documentation says "with a builder function" where it said "with
+  JavaScript".** A Kotlin or Java server renders without JavaScript and calls
+  `Lt.field()` all the same, so the line between `lt.field()` and
+  `<lt-field>` is whether the code that renders can call a builder function.
+  The description of `<lt-field>` in the vocabulary, which the editors show,
+  says the same.
 - **The documentation of every id option says to make it from a key in the
   data**, never from the loop index or a counter, so it is unique on the
   page and the same on every render. The message when `Lt.field` and the

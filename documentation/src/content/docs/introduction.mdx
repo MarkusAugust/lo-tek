@@ -34,7 +34,7 @@ A web component you put your own HTML elements into. It creates no markup itself
 </lt-field>
 ```
 
-`for` and `id` are in the markup, as HTML requires for the field to have a name without JavaScript. The rest of the wiring, `aria-describedby` and `aria-invalid`, the server writes with `lt.field()`. The component exists for servers that cannot call it, and treats the field as invalid because the error message is visible. The elements stay in plain DOM, so `FormData`, testing tools and form libraries find them as before.
+`for` and `id` are in the markup, as HTML requires for the field to have a name without JavaScript. The rest of the wiring, `aria-describedby` and `aria-invalid`, the web component writes in the browser, and it treats the field as invalid because the error message is visible. Code that can call a builder function, `lt.field()` in TypeScript or `Lt.field()` in Kotlin and Java, writes the same wiring itself and needs no component. The elements stay in plain DOM, so `FormData`, testing tools and form libraries find them as before.
 
 ### standalone
 

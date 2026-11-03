@@ -237,7 +237,7 @@ export class LtDialog extends HostElement {
   }
 
   /**
-   * Fills in what a template without JavaScript did not write: the class on
+   * Fills in what a template without a builder function did not write: the class on
    * the dialog, and the title. The title is what `aria-labelledby` points to
    * when the server wrote it, otherwise the first heading outside the body,
    * and only when the dialog does not already have a name from `aria-label`.

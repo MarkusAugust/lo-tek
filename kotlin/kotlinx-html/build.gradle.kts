@@ -26,7 +26,7 @@ dependencies {
 /*
  * The Kotlin recipes on the component pages, compiled as test sources. The
  * test renders each and compares it with the HTML recipe on the same page,
- * so a Kotlin tab that drifts from the page fails here.
+ * so a kotlinx.html tab that drifts from the page fails here.
  */
 val componentPages = rootDir.resolve("../documentation/src/content/docs/components")
 val extractRecipes = tasks.register<no.lotek.build.ExtractRecipes>("extractRecipes") {
@@ -53,7 +53,7 @@ tasks.test {
     val interfaces = rootDir.resolve("../interfaces")
     inputs.file(interfaces.resolve("manifest/build-cases.json")).withPathSensitivity(PathSensitivity.NONE)
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)
-    // The test counts the Kotlin tabs in the pages itself, so a tab `extractRecipes` missed fails it.
+    // The test counts the kotlinx.html tabs in the pages itself, so a tab `extractRecipes` missed fails it.
     systemProperty("pages", componentPages.absolutePath)
     inputs.dir(componentPages).withPathSensitivity(PathSensitivity.RELATIVE)
     testLogging { events("failed") }

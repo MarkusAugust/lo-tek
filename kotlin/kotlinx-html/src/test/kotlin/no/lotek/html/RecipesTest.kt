@@ -22,7 +22,7 @@ import org.jsoup.nodes.Element
 import org.jsoup.nodes.TextNode
 
 /**
- * The Kotlin tab on a component page renders the markup of the page's HTML
+ * The kotlinx.html tab on a component page renders the markup of the page's HTML
  * recipe, with the builder functions doing the wiring.
  *
  * The HTML recipe is the answer. It is the one checked against the morphers
@@ -31,7 +31,8 @@ import org.jsoup.nodes.TextNode
  * than tested again in a browser. The two are compared as trees, without
  * comments, `<script>` and `<link>`:
  *
- *   - the same elements in the same order, and the same text;
+ *   - the same elements in the same order, and the same text, except a web
+ *     component in [WIRING_ONLY], which the Kotlin recipe may leave out;
  *   - every attribute and class in the HTML recipe, with the same value;
  *   - an attribute or class the HTML recipe lacks only if a builder function
  *     writes it in some answer in the build cases, since the builder
@@ -47,6 +48,16 @@ import org.jsoup.nodes.TextNode
  * resolves, and every field is wired.
  */
 class RecipesTest {
+    /**
+     * The web components that do nothing but the wiring, which a builder
+     * function writes itself. The HTML recipe has them because it has no
+     * builder function, and the Kotlin recipe leaves them out, as the React
+     * tab does: `<lt-field>` is not needed when `Lt.field()` has written the
+     * field (markup-and-behaviour, "The wiring: either the builder function
+     * or the component"). The others carry behaviour, and must be there.
+     */
+    private val WIRING_ONLY = listOf("lt-field")
+
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
         "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant",
@@ -93,20 +104,20 @@ class RecipesTest {
     }
 
     /**
-     * The pages with a Kotlin tab, found more loosely than `ExtractRecipes`
-     * finds them: any `<TabItem` tag with `Kotlin` in it, whatever the quotes,
+     * The pages with a kotlinx.html tab, found more loosely than `ExtractRecipes`
+     * finds them: any `<TabItem` tag with `kotlin` in it, in any case and whatever the quotes,
      * the spacing or the other attributes. The expected number therefore does
      * not come from the list the test goes through.
      */
     private val pagesWithKotlin: List<String> =
         File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
-            .filter { Regex("""<TabItem\b[^>]*Kotlin[^>]*>""").containsMatchIn(it.readText()) }
+            .filter { Regex("""(?i)<TabItem\b[^>]*kotlin[^>]*>""").containsMatchIn(it.readText()) }
             .map { it.nameWithoutExtension }
             .sorted()
 
     @Test
-    fun `every Kotlin tab on the pages is extracted`() {
-        assertTrue(pagesWithKotlin.isNotEmpty(), "found no Kotlin tab in the pages")
+    fun `every tab for kotlinx html on the pages is extracted`() {
+        assertTrue(pagesWithKotlin.isNotEmpty(), "found no kotlinx.html tab in the pages")
         assertEquals(pagesWithKotlin, recipes.map { it.page }.sorted())
     }
 
@@ -123,7 +134,13 @@ class RecipesTest {
             val problems = mutableListOf<String>()
             val ids = mutableMapOf<String, String>()
             val pointers = mutableListOf<Pointer>()
-            compare(Jsoup.parseBodyFragment(expected).body(), Jsoup.parse(page).body(), "body", problems, ids, pointers)
+            val wanted = Jsoup.parseBodyFragment(expected).body()
+            val rendered = Jsoup.parse(page).body()
+            // A web component that only wires is left out where the builder
+            // function does the wiring, so the Kotlin recipe has its children
+            // where the HTML recipe has the component.
+            for (tag in WIRING_ONLY) if (rendered.getElementsByTag(tag).isEmpty()) wanted.getElementsByTag(tag).forEach { it.unwrap() }
+            compare(wanted, rendered, "body", problems, ids, pointers)
             for (p in pointers) {
                 val point = { id: String -> ids[id] ?: id }
                 when {
@@ -143,7 +160,7 @@ class RecipesTest {
             compared += 1
         }
         // The expected number comes from the pages, not from the list the loop went through.
-        assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a Kotlin tab")
+        assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a kotlinx.html tab")
         println("Compared $compared Kotlin recipes with their HTML recipes.")
     }
 

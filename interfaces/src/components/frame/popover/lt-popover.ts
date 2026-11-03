@@ -40,9 +40,9 @@ export const LT_POPOVER_PARTS = {
  * What the top layer does not do is place the panel. `position-anchor` is not
  * yet in every browser, so the position is worked out here.
  *
- * When the markup is made with JavaScript, `lt.popover()` writes the wiring:
- * `aria-controls` on the button, and the class, the id and `popover` on the
- * panel. When the markup comes from a template without JavaScript, the
+ * When the markup is made with a builder function, `lt.popover()` writes the
+ * wiring: `aria-controls` on the button, and the class, the id and `popover`
+ * on the panel. When the markup comes from a template without one, the
  * template writes a button and a panel with the class `lt-popover` and an id:
  * the component sets `popover="manual"` and writes `aria-controls` on the
  * button from the id. Only what is missing, so what the server wrote stays.
