@@ -17,6 +17,7 @@
     "lint": "biome check .",
     "prepare-version": "bun interfaces/scripts/prepare-version.ts",
     "tag": "bun interfaces/scripts/tag.ts",
+    "advisories": "bun scripts/check-advisories.ts",
     "check": "bun scripts/check.ts",
     "check:authors": "bun interfaces/scripts/check-authors.ts"
   },

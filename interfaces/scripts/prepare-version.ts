@@ -191,6 +191,16 @@ if (!lockPattern.test(lock)) {
   )
 }
 
+// The last check before anything is written: a version is not prepared
+// while a known security advisory stands against a dependency.
+const advisories = Bun.spawnSync(
+  ["bun", join(monorepoRoot, "scripts", "check-advisories.ts")],
+  { stdio: ["inherit", "inherit", "inherit"] },
+)
+if (advisories.exitCode !== 0) {
+  stop("Open security advisories, see above. Nothing has been written.")
+}
+
 await Bun.write(
   changelogPath,
   changelog.replace(UNRELEASED, `${UNRELEASED}\n\n## ${newVersion} (${date})`),

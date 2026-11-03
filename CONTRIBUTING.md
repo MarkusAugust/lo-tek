@@ -137,6 +137,8 @@ The commit comes before `check`, not after: `Generated files are up to date` ask
 
 `prepare-version` renames the heading `Unreleased` to the number and the date, adds a new empty one above it, and sets the same number in `interfaces/package.json`, `bun.lock`, `web-types.json`, `kotlin/gradle.properties` and the presentation. Finally it runs `generate-agent.ts` and `generate-manifest.ts`, so `interfaces/agent/*.md` and `interfaces/manifest/*.json`, which also contain the version, carry the new number in the same commit. It refuses to set a version that is not higher than the current one, and to release an empty `Unreleased`, and all the checks come before it writes anything, so an aborted attempt leaves no half-written files.
 
+Both `prepare-version` and `tag` start with `bun run advisories`, and stop if it finds anything. It asks `bun audit` about the whole npm lockfile, devDependencies included, and OSV about every crate in `Cargo.lock` and every Maven coordinate written out in a `*.gradle.kts`. Transitive Maven dependencies are not covered. Fix what it reports before releasing: `bun audit fix` for npm, a new version in `Cargo.lock` or the build file otherwise. An advisory that cannot be fixed yet goes in `ACCEPTED` in `scripts/check-advisories.ts`, with the reason. It is not a step in CI, because the answer changes when an advisory is published, not when the code does. Run it yourself before a pull request is merged, since a merge to master deploys the documentation.
+
 The tag is set only once the version is on master:
 
 ```bash
