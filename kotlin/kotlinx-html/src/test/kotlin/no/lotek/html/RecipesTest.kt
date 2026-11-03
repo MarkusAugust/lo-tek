@@ -14,6 +14,7 @@ import kotlinx.html.html
 import kotlinx.html.stream.createHTML
 import kotlinx.html.title
 import no.lotek.Lotek
+import no.lotek.LotekWebJar
 import no.lotek.Returns
 import no.lotek.assertLotek
 import no.lotek.html.recipes.recipes
@@ -89,11 +90,14 @@ class RecipesTest {
     }
 
     /**
-     * A module of the package is the same file whether the page loads it from
+     * A file of the package is the same file whether the page loads it from
      * the CDN, as in the HTML recipe, or from the WebJar, as in the Kotlin one,
-     * so an import is compared by the path from `dist/` on.
+     * so both roots are written as one. Only those two: another address that
+     * happens to have `dist/` in it is another file.
      */
-    private val PACKAGE_MODULE = Regex("""(["'])[^"']*/(dist/[^"']+)\1""")
+    private fun packageRoot(text: String): String =
+        text.replace("https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/", "lo-tek:/")
+            .replace("${LotekWebJar.ROOT}/", "lo-tek:/")
 
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
@@ -189,6 +193,7 @@ class RecipesTest {
         assertEquals(emptyList<String>(), differences(html, right).first, "a correct page")
         val mistakes = mapOf(
             "the label points at another field" to (""" for="c">""" to """ for="c-help">""") to "for=",
+            "the label names its field twice" to (""" for="c">""" to """ for="c c">""") to "for=",
             "a link points elsewhere" to ("""href="#c"""" to """href="#c-help"""") to "href=",
             "another address" to ("""href="/orders"""" to """href="/order"""") to "href is",
             "a description points elsewhere" to ("""aria-describedby="c-help"""" to """aria-describedby="c"""") to "does not point at",
@@ -227,8 +232,11 @@ class RecipesTest {
         assertTrue(differences(html, broken).first.any { "names lt-field" in it }, "a Kotlin script through a left-out component")
         // A module of the package from the CDN and from the WebJar is one file.
         val cdn = """<script type="module">import { a } from "https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/x.js"; a()</script>"""
-        val webJar = """<html><body><script type="module">import { a } from "/webjars/lo-tek/0.39.0/dist/x.js"; a()</script></body></html>"""
+        val webJar = """<html><body><script type="module">import { a } from "${LotekWebJar.ROOT}/dist/x.js"; a()</script></body></html>"""
         assertEquals(emptyList<String>() to 0, differences(cdn, webJar))
+        // Another library with the same path after `dist/` is another file.
+        val otherLibrary = webJar.replace(LotekWebJar.ROOT, "/webjars/other/1.0")
+        assertTrue(differences(cdn, otherLibrary).first.any { "the scripts differ" in it }, "another library with the same dist path")
         // A script that only mentions the class `lt-fieldset` is not exempt.
         val other = html.replace(""".closest("lt-field")""", """.closest(".lt-fieldset")""")
         assertTrue(differences(other, page).first.any { "the scripts differ" in it })
@@ -345,8 +353,9 @@ class RecipesTest {
                     val missing = wantedIds - gotIds.toSet()
                     if (missing.isNotEmpty()) problems.add("${p.path}: ${p.name}=\"${p.got}\" does not point at $missing, as the HTML recipe does")
                 }
-                // A set of ids on `<output>`, one id on `<label>`.
-                p.name == "for" -> if (gotIds.toSet() != wantedIds.toSet()) {
+                // A set of ids on `<output>`, one id on `<label>`: the order means
+                // nothing, a repeated id does.
+                p.name == "for" -> if (gotIds.sorted() != wantedIds.sorted()) {
                     problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at ${wantedIds.joinToString(" ")}")
                 }
                 p.wanted.startsWith("#") -> if (p.got != "#" + point(p.wanted.drop(1))) {
@@ -358,15 +367,15 @@ class RecipesTest {
         // The scripts are compared on their own, the tree leaves them out: the
         // type, the source and the whole text, with only a script that does
         // nothing but register left out, see [isRegistration], and a module of
-        // the package compared by its path, see [PACKAGE_MODULE].
+        // the package compared by its path, see [packageRoot].
         fun scripts(e: Element) =
             e.getElementsByTag("script")
                 .filterNot { isRegistration(it.data()) }
                 .map {
                     Triple(
                         it.attr("type"),
-                        it.attr("src").replace(PACKAGE_MODULE, "$1$2$1"),
-                        it.data().replace(PACKAGE_MODULE, "$1$2$1").replace(WHITESPACE, " ").trim(),
+                        packageRoot(it.attr("src")),
+                        packageRoot(it.data()).replace(WHITESPACE, " ").trim(),
                     )
                 }
                 .filter { it.second.isNotEmpty() || it.third.isNotEmpty() }

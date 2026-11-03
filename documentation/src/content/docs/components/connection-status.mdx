@@ -63,17 +63,18 @@ defineLtConnectionStatus()
       //     event.preventDefault()
       //     saveRoute(new FormData(form))
       //   })
-      // Any answer means the server is there, an error status included; only a
-      // request that got no answer is a lost connection. reportSuccess and
+      // A request that got no answer is a lost connection, and so is an answer
+      // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+      // error status included, means the server is there. reportSuccess and
       // reportFailure wait for the component to be registered, and warn when it
-      // never is; the save itself never waits.
+      // never is; the save does not wait for them.
       window.saveRoute = async (body) => {
         let response
         try {
           response = await fetch("/api/routes", { method: "POST", body })
         } catch {}
-        if (response) await reportSuccess(connection)
-        else await reportFailure(connection)
+        if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+        else reportFailure(connection)
         return response
       }
     </script>
@@ -188,17 +189,18 @@ defineLtConnectionStatus()
                 //     event.preventDefault()
                 //     saveRoute(new FormData(form))
                 //   })
-                // Any answer means the server is there, an error status included; only a
-                // request that got no answer is a lost connection. reportSuccess and
+                // A request that got no answer is a lost connection, and so is an answer
+                // from a gateway whose server is gone (502, 503, 504). Any other answer, an
+                // error status included, means the server is there. reportSuccess and
                 // reportFailure wait for the component to be registered, and warn when it
-                // never is; the save itself never waits.
+                // never is; the save does not wait for them.
                 window.saveRoute = async (body) => {
                   let response
                   try {
                     response = await fetch("/api/routes", { method: "POST", body })
                   } catch {}
-                  if (response) await reportSuccess(connection)
-                  else await reportFailure(connection)
+                  if (response && ![502, 503, 504].includes(response.status)) reportSuccess(connection)
+                  else reportFailure(connection)
                   return response
                 }
                 """

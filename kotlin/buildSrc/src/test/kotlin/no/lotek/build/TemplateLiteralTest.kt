@@ -1,5 +1,7 @@
 package no.lotek.build
 
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -72,7 +74,7 @@ class TemplateLiteralTest {
     /** Each literal evaluated in Bun; `null` where it is a SyntaxError. */
     private fun evaluatedByBun(literals: List<String>): List<String?> {
         val input = File.createTempFile("literals", ".json").apply { deleteOnExit() }
-        input.writeText(json(literals))
+        input.writeText(JsonOutput.toJson(literals))
         val script = """
             const literals = JSON.parse(await Bun.file(process.argv[1]).text())
             const cooked = literals.map((literal) => {
@@ -80,46 +82,15 @@ class TemplateLiteralTest {
             })
             process.stdout.write(JSON.stringify(cooked))
         """.trimIndent()
-        val process = ProcessBuilder("bun", "-e", script, input.path).redirectErrorStream(true).start()
+        // JavaScript is the reference, so Bun is required, as it is in the CI job.
+        val process = try {
+            ProcessBuilder("bun", "-e", script, input.path).redirectErrorStream(true).start()
+        } catch (e: java.io.IOException) {
+            fail("The test reads the literals as JavaScript does, through Bun, and found no bun on PATH: ${e.message}")
+        }
         val output = process.inputStream.bufferedReader().readText()
         if (process.waitFor() != 0) fail("bun gave ${process.exitValue()}: $output")
-        return parse(output).also { assertEquals(literals.size, it.size, "bun answered $output") }
-    }
-
-    private fun json(strings: List<String>): String = strings.joinToString(",", "[", "]") { s ->
-        "\"" + s.map { c -> if (c == '"' || c == '\\' || c < ' ' || c in "  ") "\\u%04x".format(c.code) else c.toString() }.joinToString("") + "\""
-    }
-
-    /** Reads the array of strings and nulls `JSON.stringify` writes. */
-    private fun parse(text: String): List<String?> {
-        val out = mutableListOf<String?>()
-        var i = text.indexOf('[') + 1
-        while (i < text.length && text[i] != ']') {
-            when (text[i]) {
-                ',' -> i++
-                'n' -> { out += null; i += 4 }
-                '"' -> {
-                    val value = StringBuilder()
-                    i++
-                    while (text[i] != '"') {
-                        if (text[i] == '\\') {
-                            when (val e = text[i + 1]) {
-                                'u' -> { value.append(text.substring(i + 2, i + 6).toInt(16).toChar()); i += 6 }
-                                'n' -> { value.append('\n'); i += 2 }
-                                't' -> { value.append('\t'); i += 2 }
-                                'r' -> { value.append('\r'); i += 2 }
-                                'b' -> { value.append('\b'); i += 2 }
-                                'f' -> { value.append('\u000C'); i += 2 }
-                                else -> { value.append(e); i += 2 }
-                            }
-                        } else value.append(text[i++])
-                    }
-                    out += value.toString()
-                    i++
-                }
-                else -> error("unexpected ${text[i]} in $text")
-            }
-        }
-        return out
+        @Suppress("UNCHECKED_CAST")
+        return (JsonSlurper().parseText(output) as List<String?>).also { assertEquals(literals.size, it.size, "bun answered $output") }
     }
 }

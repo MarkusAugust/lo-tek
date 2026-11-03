@@ -22,10 +22,11 @@ const PAGES = import.meta.glob<string>(
   { query: "?raw", import: "default", eager: true },
 )
 
-/** The HTML blocks of the "Plain HTML" tab on a page, or none. */
+/** The HTML blocks of every "Plain HTML" tab on a page, or none. */
 function plainHtml(page: string): string[] {
-  const tab = tabItems(page).find((t) => t.name === "Plain HTML")
-  return tab ? htmlBlocks(tab.code) : []
+  return tabItems(page)
+    .filter((t) => t.name === "Plain HTML")
+    .flatMap((t) => htmlBlocks(t.code))
 }
 
 const pages = Object.entries(PAGES).map(([path, text]) => ({
@@ -35,18 +36,23 @@ const pages = Object.entries(PAGES).map(([path, text]) => ({
 }))
 
 /**
- * The pages with a script in the "Plain HTML" tab, found by plain string
- * search rather than by `tabItems`, so a tab that reader missed is a page
+ * The scripts in every "Plain HTML" tab, counted by plain string search
+ * rather than by `tabItems`, so a tab or a script that reader missed is one
  * the test reports as missing.
  */
+function scriptsInPlainHtml(text: string): number {
+  let count = 0
+  for (let start = text.indexOf('label="Plain HTML"'); start >= 0; ) {
+    const end = text.indexOf("</TabItem>", start)
+    count +=
+      text.slice(start, end < 0 ? undefined : end).split("<script").length - 1
+    start = text.indexOf('label="Plain HTML"', start + 1)
+  }
+  return count
+}
 const expected = pages
-  .filter((p) => {
-    const start = p.text.indexOf('label="Plain HTML"')
-    if (start < 0) return false
-    const end = p.text.indexOf("</TabItem>", start)
-    return p.text.slice(start, end < 0 ? undefined : end).includes("<script")
-  })
-  .map((p) => p.name)
+  .filter((p) => scriptsInPlainHtml(p.text) > 0)
+  .map((p) => `${p.name}: ${scriptsInPlainHtml(p.text)}`)
   .sort()
 
 const withScripts = pages.filter((p) =>
@@ -116,7 +122,10 @@ async function mount(blocks: string[]): Promise<HTMLIFrameElement> {
 
 describe("the scripts in the Plain HTML recipes", () => {
   it("finds every page with a script", () => {
-    expect(withScripts.map((p) => p.name).sort()).toEqual(expected)
+    const counted = withScripts.map(
+      (p) => `${p.name}: ${p.blocks.join("").split("<script").length - 1}`,
+    )
+    expect(counted.sort()).toEqual(expected)
     expect(expected.length).toBeGreaterThan(0)
   })
 
@@ -162,4 +171,92 @@ describe("the scripts in the Plain HTML recipes", () => {
         frame.remove()
       }
     })
+})
+
+/**
+ * The connection status recipe's `saveRoute`, with `fetch` answered by the
+ * test: what the bar says for each answer, and that the save never waits for
+ * the report, which waits for the registration.
+ */
+describe("saveRoute in the connection status recipe", () => {
+  const page = pages.find((p) => p.name === "connection-status")
+  if (!page) throw new Error("found no connection status page")
+  type Saving = Frame & {
+    saveRoute: (body: unknown) => Promise<Response | undefined>
+    fetch: typeof fetch
+  }
+  const answer =
+    (status: number | "none"): typeof fetch =>
+    () =>
+      status === "none"
+        ? Promise.reject(new TypeError("Failed to fetch"))
+        : Promise.resolve(new Response(null, { status }))
+
+  it("says offline for no answer and for a gateway's 502, 503 and 504, and online for any other", async () => {
+    const frame = await mount(page.blocks)
+    const view = frame.contentWindow as Saving
+    const doc = frame.contentDocument as Document
+    try {
+      const said: string[] = []
+      for (const status of [
+        "none",
+        200,
+        503,
+        400,
+        502,
+        201,
+        504,
+        500,
+      ] as const) {
+        view.fetch = answer(status)
+        const response = await view.saveRoute("body")
+        expect(response?.status, `the answer ${status}`).toBe(
+          status === "none" ? undefined : status,
+        )
+        await new Promise((resolve) => view.requestAnimationFrame(resolve))
+        said.push(
+          `${status}: ${doc.querySelector<HTMLElement>(".lt-connection-status__bar")?.dataset.state}`,
+        )
+      }
+      expect(said).toEqual([
+        "none: offline",
+        "200: online",
+        "503: offline",
+        "400: online",
+        "502: offline",
+        "201: online",
+        "504: offline",
+        "500: online",
+      ])
+      expect(view.problems).toEqual([])
+    } finally {
+      frame.remove()
+    }
+  })
+
+  it("returns the answer before the component is registered", async () => {
+    // The recipe without the script that registers the component.
+    const unregistered = page.blocks.map((b) =>
+      b.replace(
+        /<script\b[^>]*>(?:(?!<\/script>)[\s\S])*defineLtConnectionStatus\(\)[\s\S]*?<\/script>/,
+        "",
+      ),
+    )
+    expect(unregistered.join("")).not.toContain("defineLtConnectionStatus()")
+    const frame = await mount(unregistered)
+    const view = frame.contentWindow as Saving
+    try {
+      expect(view.customElements.get("lt-connection-status")).toBeUndefined()
+      view.fetch = answer(200)
+      const saved = await Promise.race([
+        view.saveRoute("body").then((r) => r?.status),
+        new Promise((resolve) =>
+          setTimeout(() => resolve("still waiting"), 500),
+        ),
+      ])
+      expect(saved).toBe(200)
+    } finally {
+      frame.remove()
+    }
+  })
 })
