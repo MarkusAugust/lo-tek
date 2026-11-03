@@ -69,15 +69,6 @@ class RecipesTest {
      */
     private val PARTS_ON_THEIR_OWN = setOf("error-text", "help-text")
 
-    /**
-     * The recipes whose HTML tab validates in the browser, where the Kotlin
-     * recipe renders the field as invalid on the server instead. Only the
-     * script that finds the error text through `<lt-field>`, which the Kotlin
-     * recipe leaves out (see [WIRING_ONLY]), is exempt; any other script on
-     * the page is compared as everywhere else.
-     */
-    private val VALIDATED_ON_THE_SERVER = setOf("field")
-
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
         "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant",
@@ -161,22 +152,46 @@ class RecipesTest {
             // A web component that only wires is left out where the builder
             // function does the wiring, so the Kotlin recipe has its children
             // where the HTML recipe has the component.
-            for (tag in WIRING_ONLY) if (rendered.getElementsByTag(tag).isEmpty()) wanted.getElementsByTag(tag).forEach { it.unwrap() }
+            val removed = WIRING_ONLY.filter { rendered.getElementsByTag(it).isEmpty() && wanted.getElementsByTag(it).isNotEmpty() }
+            for (tag in removed) wanted.getElementsByTag(tag).forEach { it.unwrap() }
             compare(wanted, rendered, "body", problems, ids, pointers)
+            for (p in pointers) {
+                val point = { id: String -> ids[id] ?: id }
+                when {
+                    p.name in idLists -> {
+                        val missing = p.wanted.split(Regex("\\s+")).filter { it.isNotEmpty() }.map(point) - p.got.split(Regex("\\s+")).toSet()
+                        if (missing.isNotEmpty()) problems.add("${p.path}: ${p.name}=\"${p.got}\" does not point at $missing, as the HTML recipe does")
+                    }
+                    p.name == "for" -> if (p.got != point(p.wanted)) problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at the element with id ${point(p.wanted)}")
+                    p.wanted.startsWith("#") -> if (p.got != "#" + point(p.wanted.drop(1))) problems.add("${p.path}: href=\"${p.got}\", where the HTML recipe points at #${point(p.wanted.drop(1))}")
+                    else -> if (p.got != p.wanted) problems.add("${p.path}: href is \"${p.got}\", the HTML recipe has \"${p.wanted}\"")
+                }
+            }
             // The scripts are compared on their own, the tree leaves them out:
-            // the type and the text. The registration is taken out of the text,
-            // the import of `defineLt…` and its call, since the Kotlin recipe
-            // registers once in the page template with `defineLt()`; whatever
-            // else the script does stays and is compared.
+            // the type, the source and the text. The registration is taken out
+            // of the text, since the Kotlin recipe registers once in the page
+            // template with `defineLt()`: the `defineLt…` names in an import,
+            // an import of `register.js`, and the call, also on a namespace.
+            // Whatever else the script does stays and is compared.
+            fun registrationOut(text: String) =
+                text
+                    .replace(Regex("""import\s*\{([^}]*)\}\s*from\s*(["'][^"']*["'])\s*;?""")) { m ->
+                        val names = m.groupValues[1].split(',').map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("defineLt") }
+                        if (names.isEmpty()) "" else "import { ${names.joinToString(", ")} } from ${m.groupValues[2]}"
+                    }
+                    .replace(Regex("""import\s*["'][^"']*/register\.js["']\s*;?"""), "")
+                    .replace(Regex("""\b(?:\w+\.)?defineLt\w*\([^)]*\)\s*;?"""), "")
+                    .replace(Regex("\\s+"), " ").trim()
             fun scripts(e: Element) =
-                e.getElementsByTag("script").map {
-                    val text = it.data()
-                        .replace(Regex("""import\s*\{[^}]*\bdefineLt\w*[^}]*\}\s*from\s*"[^"]*"\s*;?"""), "")
-                        .replace(Regex("""\bdefineLt\w*\([^)]*\)\s*;?"""), "")
-                        .replace(Regex("\\s+"), " ").trim()
-                    it.attr("type") to text
-                }.filter { it.second.isNotEmpty() }
-            val wantedScripts = scripts(wanted).filterNot { recipe.page in VALIDATED_ON_THE_SERVER && it.second.contains(".closest(\"lt-field\")") }
+                e.getElementsByTag("script")
+                    .map { Triple(it.attr("type"), it.attr("src"), registrationOut(it.data())) }
+                    .filter { it.second.isNotEmpty() || it.third.isNotEmpty() }
+            // A script that works through a web component the Kotlin recipe
+            // leaves out (see [WIRING_ONLY]) cannot be the same: on the field
+            // page it validates in the browser and finds the error text
+            // through `<lt-field>`, where the Kotlin recipe renders the field
+            // invalid on the server.
+            val wantedScripts = scripts(wanted).filterNot { script -> removed.any { it in script.third } }
             if (wantedScripts != scripts(rendered)) {
                 problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    $wantedScripts")
             }
@@ -188,25 +203,25 @@ class RecipesTest {
             // A finding from the check is collected like a difference, so one
             // run shows every page that is wrong.
             try {
-            if (recipe.page in PARTS_ON_THEIR_OWN) {
-                // The page shows the part alone, and a whole page with it fails
-                // by design, on that rule and on no other.
-                assertLotek(page, fragment = true)
-                val asPage = runCatching { assertLotek(page) }.exceptionOrNull()
-                assertTrue(
-                    asPage is AssertionError && "[text-not-wired]" in asPage.message.orEmpty() && Regex("""\[(?!text-not-wired)[a-z-]+]""").find(asPage.message.orEmpty()) == null,
-                    "${recipe.page} as a whole page should fail on text-not-wired alone: ${asPage?.message}",
-                )
-            } else {
-                assertLotek(page)
-            }
-            } catch (e: AssertionError) {
-                failures.add("${recipe.page}.mdx, ${recipe.function}(): ${e.message}")
+                if (recipe.page in PARTS_ON_THEIR_OWN) {
+                    // The page shows the part alone, and a whole page with it fails
+                    // by design, on that rule and on no other.
+                    assertLotek(page, fragment = true)
+                    val asPage = runCatching { assertLotek(page) }.exceptionOrNull()
+                    assertTrue(
+                        asPage is AssertionError && "[text-not-wired]" in asPage.message.orEmpty() && Regex("""\[(?!text-not-wired)[a-z-]+]""").find(asPage.message.orEmpty()) == null,
+                        "${recipe.page} as a whole page should fail on text-not-wired alone: ${asPage?.message}",
+                    )
+                } else {
+                    assertLotek(page)
+                }
+            } catch (e: Throwable) {
+                failures.add("${recipe.page}.mdx, ${recipe.function}(): ${e::class.simpleName}: ${e.message}")
                 continue
             }
             compared += 1
         }
-        val unknown = (PARTS_ON_THEIR_OWN + VALIDATED_ON_THE_SERVER) - recipes.map { it.page }.toSet()
+        val unknown = PARTS_ON_THEIR_OWN - recipes.map { it.page }.toSet()
         if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
         if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.

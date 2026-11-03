@@ -158,12 +158,13 @@ abstract class ExtractRecipes : DefaultTask() {
      * which the test cannot resolve.
      */
     private fun cooked(literal: String): String? {
-        val text = literal.replace("\r\n", "\n")
+        // A template literal reads CRLF and a lone CR as LF, also after a backslash.
+        val text = literal.replace("\r\n", "\n").replace('\r', '\n')
         val out = StringBuilder()
         var i = 0
         fun hex(from: Int, length: Int): Int {
             val digits = text.substring(from, (from + length).coerceAtMost(text.length))
-            require(digits.length == length && digits.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) {
+            require(digits.length == length && digits.all { it in '0'..'9' || it.lowercaseChar() in 'a'..'f' }) {
                 "A \\x or \\u escape in a template literal needs $length hex digits, and has \"$digits\""
             }
             return digits.toInt(16)
@@ -185,13 +186,21 @@ abstract class ExtractRecipes : DefaultTask() {
                 'b' -> out.append('\b')
                 'f' -> out.append('\u000C')
                 'v' -> out.append('\u000B')
-                '0' -> out.append('\u0000')
+                // `\0` only when no digit follows; `\01` and `\1` to `\9` are a
+                // SyntaxError in a template literal, so the page could not build.
+                '0' -> {
+                    require(text.getOrNull(i)?.isDigit() != true) { "\\0 followed by a digit is a SyntaxError in a template literal" }
+                    out.append('\u0000')
+                }
+                in '1'..'9' -> error("\\$next is a SyntaxError in a template literal")
                 '\n', '\u2028', '\u2029' -> {}
                 'x' -> { out.append(hex(i, 2).toChar()); i += 2 }
                 'u' -> if (text.getOrNull(i) == '{') {
                     val end = text.indexOf('}', i)
                     require(end > i + 1) { "A \\u{…} escape in a template literal is not closed" }
-                    out.appendCodePoint(hex(i + 1, end - i - 1)); i = end + 1
+                    val point = hex(i + 1, end - i - 1)
+                    require(point <= 0x10FFFF) { "\\u{${text.substring(i + 1, end)}} is past the last code point, a SyntaxError in a template literal" }
+                    out.appendCodePoint(point); i = end + 1
                 } else {
                     out.append(hex(i, 4).toChar()); i += 4
                 }
