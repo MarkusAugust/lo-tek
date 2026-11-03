@@ -332,4 +332,5 @@ jobs:
 
       - name: Kotlin
         working-directory: kotlin
-        run: ./gradlew test -Plotek.package=../interfaces
+        # `test` does not reach the build logic; `:buildSrc:test` checks the recipe reader against Bun.
+        run: ./gradlew test :buildSrc:test -Plotek.package=../interfaces

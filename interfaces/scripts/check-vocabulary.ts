@@ -24,10 +24,155 @@
 
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
-import { classesData, files, ROOT } from "./generate-vocabulary"
+import {
+  classesData,
+  files,
+  kotlinLiveTemplate,
+  ROOT,
+} from "./generate-vocabulary"
 import { elements } from "./metadata"
 
 const findings: string[] = []
+
+// 0. The rules for the ids find what they are there for. Each was written
+// after a mistake, and a rule that stopped matching would let the next one
+// through in silence, so they are fed the mistakes every time this runs, and
+// must say nothing about markup that is right.
+const brokenRules: string[] = []
+const expect = (rule: string, found: number, wanted: "some" | "none") => {
+  if ((wanted === "some") !== found > 0)
+    brokenRules.push(
+      `${rule}: ${found} findings, expected ${wanted === "some" ? "at least one" : "none"}`,
+    )
+}
+const throws = (run: () => unknown) => {
+  try {
+    run()
+    return 0
+  } catch {
+    return 1
+  }
+}
+const recipe = (...lines: string[]) =>
+  ["fun FlowContent.example() {", ...lines, "}"].join("\n")
+const template = (value: string, variables: string[], fill = "") =>
+  `<template name="t" value="${value}">${variables.map((v) => `<variable name="${v}" expression="" defaultValue="${fill}" />`).join("")}</template>`
+expect(
+  "snippet, right",
+  snippetIdFindings("lt-x", '<label for="$1">A</label><input id="$1">').length,
+  "none",
+)
+expect(
+  "snippet, an id left as text",
+  snippetIdFindings("lt-x", '<input id="codename">').length,
+  "some",
+)
+expect(
+  "snippet, an id filled in",
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: a VS Code tab stop, not a placeholder
+  snippetIdFindings(
+    "lt-x",
+    '<label for="${1:codename}">A</label><input id="$1">',
+  ).length,
+  "some",
+)
+expect(
+  "snippet, a pointer to nothing",
+  snippetIdFindings("lt-x", '<label for="$2">A</label><input id="$1">').length,
+  "some",
+)
+expect(
+  "live template, right",
+  liveTemplateIdFindings(template("id=&quot;$codename$&quot;", ["codename"]))
+    .length,
+  "none",
+)
+expect(
+  "live template, an id left as text",
+  liveTemplateIdFindings(template("id=&quot;codename&quot;", [])).length,
+  "some",
+)
+expect(
+  "live template, an id filled in",
+  liveTemplateIdFindings(
+    template("id=&quot;$codename$&quot;", ["codename"], "codename"),
+  ).length,
+  "some",
+)
+expect(
+  "Kotlin template, right",
+  kotlinTemplateIdFindings(
+    template("id = &quot;$codename$&quot;", ["codename"]),
+  ).length,
+  "none",
+)
+expect(
+  "Kotlin template, the id as text",
+  kotlinTemplateIdFindings(
+    template("it.field == &quot;codename&quot;", ["codename"]),
+  ).length,
+  "some",
+)
+expect(
+  "Kotlin template, the id with - as text",
+  kotlinTemplateIdFindings(
+    template("&quot;session-title&quot;", ["session_title"]),
+  ).length,
+  "some",
+)
+expect(
+  "Kotlin template, an id filled in",
+  kotlinTemplateIdFindings(
+    template("&quot;$codename$&quot;", ["codename"], "codename"),
+  ).length,
+  "some",
+)
+const made = kotlinLiveTemplate(
+  "example",
+  recipe(
+    'input { id = "codename"; name = "codename" }',
+    'p { +"fixer@relay.example given-codename" }',
+  ),
+)
+expect(
+  "Kotlin generator, right",
+  kotlinTemplateIdFindings(made).length + (made.includes("$codename$") ? 0 : 1),
+  "none",
+)
+expect(
+  "Kotlin generator, # and the id in a text",
+  throws(() =>
+    kotlinLiveTemplate(
+      "example",
+      recipe('input { id = "codename" }', 'a { href = "#codename" }'),
+    ),
+  ),
+  "some",
+)
+expect(
+  "Kotlin generator, an id made from the id",
+  throws(() =>
+    kotlinLiveTemplate(
+      "example",
+      recipe(
+        'input { id = "codename" }',
+        'input { attributes["aria-describedby"] = "codename-help" }',
+      ),
+    ),
+  ),
+  "some",
+)
+expect(
+  "Kotlin generator, an id that is not a name",
+  throws(() =>
+    kotlinLiveTemplate("example", recipe('input { id = "code.name" }')),
+  ),
+  "some",
+)
+if (brokenRules.length) {
+  console.error(brokenRules.map((f) => `  - ${f}`).join("\n"))
+  process.exit(1)
+}
 
 // 1. The files on disk are up to date. The generator stops on a class with
 // no content in `classDocs`, and on a row with no class, and then the message
@@ -299,29 +444,7 @@ for (const element of elements) {
     findings.push(
       `The snippet for <${element.tag}> does not contain the element`,
     )
-  // Every id is an empty tab stop, and every pointer mirrors one of them: the
-  // id is typed once, and `for` and `href` follow it. A tab stop with the id
-  // from the recipe filled in gave two equal ids when the snippet was pasted
-  // twice on a page.
-  const text = body.join("\n")
-  const defined = new Set<string>()
-  for (const m of text.matchAll(/\bid="([^"]*)"/g)) {
-    const stop = m[1].match(/^\$(\d+)$/)
-    if (stop) defined.add(stop[1])
-    else
-      findings.push(
-        `The snippet for <${element.tag}> has id="${m[1]}", which is not an empty tab stop`,
-      )
-  }
-  for (const m of text.matchAll(/(?<!\\)\$\{(\d+):/g))
-    findings.push(
-      `The snippet for <${element.tag}> fills in tab stop ${m[1]}. The ids are left empty.`,
-    )
-  for (const m of text.matchAll(/(?<!\\)\$(\d+)\b/g))
-    if (!defined.has(m[1]))
-      findings.push(
-        `The snippet for <${element.tag}> mirrors $${m[1]}, which is not defined`,
-      )
+  findings.push(...snippetIdFindings(element.tag, body.join("\n")))
 }
 
 // The IntelliJ live templates have the same ids as variables.
@@ -330,11 +453,7 @@ for (const element of elements) {
   if (!liveTemplates.includes(`<template name="${element.tag}"`))
     findings.push(`Live templates are missing <${element.tag}>`)
 }
-for (const m of liveTemplates.matchAll(/id=&quot;([^&]*)&quot;/g))
-  if (!/^\$[A-Za-z0-9_]+\$$/.test(m[1]))
-    findings.push(
-      `Live templates have id=&quot;${m[1]}&quot; without a variable`,
-    )
+findings.push(...liveTemplateIdFindings(liveTemplates))
 // The Kotlin live templates: one per web component with a kotlinx.html tab,
 // counted in the pages rather than in the file, and the ids empty there too.
 // The pages are read more loosely than the generator reads them, in either
@@ -357,30 +476,7 @@ if (pagesWithKotlin.length === 0 || kotlinCount !== pagesWithKotlin.length)
   findings.push(
     `${pagesWithKotlin.length} pages have a kotlinx.html tab, and there are ${kotlinCount} Kotlin live templates`,
   )
-// Every place an id stands is the variable, not only `id = "…"`: a literal
-// left behind, such as `it.field == "fixer"`, no longer matches the id the
-// user typed.
-for (const t of kotlinTemplates.matchAll(
-  /<template name="([^"]+)" value="([^"]*)"[^>]*>([\s\S]*?)<\/template>/g,
-)) {
-  const value = t[2].replace(/&quot;/g, '"')
-  for (const v of t[3].matchAll(/<variable name="([^"]+)"/g))
-    for (const literal of new Set([v[1], v[1].replace(/_/g, "-")]))
-      if (value.includes(`"${literal}"`))
-        findings.push(
-          `The Kotlin live template ${t[1]} has the id "${literal}" as text next to the variable $${v[1]}$`,
-        )
-}
-for (const m of kotlinTemplates.matchAll(/defaultValue="([^"]*)"/g))
-  if (m[1] !== "")
-    findings.push(
-      `A Kotlin live template fills in ${m[1]}. The ids are left empty.`,
-    )
-for (const m of liveTemplates.matchAll(/defaultValue="([^"]*)"/g))
-  if (m[1] !== "")
-    findings.push(
-      `A live template fills in ${m[1]}. The ids are left empty, as in the snippets.`,
-    )
+findings.push(...kotlinTemplateIdFindings(kotlinTemplates))
 
 // 4. Count, last. Both equal to the expected number and greater than zero.
 const counted = registered.size
@@ -397,4 +493,73 @@ if (classParts === 0)
 if (findings.length) {
   console.error(findings.map((f) => `  - ${f}`).join("\n"))
   process.exit(1)
+}
+
+/**
+ * Every id in a snippet is an empty tab stop, and every pointer mirrors one
+ * of them: the id is typed once, and `for` and `href` follow it. A tab stop
+ * with the id from the recipe filled in gave two equal ids when the snippet
+ * was pasted twice on a page.
+ */
+function snippetIdFindings(tag: string, text: string): string[] {
+  const out: string[] = []
+  const defined = new Set<string>()
+  for (const m of text.matchAll(/\bid="([^"]*)"/g)) {
+    const stop = m[1].match(/^\$(\d+)$/)
+    if (stop) defined.add(stop[1])
+    else
+      out.push(
+        `The snippet for <${tag}> has id="${m[1]}", which is not an empty tab stop`,
+      )
+  }
+  for (const m of text.matchAll(/(?<!\\)\$\{(\d+):/g))
+    out.push(
+      `The snippet for <${tag}> fills in tab stop ${m[1]}. The ids are left empty.`,
+    )
+  for (const m of text.matchAll(/(?<!\\)\$(\d+)\b/g))
+    if (!defined.has(m[1]))
+      out.push(
+        `The snippet for <${tag}> mirrors $${m[1]}, which is not defined`,
+      )
+  return out
+}
+
+/** The ids in the HTML live templates are variables, and left empty. */
+function liveTemplateIdFindings(xml: string): string[] {
+  const out: string[] = []
+  for (const m of xml.matchAll(/id=&quot;([^&]*)&quot;/g))
+    if (!/^\$[A-Za-z0-9_]+\$$/.test(m[1]))
+      out.push(`Live templates have id=&quot;${m[1]}&quot; without a variable`)
+  for (const m of xml.matchAll(/defaultValue="([^"]*)"/g))
+    if (m[1] !== "")
+      out.push(
+        `A live template fills in ${m[1]}. The ids are left empty, as in the snippets.`,
+      )
+  return out
+}
+
+/**
+ * Every place an id stands in a Kotlin live template is the variable, not
+ * only `id = "…"`: a literal left behind, such as `it.field == "fixer"`, no
+ * longer matches the id the user typed. And the variables are left empty.
+ */
+function kotlinTemplateIdFindings(xml: string): string[] {
+  const out: string[] = []
+  for (const t of xml.matchAll(
+    /<template name="([^"]+)" value="([^"]*)"[^>]*>([\s\S]*?)<\/template>/g,
+  )) {
+    const value = t[2].replace(/&quot;/g, '"')
+    for (const v of t[3].matchAll(/<variable name="([^"]+)"/g))
+      for (const literal of new Set([v[1], v[1].replace(/_/g, "-")]))
+        if (value.includes(`"${literal}"`))
+          out.push(
+            `The Kotlin live template ${t[1]} has the id "${literal}" as text next to the variable $${v[1]}$`,
+          )
+  }
+  for (const m of xml.matchAll(/defaultValue="([^"]*)"/g))
+    if (m[1] !== "")
+      out.push(
+        `A Kotlin live template fills in ${m[1]}. The ids are left empty.`,
+      )
+  return out
 }
