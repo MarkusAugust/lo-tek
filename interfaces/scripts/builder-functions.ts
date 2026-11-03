@@ -277,7 +277,15 @@ export function readBuilderFunctions(): BuilderFunction[] {
       // so it is left out there. Any other mention of React stops the build,
       // so a general rule is never dropped because it names React.
       .filter((paragraph) => {
-        if (/^In React\b/.test(paragraph)) return false
+        if (/^In React\b/.test(paragraph)) {
+          // The whole paragraph goes, so it must be React advice and nothing
+          // else: a general rule after it would go with it.
+          if ((paragraph.match(/[.!?](\s|$)/g) ?? []).length > 1)
+            throw new Error(
+              `lt.${p.name}: the paragraph "${paragraph.slice(0, 60)}…" starts with "In React" and has more than one sentence. The manifest leaves it out whole, so put anything else in a paragraph of its own.`,
+            )
+          return false
+        }
         if (/\bReact\b/.test(paragraph))
           throw new Error(
             `lt.${p.name}: a paragraph in the comment mentions React without starting with "In React": ${paragraph.slice(0, 80)}… The manifest leaves out only paragraphs that start that way.`,
@@ -317,6 +325,12 @@ export function readBuilderFunctions(): BuilderFunction[] {
           .trim()
           .split(/\n\s*\n/)[0]
           .replace(/\s*\n\s*/g, " ")
+        // The first paragraph goes to every language, so it must not be
+        // advice for React; that belongs in a later paragraph.
+        if (/\bReact\b/.test(description))
+          throw new Error(
+            `lt.${p.name}({ ${v.name} }): the first paragraph of the comment mentions React. It is what every other language shows, so put the React advice in a paragraph after it.`,
+          )
         options.push({
           name: v.name,
           required: (v.flags & ts.SymbolFlags.Optional) === 0,

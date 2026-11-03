@@ -42,14 +42,20 @@ abstract class ExtractRecipes : DefaultTask() {
         for (page in pages.files.sortedBy { it.name }) {
             val text = page.readText()
             val starts = tabStarts(text, "Kotlin")
+            // A Kotlin tab written another way, `label='Kotlin'` or with an icon, would be skipped in silence.
+            val loose = Regex("""<TabItem\b[^>]*Kotlin[^>]*>""").findAll(text).count()
+            if (loose != starts.size) error("${page.name}: write the Kotlin tab as <TabItem label=\"Kotlin\">, or the recipe test does not find it.")
             if (starts.isEmpty()) continue
             val name = page.nameWithoutExtension
             val where = "${page.name}, the Kotlin tab"
             if (starts.size > 1) error("${page.name} has ${starts.size} Kotlin tabs. The test compares one per page.")
             val kotlin = tabAt(text, starts.single())
             // The HTML recipe is the one in the same `<Tabs>` as the Kotlin tab.
-            val groupStart = text.lastIndexOf("<Tabs", starts.single()).coerceAtLeast(0)
-            val groupEnd = text.indexOf("</Tabs>", starts.single()).let { if (it < 0) text.length else it }
+            val groupStart = text.lastIndexOf("<Tabs>", starts.single())
+            val groupEnd = text.indexOf("</Tabs>", starts.single())
+            if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < starts.single()) {
+                error("$where is not inside a <Tabs> with a Plain HTML tab.")
+            }
             val group = text.substring(groupStart, groupEnd)
             val block = blocks(kotlin, "kotlin").singleOrNull { it.contains("fun FlowContent.") }
                 ?: error("$where must have exactly one ```kotlin block with a `fun FlowContent.…()`.")

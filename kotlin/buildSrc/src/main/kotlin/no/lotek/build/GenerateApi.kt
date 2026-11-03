@@ -224,7 +224,8 @@ class Generator(manifest: Map<String, Any?>) {
             lines.add("")
             lines.add("See [the component page]($it).")
         }
-        val params = options(b).filter { it.description != null }
+        // In the order of the signature, the required options first.
+        val params = options(b).sortedBy { !it.required }.filter { it.description != null }
         if (params.isNotEmpty()) lines.add("")
         for (o in params) {
             var text = o.description!!
@@ -240,13 +241,23 @@ class Generator(manifest: Map<String, Any?>) {
         return "    /**\n$body\n     */\n"
     }
 
-    /**
-     * `/*` would open a comment inside the comment in Kotlin, and `*/` would
-     * close it. A zero-width space between the two characters breaks both and
-     * reads the same; an entity like `&#42;` showed as written, since the text
-     * is usually in a code span, where Markdown does not decode it.
+    /*
+     * A slash and a star would open a comment inside the comment in Kotlin,
+     * and a star and a slash would close it, so the star is written as the
+     * entity `&#42;`. Markdown decodes an entity in text but not in a code
+     * span, so a code span with either pair loses its backticks: the accepted
+     * file types of the file upload show as written in Quick Documentation,
+     * and are copied as written. An invisible character between the two was
+     * tried, and was copied with the example. (This comment cannot show the
+     * pairs either.)
      */
-    private fun escapeComment(text: String): String = text.replace("/*", "/\u200B*").replace("*/", "*\u200B/")
+    private fun escapeComment(text: String): String {
+        val star = { s: String -> s.replace("/*", "/&#42;").replace("*/", "&#42;/") }
+        return Regex("`([^`]*)`").replace(text) { m ->
+            val code = m.groupValues[1]
+            if ("/*" in code || "*/" in code) star(code) else m.value
+        }.let(star)
+    }
 
     /** A line of prose broken at about 96 characters. A list item keeps its dash on the first line. */
     private fun wrap(text: String): List<String> {

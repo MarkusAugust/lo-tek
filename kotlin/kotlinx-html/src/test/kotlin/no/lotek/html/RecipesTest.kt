@@ -12,6 +12,8 @@ import kotlinx.html.head
 import kotlinx.html.html
 import kotlinx.html.stream.createHTML
 import kotlinx.html.title
+import no.lotek.Lotek
+import no.lotek.Returns
 import no.lotek.assertLotek
 import no.lotek.html.recipes.recipes
 import org.jsoup.Jsoup
@@ -35,48 +37,48 @@ import org.jsoup.nodes.TextNode
  *     writes it in some answer in the build cases, since the builder
  *     functions write more of the wiring than a hand-written template needs;
  *   - the ids may differ, since `Lt.tabs` makes them from `id` and `keys`,
- *     but the same element must have an id in both, and every `for`,
- *     `href="#…"` and `aria-*` pointer must point at the element the HTML
- *     recipe points at. Every other `href` is compared as written.
+ *     but an element with an id in the HTML recipe has one in Kotlin, no two
+ *     share it, and every `for`, `href="#…"` and attribute in [idLists] must
+ *     point at the element the HTML recipe points at. Every other `href` is
+ *     compared as written. An element may have an id the HTML recipe lacks,
+ *     since the builder functions give ids to the help text and the like.
  *
  * [assertLotek] then checks the Kotlin page as a whole: every pointer
  * resolves, and every field is wired.
  */
 class RecipesTest {
-    /** The attributes whose value is a list of ids. */
-    private val idLists = setOf("aria-labelledby", "aria-describedby", "aria-controls")
-
-    private val answers: List<JsonElement> =
-        JsonParser.parseString(File(System.getProperty("buildCases")).readText())
-            .asJsonObject["cases"].asJsonArray
-            .mapNotNull { it.asJsonObject["expected"] }
+    /** The attributes whose value is a list of ids, or one id. */
+    private val idLists = setOf(
+        "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant",
+        "aria-errormessage", "aria-owns", "aria-flowto", "aria-details", "list", "popovertarget", "form",
+    )
 
     /** Every attribute name, and every class, a builder function writes in some answer. */
     private val fromBuilders = mutableSetOf<String>()
     private val classesFromBuilders = mutableSetOf<String>()
 
     init {
-        // An answer is a set of attributes, a group of sets with values such as
-        // `state` next to them, or a list of sets. Only the keys of a set are
-        // attribute names: `label` in a group is the name of a set, and
-        // `state` a value.
-        fun read(e: JsonElement) {
-            when {
-                e.isJsonArray -> e.asJsonArray.forEach(::read)
-                e.isJsonObject -> {
-                    val entries = e.asJsonObject.entrySet()
-                    if (entries.any { !it.value.isJsonPrimitive }) {
-                        entries.filter { !it.value.isJsonPrimitive }.forEach { read(it.value) }
-                    } else {
-                        for ((name, value) in entries) {
-                            fromBuilders += name
-                            if (name == "class") classesFromBuilders += value.asString.split(' ').filter { it.isNotEmpty() }
-                        }
-                    }
+        // The shape of each answer is read from `returns` in the manifest, as
+        // the generator reads it, so `label` in a group is the name of a set
+        // and `state` a value, and only the keys of a set are attribute names.
+        val shapes = Lotek.manifest.builders.associate { it.name to it.returns }
+        fun read(e: JsonElement?, shape: Returns) {
+            if (e == null || e.isJsonNull) return
+            when (shape) {
+                is Returns.Attributes -> for ((name, value) in e.asJsonObject.entrySet()) {
+                    fromBuilders += name
+                    if (name == "class") classesFromBuilders += value.asString.split(' ').filter { it.isNotEmpty() }
                 }
+                is Returns.ListOf -> e.asJsonArray.forEach { read(it, shape.of) }
+                is Returns.Group -> for ((field, s) in shape.fields) read(e.asJsonObject[field], s)
+                is Returns.Text, is Returns.Values -> {}
             }
         }
-        answers.forEach(::read)
+        val cases = JsonParser.parseString(File(System.getProperty("buildCases")).readText()).asJsonObject["cases"].asJsonArray
+        for (case in cases) {
+            val c = case.asJsonObject
+            read(c["expected"], shapes[c["builder"].asString] ?: fail("The build cases call ${c["builder"]}, which the manifest does not have"))
+        }
     }
 
     /** A pointer in the HTML recipe, checked once every id has been paired. */
@@ -90,13 +92,22 @@ class RecipesTest {
         }
     }
 
+    /**
+     * The pages with a Kotlin tab, found more loosely than `ExtractRecipes`
+     * finds them: any `<TabItem` tag with `Kotlin` in it, whatever the quotes,
+     * the spacing or the other attributes. The expected number therefore does
+     * not come from the list the test goes through.
+     */
+    private val pagesWithKotlin: List<String> =
+        File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
+            .filter { Regex("""<TabItem\b[^>]*Kotlin[^>]*>""").containsMatchIn(it.readText()) }
+            .map { it.nameWithoutExtension }
+            .sorted()
+
     @Test
     fun `every Kotlin tab on the pages is extracted`() {
-        val pages = File(System.getProperty("pages")).listFiles { f -> f.name.endsWith(".mdx") }.orEmpty()
-        val tab = Regex("""<TabItem\s+label\s*=\s*"Kotlin"\s*>""")
-        val inPages = pages.filter { tab.containsMatchIn(it.readText()) }.map { it.nameWithoutExtension }.sorted()
-        assertTrue(inPages.isNotEmpty(), "found no Kotlin tab in ${pages.size} pages")
-        assertEquals(inPages, recipes.map { it.page }.sorted())
+        assertTrue(pagesWithKotlin.isNotEmpty(), "found no Kotlin tab in the pages")
+        assertEquals(pagesWithKotlin, recipes.map { it.page }.sorted())
     }
 
     @Test
@@ -131,8 +142,8 @@ class RecipesTest {
             assertLotek(page)
             compared += 1
         }
-        // The expected number comes from the pages, in the test above, not from this list.
-        assertTrue(compared > 0, "compared no recipe")
+        // The expected number comes from the pages, not from the list the loop went through.
+        assertTrue(compared > 0 && compared == pagesWithKotlin.size, "compared $compared recipes, and ${pagesWithKotlin.size} pages have a Kotlin tab")
         println("Compared $compared Kotlin recipes with their HTML recipes.")
     }
 
@@ -172,7 +183,13 @@ class RecipesTest {
             val other = got[name]
             when {
                 other == null -> problems.add("$path: $name=\"$value\" is missing")
-                name == "id" -> ids[value] = other
+                name == "id" -> {
+                    // One to one: two elements with ids in the HTML recipe are two elements in Kotlin.
+                    ids.entries.firstOrNull { it.value == other && it.key != value }?.let {
+                        problems.add("$path: the id \"$other\" is also the id of the element that has \"${it.key}\" in the HTML recipe")
+                    }
+                    ids[value] = other
+                }
                 name == "for" || name == "href" || name in idLists -> pointers.add(Pointer(path, name, value, other))
                 other != value -> problems.add("$path: $name is \"$other\", the HTML recipe has \"$value\"")
             }
