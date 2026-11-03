@@ -69,9 +69,9 @@ expect(
 )
 expect(
   "snippet, an id filled in",
-  // biome-ignore lint/suspicious/noTemplateCurlyInString: a VS Code tab stop, not a placeholder
   snippetIdFindings(
     "lt-x",
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: a VS Code tab stop, not a placeholder
     '<label for="${1:codename}">A</label><input id="$1">',
   ).length,
   "some",
