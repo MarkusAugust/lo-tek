@@ -47,9 +47,19 @@ defineLtPopover()
     <lt-popover id="menu" placement="bottom-end">
       <button class="lt-button" data-variant="secondary" type="button">Actions</button>
 
+      <!-- Each action posts to the server, so the menu closes when the next
+           page arrives, and no script has to close it. -->
       <ul class="lt-popover" id="actions">
-        <li><button class="lt-button" data-variant="ghost" type="button">Mark LDG-117 returned</button></li>
-        <li><button class="lt-button" data-variant="ghost" type="button">Charge the late fee</button></li>
+        <li>
+          <form action="/loans/LDG-117/return" method="post">
+            <button class="lt-button" data-variant="ghost">Mark LDG-117 returned</button>
+          </form>
+        </li>
+        <li>
+          <form action="/loans/LDG-117/late-fee" method="post">
+            <button class="lt-button" data-variant="ghost">Charge the late fee</button>
+          </form>
+        </li>
       </ul>
     </lt-popover>
 
@@ -60,17 +70,9 @@ defineLtPopover()
 
       defineLtPopover()
     </script>
-
-    <script type="module">
-      const menu = document.getElementById("menu")
-      const panel = menu.querySelector(".lt-popover")
-
-      // Close the menu when an action has been chosen
-      menu.addEventListener("click", (event) => {
-        if (panel.contains(event.target) && event.target.closest("button")) menu.hide()
-      })
-    </script>
     ```
+
+    If an action does not leave the page, as when it saves with `fetch`, close the menu with `menu.hide()` when the answer has come.
   </TabItem>
   <TabItem label="React">
     ```ts
@@ -197,7 +199,7 @@ defineLtPopover()
     `server-controlled` belongs with it when the signal controls `open`. Otherwise the component puts the attribute back when something removes it, since a removed attribute cannot be told apart from an update that tears it off, and then the panel could not be closed from the signal. If you control the panel from JavaScript instead, with `menu.open = false`, it is not needed: a property is a message the component can see.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.popover()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the panel's, and the button points to it.
+    On a Kotlin server you call `Lt.popover()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the panel's, and the button points to it. Each action is a form that posts, so the menu closes when the server answers with the next page, and the recipe has no script beyond the registration.
 
     ```kotlin
     import kotlinx.html.*
@@ -213,21 +215,16 @@ defineLtPopover()
             button { lt(Lt.button(variant = ButtonVariant.SECONDARY), menu.trigger); type = ButtonType.button; +"Actions" }
             ul {
                 lt(menu.panel)
-                li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Mark LDG-117 returned" } }
-                li { button { lt(Lt.button(variant = ButtonVariant.GHOST)); type = ButtonType.button; +"Charge the late fee" } }
-            }
-        }
-        script(type = "module") {
-            unsafe {
-                +"""
-                const menu = document.getElementById("menu")
-                const panel = menu.querySelector(".lt-popover")
-
-                // Close the menu when an action has been chosen
-                menu.addEventListener("click", (event) => {
-                  if (panel.contains(event.target) && event.target.closest("button")) menu.hide()
-                })
-                """
+                li {
+                    form(action = "/loans/LDG-117/return", method = FormMethod.post) {
+                        button { lt(Lt.button(variant = ButtonVariant.GHOST)); +"Mark LDG-117 returned" }
+                    }
+                }
+                li {
+                    form(action = "/loans/LDG-117/late-fee", method = FormMethod.post) {
+                        button { lt(Lt.button(variant = ButtonVariant.GHOST)); +"Charge the late fee" }
+                    }
+                }
             }
         }
     }

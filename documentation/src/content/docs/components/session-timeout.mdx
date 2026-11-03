@@ -69,6 +69,10 @@ defineLtSessionTimeout()
       session.addEventListener("session-expired", () => {
         location.href = "/log-in?reason=expired"
       })
+
+      session.addEventListener("session-logout", () => {
+        location.href = "/log-out"
+      })
     </script>
     ```
   </TabItem>
@@ -97,12 +101,15 @@ defineLtSessionTimeout()
 
         const extend = () => fetch("/api/extend-session", { method: "POST" })
         const expired = () => { location.href = "/log-in?reason=expired" }
+        const logout = () => { location.href = "/log-out" }
 
         element.addEventListener("session-extend", extend)
         element.addEventListener("session-expired", expired)
+        element.addEventListener("session-logout", logout)
         return () => {
           element.removeEventListener("session-extend", extend)
           element.removeEventListener("session-expired", expired)
+          element.removeEventListener("session-logout", logout)
         }
       }, [])
 
@@ -149,7 +156,8 @@ defineLtSessionTimeout()
     <lt-session-timeout class="lt-session-timeout" warn-at="1500" expires-at="1800"
                         data-ignore-morph
                         data-on:session-extend="@post('/api/extend-session')"
-                        data-on:session-expired="window.location = '/log-in?reason=expired'">
+                        data-on:session-expired="window.location = '/log-in?reason=expired'"
+                        data-on:session-logout="window.location = '/log-out'">
       <dialog class="lt-session-timeout__dialog" role="alertdialog" aria-labelledby="session-title">
         <h2 class="lt-session-timeout__title" id="session-title">Your session is ending</h2>
         <p class="lt-session-timeout__text">
@@ -209,6 +217,10 @@ defineLtSessionTimeout()
 
                 session.addEventListener("session-expired", () => {
                   location.href = "/log-in?reason=expired"
+                })
+
+                session.addEventListener("session-logout", () => {
+                  location.href = "/log-out"
                 })
                 """
             }

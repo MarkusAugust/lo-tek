@@ -24,6 +24,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Fixed
+
+- **The snippets and the live templates follow the corrected recipes.**
+  The error summary and the field post to the server, the popover's actions
+  are forms that post, and the HTML snippets no longer carry the scripts
+  that only logged to the console. The Kotlin live template for the error
+  summary has no script: it inserted the browser validation from the HTML
+  recipe, which a Kotlin server does itself.
+
 ## 0.40.0 (2026-11-03)
 
 ### Breaking

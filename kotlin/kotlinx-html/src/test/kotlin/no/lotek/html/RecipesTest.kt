@@ -34,7 +34,10 @@ import org.jsoup.nodes.TextNode
  * comments, `<script>` and `<link>`:
  *
  *   - the same scripts, apart from the registration, which the Kotlin
- *     recipe has once in the page template;
+ *     recipe has once in the page template, and apart from the pages in
+ *     [SERVER_DOES_IT], where the Kotlin recipe has no script at all;
+ *   - no script in the Kotlin recipe that does the server's job: it takes
+ *     over a form's `submit`, or writes markup with `innerHTML`;
  *   - the same elements in the same order, and the same text, except a web
  *     component in [WIRING_ONLY], which the Kotlin recipe may leave out;
  *   - every attribute and class in the HTML recipe, with the same value;
@@ -62,6 +65,28 @@ class RecipesTest {
      * or the component"). The others carry behaviour, and must be there.
      */
     private val WIRING_ONLY = listOf("lt-field")
+
+    /**
+     * The pages whose HTML script does what a Kotlin server does itself, so
+     * the Kotlin recipe leaves it out and has no script but the registration.
+     * The HTML recipe has no server behind it, and the Kotlin one is the
+     * server: a copy of the script there did the server's job again in the
+     * browser, and taught the reader that a Kotlin page needs JavaScript.
+     * Every other script must be in the Kotlin recipe, which is what caught
+     * eight recipes without the script their HTML tab has, among them the
+     * dialog, which then never opened. An entry whose HTML recipe has no
+     * script left to leave out fails, and so does a name without a page.
+     */
+    private val SERVER_DOES_IT = mapOf(
+        "error-summary" to "the script validates the field and writes the summary, which the server renders from the faults",
+        "connection-status" to "the script wraps the page's own fetch calls, and a page that saves with form submissions makes none",
+    )
+
+    /** What a script in a Kotlin recipe must not do, since the server does it. */
+    private val SERVERS_JOB = listOf(
+        Regex("""addEventListener\(\s*["']submit["']""") to "takes over the form's submission, which the server answers",
+        Regex("""\.innerHTML\b""") to "writes markup with innerHTML, which the server renders",
+    )
 
     /**
      * The pages whose example shows a part on its own, an error text or a help
@@ -220,6 +245,31 @@ class RecipesTest {
     }
 
     @Test
+    fun `a page where the server does it has no script, and a Kotlin script never does the server's job`() {
+        val html = """
+            <form action="/jobs" method="post"><input id="fixer"></form>
+            <script type="module">document.querySelector("form").addEventListener("submit", (e) => e.preventDefault())</script>
+        """.trimIndent()
+        val page = """<html><body><form action="/jobs" method="post"><input id="fixer"></form></body></html>"""
+        // Listed: the HTML script is left out, and the Kotlin page has none.
+        assertEquals(emptyList<String>(), differences(html, page, serverDoesIt = true).first)
+        // Not listed: the script must be there, as before.
+        assertTrue(differences(html, page).first.any { "the scripts differ" in it }, "an unlisted page without the script")
+        // Listed, and the Kotlin page still has a script.
+        val withScript = page.replace("</body>", """<script type="module">go()</script></body>""")
+        assertTrue(differences(html, withScript, serverDoesIt = true).first.any { "no script but the registration" in it }, "a listed page with a script")
+        // Listed, and the HTML recipe has no script left to leave out.
+        val noScript = html.substringBefore("<script")
+        assertTrue(differences(noScript, page, serverDoesIt = true).first.any { "take it out of the list" in it }, "a stale entry")
+        // A Kotlin script that does the server's job fails even when the HTML
+        // recipe has the same one, written as a copy would be.
+        val copied = page.replace("</body>", html.substringAfter("</form>").trim() + "</body>")
+        assertTrue(differences(html, copied).first.any { "takes over the form's submission" in it }, "a submit listener")
+        val markup = """<ul id="l"></ul><script type="module">document.getElementById("l").innerHTML = "<li>x</li>"</script>"""
+        assertTrue(differences(markup, "<html><body>$markup</body></html>").first.any { "writes markup with innerHTML" in it }, "innerHTML")
+    }
+
+    @Test
     fun `a web component that only wires may be left out, and so may a script through it`() {
         val html = """
             <lt-field><label class="lt-label" for="codename">Codename</label><input class="lt-input" id="codename"></lt-field>
@@ -278,7 +328,7 @@ class RecipesTest {
                 head { title(recipe.page) }
                 body { recipe.render(this) }
             }
-            val (problems, exemptions) = differences(expected, page)
+            val (problems, exemptions) = differences(expected, page, serverDoesIt = recipe.page in SERVER_DOES_IT)
             exempted += exemptions
             if (problems.isNotEmpty()) {
                 // Every page is compared before the test fails, so one run shows them all.
@@ -311,7 +361,7 @@ class RecipesTest {
         // The exemption for a script through a left-out component must still be
         // needed, or it is a condition that switches the check off for nothing.
         if (exempted == 0) failures.add("No script was exempt for working through a web component in WIRING_ONLY, so the exemption has no use left: take it out")
-        val unknown = PARTS_ON_THEIR_OWN - recipes.map { it.page }.toSet()
+        val unknown = (PARTS_ON_THEIR_OWN + SERVER_DOES_IT.keys) - recipes.map { it.page }.toSet()
         if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
         if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.
@@ -327,7 +377,7 @@ class RecipesTest {
      * difference` gives it one known mistake at a time, so a rule that stops
      * working, or is deleted in a rewrite, fails there.
      */
-    internal fun differences(expected: String, page: String): Pair<List<String>, Int> {
+    internal fun differences(expected: String, page: String, serverDoesIt: Boolean = false): Pair<List<String>, Int> {
         val problems = mutableListOf<String>()
         val ids = mutableMapOf<String, String>()
         val pointers = mutableListOf<Pointer>()
@@ -396,7 +446,15 @@ class RecipesTest {
         for (script in kotlinScripts.filter(namesRemoved)) {
             problems.add("a script in the Kotlin recipe names ${removed.joinToString(", ")}, which the Kotlin recipe leaves out: ${script.third.take(80)}")
         }
-        if (compared != kotlinScripts) {
+        for (script in kotlinScripts) {
+            for ((pattern, why) in SERVERS_JOB) {
+                if (pattern.containsMatchIn(script.third)) problems.add("a script in the Kotlin recipe $why: ${script.third.take(80)}")
+            }
+        }
+        if (serverDoesIt) {
+            if (compared.isEmpty()) problems.add("the page is in SERVER_DOES_IT, but its HTML recipe has no script to leave out: take it out of the list")
+            if (kotlinScripts.isNotEmpty()) problems.add("the page is in SERVER_DOES_IT, so the Kotlin recipe has no script but the registration, and it has:\n    $kotlinScripts")
+        } else if (compared != kotlinScripts) {
             problems.add("the scripts differ from the HTML recipe's:\n    $kotlinScripts\n  against\n    $compared")
         }
         return problems to htmlScripts.size - compared.size

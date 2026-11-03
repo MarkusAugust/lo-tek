@@ -3,7 +3,7 @@ title: Kotlin and Java
 description: The builder functions with enums, and LO-TEK's check in ordinary tests, on the JVM without Node and without JavaScript.
 ---
 
-LO-TEK for Kotlin gives you three things: the builder functions from `lt`, where the allowed values are `enum`s; the same check that `lotek check` and the editor use, as an ordinary function in your tests; and the CSS and the web components as a WebJar. Everything runs in the JVM or is served by the app. No Node, no npm, no process to start and nothing to install alongside.
+LO-TEK for Kotlin gives you three things: the builder functions from `Lt`, where the allowed values are `enum`s; the same check that `lotek check` and the editor use, as an ordinary function in your tests; and the CSS and the web components as a WebJar. Everything runs in the JVM or is served by the app. No Node, no npm, no process to start and nothing to install alongside.
 
 ```kotlin
 // build.gradle.kts
@@ -68,7 +68,7 @@ val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, 
 
 """
 <label ${field.label.toHtml()}>Fixer's address</label>
-<input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>
+<input ${(Lt.input(type = InputType.EMAIL) + field.control).toHtml()}>
 <p ${(Lt.helpText() + field.help).toHtml()}>The board writes to the fixer, never to the crew.</p>
 <p ${(Lt.errorText() + field.error).toHtml()}>Enter a valid address.</p>
 """
@@ -120,10 +120,10 @@ import no.lotek.*
 import no.lotek.InputType
 import no.lotek.html.lt
 
-fun FlowContent.fixerField(invalid: Boolean) {
+fun FlowContent.fixerField(fixer: String, invalid: Boolean) {
     val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
     label { lt(field.label); +"Fixer's address" }
-    input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "fixer" }
+    input { lt(Lt.input(type = InputType.EMAIL), field.control); name = "fixer"; value = fixer }
     p { lt(Lt.helpText(), field.help); +"The board writes to the fixer, never to the crew." }
     p { lt(Lt.errorText(), field.error); +"Enter a valid address." }
 }
@@ -135,19 +135,35 @@ Several sets are applied in order, and a later one wins, like `{...a} {...b}` in
 
 ### With Ktor
 
+The whole round trip: the form is rendered on `GET`, the submission is checked on `POST`, and a failed one gets the same page back with what was typed and the field marked invalid. The only script is the registration, once in the page.
+
 ```kotlin
+fun HTML.orderPage(fixer: String = "", invalid: Boolean = false) {
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        // novalidate: the server checks the address, and the browser's own
+        // check of type="email" would stop the submission before it got there.
+        form(action = "/jobs", method = FormMethod.post) {
+            attributes["novalidate"] = ""
+            fixerField(fixer, invalid)
+            button { lt(Lt.button()); +"Order the job" }
+        }
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+}
+
 routing {
     staticResources("/webjars", "META-INF/resources/webjars")
-    get("/jobs") {
-        call.respondHtml {
-            head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
-            body {
-                form(action = "/jobs", method = FormMethod.post) {
-                    fixerField(invalid = false)
-                    button { lt(Lt.button()); +"Order the job" }
-                }
-                script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
-            }
+    get("/jobs/new") {
+        call.respondHtml { orderPage() }
+    }
+    post("/jobs") {
+        val fixer = call.receiveParameters()["fixer"].orEmpty().trim()
+        if ("@" in fixer) {
+            // Save the job here, then send the browser on, so a reload does not post it again.
+            call.respondRedirect("/jobs")
+        } else {
+            call.respondHtml(HttpStatusCode.UnprocessableEntity) { orderPage(fixer, invalid = true) }
         }
     }
 }

@@ -60,12 +60,6 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
 
       defineLtTabs()
     </script>
-
-    <script type="module">
-      document.getElementById("claim-tabs").addEventListener("tab-select", (evt) => {
-        console.log("selected tab", evt.detail.index)
-      })
-    </script>
     ```
 
     The heading in the panel gives the panel its name when it says the same as the tab. If it says something else, the panel gets the tab's name as `aria-label`.
@@ -235,15 +229,6 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
                     h2 { lt(tabs.headings[i]); +part.title }
                     p { +part.text }
                 }
-            }
-        }
-        script(type = "module") {
-            unsafe {
-                +"""
-                document.getElementById("claim-tabs").addEventListener("tab-select", (evt) => {
-                  console.log("selected tab", evt.detail.index)
-                })
-                """
             }
         }
     }

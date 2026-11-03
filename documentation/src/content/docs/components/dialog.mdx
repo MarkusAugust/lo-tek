@@ -15,7 +15,7 @@ import "@lo-tek/interfaces/tokens.css"
 import "@lo-tek/interfaces/dialog.css"
 ```
 
-Opening it **must** be a call. `showModal()` moves focus inside, keeps focus within the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup does none of this, and is just a box on the page. There is no declarative way to open a modal dialog, neither in LO-TEK nor in HTML.
+Opening it **must** be a call. `showModal()` moves focus inside, keeps focus within the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup does none of this, and is just a box on the page. HTML now has a way without a script, a button with `commandfor` and `command="show-modal"`, which has been [Baseline since December 2025](https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/command). In a browser from before that the button does nothing, so the recipes open the dialog with `showModal()`.
 
 That is a problem for only one kind of app: one with nowhere to make the call from, because all markup is produced on the server. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`.
 
@@ -47,25 +47,21 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
       <div class="lt-dialog__body">
         <p>The crew keeps the advance. This cannot be undone.</p>
       </div>
+      <!-- "Keep the job" only closes the dialog. "Cancel the job" posts to the
+           server: formmethod on the button overrides method="dialog". -->
       <form method="dialog" class="lt-dialog__footer">
         <button class="lt-button" data-variant="secondary" value="keep">Keep the job</button>
-        <button class="lt-button" data-variant="danger" value="cancel">Cancel the job</button>
+        <button class="lt-button" data-variant="danger" formmethod="post" formaction="/jobs/222-0481/cancel">Cancel the job</button>
       </form>
     </dialog>
 
     <script type="module">
       const dialog = document.getElementById("confirm")
 
+      // showModal() and not commandfor, which does nothing in a browser from
+      // before December 2025. This is the one script the recipe needs.
       document.getElementById("open-confirm").addEventListener("click", () => {
-        // Escape and close() without a value leave the previous value in place.
-        dialog.returnValue = ""
         dialog.showModal()
-      })
-
-      dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "cancel") {
-          // Cancel the job here
-        }
       })
     </script>
     ```
@@ -217,7 +213,7 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
 
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The dialog opens with `showModal()` in the browser, as in the HTML tab.
+    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The dialog opens with `showModal()` in the browser, as in the HTML tab, for the reason at the top of the page. The choice goes to the server: "Cancel the job" posts to `/jobs/222-0481/cancel`, and "Keep the job" only closes the dialog.
 
     ```kotlin
     import kotlinx.html.*
@@ -239,7 +235,12 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
                 lt(box.footer)
                 attributes["method"] = "dialog"
                 button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); value = "keep"; +"Keep the job" }
-                button { lt(Lt.button(variant = ButtonVariant.DANGER)); value = "cancel"; +"Cancel the job" }
+                button {
+                    lt(Lt.button(variant = ButtonVariant.DANGER))
+                    formMethod = ButtonFormMethod.post
+                    formAction = "/jobs/222-0481/cancel"
+                    +"Cancel the job"
+                }
             }
         }
         script(type = "module") {
@@ -247,16 +248,10 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
                 +"""
                 const dialog = document.getElementById("confirm")
 
+                // showModal() and not commandfor, which does nothing in a browser from
+                // before December 2025. This is the one script the recipe needs.
                 document.getElementById("open-confirm").addEventListener("click", () => {
-                  // Escape and close() without a value leave the previous value in place.
-                  dialog.returnValue = ""
                   dialog.showModal()
-                })
-
-                dialog.addEventListener("close", () => {
-                  if (dialog.returnValue === "cancel") {
-                    // Cancel the job here
-                  }
                 })
                 """
             }
