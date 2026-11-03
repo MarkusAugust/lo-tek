@@ -78,6 +78,17 @@ intellijPlatform {
         // Shown on the Marketplace and in the IDE on update, and must be in
         // English like the description. Write a new line for each version.
         changeNotes = """
+            <b>0.6.0</b>: The builder functions in Kotlin. Completion of the options and
+            their values in <code>Lt.*</code> calls, with the description and the default
+            of each, and enum values inserted qualified. Four inspections: a part on the
+            wrong element, with a quick fix; <code>of()!!</code>; an id made from a loop
+            index or a counter; and <code>error = true</code> where <code>field.error</code>
+            is never used. Kotlin live templates in kotlinx.html form, one per web
+            component, from the kotlinx.html tab on its page. The live templates leave
+            the ids empty, so a template inserted twice on a page no longer gives two
+            equal ids. Needs <code>lo-tek-interfaces</code> 0.40.0 for the documentation
+            in Quick Documentation.
+            <br><br>
             <b>0.5.0</b>: The checker from <code>@lo-tek/interfaces</code> 0.38.0.
             One rule for a missing name, <code>without-name</code>, an error, replaces
             <code>icon-without-name</code>, <code>control-without-label</code>,

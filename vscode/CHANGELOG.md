@@ -3,6 +3,17 @@
 The extension has its own version number. It does not follow the package,
 since it only changes when an element or an attribute does.
 
+## 0.12.0
+
+- **The snippets leave the ids empty.** They filled in the id from the
+  recipe, such as `codename`, so a snippet pasted twice on a page, or in a
+  loop, gave two elements with the same id, which a morph matches wrongly.
+  The id is still one tab stop, mirrored in `for` and `href`.
+- **The descriptions say "with a builder function" where they said "with
+  JavaScript".** The line between `lt.field()` and `<lt-field>` is whether
+  the code that renders can call a builder function, and a Kotlin or Java
+  server does that without JavaScript.
+
 ## 0.11.0
 
 The checker from `@lo-tek/interfaces` 0.38.0.
