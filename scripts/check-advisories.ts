@@ -29,6 +29,20 @@ import { fileURLToPath } from "node:url"
 const ROOT = fileURLToPath(new URL("..", import.meta.url))
 const OSV = "https://api.osv.dev/v1"
 
+/**
+ * The artifact behind each Gradle plugin id. A plugin is applied by id, and
+ * OSV knows it by its Maven coordinate. An id missing here stops the run,
+ * so a new plugin is never skipped without a word.
+ */
+const PLUGINS: Record<string, string> = {
+  "org.jetbrains.intellij.platform":
+    "org.jetbrains.intellij.platform:intellij-platform-gradle-plugin",
+  "com.vanniktech.maven.publish": "com.vanniktech:gradle-maven-publish-plugin",
+}
+
+/** Our own artifacts, built from this repository. */
+const OWN_GROUP = "io.github.markusaugust:"
+
 /** Advisories that are known and cannot be fixed yet, with the reason. */
 const ACCEPTED: Record<string, string> = {}
 
@@ -44,6 +58,10 @@ function npm(): { checked: string; findings: Finding[] } {
   const output = result.stdout.toString()
   // `bun audit` exits with 1 when it finds something, and with other codes
   // when it could not ask at all. Only valid JSON counts as an answer.
+  if (result.exitCode !== 0 && result.exitCode !== 1)
+    stop(
+      `bun audit gave no answer (exit ${result.exitCode}):\n${result.stderr.toString()}${output}`,
+    )
   let report: Record<
     string,
     {
@@ -60,6 +78,12 @@ function npm(): { checked: string; findings: Finding[] } {
       `bun audit gave no answer (exit ${result.exitCode}):\n${result.stderr.toString()}${output}`,
     )
   }
+  if (
+    typeof report !== "object" ||
+    report === null ||
+    Object.values(report).some((a) => !Array.isArray(a))
+  )
+    stop(`bun audit answered something other than a report:\n${output}`)
   const findings = Object.entries(report).flatMap(([name, advisories]) =>
     advisories.map((a) => ({
       id: a.url.split("/").pop() ?? a.url,
@@ -77,13 +101,13 @@ function crates(): Query[] {
   return lock
     .split("[[package]]")
     .filter((block) => /^source = "registry\+/m.test(block))
-    .map((block) => ({
-      package: {
-        ecosystem: "crates.io",
-        name: block.match(/^name = "([^"]+)"/m)?.[1] ?? "",
-      },
-      version: block.match(/^version = "([^"]+)"/m)?.[1] ?? "",
-    }))
+    .map((block) => {
+      const name = block.match(/^name = "([^"]+)"/m)?.[1]
+      const version = block.match(/^version = "([^"]+)"/m)?.[1]
+      if (!name || !version)
+        stop(`A package in Cargo.lock has no name or version:\n${block}`)
+      return { package: { ecosystem: "crates.io", name }, version }
+    })
 }
 
 function maven(): Query[] {
@@ -96,8 +120,29 @@ function maven(): Query[] {
   const coordinates = new Set<string>()
   for (const file of files) {
     const text = readFileSync(join(ROOT, file), "utf8")
-    for (const [, coordinate] of text.matchAll(/"([\w.-]+:[\w.-]+:[\w.-]+)"/g))
-      if (!coordinate.startsWith("scm:")) coordinates.add(coordinate)
+    for (const [, coordinate] of text.matchAll(/"([\w.-]+:[\w.-]+:[^"]+)"/g)) {
+      if (coordinate.startsWith("scm:") || coordinate.startsWith(OWN_GROUP))
+        continue
+      // A version from a variable cannot be read here, and would otherwise
+      // be left out in silence.
+      if (!/^[\w.-]+:[\w.-]+:[\w.-]+$/.test(coordinate))
+        stop(`${file}: cannot read the version in "${coordinate}".`)
+      coordinates.add(coordinate)
+    }
+    // The Kotlin plugin brings the standard library in the same version.
+    for (const [, version] of text.matchAll(
+      /\bkotlin\("[\w-]+"\) version "([^"]+)"/g,
+    )) {
+      coordinates.add(`org.jetbrains.kotlin:kotlin-gradle-plugin:${version}`)
+      coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
+    }
+    for (const [, id, version] of text.matchAll(
+      /\bid\("([^"]+)"\) version "([^"]+)"/g,
+    )) {
+      if (!(id in PLUGINS))
+        stop(`${file}: the plugin ${id} is missing from PLUGINS.`)
+      coordinates.add(`${PLUGINS[id]}:${version}`)
+    }
   }
   return [...coordinates].map((coordinate) => {
     const [group, artifact, version] = coordinate.split(":")
@@ -116,24 +161,30 @@ async function osv(queries: Query[]): Promise<Finding[]> {
   })
   if (!response.ok) stop(`OSV answered ${response.status}.`)
   const { results } = (await response.json()) as {
-    results: { vulns?: { id: string }[] }[]
+    results: { vulns?: { id: string }[]; next_page_token?: string }[]
   }
   if (results.length !== queries.length)
     stop(`OSV answered ${results.length} of ${queries.length} queries.`)
-  const findings: Finding[] = []
-  for (const [i, result] of results.entries())
-    for (const { id } of result.vulns ?? []) {
-      const vuln = (await (await fetch(`${OSV}/vulns/${id}`)).json()) as {
-        summary?: string
-      }
-      const { name, ecosystem } = queries[i].package
-      findings.push({
-        id,
-        where: `${ecosystem} ${name} ${queries[i].version}`,
-        summary: vuln.summary ?? `https://osv.dev/vulnerability/${id}`,
-      })
-    }
-  return findings
+  // A result with more advisories than one page holds is cut, and the rest
+  // would be missing from the report.
+  const paged = results.findIndex((r) => r.next_page_token)
+  if (paged !== -1)
+    stop(`OSV paged the answer for ${queries[paged].package.name}.`)
+  return Promise.all(
+    results.flatMap((result, i) =>
+      (result.vulns ?? []).map(async ({ id }) => {
+        const answer = await fetch(`${OSV}/vulns/${id}`)
+        if (!answer.ok) stop(`OSV answered ${answer.status} for ${id}.`)
+        const { summary } = (await answer.json()) as { summary?: string }
+        const { name, ecosystem } = queries[i].package
+        return {
+          id,
+          where: `${ecosystem} ${name} ${queries[i].version}`,
+          summary: summary ?? `https://osv.dev/vulnerability/${id}`,
+        }
+      }),
+    ),
+  )
 }
 
 const cargo = crates()
