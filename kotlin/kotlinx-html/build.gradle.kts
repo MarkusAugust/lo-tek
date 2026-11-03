@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     kotlin("jvm")
@@ -18,7 +19,7 @@ dependencies {
     api("org.jetbrains.kotlinx:kotlinx-html-jvm:0.12.0")
     testImplementation(kotlin("test"))
     // Parses the rendered recipes and the HTML recipes the same way, so the two can be compared as trees.
-    testImplementation("org.jsoup:jsoup:1.22.2")
+    testImplementation("org.jsoup:jsoup:1.24.1")
     // Reads the answers in the build cases, for the attributes a builder function can write.
     testImplementation("com.google.code.gson:gson:2.11.0")
 }
@@ -41,7 +42,13 @@ sourceSets.test {
 }
 
 kotlin {
-    compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+    // The same Kotlin as the consumers': see the root build.
+    coreLibrariesVersion = "2.2.21"
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        languageVersion.set(KotlinVersion.KOTLIN_2_2)
+        apiVersion.set(KotlinVersion.KOTLIN_2_2)
+    }
 }
 
 java {

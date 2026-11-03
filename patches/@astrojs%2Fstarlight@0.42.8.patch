@@ -1,0 +1,22 @@
+diff --git a/dist/user-components/tabs-processor.js b/dist/user-components/tabs-processor.js
+index e0e5ca5d2fb357b049ce14b0dda4f29d9fc39889..7730cef89fe0b836d7a033bdb8f045ca064336ca 100644
+--- a/dist/user-components/tabs-processor.js
++++ b/dist/user-components/tabs-processor.js
+@@ -28,6 +28,17 @@ const focusableElementSelectors = [
+ */
+ const processPanels = (html, index) => {
+ 	const tree = htmlToHast(html, { fragment: true });
++	// satteri puts what a <template> holds in `children`, and toHtml writes
++	// only `content`, so a declarative shadow root came out empty. The
++	// templates are collected first, so one inside another is moved too.
++	const templates = [];
++	visit(tree, "element", (node) => {
++		if (node.tagName === "template" && !node.content) templates.push(node);
++	});
++	for (const node of templates) {
++		node.content = { type: "root", children: node.children };
++		node.children = [];
++	}
+ 	const panels = [];
+ 	let isFirst = true;
+ 	let count = 0;

@@ -44,7 +44,12 @@ const PLUGINS: Record<string, string> = {
 const OWN_GROUP = "io.github.markusaugust:"
 
 /** Advisories that are known and cannot be fixed yet, with the reason. */
-const ACCEPTED: Record<string, string> = {}
+const ACCEPTED: Record<string, string> = {
+  "GHSA-g3hv-75wg-m249":
+    "minimatch below 11.0.1. vscode-languageclient (bundled in the extension) and @vscode/vsce require ^5 and ^10, also in their newest versions. The extension matches only its own document selectors with it, never a pattern from the user",
+  "GHSA-3g3m-2fjr-6pw4":
+    "glob 13 through @vscode/vsce, which requires ^13 also in its newest version. Only used when the extension is packed, on our own files",
+}
 
 type Finding = { id: string; where: string; summary: string }
 
