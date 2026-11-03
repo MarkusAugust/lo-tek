@@ -46,7 +46,8 @@ function scriptsInPlainHtml(text: string): number {
     const end = text.indexOf("</TabItem>", start)
     count +=
       text.slice(start, end < 0 ? undefined : end).split("<script").length - 1
-    start = text.indexOf('label="Plain HTML"', start + 1)
+    // On from the end of this tab, so an unclosed one is not counted twice.
+    start = end < 0 ? -1 : text.indexOf('label="Plain HTML"', end)
   }
   return count
 }
@@ -250,17 +251,25 @@ describe("saveRoute in the connection status recipe", () => {
     expect(unregistered.join("")).not.toContain("defineLtConnectionStatus()")
     const frame = await mount(unregistered)
     const view = frame.contentWindow as Saving
+    let timer: ReturnType<typeof setTimeout> | undefined
     try {
       expect(view.customElements.get("lt-connection-status")).toBeUndefined()
+      expect(
+        typeof view.saveRoute,
+        "the recipe lost saveRoute with the registration",
+      ).toBe("function")
       view.fetch = answer(200)
+      // A save that waits for the registration never settles here, so the
+      // deadline only needs to be well past a resolved fetch.
       const saved = await Promise.race([
         view.saveRoute("body").then((r) => r?.status),
-        new Promise((resolve) =>
-          setTimeout(() => resolve("still waiting"), 500),
-        ),
+        new Promise((resolve) => {
+          timer = setTimeout(() => resolve("still waiting"), 2000)
+        }),
       ])
       expect(saved).toBe(200)
     } finally {
+      clearTimeout(timer)
       frame.remove()
     }
   })
