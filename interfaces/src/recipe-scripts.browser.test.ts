@@ -181,12 +181,17 @@ describe("the scripts in the Plain HTML recipes", () => {
 describe("saveRoute in the connection status recipe", () => {
   const page = pages.find((p) => p.name === "connection-status")
   if (!page) throw new Error("found no connection status page")
-  type Saving = Frame & {
+  /** What the recipe calls: `fetch(url, init)`, answered by the test. */
+  type Answer = (
+    input: RequestInfo | URL,
+    init?: RequestInit,
+  ) => Promise<Response>
+  type Saving = Omit<Frame, "fetch"> & {
     saveRoute: (body: unknown) => Promise<Response | undefined>
-    fetch: typeof fetch
+    fetch: Answer
   }
   const answer =
-    (status: number | "none"): typeof fetch =>
+    (status: number | "none"): Answer =>
     () =>
       status === "none"
         ? Promise.reject(new TypeError("Failed to fetch"))
