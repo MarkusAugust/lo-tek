@@ -189,7 +189,7 @@ abstract class ExtractRecipes : DefaultTask() {
                 // `\0` only when no digit follows; `\01` and `\1` to `\9` are a
                 // SyntaxError in a template literal, so the page could not build.
                 '0' -> {
-                    require(text.getOrNull(i)?.isDigit() != true) { "\\0 followed by a digit is a SyntaxError in a template literal" }
+                    require(text.getOrNull(i) !in '0'..'9') { "\\0 followed by a digit is a SyntaxError in a template literal" }
                     out.append('\u0000')
                 }
                 in '1'..'9' -> error("\\$next is a SyntaxError in a template literal")

@@ -69,6 +69,71 @@ class RecipesTest {
      */
     private val PARTS_ON_THEIR_OWN = setOf("error-text", "help-text")
 
+    private val WHITESPACE = Regex("\\s+")
+    private val NAMED_IMPORT = Regex("""import\s*\{([^}]*)\}\s*from\s*(["'][^"']*["'])(\s*;)?""")
+    private val REGISTER_IMPORT = Regex("""import\s*(?:\*\s*as\s*(\w+)\s*from\s*|(\w+)\s*from\s*)?["'][^"']*/register(?:\.js)?["']\s*;?""")
+
+    /**
+     * A script's text without the registration, since the Kotlin recipe
+     * registers once in the page template with `defineLt()`: the `defineLt…`
+     * names in an import, an alias of one among them, an import of
+     * `register`, and every call of those names, also on the namespace of a
+     * `register` import. The calls are found outside strings and comments,
+     * with their arguments to the matching parenthesis, so a call that only
+     * stands in a comment is compared as text. Whatever else the script does
+     * stays, and the whitespace is collapsed.
+     */
+    internal fun withoutRegistration(script: String): String {
+        val callees = mutableSetOf<String>()
+        var text = NAMED_IMPORT.replace(script) { m ->
+            val kept = m.groupValues[1].split(',').map { it.trim() }.filter { it.isNotEmpty() }.filterNot { name ->
+                val (imported, local) = name.split(Regex("""\s+as\s+""")).let { it[0] to (it.getOrNull(1) ?: it[0]) }
+                imported.startsWith("defineLt").also { if (it) callees += local }
+            }
+            if (kept.isEmpty()) "" else "import { ${kept.joinToString(", ")} } from ${m.groupValues[2]}${m.groupValues[3]}"
+        }
+        text = REGISTER_IMPORT.replace(text) { m ->
+            (m.groupValues[1].ifEmpty { m.groupValues[2] }).takeIf { it.isNotEmpty() }?.let { callees += "$it.defineLt" }
+            ""
+        }
+        val out = StringBuilder()
+        var i = 0
+        var quote: Char? = null
+        while (i < text.length) {
+            val c = text[i]
+            when {
+                quote != null -> {
+                    out.append(c)
+                    if (c == '\\' && i + 1 < text.length) { out.append(text[i + 1]); i++ } else if (c == quote) quote = null
+                    i++
+                }
+                c == '"' || c == '\'' || c == '`' -> { quote = c; out.append(c); i++ }
+                text.startsWith("//", i) -> { val end = text.indexOf('\n', i).let { if (it < 0) text.length else it }; out.append(text, i, end); i = end }
+                text.startsWith("/*", i) -> { val end = text.indexOf("*/", i).let { if (it < 0) text.length else it + 2 }; out.append(text, i, end); i = end }
+                else -> {
+                    val name = Regex("""[\w.]+""").matchAt(text, i)?.value
+                    val calls = name != null && text.getOrNull(i + name.length) == '(' && (i == 0 || !(text[i - 1].isLetterOrDigit() || text[i - 1] == '_' || text[i - 1] == '.')) &&
+                        (name.substringAfterLast('.').startsWith("defineLt") || name in callees || callees.any { name.startsWith("$it") })
+                    if (calls && name != null) {
+                        var depth = 0
+                        var j = i + name.length
+                        while (j < text.length) {
+                            if (text[j] == '(') depth++
+                            if (text[j] == ')') { depth--; if (depth == 0) { j++; break } }
+                            j++
+                        }
+                        if (text.getOrNull(j) == ';') j++
+                        i = j
+                    } else {
+                        out.append(c)
+                        i++
+                    }
+                }
+            }
+        }
+        return out.toString().replace(WHITESPACE, " ").trim()
+    }
+
     /** The attributes whose value is a list of ids, or one id. */
     private val idLists = setOf(
         "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant",
@@ -128,6 +193,22 @@ class RecipesTest {
             .sorted()
 
     @Test
+    fun `the registration is taken out of a script, and only the registration`() {
+        val cases = mapOf(
+            """import { defineLtToast } from "x.js"; defineLtToast()""" to "",
+            """import { defineLtToast, showToast } from "x.js"; defineLtToast(); showToast("a")""" to """import { showToast } from "x.js"; showToast("a")""",
+            """import { defineLtField as define } from "x.js"; define()""" to "",
+            """import * as lotek from "https://cdn/dist/register.js"; lotek.defineLt()""" to "",
+            """import "@lo-tek/interfaces/register"""" to "",
+            """defineLtToast(tagName("app")); go()""" to "go()",
+            """// call defineLt() first
+            go()""" to "// call defineLt() first go()",
+            """console.log("defineLt() is called once")""" to """console.log("defineLt() is called once")""",
+        )
+        for ((script, expected) in cases) assertEquals(expected, withoutRegistration(script), script)
+    }
+
+    @Test
     fun `every tab for kotlinx html on the pages is extracted`() {
         assertTrue(pagesWithKotlin.isNotEmpty(), "found no kotlinx.html tab in the pages")
         assertEquals(pagesWithKotlin, recipes.map { it.page }.sorted())
@@ -136,6 +217,7 @@ class RecipesTest {
     @Test
     fun `every Kotlin recipe renders the HTML recipe on its page`() {
         var compared = 0
+        var exempted = 0
         val failures = mutableListOf<String>()
         for (recipe in recipes) {
             val expected = javaClass.getResource("/recipes/${recipe.page}.html")?.readText()
@@ -159,41 +241,37 @@ class RecipesTest {
                 val point = { id: String -> ids[id] ?: id }
                 when {
                     p.name in idLists -> {
-                        val missing = p.wanted.split(Regex("\\s+")).filter { it.isNotEmpty() }.map(point) - p.got.split(Regex("\\s+")).toSet()
+                        val missing = p.wanted.split(WHITESPACE).filter { it.isNotEmpty() }.map(point) - p.got.split(WHITESPACE).toSet()
                         if (missing.isNotEmpty()) problems.add("${p.path}: ${p.name}=\"${p.got}\" does not point at $missing, as the HTML recipe does")
                     }
-                    p.name == "for" -> if (p.got != point(p.wanted)) problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at the element with id ${point(p.wanted)}")
+                    // A list of ids on `<output>`, one id on `<label>`.
+                    p.name == "for" -> {
+                        val expected = p.wanted.split(WHITESPACE).filter { it.isNotEmpty() }.map(point)
+                        if (p.got.split(WHITESPACE).filter { it.isNotEmpty() } != expected) problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at ${expected.joinToString(" ")}")
+                    }
                     p.wanted.startsWith("#") -> if (p.got != "#" + point(p.wanted.drop(1))) problems.add("${p.path}: href=\"${p.got}\", where the HTML recipe points at #${point(p.wanted.drop(1))}")
                     else -> if (p.got != p.wanted) problems.add("${p.path}: href is \"${p.got}\", the HTML recipe has \"${p.wanted}\"")
                 }
             }
             // The scripts are compared on their own, the tree leaves them out:
-            // the type, the source and the text. The registration is taken out
-            // of the text, since the Kotlin recipe registers once in the page
-            // template with `defineLt()`: the `defineLt…` names in an import,
-            // an import of `register.js`, and the call, also on a namespace.
-            // Whatever else the script does stays and is compared.
-            fun registrationOut(text: String) =
-                text
-                    .replace(Regex("""import\s*\{([^}]*)\}\s*from\s*(["'][^"']*["'])\s*;?""")) { m ->
-                        val names = m.groupValues[1].split(',').map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("defineLt") }
-                        if (names.isEmpty()) "" else "import { ${names.joinToString(", ")} } from ${m.groupValues[2]}"
-                    }
-                    .replace(Regex("""import\s*["'][^"']*/register\.js["']\s*;?"""), "")
-                    .replace(Regex("""\b(?:\w+\.)?defineLt\w*\([^)]*\)\s*;?"""), "")
-                    .replace(Regex("\\s+"), " ").trim()
+            // the type, the source and the text, with the registration taken
+            // out, see [withoutRegistration]. A script that works through a
+            // web component the Kotlin recipe leaves out (see [WIRING_ONLY])
+            // cannot be the same: on the field page it validates in the
+            // browser and finds the error text with `closest("lt-field")`,
+            // where the Kotlin recipe renders the field invalid on the server.
+            // Such a script names the tag as a string of its own, and only
+            // that exempts it, on both sides; every exemption is counted.
             fun scripts(e: Element) =
                 e.getElementsByTag("script")
-                    .map { Triple(it.attr("type"), it.attr("src"), registrationOut(it.data())) }
+                    .map { Triple(it.attr("type"), it.attr("src"), withoutRegistration(it.data())) }
                     .filter { it.second.isNotEmpty() || it.third.isNotEmpty() }
-            // A script that works through a web component the Kotlin recipe
-            // leaves out (see [WIRING_ONLY]) cannot be the same: on the field
-            // page it validates in the browser and finds the error text
-            // through `<lt-field>`, where the Kotlin recipe renders the field
-            // invalid on the server.
-            val wantedScripts = scripts(wanted).filterNot { script -> removed.any { it in script.third } }
-            if (wantedScripts != scripts(rendered)) {
-                problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    $wantedScripts")
+                    .filterNot { script ->
+                        removed.any { tag -> Regex("""["']${Regex.escape(tag)}["']""").containsMatchIn(script.third) }
+                            .also { if (it) exempted += 1 }
+                    }
+            if (scripts(wanted) != scripts(rendered)) {
+                problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    ${scripts(wanted)}")
             }
             if (problems.isNotEmpty()) {
                 // Every page is compared before the test fails, so one run shows them all.
@@ -215,12 +293,17 @@ class RecipesTest {
                 } else {
                     assertLotek(page)
                 }
-            } catch (e: Throwable) {
-                failures.add("${recipe.page}.mdx, ${recipe.function}(): ${e::class.simpleName}: ${e.message}")
+            } catch (e: AssertionError) {
+                // Only a finding is collected. Anything else, a core that does
+                // not load, stops the test at once with its stack trace.
+                failures.add("${recipe.page}.mdx, ${recipe.function}(): ${e.message}")
                 continue
             }
             compared += 1
         }
+        // The exemption for a script through a left-out component must still be
+        // needed, or it is a condition that switches the check off for nothing.
+        if (exempted == 0) failures.add("No script was exempt for working through a web component in WIRING_ONLY, so the exemption has no use left: take it out")
         val unknown = PARTS_ON_THEIR_OWN - recipes.map { it.page }.toSet()
         if (unknown.isNotEmpty()) failures.add("$unknown are listed as exceptions, and no page has that recipe")
         if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))

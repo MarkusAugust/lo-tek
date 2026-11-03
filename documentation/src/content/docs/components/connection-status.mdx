@@ -60,16 +60,16 @@ defineLtConnectionStatus()
       //     event.preventDefault()
       //     saveRoute(new FormData(form))
       //   })
-      // The methods exist once the component is registered.
       window.saveRoute = async (body) => {
-        await customElements.whenDefined("lt-connection-status")
+        let answered = false
         try {
           const response = await fetch("/api/routes", { method: "POST", body })
-          if (!response.ok) throw new Error(response.statusText)
-          connection.reportSuccess()
-        } catch {
-          connection.reportFailure()
-        }
+          answered = response.ok
+        } catch {}
+        // Only the report waits for the component to be registered, never the save.
+        await customElements.whenDefined("lt-connection-status")
+        if (answered) connection.reportSuccess()
+        else connection.reportFailure()
       }
     </script>
     ```
@@ -180,16 +180,16 @@ defineLtConnectionStatus()
                 //     event.preventDefault()
                 //     saveRoute(new FormData(form))
                 //   })
-                // The methods exist once the component is registered.
                 window.saveRoute = async (body) => {
-                  await customElements.whenDefined("lt-connection-status")
+                  let answered = false
                   try {
                     const response = await fetch("/api/routes", { method: "POST", body })
-                    if (!response.ok) throw new Error(response.statusText)
-                    connection.reportSuccess()
-                  } catch {
-                    connection.reportFailure()
-                  }
+                    answered = response.ok
+                  } catch {}
+                  // Only the report waits for the component to be registered, never the save.
+                  await customElements.whenDefined("lt-connection-status")
+                  if (answered) connection.reportSuccess()
+                  else connection.reportFailure()
                 }
                 """
             }
