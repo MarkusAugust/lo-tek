@@ -3,7 +3,10 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
-    kotlin("jvm") version "2.2.21"
+    // The Kotlin of the IDE: the Kotlin plugin in 2026.1 is compiled with
+    // metadata 2.4, and an older compiler cannot read its Analysis API. The
+    // plugin runs on the IDE's own standard library, see gradle.properties.
+    kotlin("jvm") version "2.4.0"
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 
@@ -23,6 +26,8 @@ val lotekVersion =
         .getProperty("version")
         ?: error("Found no version in ../kotlin/gradle.properties.")
 
+val kotlinLibraries: Configuration = configurations.create("kotlinLibraries") { isTransitive = false }
+
 repositories {
     mavenCentral()
     intellijPlatform { defaultRepositories() }
@@ -31,6 +36,10 @@ repositories {
 dependencies {
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))
+        // For the part of the plugin that reads Kotlin. The dependency is
+        // optional in plugin.xml, so the plugin still loads in WebStorm and the
+        // other IDEs without Kotlin.
+        bundledPlugin("org.jetbrains.kotlin")
         testFramework(TestFrameworkType.Platform)
     }
     testImplementation("junit:junit:4.13.2")
@@ -44,6 +53,15 @@ dependencies {
     implementation("io.github.markusaugust:lo-tek-interfaces:$lotekVersion") {
         exclude(group = "org.jetbrains.kotlin")
     }
+
+    // The libraries the Kotlin test project compiles against: LO-TEK as a
+    // consumer gets it, kotlinx.html and the standard library. Without them
+    // nothing in a test file resolves, and an inspection that stays silent on
+    // what it cannot resolve passes every test.
+    kotlinLibraries("io.github.markusaugust:lo-tek-interfaces:$lotekVersion")
+    kotlinLibraries("io.github.markusaugust:lo-tek-kotlinx-html:$lotekVersion")
+    kotlinLibraries("org.jetbrains.kotlinx:kotlinx-html-jvm:0.12.0")
+    kotlinLibraries("org.jetbrains.kotlin:kotlin-stdlib:2.2.21")
 }
 
 kotlin {
@@ -101,6 +119,11 @@ tasks.processResources {
         into("liveTemplates")
         rename { "Lotek.xml" }
     }
+    // The Kotlin templates, from the Kotlin tabs on the same pages. `lotek-kotlin.xml` points at them.
+    from(rootDir.resolve("../interfaces/live-templates-kotlin.xml")) {
+        into("liveTemplates")
+        rename { "LotekKotlin.xml" }
+    }
 }
 
 tasks.test {
@@ -108,4 +131,10 @@ tasks.test {
     val manifest = rootDir.resolve("../interfaces/manifest/manifest.json")
     systemProperty("manifest", manifest.absolutePath)
     inputs.file(manifest).withPathSensitivity(PathSensitivity.NONE)
+    inputs.files(kotlinLibraries).withNormalizer(ClasspathNormalizer::class.java)
+    val libraries = kotlinLibraries
+    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-Dlotek.kotlinLibraries=${libraries.files.joinToString(File.pathSeparator)}") })
+    // Documented: the tests run in K1 mode unless this is set,
+    // https://plugins.jetbrains.com/docs/intellij/k2-compatibility.html
+    systemProperty("idea.kotlin.plugin.use.k2", "true")
 }

@@ -60,6 +60,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`lo-tek-kotlinx-html` has one function per web component**, such as
   `ltField { … }` and `ltTabs { … }`, since kotlinx.html knows only the
   elements in HTML.
+- **`live-templates-kotlin.xml`, live templates for Kotlin in IntelliJ,**
+  one per page with a Kotlin tab, generated from the tab. The ids are empty
+  variables, as in `live-templates.xml`.
 - **The pages for field, suggestion, tabs, popover, dialog, error summary
   and session timeout have a Kotlin tab.** `RecipesTest` compiles each,
   renders it, and requires the elements, the texts, the classes and the

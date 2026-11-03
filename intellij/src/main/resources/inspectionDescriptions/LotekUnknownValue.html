@@ -1,0 +1,6 @@
+<html>
+<body>
+Reports <code>ButtonVariant.of(value)!!</code> and the other lookups of an allowed value followed by <code>!!</code>. A text from a form, a query string or a Datastar signal that is not an allowed value gives a <code>NullPointerException</code> that does not say which value it was.
+<p>The quick fix throws with the value in the message. It does not fall back on a default: a field the server thinks is invalid would then be rendered as valid.</p>
+</body>
+</html>

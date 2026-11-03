@@ -24,6 +24,46 @@ same recipes as the snippets in VS Code, and Gradle copies the file in as
 `liveTemplates/Lotek.xml`. A new component gets a template by itself on the next
 `generate`, but the plugin has to be released again for users to get it.
 
+## The builder functions in Kotlin
+
+When the Kotlin plugin is there, `lotek-kotlin.xml` adds four things for the
+builder functions in `Lt`. The dependency is optional, so the HTML part works
+as before in an IDE without Kotlin. The code is read through the PSI, with
+`reference.resolve()`, which works in K2 mode; the resolution calls in the
+Analysis API are marked experimental in 2026.1.
+
+- **The description of each option** next to it in completion, read from the
+  manifest. Kotlin already offers the options as named arguments and the values
+  of an option without the type name, and inserts them qualified;
+  `PlatformCompletionTest` checks that, and `OptionCompletion` only adds to
+  Kotlin's suggestions. It runs before Kotlin's own contributor
+  (`KotlinCompletionContributor`), or the suggestions are already in the list.
+- **Four inspections**: a set on an element its part cannot be
+  (`label { lt(field.control) }`), with a fix that moves it when exactly one
+  element can take it; `ButtonVariant.of(x)!!`, with a fix that throws with the
+  value; an id from the loop index, a random value, the clock, a counter, or the
+  same text in every row of a loop, a weak warning; and `Lt.field(error = true)`
+  where `field.error` is never used. Each is silent when the code does not say it
+  for certain, and each silence has a test.
+- **Live templates**: `ltfield` and the six others insert the Kotlin recipe from
+  the component page at the top level of a file, with the ids as empty
+  variables. `interfaces/live-templates-kotlin.xml` is generated from the Kotlin
+  tabs, the same code `RecipesTest` in `kotlin/kotlinx-html` compiles, and
+  `KotlinLiveTemplateTest` inserts each and requires it to compile.
+- **The KDoc** on every member of `Lt` comes with the sources jar of the Kotlin
+  package, so Quick Documentation needs nothing from the plugin.
+
+The tests run a light Kotlin project with the real jars on its classpath
+(`KotlinTestCase`), the local Kotlin package through `includeBuild`. Two things
+cost time to find:
+
+- **The plugin is built with Kotlin 2.4,** the Kotlin of the IDE: the Kotlin
+  plugin in 2026.1 has metadata 2.4, and Kotlin 2.2 cannot read its classes.
+- **`supportsKotlinPluginMode` must be in `plugin.xml`,** where the optional
+  dependency is. In `lotek-kotlin.xml` IntelliJ logs "is not compatible with the
+  Kotlin plugin in the K2 mode" and does not load the file, and every Kotlin
+  test is silent.
+
 ## The diagnostics
 
 `LotekAnnotator` runs the same Rust core as `lotek check` and VS

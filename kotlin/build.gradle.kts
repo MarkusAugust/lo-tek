@@ -167,6 +167,12 @@ tasks.test {
     jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-Dmanifest=${manifestPath.get()}") })
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)
     systemProperty("webjar", layout.buildDirectory.dir("webjar/META-INF/resources/webjars/lo-tek/$version").get().asFile.absolutePath)
+    // The sources jar Maven Central gets, which is where IntelliJ reads the
+    // KDoc of `Lt` from. `SourcesJarTest` requires the generated `Lt.kt` in it.
+    val sources = tasks.named<Jar>("sourcesJar")
+    dependsOn(sources)
+    val sourcesPath = sources.flatMap { it.archiveFile }.map { it.asFile.absolutePath }
+    jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-DsourcesJar=${sourcesPath.get()}") })
     testLogging { events("failed") }
 }
 

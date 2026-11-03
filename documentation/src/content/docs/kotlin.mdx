@@ -292,3 +292,10 @@ The check is written in Rust and built to one WebAssembly module. The same modul
 ## In IntelliJ
 
 The plugin [LO-TEK Interfaces](https://plugins.jetbrains.com/plugin/34764-lotek) runs the same check while you type, also in HTML in a Kotlin string marked with `@Language("HTML")` or `// language=HTML`. See [The editor](../the-editor/#jetbrains).
+
+With the builder functions it does four more things in Kotlin:
+
+- completion shows the description and the default of each option next to it;
+- it warns about a set on an element its part cannot be, like `label { lt(field.control) }`, and moves it where exactly one element can take it;
+- it warns about `ButtonVariant.of(value)!!`, which throws without saying what the value was, about an id from the loop index, a random value or the same text in every row, and about `Lt.field(error = true)` without `field.error`;
+- `ltfield` and the six others, at the top level of a file, insert the Kotlin recipe from the component page, with the ids left for you to fill in.

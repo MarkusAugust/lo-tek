@@ -1,0 +1,41 @@
+<idea-plugin>
+    <!-- Loaded only when the Kotlin plugin is there; see plugin.xml. -->
+    <extensions defaultExtensionNs="com.intellij">
+        <!--
+            The description of each option of a builder function next to it.
+            Adds, never filters. It must run before Kotlin's own contributor,
+            whose id is KotlinCompletionContributor in both K1 and K2, and which
+            is "first" too: otherwise Kotlin's results are already in the list
+            and cannot be passed through.
+        -->
+        <completion.contributor
+            language="kotlin"
+            order="first, before KotlinCompletionContributor"
+            implementationClass="no.lotek.intellij.kotlin.OptionCompletion" />
+
+        <!--
+            Live templates for Kotlin: type `ltfield` at the top level of a
+            file and Tab, and the recipe from the component page is there, in
+            kotlinx.html, with the ids as empty variables. The file is generated
+            in the design system from the Kotlin tabs and copied in by Gradle.
+        -->
+        <defaultLiveTemplates file="/liveTemplates/LotekKotlin" />
+
+        <localInspection language="kotlin" groupName="LO-TEK" shortName="LotekWrongElement"
+            displayName="A set from a builder function on an element its part cannot be"
+            enabledByDefault="true" level="WARNING"
+            implementationClass="no.lotek.intellij.kotlin.WrongElementInspection" />
+        <localInspection language="kotlin" groupName="LO-TEK" shortName="LotekUnknownValue"
+            displayName="!! on the lookup of an allowed value"
+            enabledByDefault="true" level="WARNING"
+            implementationClass="no.lotek.intellij.kotlin.UnknownValueInspection" />
+        <localInspection language="kotlin" groupName="LO-TEK" shortName="LotekUnstableId"
+            displayName="An id that is not the same on every render"
+            enabledByDefault="true" level="WEAK WARNING"
+            implementationClass="no.lotek.intellij.kotlin.UnstableIdInspection" />
+        <localInspection language="kotlin" groupName="LO-TEK" shortName="LotekUnusedErrorText"
+            displayName="error = true without the error text"
+            enabledByDefault="true" level="WEAK WARNING"
+            implementationClass="no.lotek.intellij.kotlin.UnusedErrorTextInspection" />
+    </extensions>
+</idea-plugin>

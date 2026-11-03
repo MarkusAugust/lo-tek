@@ -335,6 +335,25 @@ for (const m of liveTemplates.matchAll(/id=&quot;([^&]*)&quot;/g))
     findings.push(
       `Live templates have id=&quot;${m[1]}&quot; without a variable`,
     )
+// The Kotlin live templates: one per page with a Kotlin tab, counted in the
+// pages rather than in the file, and the ids empty there too.
+const kotlinTemplates = generated["interfaces/live-templates-kotlin.xml"] ?? ""
+const pagesWithKotlin = elements.filter((element) =>
+  readFileSync(
+    join(ROOT, `documentation/src/content/docs/components/${element.slug}.mdx`),
+    "utf8",
+  ).includes('<TabItem label="Kotlin">'),
+)
+const kotlinCount = [...kotlinTemplates.matchAll(/<template name="/g)].length
+if (pagesWithKotlin.length === 0 || kotlinCount !== pagesWithKotlin.length)
+  findings.push(
+    `${pagesWithKotlin.length} pages have a Kotlin tab, and there are ${kotlinCount} Kotlin live templates`,
+  )
+for (const m of kotlinTemplates.matchAll(/defaultValue="([^"]*)"/g))
+  if (m[1] !== "")
+    findings.push(
+      `A Kotlin live template fills in ${m[1]}. The ids are left empty.`,
+    )
 for (const m of liveTemplates.matchAll(/defaultValue="([^"]*)"/g))
   if (m[1] !== "")
     findings.push(
