@@ -335,6 +335,39 @@ for (const m of liveTemplates.matchAll(/id=&quot;([^&]*)&quot;/g))
     findings.push(
       `Live templates have id=&quot;${m[1]}&quot; without a variable`,
     )
+// The Kotlin live templates: one per page with a Kotlin tab, counted in the
+// pages rather than in the file, and the ids empty there too.
+const kotlinTemplates = generated["interfaces/live-templates-kotlin.xml"] ?? ""
+const pagesWithKotlin = elements.filter((element) =>
+  readFileSync(
+    join(ROOT, `documentation/src/content/docs/components/${element.slug}.mdx`),
+    "utf8",
+  ).includes('<TabItem label="Kotlin">'),
+)
+const kotlinCount = [...kotlinTemplates.matchAll(/<template name="/g)].length
+if (pagesWithKotlin.length === 0 || kotlinCount !== pagesWithKotlin.length)
+  findings.push(
+    `${pagesWithKotlin.length} pages have a Kotlin tab, and there are ${kotlinCount} Kotlin live templates`,
+  )
+// Every place an id stands is the variable, not only `id = "…"`: a literal
+// left behind, such as `it.field == "fixer"`, no longer matches the id the
+// user typed.
+for (const t of kotlinTemplates.matchAll(
+  /<template name="([^"]+)" value="([^"]*)"[^>]*>([\s\S]*?)<\/template>/g,
+)) {
+  const value = t[2].replace(/&quot;/g, '"')
+  for (const v of t[3].matchAll(/<variable name="([^"]+)"/g))
+    for (const literal of new Set([v[1], v[1].replace(/_/g, "-")]))
+      if (value.includes(`"${literal}"`))
+        findings.push(
+          `The Kotlin live template ${t[1]} has the id "${literal}" as text next to the variable $${v[1]}$`,
+        )
+}
+for (const m of kotlinTemplates.matchAll(/defaultValue="([^"]*)"/g))
+  if (m[1] !== "")
+    findings.push(
+      `A Kotlin live template fills in ${m[1]}. The ids are left empty.`,
+    )
 for (const m of liveTemplates.matchAll(/defaultValue="([^"]*)"/g))
   if (m[1] !== "")
     findings.push(

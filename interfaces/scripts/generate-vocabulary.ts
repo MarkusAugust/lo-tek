@@ -297,6 +297,139 @@ export function snippets() {
 }
 
 /**
+ * The Kotlin recipe on a component page: the ```kotlin block in the Kotlin tab
+ * with `fun FlowContent.…`, the same code `RecipesTest` in
+ * `kotlin/kotlinx-html` compiles and compares with the HTML recipe. `null`
+ * when the page has no Kotlin tab.
+ */
+function kotlinRecipe(slug: string): string | undefined {
+  const page = readFileSync(join(PAGES, `${slug}.mdx`), "utf8")
+  const start = page.indexOf('<TabItem label="Kotlin">')
+  if (start < 0) return undefined
+  const end = page.indexOf("</TabItem>", start)
+  const tab = page.slice(start, end < 0 ? page.length : end)
+  const blocks = [
+    ...tab.matchAll(/^([ \t]*)```kotlin\n([\s\S]*?)\n[ \t]*```/gm),
+  ].map((m) =>
+    m[2]
+      .split("\n")
+      .map((line) => (line.startsWith(m[1]) ? line.slice(m[1].length) : line))
+      .join("\n"),
+  )
+  const recipe = blocks.find((b) => b.includes("fun FlowContent."))
+  if (!recipe)
+    throw new Error(
+      `${slug}.mdx has a Kotlin tab without a \`fun FlowContent.…\` block`,
+    )
+  return recipe
+}
+
+/**
+ * Live templates for Kotlin in IntelliJ, one per page with a Kotlin tab:
+ * `ltfield` inserts the recipe from the field page, the function and the data
+ * classes it uses, at the top level of a file.
+ *
+ * The imports cannot come along, so the names from LO-TEK are written in
+ * full, `no.lotek.Lt` and `no.lotek.RequiredMarker.SYMBOL`, and the template
+ * has `toShortenFQNames`, which shortens them and adds the imports. A value of
+ * LO-TEK's is told from one of kotlinx.html's by its case: `ButtonVariant.GHOST`
+ * against `ButtonType.submit`. That is a guess about every name written
+ * `Name.CONSTANT`, so `KotlinLiveTemplateTest` inserts every template and
+ * requires it to compile: `Int.MAX_VALUE` in a recipe would fail there. The
+ * extensions `lt` and `ltField` and the tags of kotlinx.html cannot be written
+ * in full, and need `import kotlinx.html.*` and `import no.lotek.html.*`, as
+ * the description says.
+ *
+ * Every id the recipe gives, `id = "codename"` and `titleId = "…"`, becomes
+ * an empty variable, mirrored where the same id stands again, as in the HTML
+ * templates (`withTabstops`).
+ */
+export function kotlinLiveTemplates(): string {
+  const xml = (text: string) =>
+    text
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "&#10;")
+  const templates: string[] = []
+  for (const element of elements) {
+    const recipe = kotlinRecipe(element.slug)
+    if (!recipe) continue
+    let body = recipe
+      .split("\n")
+      .filter((line) => !line.startsWith("import "))
+      .join("\n")
+      .trim()
+      .replace(/\$/g, "$$$$")
+      .replace(/\bLt\./g, "no.lotek.Lt.")
+      .replace(/\b([A-Z][A-Za-z]+)\.([A-Z][A-Z0-9_]*)\b/g, "no.lotek.$1.$2")
+    const ids = [
+      ...new Set(
+        [...body.matchAll(/\b(?:id|titleId) = "([^"$]+)"/g)].map((m) => m[1]),
+      ),
+    ]
+    // Checked on the recipe as it stands, before any id is a variable.
+    for (const id of ids) {
+      // The variable name is the id with `-` as `_`, so check-vocabulary can
+      // tell which id it stands for. An id that stands inside a longer text,
+      // `"#codename"` or `"codename-help"`, would keep the old id after the
+      // user typed a new one, so the generator stops on both.
+      if (!/^[A-Za-z][A-Za-z0-9-]*$/.test(id))
+        throw new Error(
+          `${element.slug}.mdx: the Kotlin recipe has the id "${id}". A template variable is the id with - as _, so an id may have letters, digits and - only.`,
+        )
+      // A text without spaces, as a reference to an id is; "Enter a
+      // codename." is prose, and does not point at anything.
+      const inside = [
+        ...body.matchAll(
+          new RegExp(
+            `"[^"\\s]*(?:[^"\\s]${escapeRegex(id)}|${escapeRegex(id)}[^"\\s])[^"\\s]*"`,
+            "g",
+          ),
+        ),
+      ]
+        .map((m) => m[0])
+        // `"errors-title"` is an id of its own, with its own variable.
+        .find((text) => !ids.includes(text.slice(1, -1)))
+      if (inside)
+        throw new Error(
+          `${element.slug}.mdx: the Kotlin recipe has the id "${id}" inside the text ${inside}. Make it from the variable the builder function gives, or the text keeps the old id in the template.`,
+        )
+    }
+    const variables = ids.map((id) => {
+      const name = id.replace(/-/g, "_")
+      // Every place the id stands as a text, not only `id = "…"`: the error
+      // summary also compares `it.field == "fixer"`, and a field that got
+      // another id would never be marked invalid. The field's `name` is often
+      // the same text, and follows the id too, as the field page advises.
+      body = body.replace(
+        new RegExp(`"${escapeRegex(id)}"`, "g"),
+        () => `"$${name}$"`,
+      )
+      return `    <variable name="${name}" expression="" defaultValue="" alwaysStopAt="true" />`
+    })
+    const key = `lt${element.slug.replace(/-/g, "")}`
+    const description = `The Kotlin recipe from the ${element.slug} page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted.`
+    templates.push(
+      [
+        `  <template name="${key}" value="${xml(body)}" description="${xml(description)}" toReformat="true" toShortenFQNames="true">`,
+        ...variables,
+        "    <context>",
+        '      <option name="KOTLIN_TOPLEVEL" value="true" />',
+        "    </context>",
+        "  </template>",
+      ].join("\n"),
+    )
+  }
+  if (templates.length === 0)
+    throw new Error(
+      "No component page has a Kotlin tab, so there are no Kotlin live templates.",
+    )
+  return `<!-- Generated by interfaces/scripts/generate-vocabulary.ts. Do not edit. -->\n<templateSet group="LO-TEK Kotlin">\n${templates.join("\n")}\n</templateSet>\n`
+}
+
+/**
  * Live templates for IntelliJ, from the same recipes as the snippets.
  *
  * The format is IntelliJ's own: `$name$` is a variable, `$$` a dollar sign,
@@ -711,6 +844,7 @@ export function files(): Record<string, string> {
     ),
     "interfaces/web-types.json": json(webTypes(version)),
     "interfaces/live-templates.xml": liveTemplates(),
+    "interfaces/live-templates-kotlin.xml": kotlinLiveTemplates(),
     "interfaces/src/components/events.ts": eventTypes(),
   }
 }

@@ -1,0 +1,91 @@
+package no.lotek.intellij.kotlin
+
+class UnstableIdInspectionTest : KotlinTestCase() {
+    private fun reported(body: String): List<String> {
+        kotlin(
+            """
+            data class Row(val key: String, val name: String)
+            $body
+            """.trimIndent(),
+        )
+        return problems(UnstableIdInspection()).map { it.second }
+    }
+
+    fun `test the index of forEachIndexed`() {
+        val found = reported("fun FlowContent.x(rows: List<Row>) { rows.forEachIndexed { i, row -> Lt.field(id = \"row-${'$'}i\") } }")
+        assertTrue("$found", found.single().contains("loop index"))
+    }
+
+    fun `test the index of withIndex in a for`() {
+        val found = reported("fun FlowContent.x(rows: List<Row>) { for ((i, row) in rows.withIndex()) Lt.field(id = \"row-${'$'}i\") }")
+        assertTrue("$found", found.single().contains("loop index"))
+    }
+
+    fun `test a loop over indices, with the id given by position`() {
+        val found = reported("fun FlowContent.x(rows: List<Row>) { for (i in rows.indices) Lt.field(\"row-${'$'}i\") }")
+        assertTrue("$found", found.single().contains("loop index"))
+    }
+
+    fun `test a random id`() {
+        val found = reported("fun FlowContent.x() { Lt.popover(id = java.util.UUID.randomUUID().toString()) }")
+        assertTrue("$found", found.single().contains("random"))
+    }
+
+    fun `test the clock`() {
+        val found = reported("fun FlowContent.x() { Lt.dialog(titleId = \"t-${'$'}{System.nanoTime()}\") }")
+        assertTrue("$found", found.single().contains("clock"))
+    }
+
+    fun `test a counter`() {
+        val found = reported("var next = 0\nfun FlowContent.x() { Lt.field(id = \"f-${'$'}{next++}\") }")
+        assertTrue("$found", found.single().contains("counter"))
+    }
+
+    fun `test the same text in every row`() {
+        val found = reported("fun FlowContent.x(rows: List<Row>) { rows.forEach { Lt.field(id = \"amount\") } }")
+        assertTrue("$found", found.single().contains("same text in every row"))
+    }
+
+    fun `test it in repeat and in a loop over a range`() {
+        val found = reported(
+            """
+            fun FlowContent.x(rows: List<Row>, n: Int) {
+                repeat(n) { Lt.field(id = "row-${'$'}it") }
+                (0 until n).forEach { Lt.field(id = "r-${'$'}it") }
+                rows.indices.forEach { i -> Lt.field(id = "s-${'$'}i") }
+                repeat(n) { div { Lt.field(id = "li-${'$'}it") } }
+                (0 until n).forEach { it -> div { Lt.field(id = "d-${'$'}it") } }
+            }
+            """.trimIndent(),
+        )
+        assertEquals("$found", 5, found.count { it.contains("loop index") })
+    }
+
+    fun `test it over the data is silent`() {
+        val found = reported(
+            """
+            fun FlowContent.x(rows: List<Row>) {
+                rows.forEach { Lt.field(id = "row-${'$'}{it.key}") }
+                rows.first().let { Lt.field(id = "first-${'$'}{it.key}") }
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList<String>(), found)
+    }
+
+    fun `test a key from the data is silent, also with an index next to it`() {
+        val found = reported(
+            """
+            fun FlowContent.x(rows: List<Row>) {
+                rows.forEachIndexed { i, row -> Lt.field(id = "row-${'$'}{row.key}") }
+                for (row in rows) Lt.field(id = "amount-${'$'}{row.key}")
+                Lt.field(id = "codename")
+                Lt.tabs(id = "claim", keys = rows.map { it.key }, label = "Parts of the claim")
+                for ((i, row) in rows.withIndex()) Lt.field(id = "part-${'$'}{rows[i].key}")
+                for (i in rows.indices) Lt.field(id = "get-${'$'}{rows.get(i).key}")
+            }
+            """.trimIndent(),
+        )
+        assertEquals(emptyList<String>(), found)
+    }
+}
