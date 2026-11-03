@@ -379,22 +379,21 @@ export function kotlinLiveTemplates(): string {
         throw new Error(
           `${element.slug}.mdx: the Kotlin recipe has the id "${id}". A template variable is the id with - as _, so an id may have letters, digits and - only.`,
         )
-      // A text without spaces, as a reference to an id is; "Enter a
-      // codename." is prose, and does not point at anything.
-      const inside = [
-        ...body.matchAll(
-          new RegExp(
-            `"[^"\\s]*(?:[^"\\s]${escapeRegex(id)}|${escapeRegex(id)}[^"\\s])[^"\\s]*"`,
-            "g",
-          ),
-        ),
-      ]
-        .map((m) => m[0])
+      // A reference to the id inside a longer text: `#codename` anywhere,
+      // also in a selector with spaces, or `codename-help` at the start, as
+      // an id derived from it. Not `fixer@relay.example` or `given-name`,
+      // which only contain the letters.
+      const reference = new RegExp(
+        `#${escapeRegex(id)}(?![\\w-])|^${escapeRegex(id)}-`,
+      )
+      const inside = [...body.matchAll(/"([^"\n]*)"/g)]
+        .map((m) => m[1])
         // `"errors-title"` is an id of its own, with its own variable.
-        .find((text) => !ids.includes(text.slice(1, -1)))
+        .filter((text) => text !== id && !ids.includes(text))
+        .find((text) => reference.test(text))
       if (inside)
         throw new Error(
-          `${element.slug}.mdx: the Kotlin recipe has the id "${id}" inside the text ${inside}. Make it from the variable the builder function gives, or the text keeps the old id in the template.`,
+          `${element.slug}.mdx: the Kotlin recipe has the id "${id}" inside the text "${inside}". Make it from the variable the builder function gives, or the text keeps the old id in the template.`,
         )
     }
     const variables = ids.map((id) => {
