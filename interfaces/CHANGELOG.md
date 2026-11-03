@@ -107,8 +107,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **The recipe for the connection status reports a server that stopped
   answering.** Its script declared `saveRoute` inside a module, where no
   other code on the page could call it, and called the methods without
-  waiting for the registration. It now saves every form with `fetch` and
-  waits with `customElements.whenDefined`.
+  waiting for the registration. It now puts `saveRoute` on `window` and
+  waits with `customElements.whenDefined` for the element's own tag name.
 
 - **A date or time field fits its container in iOS Safari.** With the
   native appearance, `.lt-input` with `data-variant` `date`, `time` or

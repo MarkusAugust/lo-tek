@@ -71,9 +71,10 @@ class RecipesTest {
 
     /**
      * The recipes whose HTML tab validates in the browser, where the Kotlin
-     * recipe renders the field as invalid on the server instead. The script on
-     * the field page finds the error text through `<lt-field>`, which the
-     * Kotlin recipe leaves out (see [WIRING_ONLY]), so it cannot be the same.
+     * recipe renders the field as invalid on the server instead. Only the
+     * script that finds the error text through `<lt-field>`, which the Kotlin
+     * recipe leaves out (see [WIRING_ONLY]), is exempt; any other script on
+     * the page is compared as everywhere else.
      */
     private val VALIDATED_ON_THE_SERVER = setOf("field")
 
@@ -162,31 +163,31 @@ class RecipesTest {
             // where the HTML recipe has the component.
             for (tag in WIRING_ONLY) if (rendered.getElementsByTag(tag).isEmpty()) wanted.getElementsByTag(tag).forEach { it.unwrap() }
             compare(wanted, rendered, "body", problems, ids, pointers)
-            // The scripts are compared on their own: the tree leaves them out.
-            // The registration is left out too, since the Kotlin recipe has it
-            // once in the page template, as `defineLt()`.
+            // The scripts are compared on their own, the tree leaves them out:
+            // the type and the text. The registration is taken out of the text,
+            // the import of `defineLt…` and its call, since the Kotlin recipe
+            // registers once in the page template with `defineLt()`; whatever
+            // else the script does stays and is compared.
             fun scripts(e: Element) =
-                e.getElementsByTag("script").map { it.data().replace(Regex("\\s+"), " ").trim() }.filter { "defineLt" !in it }
-            if (recipe.page !in VALIDATED_ON_THE_SERVER && scripts(wanted) != scripts(rendered)) {
-                problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    ${scripts(wanted)}")
-            }
-            for (p in pointers) {
-                val point = { id: String -> ids[id] ?: id }
-                when {
-                    p.name in idLists -> {
-                        val missing = p.wanted.split(Regex("\\s+")).filter { it.isNotEmpty() }.map(point) - p.got.split(Regex("\\s+")).toSet()
-                        if (missing.isNotEmpty()) problems.add("${p.path}: ${p.name}=\"${p.got}\" does not point at $missing, as the HTML recipe does")
-                    }
-                    p.name == "for" -> if (p.got != point(p.wanted)) problems.add("${p.path}: for=\"${p.got}\", where the HTML recipe points at the element with id ${point(p.wanted)}")
-                    p.wanted.startsWith("#") -> if (p.got != "#" + point(p.wanted.drop(1))) problems.add("${p.path}: href=\"${p.got}\", where the HTML recipe points at #${point(p.wanted.drop(1))}")
-                    else -> if (p.got != p.wanted) problems.add("${p.path}: href is \"${p.got}\", the HTML recipe has \"${p.wanted}\"")
-                }
+                e.getElementsByTag("script").map {
+                    val text = it.data()
+                        .replace(Regex("""import\s*\{[^}]*\bdefineLt\w*[^}]*\}\s*from\s*"[^"]*"\s*;?"""), "")
+                        .replace(Regex("""\bdefineLt\w*\([^)]*\)\s*;?"""), "")
+                        .replace(Regex("\\s+"), " ").trim()
+                    it.attr("type") to text
+                }.filter { it.second.isNotEmpty() }
+            val wantedScripts = scripts(wanted).filterNot { recipe.page in VALIDATED_ON_THE_SERVER && it.second.contains(".closest(\"lt-field\")") }
+            if (wantedScripts != scripts(rendered)) {
+                problems.add("the scripts differ from the HTML recipe's:\n    ${scripts(rendered)}\n  against\n    $wantedScripts")
             }
             if (problems.isNotEmpty()) {
                 // Every page is compared before the test fails, so one run shows them all.
                 failures.add("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
                 continue
             }
+            // A finding from the check is collected like a difference, so one
+            // run shows every page that is wrong.
+            try {
             if (recipe.page in PARTS_ON_THEIR_OWN) {
                 // The page shows the part alone, and a whole page with it fails
                 // by design, on that rule and on no other.
@@ -198,6 +199,10 @@ class RecipesTest {
                 )
             } else {
                 assertLotek(page)
+            }
+            } catch (e: AssertionError) {
+                failures.add("${recipe.page}.mdx, ${recipe.function}(): ${e.message}")
+                continue
             }
             compared += 1
         }

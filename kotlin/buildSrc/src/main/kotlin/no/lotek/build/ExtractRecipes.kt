@@ -72,7 +72,8 @@ abstract class ExtractRecipes : DefaultTask() {
         if (entries.isEmpty()) error("No component page has a kotlinx.html tab, so the recipe test would check nothing.")
         // The stylesheet `Example.astro` shows above every recipe on a CSS page.
         val astro = example.get().asFile.readText()
-        val stylesheet = Regex("""const kotlinStylesheet = `([^`]*)`""").find(astro)?.groupValues?.get(1)
+        val stylesheet = Regex("""const kotlinStylesheet = `((?:[^`\\]|\\[\s\S])*)`""").find(astro)?.groupValues?.get(1)
+            ?.let { cooked(it) ?: error("kotlinStylesheet in Example.astro has a \${…}, which the test cannot resolve.") }
             ?: error("Example.astro has no kotlinStylesheet, which the kotlinx.html tab shows.")
         val registry = sourceDir.resolve("no/lotek/html/recipes").apply { mkdirs() }
         registry.resolve("ExampleStylesheet.kt").writeText(
@@ -157,29 +158,42 @@ abstract class ExtractRecipes : DefaultTask() {
      * which the test cannot resolve.
      */
     private fun cooked(literal: String): String? {
+        val text = literal.replace("\r\n", "\n")
         val out = StringBuilder()
         var i = 0
-        while (i < literal.length) {
-            val c = literal[i]
-            if (c == '$' && literal.getOrNull(i + 1) == '{') return null
+        fun hex(from: Int, length: Int): Int {
+            val digits = text.substring(from, (from + length).coerceAtMost(text.length))
+            require(digits.length == length && digits.all { it.isDigit() || it.lowercaseChar() in 'a'..'f' }) {
+                "A \\x or \\u escape in a template literal needs $length hex digits, and has \"$digits\""
+            }
+            return digits.toInt(16)
+        }
+        while (i < text.length) {
+            val c = text[i]
+            if (c == '$' && text.getOrNull(i + 1) == '{') return null
             if (c != '\\') {
                 out.append(c)
                 i++
                 continue
             }
-            val next = literal.getOrNull(i + 1) ?: break
+            val next = text.getOrNull(i + 1) ?: break
             i += 2
             when (next) {
                 'n' -> out.append('\n')
                 't' -> out.append('\t')
                 'r' -> out.append('\r')
-                '\n' -> {}
-                'x' -> { out.append(literal.substring(i, i + 2).toInt(16).toChar()); i += 2 }
-                'u' -> if (literal.getOrNull(i) == '{') {
-                    val end = literal.indexOf('}', i)
-                    out.appendCodePoint(literal.substring(i + 1, end).toInt(16)); i = end + 1
+                'b' -> out.append('\b')
+                'f' -> out.append('\u000C')
+                'v' -> out.append('\u000B')
+                '0' -> out.append('\u0000')
+                '\n', '\u2028', '\u2029' -> {}
+                'x' -> { out.append(hex(i, 2).toChar()); i += 2 }
+                'u' -> if (text.getOrNull(i) == '{') {
+                    val end = text.indexOf('}', i)
+                    require(end > i + 1) { "A \\u{…} escape in a template literal is not closed" }
+                    out.appendCodePoint(hex(i + 1, end - i - 1)); i = end + 1
                 } else {
-                    out.append(literal.substring(i, i + 4).toInt(16).toChar()); i += 4
+                    out.append(hex(i, 4).toChar()); i += 4
                 }
                 else -> out.append(next)
             }
