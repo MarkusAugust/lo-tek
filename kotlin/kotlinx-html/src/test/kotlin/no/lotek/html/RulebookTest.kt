@@ -72,12 +72,26 @@ class RulebookTest {
         }
     }
 
+    /** The type a member of a class gives: a method, a getter or a field with that name. */
+    private fun member(type: Class<*>, name: String): Class<*>? {
+        val getter = "get${name.replaceFirstChar(Char::uppercase)}"
+        return type.methods.firstOrNull { it.name == name || it.name == getter }?.returnType
+            ?: type.fields.firstOrNull { it.name == name }?.type
+    }
+
     @Test
-    fun `every Lt name in the rulebook exists`() {
-        val members = Lt::class.java.methods.map { it.name }.toSet()
-        val names = Regex("""\bLt\.([a-z]\w*)""").findAll(text).map { it.groupValues[1] }.toSet()
+    fun `every Lt name in the rulebook exists, with the part after it`() {
+        val names = Regex("""\bLt\.([a-z]\w*)(?:\.([a-z]\w*))?""").findAll(text)
+            .map { it.groupValues[1] to it.groupValues[2] }.toSet()
         assertTrue(names.size > 40, "agent/kotlin.md names only ${names.size} members of Lt; the builder functions alone are more")
-        val missing = names.filter { it !in members && "get${it.replaceFirstChar(Char::uppercase)}" !in members }
+        assertTrue(names.any { it.second.isNotEmpty() }, "agent/kotlin.md names no part, such as Lt.card.title")
+        val missing = names.filter { (name, part) ->
+            val type = member(Lt::class.java, name)
+            // A part is read on the property, a `@JvmField` next to the
+            // builder function with the same name, not on the function's answer.
+            val parts = Lt::class.java.fields.firstOrNull { it.name == name }?.type
+            type == null || (part.isNotEmpty() && (parts == null || member(parts, part) == null))
+        }.map { (name, part) -> if (part.isEmpty()) "Lt.$name" else "Lt.$name.$part" }
         assertEquals(emptyList(), missing, "agent/kotlin.md names members Lt does not have")
     }
 

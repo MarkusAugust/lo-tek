@@ -10,7 +10,7 @@ private val BLOCK_COMMENT = Regex("""/\*[\s\S]*?\*/""")
  * comment, an annotation or a closing bracket. The block has already lost
  * the indentation of the tab.
  */
-private fun topLevel(block: String): List<String> =
+internal fun topLevel(block: String): List<String> =
     block.replace(BLOCK_COMMENT, "").lines()
         .filter { it.isNotBlank() && !it[0].isWhitespace() }
         .filterNot { it.startsWith("//") || it.startsWith("@") || it.startsWith("}") || it.startsWith(")") }

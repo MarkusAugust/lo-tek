@@ -85,19 +85,20 @@ body {
 The same in a string, without kotlinx.html:
 
 ```kotlin
-fun page(content: String) = """
-<!DOCTYPE html>
-<html lang="en">
-<head><link rel="stylesheet" href="${LotekWebJar.CSS}"></head>
-<body>
-$content
-<script type="module">
-  import { defineLt } from "${LotekWebJar.REGISTER}"
-  defineLt()
-</script>
-</body>
-</html>
-"""
+fun page(content: String): String =
+    """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><link rel="stylesheet" href="${LotekWebJar.CSS}"></head>
+    <body>
+    $content
+    <script type="module">
+      import { defineLt } from "${LotekWebJar.REGISTER}"
+      defineLt()
+    </script>
+    </body>
+    </html>
+    """
 ```
 
 `lotek.css` is 107 kB, 14 kB compressed, has every component, and is nearly
@@ -529,16 +530,20 @@ only `$$` interpolates.
 with the findings, which JUnit, Kotest and TestNG all report:
 
 ```kotlin
-import kotlinx.html.body
-import kotlinx.html.html
+import kotlinx.html.div
 import kotlinx.html.stream.createHTML
 import no.lotek.assertLotek
 import org.junit.jupiter.api.Test
 
-class OrderFormTest {
+class OrderPageTest {
     @Test
     fun `the order form is correct markup`() {
-        assertLotek(createHTML().html { body { orderForm(codename = "", invalid = true) } })
+        assertLotek(page(createHTML().div { orderForm(invalid = true) }))
+    }
+
+    @Test
+    fun `every note is wired`() {
+        assertLotek(page(createHTML().div { notes(listOf(Target("222-0481", "Orison", ""))) }))
     }
 }
 ```
@@ -576,7 +581,7 @@ lotek {
 https://github.com/MarkusAugust/lo-tek/releases/latest.
 
 ```bash
-java -jar lotek.jar check src/main/jte/*.kte
+java -jar lotek.jar check $(find src/main/jte -name '*.jte' -o -name '*.kte')
 java -jar lotek.jar check http://localhost:8080/form
 ```
 

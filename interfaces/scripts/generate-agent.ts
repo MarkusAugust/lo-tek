@@ -91,6 +91,16 @@ if (!FIELD_RECIPE || !FIELD_PAGE)
   throw new Error(
     "field.mdx must have a kotlinx.html tab with the recipe and the page template, which the Kotlin rulebook shows.",
   )
+/** The name of the field recipe's function, which the test in the rulebook calls. */
+const FIELD_FUNCTION = /fun FlowContent\.(\w+)\(/.exec(FIELD_RECIPE)?.[1]
+
+/*
+ * The check takes files, not folders, and a JVM project has its templates in
+ * folders, as `.jte` in Java and `.kte` in Kotlin. A glob such as
+ * `src/main/jte/*.kte` matched neither the Java ones nor a subfolder.
+ */
+const JAR_CHECK_TEMPLATES =
+  "java -jar lotek.jar check $(find src/main/jte -name '*.jte' -o -name '*.kte')"
 
 type Recipe = {
   /** The name the command takes, and the file name. */
@@ -1403,7 +1413,7 @@ whole page. That is what \`assertLotek\` reads.`,
     registrationRule: `**\`defineLt()\` runs once** in the page template, not
    once per component.`,
     address: WEBJAR_MODULE,
-    check: "java -jar lotek.jar check src/main/jte/*.kte",
+    check: JAR_CHECK_TEMPLATES,
     pointFive: `**Check the HTML the server sends, in a test:**
    \`assertLotek(html)\` fails with every finding as
    \`line:column: error: message\`, or \`warning:\`. It knows every class,
@@ -1452,19 +1462,20 @@ body {
 The same in a string, without kotlinx.html:
 
 \`\`\`kotlin
-fun page(content: String) = """
-<!DOCTYPE html>
-<html lang="en">
-<head><link rel="stylesheet" href="\${LotekWebJar.CSS}"></head>
-<body>
-$content
-<script type="module">
-  import { defineLt } from "\${LotekWebJar.REGISTER}"
-  defineLt()
-</script>
-</body>
-</html>
-"""
+fun page(content: String): String =
+    """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><link rel="stylesheet" href="\${LotekWebJar.CSS}"></head>
+    <body>
+    $content
+    <script type="module">
+      import { defineLt } from "\${LotekWebJar.REGISTER}"
+      defineLt()
+    </script>
+    </body>
+    </html>
+    """
 \`\`\`
 
 \`lotek.css\` is ${BUNDLED_SIZE}, has every component, and is nearly
@@ -1587,16 +1598,20 @@ where only \`$$\` interpolates.
 report:
 
 \`\`\`kotlin
-import kotlinx.html.body
-import kotlinx.html.html
+import kotlinx.html.div
 import kotlinx.html.stream.createHTML
 import no.lotek.assertLotek
 import org.junit.jupiter.api.Test
 
-class OrderFormTest {
+class OrderPageTest {
     @Test
     fun \`the order form is correct markup\`() {
-        assertLotek(createHTML().html { body { orderForm(codename = "", invalid = true) } })
+        assertLotek(page(createHTML().div { ${FIELD_FUNCTION}(invalid = true) }))
+    }
+
+    @Test
+    fun \`every note is wired\`() {
+        assertLotek(page(createHTML().div { notes(listOf(Target("222-0481", "Orison", ""))) }))
     }
 }
 \`\`\`
@@ -1634,7 +1649,7 @@ lotek {
 https://github.com/MarkusAugust/lo-tek/releases/latest.
 
 \`\`\`bash
-java -jar lotek.jar check src/main/jte/*.kte
+${JAR_CHECK_TEMPLATES}
 java -jar lotek.jar check http://localhost:8080/form
 \`\`\`
 

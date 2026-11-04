@@ -66,8 +66,16 @@ fn keys(value: Option<&Json>) -> Vec<String> {
 }
 
 /// The build files of a project on the JVM. Its markup comes from Kotlin or
-/// Java, where the builder functions are `Lt`, and the rulebook says how.
-const JVM_BUILD_FILES: [&str; 3] = ["build.gradle.kts", "build.gradle", "pom.xml"];
+/// Java, where the builder functions are `Lt`, and the rulebook says how. A
+/// Gradle build with several modules may have only the settings file at its
+/// root, where the agent's instruction file is.
+const JVM_BUILD_FILES: [&str; 5] = [
+    "build.gradle.kts",
+    "build.gradle",
+    "settings.gradle.kts",
+    "settings.gradle",
+    "pom.xml",
+];
 
 /// The first JVM build file in the working directory, if there is one.
 fn jvm_build_file() -> Option<&'static str> {

@@ -1291,6 +1291,10 @@ for (const old of [
     ["build.gradle.kts", null, "kotlin"],
     ["build.gradle", null, "kotlin"],
     ["pom.xml", null, "kotlin"],
+    // A Gradle build with several modules, with only the settings file at
+    // its root.
+    ["settings.gradle.kts", null, "kotlin"],
+    ["settings.gradle", null, "kotlin"],
     ["build.gradle.kts", { vite: "8.0.0" }, "kotlin"],
     ["build.gradle.kts", { typescript: "6.0.0" }, "kotlin"],
     ["build.gradle.kts", { react: "19.0.0" }, "react"],

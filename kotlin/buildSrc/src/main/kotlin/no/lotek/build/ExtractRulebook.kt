@@ -40,12 +40,21 @@ abstract class ExtractRulebook : DefaultTask() {
         // A block left out may hold only what a build file has at its top,
         // or the comment would hide any Kotlin from the compiler.
         for (block in gradle) {
-            val top = block.lines().filter { it.isNotBlank() && !it[0].isWhitespace() && !it.startsWith("//") && !it.startsWith("}") }
-            top.firstOrNull { !BUILD_FILE.containsMatchIn(it) }?.let {
+            topLevel(block).firstOrNull { !BUILD_FILE.containsMatchIn(it) }?.let {
                 error("agent/kotlin.md has a block marked as a Gradle build file with `$it` at its top, which a build file does not have. Only `plugins`, `dependencies`, `repositories`, `tasks` and `lotek` are left out of the compilation.")
             }
         }
         if (compiled.isEmpty()) error("agent/kotlin.md has no ```kotlin block to compile, so the rulebook test would check nothing.")
+        // A function in a block of declarations is only rendered when another
+        // block calls it, such as the test that renders the string page. One
+        // nobody calls would be compiled, and its markup never checked.
+        for ((i, block) in compiled.withIndex()) {
+            if (blockKind(block.lines().filterNot { it.startsWith("import ") }.joinToString("\n")) != BlockKind.DECLARATIONS) continue
+            for (name in DECLARED_FUNCTION.findAll(block).map { it.groupValues[1] }) {
+                val called = compiled.withIndex().any { (j, other) -> j != i && Regex("""\b${Regex.escape(name)}\(""").containsMatchIn(other) }
+                if (!called) error("agent/kotlin.md declares $name() in block ${i + 1}, and no other block calls it, so its markup is never rendered and checked. Call it from the test in the rulebook.")
+            }
+        }
         val fragments = mutableListOf<String>()
         val pages = mutableListOf<String>()
         for ((i, block) in compiled.withIndex()) {
@@ -90,6 +99,9 @@ abstract class ExtractRulebook : DefaultTask() {
     }
 
     private companion object {
+        /** A function at the top level of a block, `fun name(` or `fun Receiver.name(`, but not a test. */
+        val DECLARED_FUNCTION = Regex("""(?m)^fun (?:[A-Z]\w*\.)?([a-z]\w*)\(""")
+
         /** What a Gradle build file in the rulebook may have at its top. */
         val BUILD_FILE = Regex("""^(?:plugins|dependencies|repositories|tasks|lotek)\s*\{""")
 
