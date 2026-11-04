@@ -13,6 +13,10 @@
  * does not exist in `ci.yml` fails the run, so the list cannot rot: a step
  * that is renamed runs here from then on.
  *
+ * The workflows with a path filter run too, when the branch touches one of
+ * their paths, as on a pull request. `ci-intellij.yml` stood outside, and a
+ * live template test failed in CI that nothing here had run.
+ *
  * Run with: bun run check
  */
 
@@ -78,56 +82,123 @@ const HAS_DISPLAY =
   process.platform !== "linux" ||
   Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY)
 
-const workflow = Bun.YAML.parse(
-  await Bun.file(`${ROOT}.github/workflows/ci.yml`).text(),
-) as { jobs: Record<string, Job> }
+/*
+ * CI runs the Node in `.node-version`. A check here on another major version
+ * can be green on what fails there, so it stops. A newer patch or minor is
+ * only said: `scripts/check-engines.ts` holds the pinned one against the
+ * packages, so a difference there cannot hide a version they refuse.
+ */
+const pinned = (await Bun.file(`${ROOT}.node-version`).text()).trim()
+const local = Bun.spawnSync(["node", "--version"]).stdout.toString().trim()
+if (local.replace(/^v/, "").split(".")[0] !== pinned.split(".")[0]) {
+  console.error(
+    `✗ This machine runs Node ${local || "nowhere"}, and CI ${pinned} from .node-version. Install Node ${pinned.split(".")[0]}.`,
+  )
+  process.exit(1)
+}
+if (local !== `v${pinned}`)
+  console.log(`Node ${local} here, ${pinned} in CI and on Netlify.`)
+
+type Workflow = {
+  jobs: Record<string, Job>
+  on?: { pull_request?: { paths?: string[] } | null }
+}
+const parse = async (file: string) =>
+  Bun.YAML.parse(
+    await Bun.file(`${ROOT}.github/workflows/${file}`).text(),
+  ) as Workflow
+
+/*
+ * What the branch changes against master, committed or not, as the path
+ * filter on a pull request sees it. Without a master to compare with, every
+ * filtered workflow runs: running too much is safe, and too little is not.
+ */
+function changedFiles(): string[] | undefined {
+  const git = (...args: string[]) =>
+    Bun.spawnSync(["git", ...args], { cwd: ROOT })
+  const base = git("merge-base", "HEAD", "origin/master")
+  if (base.exitCode !== 0) return undefined
+  return [
+    git("diff", "--name-only", base.stdout.toString().trim()),
+    git("ls-files", "--others", "--exclude-standard"),
+  ].flatMap((result) => result.stdout.toString().split("\n").filter(Boolean))
+}
+
+/** The workflows that run on a pull request with a path filter. */
+const FILTERED = ["ci-intellij.yml"]
+
+const workflows: [string, Workflow][] = [["ci.yml", await parse("ci.yml")]]
+const changed = changedFiles()
+for (const file of FILTERED) {
+  const workflow = await parse(file)
+  const paths = workflow.on?.pull_request?.paths
+  if (!paths?.length) {
+    console.error(
+      `✗ ${file} has no paths under pull_request. Run it like ci.yml, or take it out of FILTERED.`,
+    )
+    process.exit(1)
+  }
+  const globs = paths.map((path) => new Bun.Glob(path))
+  const hit = changed?.find((path) => globs.some((glob) => glob.match(path)))
+  if (changed && !hit) {
+    console.log(`${file} does not run: the branch changes none of its paths.`)
+    continue
+  }
+  console.log(
+    `${file} runs: ${hit ? `the branch changes ${hit}` : "found no origin/master to compare with"}.`,
+  )
+  workflows.push([file, workflow])
+}
 
 const unknown: string[] = []
-for (const key of Object.keys(workflow))
-  if (!WORKFLOW_KEYS.has(key)) unknown.push(key)
-
 const used = new Set<string>()
 let actions = 0
 const steps: { key: string; run: string; cwd: string }[] = []
-for (const [jobId, job] of Object.entries(workflow.jobs)) {
-  if (jobId in SKIPPED) {
-    used.add(jobId)
-    continue
-  }
-  for (const key of Object.keys(job))
-    if (!JOB_KEYS.has(key)) unknown.push(`${jobId}: ${key}`)
-  for (const step of job.steps) {
-    for (const key of Object.keys(step))
-      if (!STEP_KEYS.has(key))
-        unknown.push(`${jobId}/${step.name ?? step.uses ?? step.run}: ${key}`)
-    // A step with `uses` sets up something the CI machine lacks, such as Java
-    // or a cache. The machine here has it already.
-    if (step.run === undefined) {
-      actions += 1
+for (const [file, workflow] of workflows) {
+  for (const key of Object.keys(workflow))
+    if (!WORKFLOW_KEYS.has(key)) unknown.push(`${file}: ${key}`)
+  for (const [jobId, job] of Object.entries(workflow.jobs)) {
+    if (jobId in SKIPPED) {
+      used.add(jobId)
       continue
     }
-    const key = `${jobId}/${step.name ?? step.run.split("\n")[0]}`
-    if (key in SKIPPED) {
-      used.add(key)
-      continue
+    for (const key of Object.keys(job))
+      if (!JOB_KEYS.has(key)) unknown.push(`${jobId}: ${key}`)
+    for (const step of job.steps) {
+      for (const key of Object.keys(step))
+        if (!STEP_KEYS.has(key))
+          unknown.push(`${jobId}/${step.name ?? step.uses ?? step.run}: ${key}`)
+      // A step with `uses` sets up something the CI machine lacks, such as Java
+      // or a cache. The machine here has it already.
+      if (step.run === undefined) {
+        actions += 1
+        continue
+      }
+      const key = `${jobId}/${step.name ?? step.run.split("\n")[0]}`
+      if (key in SKIPPED) {
+        used.add(key)
+        continue
+      }
+      // VS Code needs a display. On Linux without one, as in CI, xvfb-run
+      // provides it. If the machine has its own, on macOS or on Linux with
+      // `DISPLAY` or `WAYLAND_DISPLAY` set, xvfb-run is removed: it used to run
+      // on all Linux, and a machine with a display but without xvfb installed
+      // stopped on "xvfb-run: command not found".
+      const run = HAS_DISPLAY
+        ? step.run.replace(/^xvfb-run -a /gm, "")
+        : step.run
+      steps.push({
+        key,
+        run,
+        cwd: `${ROOT}${step["working-directory"] ?? ""}`,
+      })
     }
-    // VS Code needs a display. On Linux without one, as in CI, xvfb-run
-    // provides it. If the machine has its own, on macOS or on Linux with
-    // `DISPLAY` or `WAYLAND_DISPLAY` set, xvfb-run is removed: it used to run
-    // on all Linux, and a machine with a display but without xvfb installed
-    // stopped on "xvfb-run: command not found".
-    const run = HAS_DISPLAY ? step.run.replace(/^xvfb-run -a /gm, "") : step.run
-    steps.push({
-      key,
-      run,
-      cwd: `${ROOT}${step["working-directory"] ?? ""}`,
-    })
   }
 }
 
 if (unknown.length > 0) {
   console.error(
-    `✗ ci.yml has something scripts/check.ts does not know how to run: ${unknown.join(", ")}. Teach the script, so the steps run as in CI.`,
+    `✗ A workflow has something scripts/check.ts does not know how to run: ${unknown.join(", ")}. Teach the script, so the steps run as in CI.`,
   )
   process.exit(1)
 }
@@ -154,6 +225,12 @@ for (const step of steps) {
     {
       cwd: step.cwd,
       stdio: ["inherit", "inherit", "inherit"],
+      // A step that hands a value to a later one writes it to this file, as
+      // the IntelliJ workflow does with the platform version.
+      env: {
+        ...process.env,
+        GITHUB_OUTPUT: process.env.GITHUB_OUTPUT ?? "/dev/null",
+      },
     },
   )
   const seconds = ((performance.now() - at) / 1000).toFixed(1)
@@ -173,5 +250,5 @@ for (const step of steps) {
 
 const minutes = ((performance.now() - started) / 60000).toFixed(1)
 console.log(
-  `\n${done} of ${steps.length} steps from ci.yml are green, in ${minutes} min. Skipped: ${Object.keys(SKIPPED).join(", ")}, and ${actions} steps that set up the CI machine.`,
+  `\n${done} of ${steps.length} steps from ${workflows.map(([file]) => file).join(" and ")} are green, in ${minutes} min. Skipped: ${Object.keys(SKIPPED).join(", ")}, and ${actions} steps that set up the CI machine.`,
 )
