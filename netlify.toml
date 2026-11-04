@@ -4,4 +4,5 @@
   publish = "documentation/dist"
 
 [build.environment]
-  NODE_VERSION = "22.23.0"
+  # `npx astro build` runs on this Node, and Astro 7 stops below 22.23.4.
+  NODE_VERSION = "22.23.4"

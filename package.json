@@ -17,6 +17,7 @@
     "lint": "biome check .",
     "prepare-version": "bun interfaces/scripts/prepare-version.ts",
     "tag": "bun interfaces/scripts/tag.ts",
+    "advisories": "bun scripts/check-advisories.ts",
     "check": "bun scripts/check.ts",
     "check:authors": "bun interfaces/scripts/check-authors.ts"
   },
@@ -24,5 +25,8 @@
     "@biomejs/biome": "2.4.16",
     "@types/bun": "1.3.14",
     "typescript": "6.0.3"
+  },
+  "patchedDependencies": {
+    "@astrojs/starlight@0.42.8": "patches/@astrojs%2Fstarlight@0.42.8.patch"
   }
 }

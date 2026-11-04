@@ -1,8 +1,9 @@
 import com.vanniktech.maven.publish.MavenPublishBaseExtension
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
-    kotlin("jvm") version "2.2.21"
+    kotlin("jvm") version "2.4.21"
     id("com.vanniktech.maven.publish") version "0.37.0"
 }
 
@@ -25,8 +26,20 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.13.4")
 }
 
+/*
+ * The compiler is newer than the Kotlin the artifacts are built for. A
+ * consumer reads a library one Kotlin version ahead of its own at most, and
+ * Gradle reads the Gradle plugin with the Kotlin it embeds, so the language,
+ * the API and the standard library stay at 2.2. The compiler itself went up
+ * for GHSA-r937-wjx7-w2jp, which only touches the build.
+ */
 kotlin {
-    compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+    coreLibrariesVersion = "2.2.21"
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
+        languageVersion.set(KotlinVersion.KOTLIN_2_2)
+        apiVersion.set(KotlinVersion.KOTLIN_2_2)
+    }
 }
 
 // Java 17 as the minimum: it covers the LTS versions most teams are on.

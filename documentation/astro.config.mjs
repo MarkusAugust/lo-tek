@@ -1,4 +1,5 @@
 import { readdirSync } from "node:fs"
+import mdx from "@astrojs/mdx"
 import sitemap from "@astrojs/sitemap"
 import startlight from "@astrojs/starlight"
 import tailwindcss from "@tailwindcss/vite"
@@ -26,6 +27,12 @@ const AGENT_FILES = [
 
 // https://astro.build/config
 export default defineConfig({
+  /*
+   * Astro 7 removes whitespace across line breaks by default, as JSX does,
+   * and two inline elements on lines of their own touched. `true` is the
+   * lossless compression Astro 6 had.
+   */
+  compressHTML: true,
   /*
    * The address is in `homepage` in the package, which `llms.txt` and
    * `robots.txt` also read. With `site` set, Starlight makes the sitemap
@@ -224,6 +231,10 @@ export default defineConfig({
         },
       ],
     }),
+    // Starlight adds `mdx({ optimize: true })` when there is none. With
+    // satteri the optimisation writes a <style> in the page as a literal
+    // `set:html` attribute, and Expressive Code's styles were lost.
+    mdx(),
     // After Starlight, so the pages it reads are finished.
     markdownPages(),
   ],

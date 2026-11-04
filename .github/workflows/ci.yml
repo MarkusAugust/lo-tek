@@ -89,6 +89,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # Bun installs a package unpatched, without a word, when the version in
+      # a patch's key no longer matches what is installed.
+      - name: Patches applied
+        run: bun scripts/check-patches.ts
+
       - name: Lint
         run: bun run lint
 

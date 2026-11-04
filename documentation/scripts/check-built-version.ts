@@ -102,24 +102,27 @@ for (const filePath of inSource) {
  * in `<pre>` `version ` and `"0.33.0"` sit in separate `<span>`s, and a
  * search string with the quote right after the word can never match there,
  * neither with the version nor with the placeholder. In `data-code` the line
- * is in one piece, with `"` as `&#x22;`. The first version searched for
- * `version "VERSION"` and was dead.
+ * is in one piece. The first version searched for `version "VERSION"` in
+ * `<pre>` and was dead. The quote is escaped in the attribute, as `&#x22;` up
+ * to Expressive Code 0.42 and as `&quot;` from 0.44, so both are read as `"`
+ * here rather than the guard depending on one of them.
  */
 const MAVEN = [
   [
     "markusaugust:lo-tek-interfaces:VERSION",
     `markusaugust:lo-tek-interfaces:${version}`,
   ],
-  ["version &#x22;VERSION&#x22;", `version &#x22;${version}&#x22;`],
+  ['version "VERSION"', `version "${version}"`],
   ["webjars/lo-tek/VERSION/", `webjars/lo-tek/${version}/`],
 ]
+const unquoted = built.map((text) => text.replace(/&#x22;|&quot;/g, '"'))
 for (const [leftOver, withVersion] of MAVEN) {
-  if (!built.some((text) => text.includes(withVersion))) {
+  if (!unquoted.some((text) => text.includes(withVersion))) {
     findings.push(
       `"${withVersion}" does not exist in the build. The Kotlin page should have it with the version inserted.`,
     )
   }
-  if (built.some((text) => text.includes(leftOver))) {
+  if (unquoted.some((text) => text.includes(leftOver))) {
     findings.push(
       `"${leftOver}" is left in the build without the version having been inserted`,
     )

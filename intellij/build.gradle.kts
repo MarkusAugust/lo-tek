@@ -8,7 +8,7 @@ plugins {
     // compiled with an incompatible version of Kotlin. The binary version of
     // its metadata is 2.4.0" on kotlin-plugin.jar. The plugin runs on the
     // IDE's own standard library, see gradle.properties.
-    kotlin("jvm") version "2.4.0"
+    kotlin("jvm") version "2.4.21"
     id("org.jetbrains.intellij.platform") version "2.19.0"
 }
 

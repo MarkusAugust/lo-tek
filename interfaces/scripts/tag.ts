@@ -176,6 +176,15 @@ for (const { part, version, tag, taggedAs } of selected) {
   }
 }
 
+// Advisories can be published between the release branch and the merge, so
+// the check runs again here, right before the tag starts the publishing.
+if (
+  Bun.spawnSync(["bun", join(ROOT, "scripts", "check-advisories.ts")], {
+    stdio: ["inherit", "inherit", "inherit"],
+  }).exitCode !== 0
+)
+  stop("Open security advisories, see above. Nothing has been tagged.")
+
 for (const { part, tag } of selected) {
   if (dryRun) {
     console.log(`Would tag ${tag} on ${here.slice(0, 7)}: ${part.releases}.`)
