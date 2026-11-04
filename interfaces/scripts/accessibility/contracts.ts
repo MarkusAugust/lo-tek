@@ -422,6 +422,55 @@ const popover: Contract = {
   ],
 }
 
+/*
+ * The word stays a link, and `aria-expanded` from the web component says that
+ * it opens something. The focus never leaves the word: the card is the
+ * glossary entry, which the reader can also reach in the glossary, so the
+ * state change on the link is what tells the screen reader that the card
+ * opened and closed.
+ */
+const term: Contract = {
+  component: "term",
+  steps: [
+    {
+      name: "focus-word",
+      do: [{ focus: "lt-term > a" }],
+      focus: {
+        role: "link",
+        name: "act of God",
+        states: ["expandable"],
+        notStates: ["expanded"],
+      },
+    },
+    {
+      name: "open",
+      do: [{ press: "Enter" }],
+      focus: { role: "link", name: "act of God", states: ["expanded"] },
+      changes: { states: ["expanded"] },
+    },
+    {
+      // Escape closes the card, and the focus is still on the word.
+      name: "escape",
+      do: [{ press: "Escape" }],
+      focus: { role: "link", name: "act of God", notStates: ["expanded"] },
+    },
+  ],
+  mutations: [
+    {
+      // Without the id on the entry the link points at nothing: the word
+      // stays a plain link, which expands nothing.
+      name: "the entry not recognised",
+      replace: ['<div id="term-act-of-god">', "<div>"],
+      failsAt: "focus-word",
+    },
+    {
+      name: "the component not registered",
+      replace: ["defineLtTerm()\n", "\n"],
+      failsAt: "focus-word",
+    },
+  ],
+}
+
 const toast: Contract = {
   component: "toast",
   steps: [
@@ -888,6 +937,7 @@ export const CONTRACTS: Contract[] = [
   ...tabNames,
   errorSummary,
   popover,
+  term,
   toast,
   sessionTimeout,
   connectionStatus,

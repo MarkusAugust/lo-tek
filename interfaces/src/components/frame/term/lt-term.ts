@@ -103,10 +103,7 @@ export class LtTerm extends HostElement {
   private entry?: HTMLElement
   private shown: Shown = "no"
   private observer?: MutationObserver
-  /**
-   * Watches the page while the card is open: the entry, which a patch can
-   * strip or replace, and the tree around it.
-   */
+  /** Watches the entry while the card is open: a patch can strip what the component set on it. */
   private outside?: MutationObserver
   private visibility?: IntersectionObserver
   private openTimer?: ReturnType<typeof setTimeout>
@@ -115,14 +112,65 @@ export class LtTerm extends HostElement {
   private addedPopover = false
   private addedClass = false
 
+  /**
+   * One observer per document or shadow root, shared by every `<lt-term>`
+   * in it. The entry is in the glossary, outside the element, and a patch
+   * there can give it its id, take it, or replace it: the word must then
+   * say again whether it expands. An observer per word on the whole page
+   * would be one per word in the text.
+   */
+  private static readonly roots = new WeakMap<
+    Node,
+    { observer: MutationObserver; terms: Set<LtTerm> }
+  >()
+  /** The root this element was registered with, to leave it again. */
+  private watched?: Node
+
+  private static watch(term: LtTerm): void {
+    const root = term.getRootNode()
+    let entry = LtTerm.roots.get(root)
+    if (!entry) {
+      const terms = new Set<LtTerm>()
+      const observer = new MutationObserver(() => {
+        for (const t of terms) t.sync()
+      })
+      // Only nodes and ids: everything the component writes is something
+      // else, so its own writes never call it.
+      observer.observe(root, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["id"],
+      })
+      entry = { observer, terms }
+      LtTerm.roots.set(root, entry)
+    }
+    entry.terms.add(term)
+    term.watched = root
+  }
+
+  private static unwatch(term: LtTerm): void {
+    if (!term.watched) return
+    const entry = LtTerm.roots.get(term.watched)
+    entry?.terms.delete(term)
+    if (entry && entry.terms.size === 0) {
+      entry.observer.disconnect()
+      LtTerm.roots.delete(term.watched)
+    }
+    term.watched = undefined
+  }
+
   connectedCallback(): void {
     this.observer = new MutationObserver(() => this.sync())
     this.observer.observe(this, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["href", "aria-details", "aria-expanded"],
+      // `class` too: the component sets `lt-term` on a link without it, and
+      // a morph takes it again.
+      attributeFilter: ["href", "class", "aria-details", "aria-expanded"],
     })
+    LtTerm.watch(this)
     this.sync()
   }
 
@@ -130,6 +178,7 @@ export class LtTerm extends HostElement {
     this.close()
     this.observer?.disconnect()
     this.observer = undefined
+    LtTerm.unwatch(this)
     this.detachWord()
   }
 
@@ -280,9 +329,8 @@ export class LtTerm extends HostElement {
       })
       if (this.word) this.visibility.observe(this.word)
     }
-    // Observed again for every entry: `observe` on a node already observed
-    // replaces the options, and a replaced entry is a new node.
-    this.outside.observe(this.root(), { childList: true, subtree: true })
+    // Observed again for every entry, which may be a new node. A replaced
+    // entry is seen by the observer on the root.
     this.outside.observe(entry, {
       attributes: true,
       attributeFilter: ["popover", "class", "style", "id"],

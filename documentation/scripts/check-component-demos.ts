@@ -313,6 +313,37 @@ await on("popover", "demo-popover", "lt-popover", async (page, id) => {
   expect(result.visible, "the panel does not end up in the top layer")
 })
 
+await on("term", "demo-term", "lt-term", async (page, id) => {
+  const result = await page.evaluate((id) => {
+    const root = document.getElementById(id)?.shadowRoot
+    // The word is the link in the element, and the entry is the element
+    // with the id it points at, as the component finds them.
+    const word = root?.querySelector(
+      "lt-term a[href^='#']",
+    ) as HTMLElement | null
+    const entry = root?.getElementById(
+      word?.getAttribute("href")?.slice(1) ?? "",
+    )
+    const before = location.href
+    word?.click()
+    const box = entry?.getBoundingClientRect()
+    return {
+      open: word?.getAttribute("aria-expanded") ?? "",
+      visible: entry?.matches(":popover-open") ?? false,
+      seen: Boolean(box && box.width > 0 && box.height > 0),
+      stayed: location.href === before,
+    }
+  }, id)
+
+  expect(result.open === "true", "a click on the word does not open the card")
+  expect(result.visible, "the entry does not end up in the top layer")
+  expect(result.seen, "the card has no size")
+  expect(
+    result.stayed,
+    "the click followed the link instead of opening the card",
+  )
+})
+
 await on("dialog", "demo-dialog", "lt-dialog", async (page, id) => {
   const result = await page.evaluate((id) => {
     const root = document.getElementById(id)?.shadowRoot

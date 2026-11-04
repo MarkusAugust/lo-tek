@@ -4,6 +4,7 @@ description: A word in the text that shows its entry from a glossary on the same
 ---
 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
+import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
 import TermDemo from "../../../components/TermDemo.astro"
 
 A word in running text, linked to its entry in a glossary further down the page. Without JavaScript the word is a link, and a click goes to the glossary. With `<lt-term>` around the link, the entry opens as a card by the word, and the reader keeps their place.
@@ -227,7 +228,7 @@ const actOfGod = lt.term({ id: "term-act-of-god" })
 
 `lt.term({ id })` writes only what holds without JavaScript: `href` and `aria-details` on the link, and the id on the entry. The id is required, and an empty one throws: a made-up id would point at nothing, since only the template knows the entry's. Make it from the term, such as `term-act-of-god`, never from a counter.
 
-The web component finds the link as the first `<a>` with an `href` to a fragment, and the entry by the id in it, anywhere in the same document or shadow root. The entry must be a `<div>` in a `<dl>` with a `<dt>` and a `<dd>`, the form HTML has for grouping a term with its description. If the id does not exist, or points at something else, such as the `<dt>`, the word stays a plain link, and the web component, the check and the editors say so.
+The web component finds the link as the first `<a>` with an `href` to a fragment, and the entry by the id in it, anywhere in the same document or shadow root. The entry must be a `<div>` in a `<dl>` with a `<dt>` and a `<dd>`, the form HTML has for grouping a term with its description. If the id does not exist, or points at something else, such as the `<dt>`, the word stays a plain link, and the web component says so in the console. The check says so too (`term-without-entry`), but only for a whole page, with `lotek check --rendered` or an address: in a template the glossary can be in another file.
 
 Several words can point at the same entry. Only one card can be open, so the word that opens it takes it from the other.
 
@@ -279,6 +280,8 @@ The position is set as `--lt-term-top` and `--lt-term-left` on the entry while t
 See [Customising](../../customising/) for how the variables and the layer work.
 
 ## Accessibility
+
+<ScreenReaderContract component="term" />
 
 - The word stays a link, so it is announced as one, and it can still be opened in a new tab. `aria-details` points at the entry, and screen readers that support it say the link has details. `aria-expanded` says whether the card is open.
 - The entry is in the glossary whether the card is open or not, so `aria-details` never points at something empty, and the explanation can be read there too.

@@ -55,6 +55,12 @@ function page1(): void {
   `)
 }
 
+/** The box of the last line of an inline element: the card goes under it. */
+const lastBox = (element: Element) => {
+  const boxes = element.getClientRects()
+  return boxes[boxes.length - 1]
+}
+
 const $ = (id: string) => document.getElementById(id) as HTMLElement
 
 async function paint() {
@@ -145,7 +151,7 @@ describe("lt-term", () => {
     expect(word.getAttribute("aria-expanded")).toBe("true")
     expect(location.href).toBe(before)
     const card = entry.getBoundingClientRect()
-    const box = [...word.getClientRects()].at(-1) as DOMRect
+    const box = lastBox(word)
     expect(card.top).toBeGreaterThanOrEqual(box.bottom)
     expect(card.top - box.bottom).toBeLessThan(12)
 
@@ -291,9 +297,7 @@ describe("lt-term", () => {
     await paint()
     const word = $("word")
     const entry = $("term-signal")
-    const gap = () =>
-      entry.getBoundingClientRect().top -
-      ([...word.getClientRects()].at(-1) as DOMRect).bottom
+    const gap = () => entry.getBoundingClientRect().top - lastBox(word).bottom
 
     await userEvent.click(word)
     await paint()
@@ -376,6 +380,38 @@ describe("lt-term", () => {
     expect(card.top).toBeGreaterThanOrEqual(
       $("word").getBoundingClientRect().bottom,
     )
+  })
+
+  it("puts back the class it set on the word after a morph takes it", async () => {
+    mount(`
+      <p><lt-term><a href="#term-signal" id="word">signals</a></lt-term></p>
+      <dl><div id="term-signal"><dt>Signal</dt><dd>A value.</dd></div></dl>
+    `)
+    await paint()
+    expect($("word").classList.contains("lt-term")).toBe(true)
+    // What a morph does to an attribute the server did not send, and nothing
+    // else: no node changes, so only the observer on the element sees it.
+    $("word").removeAttribute("class")
+    await paint()
+    expect($("word").classList.contains("lt-term")).toBe(true)
+  })
+
+  it("notices an entry that arrives after the word, and one that goes", async () => {
+    mount(`
+      <p><lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term></p>
+      <div id="later"></div>
+    `)
+    await paint()
+    expect($("word").hasAttribute("aria-expanded")).toBe(false)
+
+    // The glossary arrives in a later update, outside the element.
+    $("later").innerHTML = GLOSSARY
+    await paint()
+    expect($("word").getAttribute("aria-expanded")).toBe("false")
+
+    $("term-signal").removeAttribute("id")
+    await paint()
+    expect($("word").hasAttribute("aria-expanded")).toBe(false)
   })
 
   it("shows the new entry when the glossary is replaced while the card is open, and closes when it is gone", async () => {

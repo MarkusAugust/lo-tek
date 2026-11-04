@@ -24,6 +24,32 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **`<lt-term>` and `lt.term()`: a word in the text that shows its entry
+  from a glossary on the same page.** The word is a link to the entry, a
+  `<div>` with a `<dt>` and a `<dd>` in a `<dl>`, and stays one without
+  JavaScript. The web component shows the entry itself as a card by the
+  word, in the top layer: the mouse opens it after a rest, a click, a tap or
+  Enter pins it, and Escape, a click outside or the word scrolling out of
+  view closes it. Below the `sm` breakpoint the card is a sheet across the
+  bottom of the window, or the top when the word is down there. Nothing is
+  copied and no id is made in the browser, so the card survives an update
+  from the server. `lt.term({ id })` writes `href` and `aria-details` on the
+  link, the classes `lt-term` and `lt-term__entry`, and the id; `/react`
+  adds `aria-expanded="false"`. `Lt.term()` in Kotlin, and `ltTerm` and
+  `ltTermEntry` in kotlinx.html. New entry points `./term` and
+  `./term.css`, new component variables `--lt-term-width`,
+  `--lt-term-gap`, `--lt-term-padding`, `--lt-term-radius`,
+  `--lt-term-accent-color`, `--lt-term-underline-color`,
+  `--lt-term-label-text`, `--lt-term-label-font` and
+  `--lt-term-sheet-height`, and the default text "Glossary".
+- **The check reports `term-without-entry`** on a whole page, when a word
+  in `<lt-term>` points at an id the page does not have, or at something
+  that is not a glossary entry.
+- **`place()` in `@lo-tek/interfaces/host-element`**, the placement
+  `<lt-popover>` worked out, now shared with `<lt-term>`.
+
 ### Fixed
 
 - **The snippets and the live templates follow the corrected recipes.** In
