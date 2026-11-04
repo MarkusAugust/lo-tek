@@ -46,7 +46,7 @@ it.
 ></script>
 ```
 
-`lotek.css` is 106 kB, 14 kB compressed, and has all the components. If you
+`lotek.css` is 107 kB, 14 kB compressed, and has all the components. If you
 want only what you use, `tokens.css` defines all the variables, and all the
 other stylesheets build on it. It must be loaded, and comes first out of
 habit: the order between it and the others does not matter.

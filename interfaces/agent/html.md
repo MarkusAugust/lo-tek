@@ -47,7 +47,7 @@ Or from `node_modules`, if you serve the folder:
 <link rel="stylesheet" href="/node_modules/@lo-tek/interfaces/dist/lotek.css">
 ```
 
-`lotek.css` is 106 kB, 14 kB compressed, and has all the components. Choose
+`lotek.css` is 107 kB, 14 kB compressed, and has all the components. Choose
 it. The alternative is one stylesheet per component, and then `tokens.css`
 defines all the variables, and all the other stylesheets build on it. It must
 be loaded, and comes first out of habit: the order between it and the others

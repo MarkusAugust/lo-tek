@@ -209,6 +209,12 @@ Several words can point at the same entry. Only one card can be open, so the wor
 
 Opening, closing and moving focus never scroll the page, and the address does not change.
 
+## On a narrow screen
+
+Below 640 pixels, the `sm` breakpoint, the card is a sheet across the width of the window. It stands at the bottom, where the thumb is, and at the top when the word is so far down that the sheet would cover it. The word whose card is open is marked, so the reader sees what the sheet belongs to. A card next to the word covered the lines the reader was about to read.
+
+The sheet is at most 60 % of the window high, and a longer explanation scrolls inside it. A tap outside or on the word closes it. The width is fixed in the stylesheet, since a media query cannot read a variable.
+
 While the card is open, the entry is not in its place in the glossary. Put the glossary after the text that uses it: then nothing above the word moves when the card opens. A glossary that stands in view next to the word closes up where the entry was for as long as the card is open.
 
 ## Classes you can style
@@ -222,6 +228,7 @@ While the card is open, the entry is not in its place in the glossary. Put the g
 | --- | --- |
 | `--lt-term-width` | `min(22rem, calc(100vw - var(--lt-spacing-8)))`, the maximum width of the card |
 | `--lt-term-gap` | `var(--lt-spacing-2)`, the space between the word and the card |
+| `--lt-term-sheet-height` | `60dvh`, the maximum height of the sheet on a narrow screen |
 | `--lt-term-padding` | `var(--lt-spacing-3) var(--lt-spacing-4)` |
 | `--lt-term-radius` | `var(--lt-spacing-1)` |
 | `--lt-term-accent-color` | `var(--lt-color-accent-fill)`, the edge at the start of the card |

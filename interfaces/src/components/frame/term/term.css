@@ -13,8 +13,22 @@
     text-underline-offset: 0.2em;
   }
 
-  .lt-term:hover {
+  /* Only where there is a pointer that hovers. iOS keeps `:hover` on a
+     link after a tap, and the line stayed solid until the next tap
+     somewhere else. */
+  @media (hover: hover) {
+    .lt-term:hover {
+      text-decoration-style: solid;
+    }
+  }
+
+  /* The word whose card is open, so the reader sees what the card belongs
+     to. It matters most on a narrow screen, where the card is a sheet at
+     the edge of the window and not next to the word. */
+  .lt-term[aria-expanded="true"] {
     text-decoration-style: solid;
+    background: var(--lt-color-accent-surface);
+    border-radius: var(--lt-spacing-0-5);
   }
 
   .lt-term:focus-visible {
@@ -56,6 +70,10 @@
       var(--lt-term-accent-color, var(--lt-color-accent-fill));
     border-radius: var(--lt-term-radius, var(--lt-spacing-1));
     box-shadow: var(--lt-shadow-overlay);
+    /* An explanation taller than the window scrolls in the card rather
+       than running off the screen. */
+    max-block-size: calc(100dvh - var(--lt-spacing-4));
+    overflow-y: auto;
   }
 
   /* `--lt-term-left` is the distance from the left edge of the viewport.
@@ -64,6 +82,36 @@
   .lt-term__entry:popover-open:dir(rtl) {
     inset-inline-start: auto;
     inset-inline-end: var(--lt-term-left, 0);
+  }
+
+  /* On a narrow screen the card is a sheet across the window, at the
+     bottom, or at the top when the word is down where the sheet would
+     cover it. A card by the word covered the lines the reader was about to
+     read, and closing it meant reaching for the middle of the screen.
+     `--lt-term-sheet` tells the web component which form the card has; the
+     stylesheet is the one place that decides. The width is `sm` in the
+     breakpoints in `tokens.ts`: a media query cannot read a variable. */
+  @media (width < 640px) {
+    .lt-term__entry:popover-open {
+      --lt-term-sheet: 1;
+      inset-inline: 0;
+      inline-size: auto;
+      max-inline-size: none;
+      max-block-size: var(--lt-term-sheet-height, 60dvh);
+      padding-block-end: calc(
+        var(--lt-spacing-3) +
+        env(safe-area-inset-bottom, 0px)
+      );
+      border-radius: 0;
+      border-inline-end: none;
+    }
+
+    /* The direction does not matter across the whole width. Without this
+       the rule above for right to left won, and the sheet hung from the
+       word. */
+    .lt-term__entry:popover-open:dir(rtl) {
+      inset-inline: 0;
+    }
   }
 
   /* The label over the term. CSS cannot import a text, so it is read from a

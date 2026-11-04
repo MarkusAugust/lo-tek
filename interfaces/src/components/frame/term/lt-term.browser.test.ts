@@ -1,6 +1,15 @@
 /// <reference path="../../../types/css.d.ts" />
 
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest"
 import { page, userEvent } from "vitest/browser"
 
 import {
@@ -92,6 +101,16 @@ function leftToTheBrowser(link: Element, keys: MouseEventInit): boolean {
 describe("lt-term", () => {
   beforeAll(() => {
     defineLtTerm()
+  })
+
+  // Wider than `sm`, where the card is next to the word. Vitest's window is
+  // 414 pixels, and there the card is a sheet; those tests set their own.
+  beforeEach(async () => {
+    await page.viewport(1280, 720)
+  })
+
+  afterAll(async () => {
+    await page.viewport(414, 896)
   })
 
   afterEach(() => {
@@ -450,6 +469,67 @@ describe("lt-term", () => {
     } finally {
       await page.viewport(1280, 720)
     }
+  })
+
+  describe("on a narrow screen", () => {
+    it("is a sheet across the bottom of the window, with the word above it", async () => {
+      await page.viewport(390, 700)
+      page1()
+      await paint()
+      await userEvent.click($("word"))
+      await paint()
+      const card = $("term-signal").getBoundingClientRect()
+      expect(card.left).toBe(0)
+      expect(Math.round(card.right)).toBe(document.documentElement.clientWidth)
+      expect(Math.round(card.bottom)).toBe(window.innerHeight)
+      expect($("word").getBoundingClientRect().bottom).toBeLessThanOrEqual(
+        card.top,
+      )
+    })
+
+    it("goes to the top when the word is down where the sheet would cover it", async () => {
+      await page.viewport(390, 700)
+      mount(`
+        <div style="block-size: 560px"></div>
+        <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+        <div style="block-size: 150vh"></div>
+        ${GLOSSARY}
+      `)
+      await paint()
+      await userEvent.click($("word"))
+      await paint()
+      const card = $("term-signal").getBoundingClientRect()
+      expect(Math.round(card.top)).toBe(0)
+      expect($("word").getBoundingClientRect().top).toBeGreaterThanOrEqual(
+        card.bottom,
+      )
+    })
+
+    it("scrolls an explanation taller than the sheet inside it", async () => {
+      await page.viewport(390, 500)
+      mount(`
+        <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+        <dl><div ${attr(SIGNAL.entry)}><dt>Signal</dt><dd>${"A value Datastar keeps in the browser. ".repeat(40)}</dd></div></dl>
+      `)
+      await paint()
+      await userEvent.click($("word"))
+      await paint()
+      const entry = $("term-signal")
+      expect(entry.getBoundingClientRect().height).toBeLessThanOrEqual(
+        window.innerHeight * 0.6 + 1,
+      )
+      expect(entry.scrollHeight).toBeGreaterThan(entry.clientHeight)
+    })
+  })
+
+  it("marks the word whose card is open", async () => {
+    page1()
+    await paint()
+    const word = $("word")
+    const closed = getComputedStyle(word).backgroundColor
+    await userEvent.click(word)
+    await paint()
+    expect(getComputedStyle(word).backgroundColor).not.toBe(closed)
   })
 
   it("is the class the web component exports, and termWithState has the state it writes", () => {

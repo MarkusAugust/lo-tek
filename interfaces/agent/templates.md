@@ -58,7 +58,7 @@ One link in the page template, with all the components:
 ```
 
 Or from your own server, if you copy the file into your static assets.
-`lotek.css` is 106 kB, 14 kB compressed, has everything flattened without
+`lotek.css` is 107 kB, 14 kB compressed, has everything flattened without
 `@import`, and is the fastest option when you link.
 
 If you want only the stylesheets the pages actually use, `tokens.css` defines

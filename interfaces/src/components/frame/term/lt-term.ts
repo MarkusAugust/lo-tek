@@ -423,6 +423,11 @@ export class LtTerm extends HostElement {
   /**
    * Under the word, or over it when there is no room. A word that wraps
    * over two lines has two boxes, and the card goes under the last.
+   *
+   * On a narrow screen the stylesheet makes the card a sheet across the
+   * window, and says so with `--lt-term-sheet`, which is the stylesheet's
+   * to set and not the page's. The sheet goes at the bottom, unless it
+   * would cover the word: then at the top.
    */
   private reposition = (): void => {
     const entry = this.entry
@@ -430,19 +435,32 @@ export class LtTerm extends HostElement {
     if (!entry || !word) return
     const boxes = word.getClientRects()
     const anchor = boxes[boxes.length - 1] ?? word.getBoundingClientRect()
-    const rtl = word.matches(":dir(rtl)")
-    // The space under the word is `--lt-term-gap`, which the stylesheet
-    // puts in `scroll-margin-block-start`: there the browser has worked it
-    // out in pixels, whatever unit the page gave it.
-    const gap =
-      Number.parseFloat(getComputedStyle(entry).scrollMarginBlockStart) || 0
-    const { top, left } = place(
-      anchor,
-      entry.getBoundingClientRect(),
-      true,
-      rtl,
-      gap,
-    )
+    const card = entry.getBoundingClientRect()
+    const style = getComputedStyle(entry)
+
+    let top: number
+    let left: number
+    if (style.getPropertyValue("--lt-term-sheet").trim() === "1") {
+      // At the bottom when the word is clear of it, otherwise at the top
+      // when the word is clear of that. A word in the middle under a tall
+      // sheet is covered either way, and the sheet goes on the side away
+      // from it.
+      const bottom = window.innerHeight - card.height
+      if (anchor.bottom <= bottom) top = bottom
+      else if (anchor.top >= card.height) top = 0
+      else
+        top =
+          anchor.top + anchor.height / 2 > window.innerHeight / 2 ? 0 : bottom
+      left = 0
+    } else {
+      // The space under the word is `--lt-term-gap`, which the stylesheet
+      // puts in `scroll-margin-block-start`: there the browser has worked
+      // it out in pixels, whatever unit the page gave it.
+      const gap = Number.parseFloat(style.scrollMarginBlockStart) || 0
+      const rtl = word.matches(":dir(rtl)")
+      ;({ top, left } = place(anchor, card, true, rtl, gap))
+    }
+    top = Math.round(top)
     if (entry.style.getPropertyValue("--lt-term-top") !== `${top}px`)
       entry.style.setProperty("--lt-term-top", `${top}px`)
     if (entry.style.getPropertyValue("--lt-term-left") !== `${left}px`)
