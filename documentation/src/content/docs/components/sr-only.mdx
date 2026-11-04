@@ -26,13 +26,13 @@ A row of "Delete" buttons makes sense to someone looking at the table. Someone l
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<button {...lt.button({ variant: "ghost" })} type="button">
+<button {...lt.button({ variant: "danger" })} type="button">
   Delete{" "}
   <span {...lt.srOnly()}>the report from 4 March</span>
 </button>
 ```
 
-`{" "}` is the space between the two words. JSX strips a line break between text and an element, and without it the button is read as "Deletereport".
+`{" "}` is the space between the two words. JSX strips a line break between text and an element, and without it the button is read as "Deletethe report from 4 March".
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
 

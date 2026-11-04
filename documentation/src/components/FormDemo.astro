@@ -111,9 +111,12 @@ import Preview from "./Preview.astro"
 	const ADDRESS = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/
 
 	function messageFor(field: HTMLInputElement): string {
-		// A date the browser cannot read, like 31/02, gives an empty value
-		// with `badInput`, so it is told apart from an empty field here.
-		if (field.validity.badInput) return "Enter a date that exists"
+		// A date the browser cannot read gives an empty value with `badInput`,
+		// so it is told apart from an empty field here. It can be a date that
+		// does not exist, like 31/02, one half typed, or one without the
+		// separators WebKit requires, so the message says how to write it.
+		if (field.name !== "fixer" && field.validity.badInput)
+			return "Type the date as 31/05/2079"
 
 		if (field.value === "") {
 			return field.name === "fixer"

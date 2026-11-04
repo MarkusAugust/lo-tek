@@ -20,7 +20,7 @@ A frame around content that belongs together, such as one claim in a list of cla
 <div class="lt-card" data-variant="filled">
   <h3 class="lt-card__title">Claim AV-2079-0481</h3>
   <p>Claim denied. Black ICE is an act of God.</p>
-  <button class="lt-button" data-variant="secondary">Upload attachment</button>
+  <button class="lt-button" data-variant="secondary">Appeal the decision</button>
 </div>
 `}>
 <Fragment slot="ts">
@@ -74,7 +74,7 @@ fun FlowContent.policies() {
         lt(Lt.card(variant = SurfaceVariant.FILLED))
         h3 { lt(Lt.card.title); +"Claim AV-2079-0481" }
         p { +"Claim denied. Black ICE is an act of God." }
-        button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); +"Upload attachment" }
+        button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); +"Appeal the decision" }
     }
 }
 ```
