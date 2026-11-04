@@ -93,14 +93,10 @@ if (!FIELD_RECIPE || !FIELD_PAGE)
   )
 /** The name of the field recipe's function, which the test in the rulebook calls. */
 const FIELD_FUNCTION = /fun FlowContent\.(\w+)\(/.exec(FIELD_RECIPE)?.[1]
-
-/*
- * The check takes files, not folders, and a JVM project has its templates in
- * folders, as `.jte` in Java and `.kte` in Kotlin. A glob such as
- * `src/main/jte/*.kte` matched neither the Java ones nor a subfolder.
- */
-const JAR_CHECK_TEMPLATES =
-  "java -jar lotek.jar check $(find src/main/jte -name '*.jte' -o -name '*.kte')"
+if (!FIELD_FUNCTION || !/\binvalid: Boolean\b/.test(FIELD_RECIPE))
+  throw new Error(
+    "The field recipe in field.mdx must be a `fun FlowContent.name(…, invalid: Boolean = …)`: the test in the Kotlin rulebook calls it with `invalid = true`.",
+  )
 
 type Recipe = {
   /** The name the command takes, and the file name. */
@@ -1413,7 +1409,8 @@ whole page. That is what \`assertLotek\` reads.`,
     registrationRule: `**\`defineLt()\` runs once** in the page template, not
    once per component.`,
     address: WEBJAR_MODULE,
-    check: JAR_CHECK_TEMPLATES,
+    // Not shown: pointFive says how the check runs here.
+    check: "java -jar lotek.jar check http://localhost:8080/page",
     pointFive: `**Check the HTML the server sends, in a test:**
    \`assertLotek(html)\` fails with every finding as
    \`line:column: error: message\`, or \`warning:\`. It knows every class,
@@ -1462,20 +1459,19 @@ body {
 The same in a string, without kotlinx.html:
 
 \`\`\`kotlin
-fun page(content: String): String =
-    """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head><link rel="stylesheet" href="\${LotekWebJar.CSS}"></head>
-    <body>
-    $content
-    <script type="module">
-      import { defineLt } from "\${LotekWebJar.REGISTER}"
-      defineLt()
-    </script>
-    </body>
-    </html>
-    """
+fun page(content: String) = """
+<!DOCTYPE html>
+<html lang="en">
+<head><link rel="stylesheet" href="\${LotekWebJar.CSS}"></head>
+<body>
+$content
+<script type="module">
+  import { defineLt } from "\${LotekWebJar.REGISTER}"
+  defineLt()
+</script>
+</body>
+</html>
+"""
 \`\`\`
 
 \`lotek.css\` is ${BUNDLED_SIZE}, has every component, and is nearly
@@ -1561,13 +1557,13 @@ data, never from the loop index, a counter or a random value, so it is unique
 on the page and the same on every render:
 
 \`\`\`kotlin
-data class Target(val code: String, val name: String, val note: String)
+data class JobNote(val code: String, val name: String, val text: String)
 
-fun FlowContent.notes(targets: List<Target>) {
-    for (target in targets) {
-        val field = Lt.field(id = "note-\${target.code}")
-        label { lt(field.label); +target.name }
-        input { lt(Lt.input(), field.control); name = "note-\${target.code}"; value = target.note }
+fun FlowContent.notes(jobs: List<JobNote>) {
+    for (job in jobs) {
+        val field = Lt.field(id = "note-\${job.code}")
+        label { lt(field.label); +job.name }
+        input { lt(Lt.input(), field.control); name = "note-\${job.code}"; value = job.text }
     }
 }
 \`\`\`
@@ -1611,7 +1607,7 @@ class OrderPageTest {
 
     @Test
     fun \`every note is wired\`() {
-        assertLotek(page(createHTML().div { notes(listOf(Target("222-0481", "Orison", ""))) }))
+        assertLotek(page(createHTML().div { notes(listOf(JobNote("222-0481", "Orison", ""))) }))
     }
 }
 \`\`\`
@@ -1632,7 +1628,9 @@ The rulebook for template syntax is
 https://lo-tek.sobernetics.no/agent/templates.md.
 
 The Gradle plugin checks the template files as part of \`check\`, without a
-test that renders them:
+test that renders them. \`templates\` takes a whole folder, with its
+subfolders: \`src/main/jte\` for JTE, \`src/main/resources/templates\` for
+Thymeleaf, Freemarker and Pebble.
 
 \`\`\`kotlin
 // build.gradle.kts
@@ -1646,11 +1644,12 @@ lotek {
 \`\`\`
 
 \`lotek.jar\` is the command line, attached to every release on GitHub:
-https://github.com/MarkusAugust/lo-tek/releases/latest.
+https://github.com/MarkusAugust/lo-tek/releases/latest. It takes an address,
+or the template files by name, never a folder:
 
 \`\`\`bash
-${JAR_CHECK_TEMPLATES}
 java -jar lotek.jar check http://localhost:8080/form
+java -jar lotek.jar check src/main/jte/order.kte src/main/jte/jobs.kte
 \`\`\`
 
 A finding you want to keep is suppressed with a comment above the tag:

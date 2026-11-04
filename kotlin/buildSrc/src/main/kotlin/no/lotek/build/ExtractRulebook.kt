@@ -45,22 +45,32 @@ abstract class ExtractRulebook : DefaultTask() {
             }
         }
         if (compiled.isEmpty()) error("agent/kotlin.md has no ```kotlin block to compile, so the rulebook test would check nothing.")
+        // Each block once: its imports, the rest, and what the rest is.
+        val parts = compiled.map { block ->
+            val (imports, rest) = block.lines().partition { it.startsWith("import ") }
+            val body = rest.joinToString("\n").trim()
+            Triple(imports, body, blockKind(body))
+        }
         // A function in a block of declarations is only rendered when another
         // block calls it, such as the test that renders the string page. One
-        // nobody calls would be compiled, and its markup never checked.
-        for ((i, block) in compiled.withIndex()) {
-            if (blockKind(block.lines().filterNot { it.startsWith("import ") }.joinToString("\n")) != BlockKind.DECLARATIONS) continue
-            for (name in DECLARED_FUNCTION.findAll(block).map { it.groupValues[1] }) {
-                val called = compiled.withIndex().any { (j, other) -> j != i && Regex("""\b${Regex.escape(name)}\(""").containsMatchIn(other) }
-                if (!called) error("agent/kotlin.md declares $name() in block ${i + 1}, and no other block calls it, so its markup is never rendered and checked. Call it from the test in the rulebook.")
+        // nobody calls would be compiled, and its markup never checked. A
+        // call is read without comments, strings and declarations, so a
+        // mention of the name, or a second function with it, is not one.
+        val calls = parts.map { (_, body) -> body.replace(NOT_A_CALL, " ") }
+        for ((i, part) in parts.withIndex()) {
+            if (part.third != BlockKind.DECLARATIONS) continue
+            for (name in DECLARED_FUNCTION.findAll(part.second).map { it.groupValues[1] }) {
+                val call = Regex("""(?<![\w.])${Regex.escape(name)}\(""")
+                if (calls.withIndex().none { (j, other) -> j != i && call.containsMatchIn(other) }) {
+                    error("agent/kotlin.md declares $name() in block ${i + 1}, and no other block calls it, so its markup is never rendered and checked. Call it from the test in the rulebook.")
+                }
             }
         }
         val fragments = mutableListOf<String>()
         val pages = mutableListOf<String>()
-        for ((i, block) in compiled.withIndex()) {
-            val imports = block.lines().filter { it.startsWith("import ") }
-            val body = block.lines().filterNot { it.startsWith("import ") }.joinToString("\n").trim()
-            val code = when (blockKind(body)) {
+        for ((i, part) in parts.withIndex()) {
+            val (imports, body, kind) = part
+            val code = when (kind) {
                 BlockKind.DECLARATIONS -> body
                 BlockKind.TEMPLATE -> {
                     pages.add("rulebookPage$i")
@@ -99,8 +109,15 @@ abstract class ExtractRulebook : DefaultTask() {
     }
 
     private companion object {
-        /** A function at the top level of a block, `fun name(` or `fun Receiver.name(`, but not a test. */
-        val DECLARED_FUNCTION = Regex("""(?m)^fun (?:[A-Z]\w*\.)?([a-z]\w*)\(""")
+        /**
+         * A function at the top level of a block, with its modifiers, type
+         * parameters and receiver: `fun name(`, `internal fun FlowContent.name(`,
+         * `fun <T> List<T>.name(`. A test, named in backticks, is not one.
+         */
+        val DECLARED_FUNCTION = Regex("""(?m)^(?:(?:private|internal|public|inline|suspend)\s+)*fun\s+(?:<[^>]*>\s*)?(?:[\w.<>*?, ]+\.)?([a-z]\w*)\s*\(""")
+
+        /** What is not a call: a comment, a string, and a declaration of a function. */
+        val NOT_A_CALL = Regex("""//[^\n]*|/\*[\s\S]*?\*/|\"\"\"[\s\S]*?\"\"\"|"(?:[^"\\\n]|\\.)*"|\bfun\s+(?:<[^>]*>\s*)?(?:[\w.<>*?, ]+\.)?[a-z]\w*\s*\(""")
 
         /** What a Gradle build file in the rulebook may have at its top. */
         val BUILD_FILE = Regex("""^(?:plugins|dependencies|repositories|tasks|lotek)\s*\{""")

@@ -5,13 +5,17 @@ internal enum class BlockKind { DECLARATIONS, TEMPLATE }
 
 private val BLOCK_COMMENT = Regex("""/\*[\s\S]*?\*/""")
 
+/** A raw string, `"""…"""`, whose lines are text and not code, however they are indented. */
+private val RAW_STRING = Regex("\"\"\"[\\s\\S]*?\"\"\"")
+
 /**
  * The lines of a block that stand at its top level: not indented, and not a
  * comment, an annotation or a closing bracket. The block has already lost
- * the indentation of the tab.
+ * the indentation of the tab. A page written flush left in a raw string has
+ * `<!DOCTYPE html>` at the start of a line, and it is not a statement.
  */
 internal fun topLevel(block: String): List<String> =
-    block.replace(BLOCK_COMMENT, "").lines()
+    block.replace(RAW_STRING, "\"\"").replace(BLOCK_COMMENT, "").lines()
         .filter { it.isNotBlank() && !it[0].isWhitespace() }
         .filterNot { it.startsWith("//") || it.startsWith("@") || it.startsWith("}") || it.startsWith(")") }
 

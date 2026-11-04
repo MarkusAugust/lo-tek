@@ -17,6 +17,8 @@ class RecipeBlocksTest {
             "data class Fault(val field: String, val message: String)\n\n// The rule.\nfun faultsIn() = listOf<Fault>()",
             "/** The rule. */\n@Suppress(\"unused\")\ninternal fun faultsIn() = 1",
             "private val LIMIT = 3",
+            // A page in a raw string, flush left: its lines are text.
+            "fun page(content: String) = \"\"\"\n<!DOCTYPE html>\n<body>\n\$content\n</body>\n\"\"\"",
         )
         for (block in declarations) assertEquals(BlockKind.DECLARATIONS, blockKind(block), block)
         val templates = listOf(

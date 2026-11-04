@@ -85,20 +85,19 @@ body {
 The same in a string, without kotlinx.html:
 
 ```kotlin
-fun page(content: String): String =
-    """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head><link rel="stylesheet" href="${LotekWebJar.CSS}"></head>
-    <body>
-    $content
-    <script type="module">
-      import { defineLt } from "${LotekWebJar.REGISTER}"
-      defineLt()
-    </script>
-    </body>
-    </html>
-    """
+fun page(content: String) = """
+<!DOCTYPE html>
+<html lang="en">
+<head><link rel="stylesheet" href="${LotekWebJar.CSS}"></head>
+<body>
+$content
+<script type="module">
+  import { defineLt } from "${LotekWebJar.REGISTER}"
+  defineLt()
+</script>
+</body>
+</html>
+"""
 ```
 
 `lotek.css` is 107 kB, 14 kB compressed, has every component, and is nearly
@@ -493,13 +492,13 @@ data, never from the loop index, a counter or a random value, so it is unique
 on the page and the same on every render:
 
 ```kotlin
-data class Target(val code: String, val name: String, val note: String)
+data class JobNote(val code: String, val name: String, val text: String)
 
-fun FlowContent.notes(targets: List<Target>) {
-    for (target in targets) {
-        val field = Lt.field(id = "note-${target.code}")
-        label { lt(field.label); +target.name }
-        input { lt(Lt.input(), field.control); name = "note-${target.code}"; value = target.note }
+fun FlowContent.notes(jobs: List<JobNote>) {
+    for (job in jobs) {
+        val field = Lt.field(id = "note-${job.code}")
+        label { lt(field.label); +job.name }
+        input { lt(Lt.input(), field.control); name = "note-${job.code}"; value = job.text }
     }
 }
 ```
@@ -543,7 +542,7 @@ class OrderPageTest {
 
     @Test
     fun `every note is wired`() {
-        assertLotek(page(createHTML().div { notes(listOf(Target("222-0481", "Orison", ""))) }))
+        assertLotek(page(createHTML().div { notes(listOf(JobNote("222-0481", "Orison", ""))) }))
     }
 }
 ```
@@ -564,7 +563,9 @@ The rulebook for template syntax is
 https://lo-tek.sobernetics.no/agent/templates.md.
 
 The Gradle plugin checks the template files as part of `check`, without a test
-that renders them:
+that renders them. `templates` takes a whole folder, with its subfolders:
+`src/main/jte` for JTE, `src/main/resources/templates` for Thymeleaf,
+Freemarker and Pebble.
 
 ```kotlin
 // build.gradle.kts
@@ -578,11 +579,12 @@ lotek {
 ```
 
 `lotek.jar` is the command line, attached to every release on GitHub:
-https://github.com/MarkusAugust/lo-tek/releases/latest.
+https://github.com/MarkusAugust/lo-tek/releases/latest. It takes an address,
+or the template files by name, never a folder:
 
 ```bash
-java -jar lotek.jar check $(find src/main/jte -name '*.jte' -o -name '*.kte')
 java -jar lotek.jar check http://localhost:8080/form
+java -jar lotek.jar check src/main/jte/order.kte src/main/jte/jobs.kte
 ```
 
 A finding you want to keep is suppressed with a comment above the tag:
