@@ -24,6 +24,26 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Fixed
+
+- **The snippets and the live templates follow the corrected recipes.** In
+  the HTML snippets and live templates the error summary and the field post
+  to the server, the popover's actions are forms that post, and the session
+  timeout logs out with a post. In the Kotlin live templates the error
+  summary has no script, and it and the field take what was typed; the
+  popover, the tabs and the suggestion have no script; the dialog's Cancel
+  and the session timeout's Log out post to the server; and the toast tells
+  a refused restart from one that got no answer, and a redirect from a
+  restart. The switch saves only an answer that is not a redirect, and
+  stands in a `<form autocomplete="off">`, since HTML does not allow the
+  attribute on a checkbox. The Kotlin live template for the error summary
+  inserted the browser validation from the HTML recipe, which a Kotlin
+  server does itself.
+- **The editor descriptions of `session-logout` and `<lt-dialog>`.**
+  `session-logout` comes only from a Log out button that closes the dialog;
+  one with `formmethod="post"` submits instead. `<lt-dialog>` makes a dialog
+  the server sends open a real modal.
+
 ## 0.40.0 (2026-11-03)
 
 ### Breaking

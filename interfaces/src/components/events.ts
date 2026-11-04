@@ -39,7 +39,7 @@ export interface LtEventMap {
   "session-warn": CustomEvent<null>
   /** `<lt-session-timeout>`: The session continues: the user closed the warning with a button other than log out or with Escape, or the app called `extend()`. */
   "session-extend": CustomEvent<null>
-  /** `<lt-session-timeout>`: The user chose to log out. */
+  /** `<lt-session-timeout>`: The user chose to log out with a button that closes the dialog. A Log out button with `formmethod="post"` submits to the server instead, and the event does not come. */
   "session-logout": CustomEvent<null>
   /** `<lt-session-timeout>`: Time is up. */
   "session-expired": CustomEvent<null>

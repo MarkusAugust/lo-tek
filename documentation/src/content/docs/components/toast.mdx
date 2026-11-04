@@ -57,10 +57,21 @@ The container is added once, and the messages come from your code. That is the d
       const messages = document.getElementById("messages")
 
       document.getElementById("restart").addEventListener("click", async () => {
+        let answer
         try {
-          await restartRelay(14)
+          answer = await fetch("/relays/14/restart", { method: "POST" })
+        } catch {}
+        // A gateway whose server is gone answers 502, 503 or 504, which is no
+        // answer from the relay either. Any other answer that is not ok means
+        // the server is there and said no.
+        if (answer && [502, 503, 504].includes(answer.status)) answer = undefined
+        // fetch follows a redirect, as to the log-in page when the session has
+        // run out, and the page it lands on is ok. That is no restart.
+        if (answer?.ok && !answer.redirected) {
           messages.show("Relay 14 is back", { color: "success" })
-        } catch {
+        } else if (answer) {
+          messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })
+        } else {
           messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })
         }
       })
@@ -193,7 +204,7 @@ The container is added once, and the messages come from your code. That is the d
     The messages are not state to be mirrored in a signal. They are something that happens, which is why `data-on:click` calls the method directly.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone. The toast exists only in the browser: the page calls `show()` when its own `fetch` has been answered, so this is the one part that needs a script. After an ordinary form submission and a redirect, the next page renders an [alert](/components/alert/) instead, as in [With Ktor](/kotlin/#with-ktor).
 
     ```kotlin
     import kotlinx.html.*
@@ -210,10 +221,21 @@ The container is added once, and the messages come from your code. That is the d
                 const messages = document.getElementById("messages")
 
                 document.getElementById("restart").addEventListener("click", async () => {
+                  let answer
                   try {
-                    await restartRelay(14)
+                    answer = await fetch("/relays/14/restart", { method: "POST" })
+                  } catch {}
+                  // A gateway whose server is gone answers 502, 503 or 504, which is no
+                  // answer from the relay either. Any other answer that is not ok means
+                  // the server is there and said no.
+                  if (answer && [502, 503, 504].includes(answer.status)) answer = undefined
+                  // fetch follows a redirect, as to the log-in page when the session has
+                  // run out, and the page it lands on is ok. That is no restart.
+                  if (answer?.ok && !answer.redirected) {
                     messages.show("Relay 14 is back", { color: "success" })
-                  } catch {
+                  } else if (answer) {
+                    messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })
+                  } else {
                     messages.show("Relay 14 did not answer. Try again.", { color: "danger", duration: 0 })
                   }
                 })

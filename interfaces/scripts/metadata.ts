@@ -717,7 +717,7 @@ export const elements: readonly ElementDoc[] = [
   element<typeof LtDialog>(
     LT_DIALOG_TAG,
     "dialog",
-    'Makes a `<dialog class="lt-dialog">` modal with `showModal()`, for servers that cannot call it themselves. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.',
+    'Makes a `<dialog class="lt-dialog">` the server sends open a real modal, with `showModal()`. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.',
     {
       open: flag(
         "The dialog is open. For the server to show it, `open` must be on `<dialog>` too.",
@@ -759,7 +759,7 @@ export const elements: readonly ElementDoc[] = [
   element<typeof LtSessionTimeout>(
     LT_SESSION_TIMEOUT_TAG,
     "session-timeout",
-    'Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method="dialog">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.',
+    'Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method="dialog">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out with a button that closes the dialog, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.',
     {
       "warn-at": number("Seconds without activity before the warning appears."),
       "expires-at": number(
@@ -775,7 +775,10 @@ export const elements: readonly ElementDoc[] = [
         description:
           "The session continues: the user closed the warning with a button other than log out or with Escape, or the app called `extend()`.",
       },
-      "session-logout": { description: "The user chose to log out." },
+      "session-logout": {
+        description:
+          'The user chose to log out with a button that closes the dialog. A Log out button with `formmethod="post"` submits to the server instead, and the event does not come.',
+      },
       "session-expired": { description: "Time is up." },
       "session-activity": {
         description:

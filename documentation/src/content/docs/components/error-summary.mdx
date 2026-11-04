@@ -40,7 +40,7 @@ defineLtErrorSummary()
     ```
 
     ```html
-    <form novalidate>
+    <form action="/jobs" method="post" novalidate>
       <!-- The component sets the class, role="alert" and tabindex="-1"; the id and aria-labelledby that name the box are the template's. -->
       <lt-error-summary id="errors" aria-labelledby="errors-title" hidden>
         <h2 id="errors-title"></h2>
@@ -64,9 +64,16 @@ defineLtErrorSummary()
       const box = document.getElementById("errors")
 
       function showErrors(errors) {
-        box.querySelector("ul").innerHTML = errors
-          .map((e) => `<li><a href="#${e.id}">${e.message}</a></li>`)
-          .join("")
+        box.querySelector("ul").replaceChildren(
+          ...errors.map((e) => {
+            const link = document.createElement("a")
+            link.href = `#${e.id}`
+            link.textContent = e.message
+            const item = document.createElement("li")
+            item.append(link)
+            return item
+          }),
+        )
 
         // The heading and hidden are written here, as a server would.
         if (errors.length > 0) {
@@ -81,19 +88,21 @@ defineLtErrorSummary()
 
       const fixer = document.getElementById("fixer")
 
+      // The script stands in for the server's answer: it stops a submission
+      // that fails, and writes what the server would send. One that passes
+      // goes to the server.
       document.querySelector("form").addEventListener("submit", (event) => {
-        event.preventDefault()
-
         const errors = fixer.value.includes("@")
           ? []
           : [{ id: "fixer", message: "Enter the fixer's address with an @" }]
 
+        if (errors.length > 0) event.preventDefault()
         showErrors(errors)
       })
     </script>
     ```
 
-    The component moves focus here as soon as `hidden` is removed. The messages here are written in the script. If they come from a server or from the user, set them with `textContent`, not through `innerHTML`.
+    The component moves focus here as soon as `hidden` is removed. The script only stands in for a server: with one, the server renders the box filled in and without `hidden`, as in [The markup](#the-markup) and the kotlinx.html tab, and the page needs no script beyond the registration. The messages are set with `textContent`, never through `innerHTML`, since they can contain what the user typed.
   </TabItem>
   <TabItem label="React">
     ```ts
@@ -182,7 +191,7 @@ defineLtErrorSummary()
     If the form fails again while the box is already visible, focus does not move, because the signal is that `hidden` is removed. Send two patches in the same response then: first the box with `hidden`, then the box without. The component sees that it was hidden and shown again, and moves focus. See [The markup](#the-markup).
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.errorSummary()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the heading and the links, and the box is hidden when there are no errors.
+    On a Kotlin server you call `Lt.errorSummary()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server validates the submission and renders the form again with the faults: the heading and the links are filled in, and the box is hidden when there are none. There is no script beyond the registration. The component moves focus to the box when the page arrives with it visible.
 
     ```kotlin
     import kotlinx.html.*
@@ -193,10 +202,10 @@ defineLtErrorSummary()
 
     data class Fault(val field: String, val message: String)
 
-    fun FlowContent.orderForm(faults: List<Fault> = emptyList()) {
-        val summary = Lt.errorSummary(count = faults.size, id = "errors", titleId = "errors-title")
-        val fixer = Lt.field(id = "fixer", invalid = faults.any { it.field == "fixer" })
-        form {
+    fun FlowContent.orderForm(fixer: String = "", faults: List<Fault> = emptyList()) {
+        val summary = Lt.errorSummary(count = faults.size, id = "errors")
+        val field = Lt.field(id = "fixer", invalid = faults.any { it.field == "fixer" })
+        form(action = "/jobs", method = FormMethod.post) {
             attributes["novalidate"] = ""
             ltErrorSummary {
                 lt(summary.host)
@@ -209,46 +218,25 @@ defineLtErrorSummary()
                     for (fault in faults) li { a(href = "#${fault.field}") { +fault.message } }
                 }
             }
-            label { lt(fixer.label); +"Fixer's address" }
-            input { lt(Lt.input(type = InputType.EMAIL), fixer.control); name = "fixer" }
+            label { lt(field.label); +"Fixer's address" }
+            input {
+                lt(Lt.input(type = InputType.EMAIL), field.control)
+                name = "fixer"
+                // What the user typed comes back, so a failed submission loses nothing.
+                if (fixer.isNotEmpty()) value = fixer
+            }
             button { lt(Lt.button()); +"Order the job" }
         }
-        script(type = "module") {
-            unsafe {
-                +"""
-                const box = document.getElementById("errors")
-
-                function showErrors(errors) {
-                  box.querySelector("ul").innerHTML = errors
-                    .map((e) => `<li><a href="#${'$'}{e.id}">${'$'}{e.message}</a></li>`)
-                    .join("")
-
-                  // The heading and hidden are written here, as a server would.
-                  if (errors.length > 0) {
-                    box.querySelector("h2").textContent =
-                      errors.length === 1 ? "The form has one error" : `The form has ${'$'}{errors.length} errors`
-                  }
-                  // Hidden and shown again, so focus also moves when the form fails
-                  // again while the box is already visible.
-                  box.hidden = true
-                  box.hidden = errors.length === 0
-                }
-
-                const fixer = document.getElementById("fixer")
-
-                document.querySelector("form").addEventListener("submit", (event) => {
-                  event.preventDefault()
-
-                  const errors = fixer.value.includes("@")
-                    ? []
-                    : [{ id: "fixer", message: "Enter the fixer's address with an @" }]
-
-                  showErrors(errors)
-                })
-                """
-            }
-        }
     }
+    ```
+
+    The handler for `POST /jobs` validates and answers with the same function, with status 422 when something failed. With Ktor, see [With Ktor](/kotlin/#with-ktor):
+
+    ```kotlin
+    // The faults for what was submitted. Empty when the job can be ordered.
+    fun faultsIn(fixer: String): List<Fault> =
+        if (fixer.contains("@")) emptyList()
+        else listOf(Fault("fixer", "Enter the fixer's address with an @"))
     ```
 
     ```kotlin

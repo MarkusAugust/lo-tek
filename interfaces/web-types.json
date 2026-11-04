@@ -249,7 +249,7 @@
         },
         {
           "name": "lt-dialog",
-          "description": "Makes a `<dialog class=\"lt-dialog\">` modal with `showModal()`, for servers that cannot call it themselves. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
+          "description": "Makes a `<dialog class=\"lt-dialog\">` the server sends open a real modal, with `showModal()`. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/",
           "attributes": [
             {
@@ -317,7 +317,7 @@
         },
         {
           "name": "lt-session-timeout",
-          "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
+          "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out with a button that closes the dialog, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
           "doc-url": "https://lo-tek.sobernetics.no/components/session-timeout/",
           "attributes": [
             {
@@ -357,7 +357,7 @@
               },
               {
                 "name": "session-logout",
-                "description": "The user chose to log out."
+                "description": "The user chose to log out with a button that closes the dialog. A Log out button with `formmethod=\"post\"` submits to the server instead, and the event does not come."
               },
               {
                 "name": "session-expired",
@@ -661,32 +661,32 @@
         },
         {
           "name": "lt-dialog",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__body",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__title",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__footer",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__header",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {
           "name": "lt-dialog__subtitle",
-          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+          "description": "**Dialog**\n\nModal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
           "doc-url": "https://lo-tek.sobernetics.no/components/dialog/"
         },
         {

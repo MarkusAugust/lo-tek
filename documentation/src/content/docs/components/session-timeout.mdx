@@ -46,7 +46,7 @@ defineLtSessionTimeout()
         <span class="lt-sr-only" role="status"></span>
         <form method="dialog" class="lt-session-timeout__actions">
           <button class="lt-button" value="extend">Stay connected</button>
-          <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
+          <button class="lt-button" data-variant="secondary" value="logout" formmethod="post" formaction="/log-out">Log out</button>
         </form>
       </dialog>
     </lt-session-timeout>
@@ -116,7 +116,8 @@ defineLtSessionTimeout()
             <span {...session.live} />
             <form {...session.actions}>
               <button {...session.extend}>Stay connected</button>
-              <button {...session.logout}>Log out</button>
+              {/* Posts to the logout on the server, which ends the session there. */}
+              <button {...session.logout} formMethod="post" formAction="/log-out">Log out</button>
             </form>
           </dialog>
         </lt-session-timeout>
@@ -159,7 +160,7 @@ defineLtSessionTimeout()
         <span class="lt-sr-only" role="status"></span>
         <form method="dialog" class="lt-session-timeout__actions">
           <button class="lt-button" value="extend">Stay connected</button>
-          <button class="lt-button" data-variant="secondary" value="logout">Log out</button>
+          <button class="lt-button" data-variant="secondary" value="logout" formmethod="post" formaction="/log-out">Log out</button>
         </form>
       </dialog>
     </lt-session-timeout>
@@ -194,7 +195,13 @@ defineLtSessionTimeout()
                     lt(session.actions)
                     attributes["method"] = "dialog"
                     button { lt(Lt.button(), session.extend); +"Stay connected" }
-                    button { lt(Lt.button(variant = ButtonVariant.SECONDARY), session.logout); +"Log out" }
+                    button {
+                        lt(Lt.button(variant = ButtonVariant.SECONDARY), session.logout)
+                        // Logging out is a post to the server, which ends the session.
+                        formMethod = ButtonFormMethod.post
+                        formAction = "/log-out"
+                        +"Log out"
+                    }
                 }
             }
         }
@@ -242,7 +249,7 @@ The component finds the parts by what has to be there anyway:
 | The announcement | `[role=status]`. Is empty, and the component fills it in |
 | The buttons | Buttons in a `<form method="dialog">` |
 
-The buttons are ordinary buttons. The browser closes the dialog and sets `returnValue` to the button's `value`, without script. `value="logout"` logs out. Everything else, Escape and the button with `value="extend"` included, means the user wants to continue.
+The buttons are ordinary buttons. The browser closes the dialog and sets `returnValue` to the button's `value`, without script. `value="logout"` logs out. Everything else, Escape and the button with `value="extend"` included, means the user wants to continue. In the recipes the logout button also has `formmethod="post"` and `formaction`: it submits the form to the logout on the server, which ends the session there, and the page leaves before the dialog closes. Until the server answers, the countdown runs on: if the time runs out first, `session-expired` takes the user to the log-in page instead.
 
 If the class `lt-session-timeout__dialog`, `role="alertdialog"` or a name on the dialog is missing, the component fills them in. The name comes from the first heading, which gets an id if it has none. What the renderer wrote stays.
 
@@ -268,7 +275,7 @@ After `session-expired` and `session-logout` the component stands still until `e
 | --- | --- | --- |
 | `session-warn` | The dialog opens | Usually nothing |
 | `session-extend` | The user chooses to continue, with the button or Escape | Ask the server to extend the session |
-| `session-logout` | The user chooses to log out | Send the user to the logout |
+| `session-logout` | The user chooses to log out with a button that closes the dialog. A button with `formmethod="post"`, as in the recipes, logs out by submitting, and the event does not come | Send the user to the logout |
 | `session-expired` | The time is up | Send the user to the login |
 | `session-activity` | The user is active, at most once per `activity-interval` | Ask the server to keep the session alive |
 
