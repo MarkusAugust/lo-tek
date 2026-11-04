@@ -2740,7 +2740,7 @@
     {
       "name": "field",
       "description": "Connects the label, field, help text and error text.\n\nThe same calculation `<lt-field>` does in the browser, but as data, for the code that renders the markup. Then no web component is needed.",
-      "example": "const field = lt.field({ id: \"fixer\", required: \"text\", help: true, error: true, invalid })\n\n<label {...field.label}>Fixer's address</label>\n<input {...lt.input({ type: \"email\", state: field.state })} {...field.control} />\n<p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>\n<p {...lt.errorText()} {...field.error}>Enter a valid address.</p>",
+      "example": "const field = lt.field({ id: \"fixer\", required: \"text\", help: true, error: true, invalid })\n\n<label {...field.label}>Fixer's address</label>\n<input {...lt.input({ type: \"email\", state: field.state })} {...field.control} />\n<p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>\n<p {...lt.errorText()} {...field.error}>Enter the fixer's address, for example fixer@relay.example.</p>",
       "options": [
         {
           "name": "id",

@@ -49,7 +49,7 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
       </section>
       <section class="lt-tabs__panel" id="attachments">
         <h2>Attachments</h2>
-        <p>Three attachments have been uploaded.</p>
+        <p>Three attachments have been received. The death certificate arrived on 6 March.</p>
       </section>
     </lt-tabs>
 
@@ -190,7 +190,7 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
       </section>
       <section class="lt-tabs__panel" id="attachments" hidden="until-found">
         <h2>Attachments</h2>
-        <p>Three attachments have been uploaded.</p>
+        <p>Three attachments have been received. The death certificate arrived on 6 March.</p>
       </section>
     </lt-tabs>
     ```
@@ -213,7 +213,7 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     fun FlowContent.claimTabs(
         parts: List<Part> = listOf(
             Part("claim", "Claim", "Claim AV-2079-0481 was filed on 4 March 2079."),
-            Part("attachments", "Attachments", "Three attachments have been uploaded."),
+            Part("attachments", "Attachments", "Three attachments have been received. The death certificate arrived on 6 March."),
         ),
     ) {
         val tabs = Lt.tabs(id = "claim-tabs", keys = parts.map { it.key }, label = "Parts of the claim")

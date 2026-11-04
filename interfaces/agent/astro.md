@@ -341,7 +341,7 @@ const fixer = lt.field({ id: "fixer", required: "symbol", help: true, error: tru
 <label {...fixer.label}>Fixer's address</label>
 <input {...lt.input({ type: "email" })} {...fixer.control} name="fixer" required />
 <p {...lt.helpText()} {...fixer.help}>The board writes to the fixer, never to the crew.</p>
-<p {...lt.errorText()} {...fixer.error}>Enter a valid address.</p>
+<p {...lt.errorText()} {...fixer.error}>Enter the fixer's address, for example fixer@relay.example.</p>
 ```
 
 No `<lt-field>`, no runtime.

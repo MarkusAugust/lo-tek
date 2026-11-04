@@ -111,6 +111,13 @@ import Preview from "./Preview.astro"
 	const ADDRESS = /^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$/
 
 	function messageFor(field: HTMLInputElement): string {
+		// A date the browser cannot read gives an empty value with `badInput`,
+		// so it is told apart from an empty field here. It can be a date that
+		// does not exist, like 31/02, one half typed, or one without the
+		// separators WebKit requires, so the message says how to write it.
+		if (field.name !== "fixer" && field.validity.badInput)
+			return "Type the date as 31/05/2079"
+
 		if (field.value === "") {
 			return field.name === "fixer"
 				? "Enter the fixer's address"
@@ -121,6 +128,11 @@ import Preview from "./Preview.astro"
 			return field.checkValidity() && ADDRESS.test(field.value)
 				? ""
 				: "Enter the full address, for example fixer@relay.example"
+		}
+
+		// The date picker on an iPhone offers dates outside `min` and `max`.
+		if (field.validity.rangeUnderflow || field.validity.rangeOverflow) {
+			return "The board only takes jobs for 2079"
 		}
 
 		return field.checkValidity() ? "" : "Enter a date that exists"

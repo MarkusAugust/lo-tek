@@ -103,7 +103,7 @@ export const lt = {
    * <label {...field.label}>Fixer's address</label>
    * <input {...lt.input({ type: "email", state: field.state })} {...field.control} />
    * <p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>
-   * <p {...lt.errorText()} {...field.error}>Enter a valid address.</p>
+   * <p {...lt.errorText()} {...field.error}>Enter the fixer's address, for example fixer@relay.example.</p>
    * ```
    *
    * The same calculation `<lt-field>` does in the browser, but as data, for

@@ -334,7 +334,7 @@ as plain HTML:
   <label class="lt-label" for="fixer" data-required="text">Fixer's address</label>
   <input class="lt-input" id="fixer" type="email" value="fixer@" />
   <p class="lt-help-text">The board writes to the fixer, never to the crew.</p>
-  <p class="lt-error-text">Enter a valid address.</p>
+  <p class="lt-error-text">Enter the fixer's address, for example fixer@relay.example.</p>
 </lt-field>
 ```
 

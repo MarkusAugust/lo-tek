@@ -9,7 +9,7 @@ val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, error = true,
 """
 <label ${field.label.toHtml()}>Fixer's address</label>
 <input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>
-<p ${(Lt.errorText() + field.error).toHtml()}>Enter a valid address.</p>
+<p ${(Lt.errorText() + field.error).toHtml()}>Enter the fixer's address, for example fixer@relay.example.</p>
 """
 ```
 
