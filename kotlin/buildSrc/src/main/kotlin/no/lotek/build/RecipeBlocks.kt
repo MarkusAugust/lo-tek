@@ -53,15 +53,17 @@ internal fun declarationProblems(block: String): List<String> = listOfNotNull(
     "a ```kotlin block of declarations has a page in it, which the test compiles but does not render: write the page template as statements, `head { }` and `body { }`.".takeIf { PAGE.containsMatchIn(block) },
 )
 
-private val FUNCTION = Regex("""^(?:(?:private|internal|public|suspend|inline)\s+)*fun\b""")
+/** What may stand at the top of the recipe's block next to its function: imports, and the types it takes. */
+private val BESIDE_THE_RECIPE = Regex("""^(?:import\s|(?:data|enum)\s+class\s)""")
 
 /**
  * What is wrong with the recipe's own block. The test renders the recipe's
- * function and nothing else in the block, so another function there, such as
- * a page, would be compiled and never rendered. The types the recipe takes,
- * a `data class Fault`, may stand next to it.
+ * function and nothing else in the block, so anything else there that could
+ * hold markup, another function, a `val` with a lambda or an `object`, would
+ * be compiled and never rendered. The types the recipe takes, a
+ * `data class Fault`, may stand next to it.
  */
 internal fun recipeBlockProblems(block: String, function: String): List<String> {
-    val others = topLevel(block).filter { FUNCTION.containsMatchIn(it) && !it.contains("fun FlowContent.$function(") }
-    return others.map { "the recipe's ```kotlin block declares more than `$function()`: `$it`. Put the other functions in a block of their own." }
+    val others = topLevel(block).filterNot { BESIDE_THE_RECIPE.containsMatchIn(it) || it.contains("fun FlowContent.$function(") }
+    return others.map { "the recipe's ```kotlin block has more than `$function()` and the types it takes: `$it`. Put the rest in a block of its own." }
 }

@@ -84,7 +84,7 @@ import { switchControl } from "@lo-tek/interfaces"
 
 ## Saving immediately
 
-The switch promises that the change applies. So it also has to say when saving fails, and go back. `fetch` only rejects when the network fails, so a response with an error status has to be checked by you, otherwise a refusal from the server ends up in the branch that reports success. In "Plain HTML", Astro and React, another press is blocked while the save is in progress without `disabled`, which would take focus from the switch; in Datastar another press sends another `@put`, and the server decides. The markup is the same in "Plain HTML" and Astro; React uses the builder functions, and Datastar its own attributes. Astro uses the same script as "Plain HTML".
+The switch promises that the change applies. So it also has to say when saving fails, and go back. `fetch` only rejects when the network fails, so a response with an error status has to be checked by you, otherwise a refusal from the server ends up in the branch that reports success. A redirect, as to the log-in page when the session has run out, is followed to a page that is ok, so it is checked too. In "Plain HTML", React and kotlinx.html, another press is blocked while the save is in progress without `disabled`, which would take focus from the switch; in Datastar another press sends another `@put`, and the server decides. React uses the builder functions, Datastar its own attributes, and kotlinx.html the same script as "Plain HTML".
 
 <Tabs>
   <TabItem label="Plain HTML">

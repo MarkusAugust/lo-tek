@@ -54,5 +54,8 @@ class RecipeBlocksTest {
         assertEquals(emptyList(), recipeBlockProblems("data class Fault(val field: String)\n\n$recipe", "orderForm"), "a type the recipe takes")
         val more = "$recipe\n\nfun HTML.page() {\n    body { orderForm() }\n}"
         assertTrue(recipeBlockProblems(more, "orderForm").single().contains("fun HTML.page()"), "a second function in the recipe's block")
+        for (hidden in listOf("val page: HTML.() -> Unit = {\n    body { orderForm() }\n}", "object Pages {\n    fun HTML.page() { }\n}", "class Pages")) {
+            assertTrue(recipeBlockProblems("$recipe\n\n$hidden", "orderForm").isNotEmpty(), hidden)
+        }
     }
 }

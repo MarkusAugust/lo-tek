@@ -152,16 +152,20 @@ class RecipesTest {
     )
 
     /**
-     * The block comments and the whole-line comments, in one pass from left to
-     * right, so the start of a block comment inside a line comment does not
-     * swallow the code after it, and a line comment inside a block comment is
-     * not read as a line of its own.
+     * The strings, the block comments and the line comments, in one pass from
+     * left to right, so the start of a block comment inside a line comment or
+     * a string, such as a path with a star, does not swallow the code after it, and a line
+     * comment inside a block comment is not read as a line of its own. A
+     * string is kept, a comment removed: [withoutComments].
      */
-    private val COMMENTS = Regex("""(?m)/\*[\s\S]*?\*/|^[ \t]*//.*$""")
+    private val COMMENTS = Regex("""(?m)"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\[\s\S])*`|/\*[\s\S]*?\*/|(?<![:\w])//.*$""")
+
+    internal fun withoutComments(script: String): String =
+        COMMENTS.replace(script) { m -> if (m.value[0] in "\"'`") m.value else "" }
 
     /** A script's code without its comments, collapsed, as [SERVERS_JOB] and the markers read it. */
     internal fun code(script: String): String =
-        script.replace(COMMENTS, "").replace(WHITESPACE, " ").trim()
+        withoutComments(script).replace(WHITESPACE, " ").trim()
 
     /** What a script does of the server's job, by [SERVERS_JOB]. */
     internal fun serversJob(script: String): List<String> = code(script).let { c -> SERVERS_JOB.filter { it.first.containsMatchIn(c) }.map { it.second } }
@@ -185,7 +189,7 @@ class RecipesTest {
      * left out, and must be the same in the Kotlin recipe.
      */
     internal fun isRegistration(script: String): Boolean {
-        val code = script.replace(COMMENTS, "")
+        val code = withoutComments(script)
         val rest = code
             .replace(Regex("""import\s*\{\s*defineLt\w*(?:\s*,\s*defineLt\w*)*\s*,?\s*\}\s*from\s*["'][^"']*["']\s*;?"""), "")
             .replace(Regex("""\bdefineLt\w*\(\s*\)\s*;?"""), "")
@@ -213,12 +217,16 @@ class RecipesTest {
      * may not add where the HTML recipe has none, also when a builder function
      * writes the name on some other element: the popover's trigger has
      * `type="button"`, and on a button that is to submit it makes the button
-     * do nothing. `hidden` is not among them: `Lt.suggestion()` hides the
-     * list the component would otherwise hide, and what a failed answer shows
-     * is checked by [serverAnswer].
+     * do nothing. Three are not among them, since a builder function writes
+     * them where the HTML recipe leaves them to the component or the default:
+     * `hidden` and `autocomplete`, which `Lt.suggestion()` writes on the list
+     * and the field as `<lt-suggestion>` does, and `max`, which
+     * `Lt.progress()` writes on a bar without a value. What a failed answer
+     * shows is checked by [serverAnswer].
      */
     private val DECIDES_WHAT_IT_DOES = setOf(
         "type", "disabled", "inert", "form", "formaction", "formmethod", "method", "action", "name", "value",
+        "open", "required", "multiple", "accept", "min", "step", "pattern",
     )
 
     /** Every attribute name, and every class, a builder function writes in some answer. */
@@ -384,6 +392,9 @@ class RecipesTest {
             "form.addEventListener(\n  \"submit\", go)",
             // A `/*` in a line comment starts no block: the takeover after it is code.
             "// served from /webjars/*/dist\nform.addEventListener(\"submit\", go)\n/* the end */",
+            // Nor does one after code on the line, or in a string.
+            "go() // served from /webjars/*\nform.addEventListener(\"submit\", go)\n/* the end */",
+            "const root = \"/webjars/lo-tek/*/dist\"\nform.addEventListener(\"submit\", go)\n/* the end */",
         )
         for (script in takeovers) {
             val page = """<script type="module">$script</script>"""
@@ -395,6 +406,8 @@ class RecipesTest {
             """// form.addEventListener("submit", go) is what the page does without a server
                go()""",
             """/* list.innerHTML = "" */ go()""",
+            """go() // form.requestSubmit() once the server is there""",
+            """fetch("https://relay.example/api") // and not form.submit()""",
             """toggle.addEventListener("click", (event) => { if (saving) event.preventDefault() })""",
         )
         for (script in harmless) {
@@ -623,9 +636,9 @@ class RecipesTest {
                 problems.add("the page template has a script that does more than register: ${script.outerHtml().take(120)}")
                 continue
             }
-            val code = script.data().replace(COMMENTS, "")
+            val code = withoutComments(script.data())
             for (source in Regex("""from\s*["']([^"']*)["']""").findAll(code).map { it.groupValues[1] }) {
-                if (!source.startsWith("${LotekWebJar.ROOT}/dist/")) problems.add("the page template registers from $source, which is not the package's WebJar")
+                if (source != LotekWebJar.REGISTER) problems.add("the page template registers from $source, not from LotekWebJar.REGISTER")
             }
             registered += Regex("""\b(defineLt\w*)\s*\(""").findAll(code).map { it.groupValues[1] }
         }
@@ -710,7 +723,8 @@ class RecipesTest {
         val recipe = """<html><body><p>x</p><script type="module">go()</script></body></html>"""
         val template = { extra: String -> "<html><head></head><body><p>x</p><script type=\"module\">go()</script>$extra$registration</body></html>" }
         assertEquals(emptyList<String>() to setOf("defineLt"), templateProblems(template(""), recipe))
-        assertTrue(templateProblems(template("").replace(LotekWebJar.ROOT, "/webjars/lotek/${LotekWebJar.VERSION}"), recipe).first.single().contains("not the package's WebJar"), "a mistyped WebJar path")
+        assertTrue(templateProblems(template("").replace(LotekWebJar.ROOT, "/webjars/lotek/${LotekWebJar.VERSION}"), recipe).first.single().contains("not from LotekWebJar.REGISTER"), "a mistyped WebJar path")
+        assertTrue(templateProblems(template("").replace("register.js", "registr.js"), recipe).first.single().contains("not from LotekWebJar.REGISTER"), "a mistyped file in the WebJar")
         // Every web component on the page needs its own registration, or all of them.
         assertEquals(emptyList<String>(), unregistered("<lt-popover></lt-popover><lt-error-summary></lt-error-summary>", setOf("defineLt")))
         assertEquals(emptyList<String>(), unregistered("<lt-error-summary></lt-error-summary>", setOf("defineLtErrorSummary")))

@@ -76,7 +76,7 @@ function swap(text: string, from: string | RegExp, to: string): string {
 /*
  * The recipe's host, without the post on its Log out button: a real post
  * would go to the test server and take the page with it. Without it the
- * button closes the dialog with `value="logout"`, as the React recipe's does.
+ * button closes the dialog with `value="logout"`, which is what the component sees.
  */
 const HOST = swap(
   (
