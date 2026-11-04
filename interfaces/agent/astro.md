@@ -59,7 +59,7 @@ component, `tokens.css` belongs there, once for the whole page.
 
 ## 2. What exists
 
-35 CSS components and 9 web components, and this is the whole list. The
+35 CSS components and 10 web components, and this is the whole list. The
 classes are `lt-` + kebab-case. Variants are always `data-*` attributes, never
 classes of their own: `data-variant="secondary"`, not `lt-button--secondary`.
 The default variant has no attribute.
@@ -279,6 +279,7 @@ Three rules apply to all of them:
 | `<lt-tabs>` | frame | `@lo-tek/interfaces/tabs.css` | `defineLtTabs()` from `@lo-tek/interfaces/tabs` | `server-controlled` (flag)<br>`activation`: manual, automatic | `tab-select` (index) | `lt-tabs__list`<br>`lt-tabs__panel` |
 | `<lt-error-summary>` | frame | `@lo-tek/interfaces/error-summary.css` | `defineLtErrorSummary()` from `@lo-tek/interfaces/error-summary` | `data-autofocus`: false, true<br>`hidden` (flag) | none | `lt-error-summary`<br>`lt-error-summary__title` |
 | `<lt-popover>` | frame | `@lo-tek/interfaces/popover.css` | `defineLtPopover()` from `@lo-tek/interfaces/popover` | `open` (flag)<br>`placement`: bottom-start, bottom-end, top-start, top-end<br>`server-controlled` (flag) | `popover-toggle` (open) | `lt-popover` |
+| `<lt-term>` | frame | `@lo-tek/interfaces/term.css` | `defineLtTerm()` from `@lo-tek/interfaces/term` | none | none | `lt-term`<br>`lt-term__entry` |
 | `<lt-suggestion>` | frame | `@lo-tek/interfaces/suggestion.css` | `defineLtSuggestion()` from `@lo-tek/interfaces/suggestion` | `prefiltered` (flag)<br>`count-none` (text)<br>`count-zero` (text)<br>`count-one` (text)<br>`count-two` (text)<br>`count-few` (text)<br>`count-many` (text)<br>`count-other` (text)<br>`server-controlled` (flag) | `suggestion-select` (value, label) | `lt-suggestion__list`<br>`lt-suggestion__option`<br>`lt-suggestion__value`<br>`lt-suggestion__empty` |
 | `<lt-dialog>` | frame | `@lo-tek/interfaces/dialog.css` | `defineLtDialog()` from `@lo-tek/interfaces/dialog` | `open` (flag)<br>`server-controlled` (flag) | `dialog-toggle` (open, returnValue) | `lt-dialog` (`data-color`: brand, info, success, warning, danger)<br>`lt-dialog__body`<br>`lt-dialog__title`<br>`lt-dialog__footer`<br>`lt-dialog__header`<br>`lt-dialog__subtitle` |
 | `<lt-toast>` | standalone | `@lo-tek/interfaces/toast.css` | `defineLtToast()` from `@lo-tek/interfaces/toast` | `duration` (number)<br>`label` (text)<br>`close-label` (text) | `toast-dismiss` | `lt-toast`<br>`lt-toast__message`<br>`lt-toast__close` |
@@ -309,7 +310,7 @@ Runs at build time. Out comes plain HTML:
 <span class="lt-badge" data-color="success">Approved</span>
 ```
 
-`lt` is imported from the main entry, which gives `class` and `for`. The 46
+`lt` is imported from the main entry, which gives `class` and `for`. The 47
 builder functions:
 
 `lt.accordion()`, `lt.alert()`, `lt.avatar()`, `lt.badge()`,
@@ -321,8 +322,8 @@ builder functions:
 `lt.popover()`, `lt.progress()`, `lt.radio()`, `lt.search()`, `lt.select()`,
 `lt.sessionTimeout()`, `lt.skeleton()`, `lt.skipLink()`, `lt.spinner()`,
 `lt.srOnly()`, `lt.suggestion()`, `lt.switch()`, `lt.table()`,
-`lt.tableSort()`, `lt.tabs()`, `lt.tag()`, `lt.textarea()`, `lt.toast()`,
-`lt.toggleGroup()`, `lt.tooltip()`
+`lt.tableSort()`, `lt.tabs()`, `lt.tag()`, `lt.term()`, `lt.textarea()`,
+`lt.toast()`, `lt.toggleGroup()`, `lt.tooltip()`
 
 ## 6. Fields without JavaScript
 

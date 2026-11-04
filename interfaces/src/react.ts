@@ -55,6 +55,7 @@ import {
   type TabsWithStateOptions,
   tabsWithState,
 } from "./components/frame/tabs/tabs.js"
+import { termWithState } from "./components/frame/term/term.js"
 import { connectionStatus } from "./components/standalone/connection-status/connection-status.js"
 import { toast } from "./components/standalone/toast/toast.js"
 import { type Attributes, setAttributes as setHtmlAttributes } from "./dom.js"
@@ -351,6 +352,18 @@ export const lt = {
       item: toReactAttributes(built.item),
       tabs: built.tabs.map(toReactAttributes),
       panels: built.panels.map(toReactAttributes),
+    }
+  },
+
+  /**
+   * With `aria-expanded`, which `<lt-term>` writes: React reports a mismatch
+   * for an attribute it did not render. See `termWithState`.
+   */
+  term: (options: Parameters<typeof termWithState>[0]) => {
+    const built = termWithState(options)
+    return {
+      word: toReactAttributes(built.word),
+      entry: toReactAttributes(built.entry),
     }
   },
 

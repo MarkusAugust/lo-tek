@@ -74,6 +74,7 @@
     "./error-text.css": "./src/components/css/error-text/error-text.css",
     "./field.css": "./src/components/frame/field/field.css",
     "./tabs.css": "./src/components/frame/tabs/tabs.css",
+    "./term.css": "./src/components/frame/term/term.css",
     "./error-summary.css": "./src/components/frame/error-summary/error-summary.css",
     "./label": {
       "types": "./dist/components/css/label/label.d.ts",
@@ -159,6 +160,10 @@
     "./file-upload": {
       "types": "./dist/components/css/file-upload/file-upload.d.ts",
       "import": "./dist/components/css/file-upload/file-upload.js"
+    },
+    "./term": {
+      "types": "./dist/components/frame/term/lt-term.d.ts",
+      "import": "./dist/components/frame/term/lt-term.js"
     },
     "./popover": {
       "types": "./dist/components/frame/popover/lt-popover.d.ts",

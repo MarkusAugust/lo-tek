@@ -163,6 +163,12 @@
           }
         },
         {
+          "name": "lt-term",
+          "description": "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary.",
+          "doc-url": "https://lo-tek.sobernetics.no/components/term/",
+          "attributes": []
+        },
+        {
           "name": "lt-suggestion",
           "description": "Field with a suggestion list. A `<label for>`, an `<input id>`, an `.lt-suggestion__list` with `<li>` items and a `[role=status]` are enough; the component sets the roles and the wiring where the markup came without them, and gives the list and the options ids. The field never gets an id from the component. Filters as the user types, moves the highlight with the arrow keys and announces the number of matches.",
           "doc-url": "https://lo-tek.sobernetics.no/components/suggestion/",
@@ -763,6 +769,16 @@
           "name": "lt-tabs__panel",
           "description": "**Tabs**\n\nTab list of links to their panels. Frame component.",
           "doc-url": "https://lo-tek.sobernetics.no/components/tabs/"
+        },
+        {
+          "name": "lt-term",
+          "description": "**Term**\n\nA word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+          "doc-url": "https://lo-tek.sobernetics.no/components/term/"
+        },
+        {
+          "name": "lt-term__entry",
+          "description": "**Term**\n\nA word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+          "doc-url": "https://lo-tek.sobernetics.no/components/term/"
         },
         {
           "name": "lt-connection-status",

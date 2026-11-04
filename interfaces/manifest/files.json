@@ -352,6 +352,15 @@
       ]
     },
     {
+      "category": "frame",
+      "name": "term",
+      "files": [
+        "lt-term.ts",
+        "term.css",
+        "term.ts"
+      ]
+    },
+    {
       "category": "standalone",
       "name": "connection-status",
       "files": [

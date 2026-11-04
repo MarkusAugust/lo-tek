@@ -587,3 +587,50 @@ export async function whenUpgraded<T extends HTMLElement>(
   customElements.upgrade(element)
   return element as T
 }
+
+/** The gap between the anchor and the panel, and between the panel and the window's edge. */
+const PLACE_SPACE = 4
+
+/**
+ * Where a panel in the top layer goes next to the element that opened it,
+ * as distances from the window's top and left edge.
+ *
+ * `below` asks for the panel under the anchor, otherwise over it, and
+ * `alignRight` lines the panel's right edge up with the anchor's. The panel
+ * must not end up off screen. If it goes out at the side, it is moved in. If
+ * there is no room on the side of the anchor that was asked for, it goes on
+ * the other side, and is then clamped into the viewport either way.
+ *
+ * `<lt-popover>` and `<lt-term>` place their panels with it, and it lives here so a copy
+ * from `lotek takeover` finds it through `@lo-tek/interfaces/host-element`, and write the
+ * answer as two variables the stylesheet reads.
+ */
+export function place(
+  anchor: DOMRect,
+  panel: DOMRect,
+  below: boolean,
+  alignRight: boolean,
+): { top: number; left: number } {
+  let top = below
+    ? anchor.bottom + PLACE_SPACE
+    : anchor.top - panel.height - PLACE_SPACE
+  let left = alignRight ? anchor.right - panel.width : anchor.left
+
+  // `top-*` lacked the vertical clamp once, and a panel at the top of the
+  // page lay entirely off screen, with no way to scroll it into view.
+  left = Math.max(
+    PLACE_SPACE,
+    Math.min(left, window.innerWidth - panel.width - PLACE_SPACE),
+  )
+  if (below && top + panel.height > window.innerHeight) {
+    top = anchor.top - panel.height - PLACE_SPACE
+  } else if (!below && top < PLACE_SPACE) {
+    top = anchor.bottom + PLACE_SPACE
+  }
+  top = Math.max(
+    PLACE_SPACE,
+    Math.min(top, window.innerHeight - panel.height - PLACE_SPACE),
+  )
+
+  return { top: Math.round(top), left: Math.round(left) }
+}

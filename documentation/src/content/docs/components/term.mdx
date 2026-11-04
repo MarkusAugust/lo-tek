@@ -1,0 +1,242 @@
+---
+title: Term
+description: A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.
+---
+
+import { TabItem, Tabs } from "@astrojs/starlight/components"
+import TermDemo from "../../../components/TermDemo.astro"
+
+A word in running text, linked to its entry in a glossary further down the page. Without JavaScript the word is a link, and a click goes to the glossary. With `<lt-term>` around the link, the entry opens as a card by the word, and the reader keeps their place.
+
+The card is the glossary entry itself, not a copy. The web component sets `popover="manual"` on the entry while the card is open, so the entry goes into the top layer by the word, and takes the attribute off again when it closes. The server sends the explanation once, the links in it are the real ones, and an update from the server that morphs the glossary leaves the card standing.
+
+It is not a [Tooltip](../tooltip/). A tooltip must never carry information the reader needs, and it does not open on a touch screen. An explanation is information the reader needs, and the card opens on a tap. It is closest to [Popover](../popover/), but it opens from a word in the text rather than a button, and its content is somewhere else on the page.
+
+```ts
+// main.ts, runs once when the app starts
+import { defineLtTerm } from "@lo-tek/interfaces/term"
+import "@lo-tek/interfaces/tokens.css"
+import "@lo-tek/interfaces/term.css"
+
+defineLtTerm()
+```
+
+## How to use it
+
+<Tabs>
+  <TabItem label="Try it">
+    <TermDemo />
+
+    Rest the mouse on a word with a dotted line, or click it. A click pins the card, so it stays until Escape, a click outside or another click on the word.
+  </TabItem>
+  <TabItem label="Plain HTML">
+    ```html
+    <!-- The stylesheets the page needs. Without a build step it is `<link>`,
+         not `import`: a browser does not resolve a package name. -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/frame/term/term.css">
+    <!-- Or everything in one file: https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css -->
+    ```
+
+    ```html
+    <!-- The word links to the entry. The web component sets the class,
+         aria-details and aria-expanded on the link. -->
+    <p>
+      A claim is paid out unless the death was an
+      <lt-term><a href="#term-act-of-god">act of God</a></lt-term>.
+    </p>
+
+    <!-- The entry is a <div> in a <dl>, with the id the link points to. -->
+    <h2>Glossary</h2>
+    <dl>
+      <div id="term-act-of-god">
+        <dt>Act of God</dt>
+        <dd>A cause of death the policy does not cover. The insurer can add to the list without notice.</dd>
+      </div>
+    </dl>
+
+    <!-- Once for the whole app, in the page template. Not once per component. -->
+    <script type="module">
+      import { defineLtTerm } from
+        "https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/frame/term/lt-term.js"
+
+      defineLtTerm()
+    </script>
+    ```
+  </TabItem>
+  <TabItem label="React">
+    ```ts
+    // src/lotek.d.ts, gives <lt-term> types in JSX
+    import "@lo-tek/interfaces/react-jsx"
+    ```
+
+    ```tsx
+    // main.tsx, runs once when the app starts
+    import { defineLtTerm } from "@lo-tek/interfaces/term"
+    import "@lo-tek/interfaces/term.css"
+
+    defineLtTerm()
+    ```
+
+    ```tsx
+    import { lt } from "@lo-tek/interfaces/react"
+    import "@lo-tek/interfaces/tokens.css"
+
+    const actOfGod = lt.term({ id: "term-act-of-god" })
+
+    export function Terms() {
+      return (
+        <>
+          <p>
+            A claim is paid out unless the death was an{" "}
+            <lt-term><a {...actOfGod.word}>act of God</a></lt-term>.
+          </p>
+
+          <h2>Glossary</h2>
+          <dl>
+            <div {...actOfGod.entry}>
+              <dt>Act of God</dt>
+              <dd>A cause of death the policy does not cover. The insurer can add to the list without notice.</dd>
+            </div>
+          </dl>
+        </>
+      )
+    }
+    ```
+
+    `lt.term()` from `/react` also gives `aria-expanded="false"` on the link, which the web component would otherwise write before React hydrates.
+  </TabItem>
+  <TabItem label="Astro">
+    ```astro
+    ---
+    import { lt } from "@lo-tek/interfaces"
+    import "@lo-tek/interfaces/tokens.css"
+    import "@lo-tek/interfaces/term.css"
+
+    const actOfGod = lt.term({ id: "term-act-of-god" })
+    ---
+
+    <p>
+      A claim is paid out unless the death was an
+      <lt-term><a {...actOfGod.word}>act of God</a></lt-term>.
+    </p>
+
+    <h2>Glossary</h2>
+    <dl>
+      <div {...actOfGod.entry}>
+        <dt>Act of God</dt>
+        <dd>A cause of death the policy does not cover. The insurer can add to the list without notice.</dd>
+      </div>
+    </dl>
+
+    <script>
+      import { defineLtTerm } from "@lo-tek/interfaces/term"
+      defineLtTerm()
+    </script>
+    ```
+  </TabItem>
+  <TabItem label="Datastar">
+    ```html
+    <!-- Datastar itself. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/frame/term/term.css">
+
+    <article id="policy">
+      <p>
+        A claim is paid out unless the death was an
+        <lt-term><a class="lt-term" href="#term-act-of-god" aria-details="term-act-of-god">act of God</a></lt-term>.
+      </p>
+
+      <h2>Glossary</h2>
+      <dl>
+        <div class="lt-term__entry" id="term-act-of-god">
+          <dt>Act of God</dt>
+          <dd>A cause of death the policy does not cover. The insurer can add to the list without notice.</dd>
+        </div>
+      </dl>
+    </article>
+
+    <!-- Once for the whole app, in the page template. Not once per component. -->
+    <script type="module">
+      import { defineLtTerm } from
+        "https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/frame/term/lt-term.js"
+
+      defineLtTerm()
+    </script>
+    ```
+
+    The server can send the article again with `datastar-patch-elements` while a card is open. The morph removes `popover` and `aria-expanded`, which the server did not send, and the web component puts them back, so the card stays open with the new text.
+  </TabItem>
+</Tabs>
+
+```ts
+const actOfGod = lt.term({ id: "term-act-of-god" })
+```
+
+```html
+<lt-term>
+  <a class="lt-term" href="#term-act-of-god" aria-details="term-act-of-god">act of God</a>
+</lt-term>
+
+<dl>
+  <div class="lt-term__entry" id="term-act-of-god">
+    <dt>Act of God</dt>
+    <dd>A cause of death the policy does not cover.</dd>
+  </div>
+</dl>
+```
+
+`lt.term({ id })` writes only what holds without JavaScript: `href` and `aria-details` on the link, and the id on the entry. The id is required, and an empty one throws: a made-up id would point at nothing, since only the template knows the entry's. Make it from the term, such as `term-act-of-god`, never from a counter.
+
+The web component finds the link as the first `<a>` with an `href` to a fragment, and the entry by the id in it, anywhere in the same document or shadow root. The entry must be a `<div>` in a `<dl>` with a `<dt>` and a `<dd>`, the form HTML has for grouping a term with its description. If the id does not exist, or points at something else, such as the `<dt>`, the word stays a plain link, and the web component, the check and the editors say so.
+
+Several words can point at the same entry. Only one card can be open, so the word that opens it takes it from the other.
+
+## Behaviour
+
+| Input | What happens |
+| --- | --- |
+| The mouse rests on the word | The card opens after 300 ms. It closes when the pointer leaves the word, unless the pointer goes into the card, where the reader can select text and follow links |
+| A click, a tap or Enter | The card opens and is pinned. Leaving with the mouse does not close it |
+| A click on the word when the card is pinned | The card closes |
+| A click with Cmd, Ctrl, Shift or Alt | Left to the browser: a new tab or window to the glossary |
+| Escape | The card closes, and focus goes back to the word |
+| A click outside | The card closes |
+| The word scrolls out of view | The card closes. Scrolling a little moves the card with the word |
+
+Opening, closing and moving focus never scroll the page, and the address does not change.
+
+While the card is open, the entry is not in its place in the glossary. Put the glossary after the text that uses it: then nothing above the word moves when the card opens. A glossary that stands in view next to the word closes up where the entry was for as long as the card is open.
+
+## Classes you can style
+
+| Class | What it is |
+| --- | --- |
+| `.lt-term` | The word, a link with a dotted line under it. The web component sets the class when it is missing |
+| `.lt-term__entry` | The glossary entry. Its look as a card applies only while it is open, so it looks as the page made it in the glossary |
+
+| Variable | Default |
+| --- | --- |
+| `--lt-term-width` | `min(22rem, calc(100vw - var(--lt-spacing-8)))`, the maximum width of the card |
+| `--lt-term-padding` | `var(--lt-spacing-3) var(--lt-spacing-4)` |
+| `--lt-term-radius` | `var(--lt-spacing-1)` |
+| `--lt-term-accent-color` | `var(--lt-color-accent-fill)`, the edge at the start of the card |
+| `--lt-term-underline-color` | `var(--lt-color-accent-fill)`, the dotted line under the word |
+| `--lt-term-label-text` | `"Glossary"`, the label over the term in the card |
+| `--lt-term-label-font` | `inherit`, the font of the label |
+| `--lt-term-top` | set by the web component |
+| `--lt-term-left` | set by the web component |
+
+The position is set as `--lt-term-top` and `--lt-term-left` on the entry while the card is open, and removed when it closes.
+
+See [Customising](../../customising/) for how the variables and the layer work.
+
+## Accessibility
+
+- The word stays a link, so it is announced as one, and it can still be opened in a new tab. `aria-details` points at the entry, and screen readers that support it say the link has details. `aria-expanded` says whether the card is open.
+- The entry is in the glossary whether the card is open or not, so `aria-details` never points at something empty, and the explanation can be read there too.
+- The card does not take focus, and a keyboard user reaches the links in it in the glossary. Escape closes it from anywhere on the page.
+- Content that appears on hover can be dismissed with Escape, stays while the pointer is over it, and stays until the reader moves on, as WCAG 1.4.13 requires.

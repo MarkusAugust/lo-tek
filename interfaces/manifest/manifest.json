@@ -186,6 +186,19 @@
         }
       }
     },
+    "lt-term": {
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "description": "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary.",
+      "attributes": {},
+      "parts": {
+        "word": {
+          "selector": "a[href^='#']",
+          "description": "The word: a link to the glossary entry, such as `<a href=\"#term-signal\">`. The entry is a `<div>` with that id in a `<dl>`, with a `<dt>` and a `<dd>`, anywhere on the page.",
+          "content": "text",
+          "unique": true
+        }
+      }
+    },
     "lt-suggestion": {
       "link": "https://lo-tek.sobernetics.no/components/suggestion/",
       "description": "Field with a suggestion list. A `<label for>`, an `<input id>`, an `.lt-suggestion__list` with `<li>` items and a `[role=status]` are enough; the component sets the roles and the wiring where the markup came without them, and gives the list and the options ids. The field never gets an id from the component. Filters as the user types, moves the highlight with the arrow keys and announces the number of matches.",
@@ -1825,6 +1838,35 @@
       "description": "Tab list of links to their panels. Frame component.",
       "link": "https://lo-tek.sobernetics.no/components/tabs/",
       "content": "free",
+      "attributes": {}
+    },
+    "lt-term": {
+      "component": "term",
+      "title": "Term",
+      "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "content": "text",
+      "attributes": {}
+    },
+    "lt-term__entry": {
+      "component": "term",
+      "title": "Term",
+      "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "content": "parts",
+      "parts": {
+        "term": {
+          "selector": "dt",
+          "description": "The term, as it stands in the glossary.",
+          "content": "text",
+          "unique": true
+        },
+        "description": {
+          "selector": "dd",
+          "description": "The explanation. It can hold links and code.",
+          "content": "free"
+        }
+      },
       "attributes": {}
     },
     "lt-connection-status": {
@@ -4891,6 +4933,39 @@
       "docs": "https://lo-tek.sobernetics.no/components/tag/"
     },
     {
+      "name": "term",
+      "description": "The attributes for a word in the text that is explained in a glossary on the same page.\n\nOnly what holds without JavaScript: the word is a link to the entry, and `aria-details` says the entry explains it. `<lt-term>` around the link opens the entry as a card by the word, and writes `aria-expanded`.",
+      "example": "const signal = lt.term({ id: \"term-signal\" })\n\n<p>Datastar keeps <lt-term><a {...signal.word}>signals</a></lt-term> in the browser.</p>\n<dl>\n  <div {...signal.entry}><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>\n</dl>",
+      "options": [
+        {
+          "name": "id",
+          "required": true,
+          "type": {
+            "kind": "text"
+          },
+          "description": "Id of the entry in the glossary: the `<div>` around the `<dt>` and `<dd>`. The word links to it, and the web component shows the entry itself as the card. Make it from the term, such as `term-signal`, so it is the same on every render."
+        }
+      ],
+      "returns": {
+        "kind": "group",
+        "fields": {
+          "word": {
+            "kind": "attributes"
+          },
+          "entry": {
+            "kind": "attributes"
+          }
+        }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/term/",
+      "parts": {
+        "word": {
+          "element": "lt-term",
+          "part": "word"
+        }
+      }
+    },
+    {
       "name": "textarea",
       "description": "The attributes for a multi-line text field.",
       "example": "<textarea {...textarea({ state: \"invalid\" })} />",
@@ -5389,6 +5464,15 @@
       "tag": {
         "--lt-tag-padding": "var(--lt-spacing-0-5) var(--lt-spacing-2)",
         "--lt-tag-radius": "var(--lt-spacing-1)"
+      },
+      "term": {
+        "--lt-term-underline-color": "var(--lt-color-accent-fill)",
+        "--lt-term-width": "min(22rem, calc(100vw - var(--lt-spacing-8)))",
+        "--lt-term-padding": "var(--lt-spacing-3) var(--lt-spacing-4)",
+        "--lt-term-accent-color": "var(--lt-color-accent-fill)",
+        "--lt-term-radius": "var(--lt-spacing-1)",
+        "--lt-term-label-text": "\"Glossary\"",
+        "--lt-term-label-font": "inherit"
       },
       "textarea": {
         "--lt-textarea-min-height": "calc(var(--lt-spacing-4) * 5)",

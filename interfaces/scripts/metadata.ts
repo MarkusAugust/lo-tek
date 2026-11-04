@@ -49,6 +49,11 @@ import {
   LT_TABS_PARTS,
   LT_TABS_TAG,
 } from "../src/components/frame/tabs/lt-tabs.js"
+import type { LtTerm } from "../src/components/frame/term/lt-term.js"
+import {
+  LT_TERM_PARTS,
+  LT_TERM_TAG,
+} from "../src/components/frame/term/lt-term.js"
 import type { LtConnectionStatus } from "../src/components/standalone/connection-status/lt-connection-status.js"
 import { LT_CONNECTION_STATUS_TAG } from "../src/components/standalone/connection-status/lt-connection-status.js"
 import type { LtToast } from "../src/components/standalone/toast/lt-toast.js"
@@ -339,6 +344,14 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
       stableId: true,
     },
   }),
+  [LT_TERM_TAG]: parts(LT_TERM_PARTS, {
+    word: {
+      description:
+        'The word: a link to the glossary entry, such as `<a href="#term-signal">`. The entry is a `<div>` with that id in a `<dl>`, with a `<dt>` and a `<dd>`, anywhere on the page.',
+      content: "text",
+      unique: true,
+    },
+  }),
   [LT_SUGGESTION_TAG]: parts(LT_SUGGESTION_PARTS, {
     control: {
       description:
@@ -522,6 +535,11 @@ export const BUILDER_PARTS: Record<
     panels: { element: LT_TABS_TAG, part: "panel" },
     headings: null,
   },
+  term: {
+    word: { element: LT_TERM_TAG, part: "word" },
+    // The entry is in the glossary, outside the element.
+    entry: null,
+  },
   toast: { host: null, message: null, close: null },
 }
 
@@ -672,6 +690,13 @@ export const elements: readonly ElementDoc[] = [
         detail: { open: "boolean" },
       },
     },
+  ),
+
+  element<typeof LtTerm>(
+    LT_TERM_TAG,
+    "term",
+    "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary.",
+    {},
   ),
 
   element<typeof LtSuggestion>(
@@ -1246,6 +1271,23 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-error-summary__title": { content: "text", partOf: "lt-error-summary" },
   "lt-popover": { content: "free" },
+  "lt-term": { content: "text" },
+  "lt-term__entry": {
+    content: "parts",
+    parts: {
+      term: {
+        selector: "dt",
+        description: "The term, as it stands in the glossary.",
+        content: "text",
+        unique: true,
+      },
+      description: {
+        selector: "dd",
+        description: "The explanation. It can hold links and code.",
+        content: "free",
+      },
+    },
+  },
   "lt-session-timeout": {
     content: "parts",
     parts: {

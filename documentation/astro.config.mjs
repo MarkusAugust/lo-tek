@@ -215,6 +215,7 @@ export default defineConfig({
                 },
                 { label: "Suggestion", slug: "components/suggestion" },
                 { label: "Tabs", slug: "components/tabs" },
+                { label: "Term", slug: "components/term" },
               ],
             },
             {

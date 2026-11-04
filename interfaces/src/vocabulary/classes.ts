@@ -1305,6 +1305,35 @@ export const classes: Classes = {
     "content": "free",
     "attributes": {}
   },
+  "lt-term": {
+    "component": "term",
+    "title": "Term",
+    "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+    "link": "https://lo-tek.sobernetics.no/components/term/",
+    "content": "text",
+    "attributes": {}
+  },
+  "lt-term__entry": {
+    "component": "term",
+    "title": "Term",
+    "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+    "link": "https://lo-tek.sobernetics.no/components/term/",
+    "content": "parts",
+    "parts": {
+      "term": {
+        "selector": "dt",
+        "description": "The term, as it stands in the glossary.",
+        "content": "text",
+        "unique": true
+      },
+      "description": {
+        "selector": "dd",
+        "description": "The explanation. It can hold links and code.",
+        "content": "free"
+      }
+    },
+    "attributes": {}
+  },
   "lt-connection-status": {
     "component": "connection-status",
     "title": "Connection Status",

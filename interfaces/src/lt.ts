@@ -46,6 +46,7 @@ import { popover } from "./components/frame/popover/popover.js"
 import { sessionTimeout } from "./components/frame/session-timeout/session-timeout.js"
 import { suggestion } from "./components/frame/suggestion/suggestion.js"
 import { tabs } from "./components/frame/tabs/tabs.js"
+import { term } from "./components/frame/term/term.js"
 import { connectionStatus } from "./components/standalone/connection-status/connection-status.js"
 import { toast } from "./components/standalone/toast/toast.js"
 import { setAttributes } from "./dom.js"
@@ -169,6 +170,11 @@ export const lt = {
    */
   tableSort,
   tag,
+  /**
+   * A word in the text, linked to its entry in a glossary on the same page.
+   * `<lt-term>` around the link shows the entry as a card by the word.
+   */
+  term,
   textarea,
 
   /**

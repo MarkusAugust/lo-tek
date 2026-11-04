@@ -58,7 +58,7 @@ One link in the page template, with all the components:
 ```
 
 Or from your own server, if you copy the file into your static assets.
-`lotek.css` is 103 kB, 13 kB compressed, has everything flattened without
+`lotek.css` is 106 kB, 14 kB compressed, has everything flattened without
 `@import`, and is the fastest option when you link.
 
 If you want only the stylesheets the pages actually use, `tokens.css` defines
@@ -71,7 +71,7 @@ always the right choice.
 
 ## 2. What exists
 
-35 CSS components and 9 web components, and this is the whole list. The
+35 CSS components and 10 web components, and this is the whole list. The
 classes are `lt-` + kebab-case. Variants are always `data-*` attributes, never
 classes of their own: `data-variant="secondary"`, not `lt-button--secondary`.
 The default variant has no attribute.
@@ -291,6 +291,7 @@ Three rules apply to all of them:
 | `<lt-tabs>` | frame | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/frame/tabs/tabs.css` | `defineLtTabs()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/frame/tabs/lt-tabs.js` | `server-controlled` (flag)<br>`activation`: manual, automatic | `tab-select` (index) | `lt-tabs__list`<br>`lt-tabs__panel` |
 | `<lt-error-summary>` | frame | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/frame/error-summary/error-summary.css` | `defineLtErrorSummary()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/frame/error-summary/lt-error-summary.js` | `data-autofocus`: false, true<br>`hidden` (flag) | none | `lt-error-summary`<br>`lt-error-summary__title` |
 | `<lt-popover>` | frame | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/frame/popover/popover.css` | `defineLtPopover()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/frame/popover/lt-popover.js` | `open` (flag)<br>`placement`: bottom-start, bottom-end, top-start, top-end<br>`server-controlled` (flag) | `popover-toggle` (open) | `lt-popover` |
+| `<lt-term>` | frame | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/frame/term/term.css` | `defineLtTerm()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/frame/term/lt-term.js` | none | none | `lt-term`<br>`lt-term__entry` |
 | `<lt-suggestion>` | frame | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/frame/suggestion/suggestion.css` | `defineLtSuggestion()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/frame/suggestion/lt-suggestion.js` | `prefiltered` (flag)<br>`count-none` (text)<br>`count-zero` (text)<br>`count-one` (text)<br>`count-two` (text)<br>`count-few` (text)<br>`count-many` (text)<br>`count-other` (text)<br>`server-controlled` (flag) | `suggestion-select` (value, label) | `lt-suggestion__list`<br>`lt-suggestion__option`<br>`lt-suggestion__value`<br>`lt-suggestion__empty` |
 | `<lt-dialog>` | frame | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/frame/dialog/dialog.css` | `defineLtDialog()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/frame/dialog/lt-dialog.js` | `open` (flag)<br>`server-controlled` (flag) | `dialog-toggle` (open, returnValue) | `lt-dialog` (`data-color`: brand, info, success, warning, danger)<br>`lt-dialog__body`<br>`lt-dialog__title`<br>`lt-dialog__footer`<br>`lt-dialog__header`<br>`lt-dialog__subtitle` |
 | `<lt-toast>` | standalone | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/standalone/toast/toast.css` | `defineLtToast()` from `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/dist/components/standalone/toast/lt-toast.js` | `duration` (number)<br>`label` (text)<br>`close-label` (text) | `toast-dismiss` | `lt-toast`<br>`lt-toast__message`<br>`lt-toast__close` |
