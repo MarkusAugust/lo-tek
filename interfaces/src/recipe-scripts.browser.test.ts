@@ -275,3 +275,123 @@ describe("saveRoute in the connection status recipe", () => {
     }
   })
 })
+
+/**
+ * The forms that post to the server: the script stops a submission that
+ * fails, and lets one that passes go to the server. A script that stopped
+ * every submission, as these did before, is a page whose form never reaches
+ * the server, and nothing else here submits them.
+ */
+describe("the forms that post to the server", () => {
+  const forms = [
+    {
+      name: "error-summary",
+      field: "fixer",
+      failing: "nobody",
+      passing: "fixer@relay.example",
+    },
+    { name: "field", field: "codename", failing: "", passing: "Kestrel" },
+  ]
+  for (const { name, field, failing, passing } of forms)
+    it(`${name}: stops a failing submission and lets a valid one through`, async () => {
+      const page = pages.find((p) => p.name === name)
+      if (!page) throw new Error(`found no ${name} page`)
+      const frame = await mount(page.blocks)
+      const view = frame.contentWindow as Frame
+      const doc = frame.contentDocument as Document
+      try {
+        const form = doc.querySelector("form")
+        const input = doc.getElementById(field) as HTMLInputElement | null
+        if (!form || !input)
+          throw new Error(`the ${name} recipe has no form with #${field}`)
+        expect(form.method, "the form posts").toBe("post")
+        const stopped: boolean[] = []
+        // Last on the way up, after the recipe's listener on the form, and
+        // the frame stays where it is.
+        view.addEventListener("submit", (event) => {
+          stopped.push(event.defaultPrevented)
+          event.preventDefault()
+        })
+        for (const value of [failing, passing, failing]) {
+          input.value = value
+          form.requestSubmit()
+        }
+        expect(stopped).toEqual([true, false, true])
+        expect(view.problems).toEqual([])
+      } finally {
+        frame.remove()
+      }
+    })
+})
+
+/**
+ * The toast recipe's restart, with `fetch` answered by the test: which
+ * message each answer gives. A redirect is followed by `fetch` to a page that
+ * is ok, as the log-in page is when the session has run out, and is no
+ * restart.
+ */
+describe("the restart in the toast recipe", () => {
+  const page = pages.find((p) => p.name === "toast")
+  if (!page) throw new Error("found no toast page")
+  type Restarting = Omit<Frame, "fetch"> & { fetch: () => Promise<Response> }
+
+  it("says the relay is back only for an answer that is ok and not redirected", async () => {
+    const frame = await mount(page.blocks)
+    const view = frame.contentWindow as Restarting
+    const doc = frame.contentDocument as Document
+    try {
+      const restart = doc.getElementById("restart") as HTMLButtonElement | null
+      if (!restart) throw new Error("the toast recipe has no #restart")
+      const status = (code: number) => () =>
+        Promise.resolve(new Response(null, { status: code }))
+      const answers: [string, () => Promise<Response>][] = [
+        ["none", () => Promise.reject(new TypeError("Failed to fetch"))],
+        ["200", status(200)],
+        [
+          "200 after a redirect",
+          () => {
+            const answer = new Response(null, { status: 200 })
+            Object.defineProperty(answer, "redirected", { value: true })
+            return Promise.resolve(answer)
+          },
+        ],
+        ["204", status(204)],
+        ["403", status(403)],
+        ["500", status(500)],
+        ["502", status(502)],
+        ["503", status(503)],
+        ["504", status(504)],
+      ]
+      const messages = () => [...doc.querySelectorAll(".lt-toast__message")]
+      const said: string[] = []
+      for (const [name, answer] of answers) {
+        const before = new Set(messages())
+        view.fetch = answer
+        restart.click()
+        // The message comes once the answer has been read, a few microtasks on.
+        let added: Element[] = []
+        for (let i = 0; i < 20 && added.length === 0; i++) {
+          await new Promise((resolve) => view.requestAnimationFrame(resolve))
+          added = messages().filter((m) => !before.has(m))
+        }
+        said.push(
+          `${name}: ${added.map((m) => m.querySelector("span")?.textContent).join(" | ") || "nothing"}`,
+        )
+      }
+      expect(said).toEqual([
+        "none: Relay 14 did not answer. Try again.",
+        "200: Relay 14 is back",
+        "200 after a redirect: Relay 14 refused the restart. Try again.",
+        "204: Relay 14 is back",
+        "403: Relay 14 refused the restart. Try again.",
+        "500: Relay 14 refused the restart. Try again.",
+        "502: Relay 14 did not answer. Try again.",
+        "503: Relay 14 did not answer. Try again.",
+        "504: Relay 14 did not answer. Try again.",
+      ])
+      expect(view.problems).toEqual([])
+    } finally {
+      frame.remove()
+    }
+  })
+})

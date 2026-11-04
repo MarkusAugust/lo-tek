@@ -73,6 +73,8 @@ defineLtPopover()
     ```
 
     If an action does not leave the page, as when it saves with `fetch`, close the menu with `menu.hide()` when the answer has come.
+
+    A form cannot stand inside another form. If the menu is inside one, the browser drops the inner `<form>` tags, the first action submits the outer form, and the outer form's own buttons after the menu fall out of it. Put the action forms outside it, and point each button at its form with `form="…"`.
   </TabItem>
   <TabItem label="React">
     ```ts
@@ -199,7 +201,7 @@ defineLtPopover()
     `server-controlled` belongs with it when the signal controls `open`. Otherwise the component puts the attribute back when something removes it, since a removed attribute cannot be told apart from an update that tears it off, and then the panel could not be closed from the signal. If you control the panel from JavaScript instead, with `menu.open = false`, it is not needed: a property is a message the component can see.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.popover()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the panel's, and the button points to it. Each action is a form that posts, so the menu closes when the server answers with the next page, and the recipe has no script beyond the registration.
+    On a Kotlin server you call `Lt.popover()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the panel's, and the button points to it. Each action is a form that posts, so the menu closes when the server answers with the next page, and the recipe has no script beyond the registration. kotlinx.html writes a form inside a form without a word, and the browser then drops the inner one: if the menu is inside a form, put the action forms outside it and point each button at its form with `attributes["form"]`.
 
     ```kotlin
     import kotlinx.html.*

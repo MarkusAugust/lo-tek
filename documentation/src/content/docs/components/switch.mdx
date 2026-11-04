@@ -89,10 +89,14 @@ The switch promises that the change applies. So it also has to say when saving f
 <Tabs>
   <TabItem label="Plain HTML">
     ```html
-    <div class="lt-switch-row">
-      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew" autocomplete="off" />
-      <label class="lt-label" for="auto-renew">Auto-renew</label>
-    </div>
+    <!-- autocomplete="off" stands on the form, since HTML does not allow it on
+         a checkbox. Without it Firefox keeps the state from before a reload. -->
+    <form autocomplete="off">
+      <div class="lt-switch-row">
+        <input class="lt-switch" type="checkbox" role="switch" id="auto-renew" />
+        <label class="lt-label" for="auto-renew">Auto-renew</label>
+      </div>
+    </form>
     <p class="lt-help-text" id="auto-renew-status" role="status"></p>
 
     <script type="module">
@@ -116,7 +120,9 @@ The switch promises that the change applies. So it also has to say when saving f
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ autoRenew: on }),
           })
-          if (!response.ok) throw new Error(response.statusText)
+          // A redirect, as to the log-in page when the session has run out, is
+          // followed to a page that is ok, but nothing was saved.
+          if (!response.ok || response.redirected) throw new Error(response.statusText)
           status.textContent = on ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription."
         } catch {
           toggle.checked = !on
@@ -154,7 +160,9 @@ The switch promises that the change applies. So it also has to say when saving f
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ autoRenew: value }),
           })
-          if (!response.ok) throw new Error(response.statusText)
+          // A redirect, as to the log-in page when the session has run out, is
+          // followed to a page that is ok, but nothing was saved.
+          if (!response.ok || response.redirected) throw new Error(response.statusText)
           setStatus(value ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription.")
         } catch {
           // Back to where it was. The switch promised something it did not keep.
@@ -203,7 +211,7 @@ The switch promises that the change applies. So it also has to say when saving f
     The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `renew` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. The server renders the saved choice with `on`, and `autocomplete="off"` makes it stand after a reload: [Firefox otherwise keeps the checked state from before](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/checkbox#checked). A switch takes effect the moment it is pressed, with no button to submit, so saving it is the one thing that needs a script: it sends the choice to the server with `fetch`, as in the HTML tab.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. The server renders the saved choice with `on`, and `autocomplete="off"` on the form around it makes that choice stand after a reload: [Firefox otherwise keeps the checked state from before](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/checkbox#checked). The attribute goes on the form because [HTML does not allow it on a checkbox](https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)). A switch takes effect the moment it is pressed, with no button to submit, so saving it is the one thing that needs a script: it sends the choice to the server with `fetch`, as in the HTML tab.
 
     ```kotlin
     import kotlinx.html.*
@@ -211,12 +219,16 @@ The switch promises that the change applies. So it also has to say when saving f
     import no.lotek.html.lt
 
     fun FlowContent.autoRenew(on: Boolean = false) {
-        div {
-            lt(Lt.switch.row)
-            // autocomplete="off": Firefox otherwise keeps the state from before a
-            // reload over the one the server rendered.
-            input { lt(Lt.`switch`()); id = "auto-renew"; autoComplete = "off"; checked = on }
-            label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
+        // autocomplete="off" stands on the form, since HTML does not allow it on
+        // a checkbox. Without it Firefox keeps the state from before a reload
+        // over the one the server rendered.
+        form {
+            autoComplete = false
+            div {
+                lt(Lt.switch.row)
+                input { lt(Lt.`switch`()); id = "auto-renew"; checked = on }
+                label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
+            }
         }
         p { lt(Lt.helpText()); id = "auto-renew-status"; attributes["role"] = "status" }
         script(type = "module") {
@@ -242,7 +254,9 @@ The switch promises that the change applies. So it also has to say when saving f
                       headers: { "content-type": "application/json" },
                       body: JSON.stringify({ autoRenew: on }),
                     })
-                    if (!response.ok) throw new Error(response.statusText)
+                    // A redirect, as to the log-in page when the session has run out, is
+                    // followed to a page that is ok, but nothing was saved.
+                    if (!response.ok || response.redirected) throw new Error(response.statusText)
                     status.textContent = on ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription."
                   } catch {
                     toggle.checked = !on

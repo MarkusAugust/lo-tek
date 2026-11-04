@@ -88,8 +88,9 @@ defineLtErrorSummary()
 
       const fixer = document.getElementById("fixer")
 
-      // There is no server on this page, so the script stands in for it: it
-      // stops a submission that fails, and writes what the server would send.
+      // The script stands in for the server's answer: it stops a submission
+      // that fails, and writes what the server would send. One that passes
+      // goes to the server.
       document.querySelector("form").addEventListener("submit", (event) => {
         const errors = fixer.value.includes("@")
           ? []

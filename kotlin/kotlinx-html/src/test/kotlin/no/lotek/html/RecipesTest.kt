@@ -103,6 +103,8 @@ class RecipesTest {
         val passedEcho: Map<String, String> = emptyMap(),
         /** How many links the error summary in the failed answer must have, when it has one. */
         val links: Int? = null,
+        /** The id of the field that takes focus when the failed answer arrives, or `null` when nothing may take it from the error summary. */
+        val focus: String? = null,
     )
 
     private val SERVER_DOES_IT = listOf(
@@ -119,12 +121,13 @@ class RecipesTest {
         Exemption(
             page = "field",
             marker = "codenameInput.focus()",
-            reason = "the script shows the error text when the codename is empty, which the server renders with invalid = true",
+            reason = "the script shows the error text and focuses the field when the codename is empty, which the server renders with invalid = true and autofocus",
             // The page has no validation function: the rule, an empty codename, is
             // one call in the handler, and the prose gives it.
             failed = { fieldForm(codename = "", invalid = true) },
             passed = { fieldForm(codename = "Kestrel") },
             passedEcho = mapOf("codename" to "Kestrel"),
+            focus = "codename",
         ),
     )
 
@@ -138,18 +141,27 @@ class RecipesTest {
      * script is a copy of the HTML one, and goes through the same review.
      */
     private val SERVERS_JOB = listOf(
-        Regex("""addEventListener\(\s*["'`]submit["'`]""") to "takes over the form's submission, which the server answers",
+        Regex("""addEventListener\s*\(\s*["'`]submit["'`]""") to "takes over the form's submission, which the server answers",
         Regex("""\.onsubmit\s*=(?!=)""") to "takes over the form's submission, which the server answers",
         Regex("""\brequestSubmit\s*\(""") to "submits the form from a script, which the server answers",
+        Regex("""\.submit\s*\(\s*\)""") to "submits the form from a script, which the server answers",
         Regex("""\bnew\s+FormData\s*\(""") to "reads the form to send it itself, which the server answers",
         Regex("""\.(?:innerHTML|outerHTML)\s*\+?=(?!=)""") to "writes markup, which the server renders",
         Regex("""\b(?:insertAdjacentHTML|setHTMLUnsafe)\s*\(""") to "writes markup, which the server renders",
         Regex("""\bdocument\.write(?:ln)?\s*\(""") to "writes markup, which the server renders",
     )
 
+    /**
+     * The block comments and the whole-line comments, in one pass from left to
+     * right, so the start of a block comment inside a line comment does not
+     * swallow the code after it, and a line comment inside a block comment is
+     * not read as a line of its own.
+     */
+    private val COMMENTS = Regex("""(?m)/\*[\s\S]*?\*/|^[ \t]*//.*$""")
+
     /** A script's code without its comments, collapsed, as [SERVERS_JOB] and the markers read it. */
     internal fun code(script: String): String =
-        script.replace(Regex("""/\*[\s\S]*?\*/"""), "").replace(Regex("""(?m)^\s*//.*$"""), "").replace(WHITESPACE, " ").trim()
+        script.replace(COMMENTS, "").replace(WHITESPACE, " ").trim()
 
     /** What a script does of the server's job, by [SERVERS_JOB]. */
     internal fun serversJob(script: String): List<String> = code(script).let { c -> SERVERS_JOB.filter { it.first.containsMatchIn(c) }.map { it.second } }
@@ -173,7 +185,7 @@ class RecipesTest {
      * left out, and must be the same in the Kotlin recipe.
      */
     internal fun isRegistration(script: String): Boolean {
-        val code = script.replace(Regex("""(?m)^\s*//.*$"""), "").replace(Regex("""/\*[\s\S]*?\*/"""), "")
+        val code = script.replace(COMMENTS, "")
         val rest = code
             .replace(Regex("""import\s*\{\s*defineLt\w*(?:\s*,\s*defineLt\w*)*\s*,?\s*\}\s*from\s*["'][^"']*["']\s*;?"""), "")
             .replace(Regex("""\bdefineLt\w*\(\s*\)\s*;?"""), "")
@@ -194,6 +206,19 @@ class RecipesTest {
     private val idLists = setOf(
         "aria-labelledby", "aria-describedby", "aria-controls", "aria-activedescendant",
         "aria-errormessage", "aria-owns", "aria-flowto", "aria-details", "list", "popovertarget", "form",
+    )
+
+    /**
+     * The attributes that decide what an element does, which the Kotlin recipe
+     * may not add where the HTML recipe has none, also when a builder function
+     * writes the name on some other element: the popover's trigger has
+     * `type="button"`, and on a button that is to submit it makes the button
+     * do nothing. `hidden` is not among them: `Lt.suggestion()` hides the
+     * list the component would otherwise hide, and what a failed answer shows
+     * is checked by [serverAnswer].
+     */
+    private val DECIDES_WHAT_IT_DOES = setOf(
+        "type", "disabled", "inert", "form", "formaction", "formmethod", "method", "action", "name", "value",
     )
 
     /** Every attribute name, and every class, a builder function writes in some answer. */
@@ -354,6 +379,11 @@ class RecipesTest {
             """list.insertAdjacentHTML("beforeend", "<li>x</li>")""",
             """box.setHTMLUnsafe("<p>x</p>")""",
             """document.write("<p>x</p>")""",
+            """form.submit()""",
+            """form.addEventListener ("submit", go)""",
+            "form.addEventListener(\n  \"submit\", go)",
+            // A `/*` in a line comment starts no block: the takeover after it is code.
+            "// served from /webjars/*/dist\nform.addEventListener(\"submit\", go)\n/* the end */",
         )
         for (script in takeovers) {
             val page = """<script type="module">$script</script>"""
@@ -408,6 +438,8 @@ class RecipesTest {
             """go()""",
             """// defineLt() is called once, elsewhere
                go()""",
+            // A `//` inside a block comment is not a line comment that ends the block.
+            "/* x\n// */ form.requestSubmit(); /*\n*/ import { defineLt } from \"x.js\"; defineLt()",
         )
         for (script in registration) assertTrue(isRegistration(script), script)
         for (script in behaviour) assertFalse(isRegistration(script), script)
@@ -478,11 +510,23 @@ class RecipesTest {
     @Test
     fun `the server renders what the left-out scripts did`() {
         val failures = mutableListOf<String>()
+        val names = { html: String -> Jsoup.parse(html).select("[name]").map { it.attr("name") }.sorted() }
         for (exemption in SERVER_DOES_IT) {
+            // The answers are the page's own recipe: the same fields as it
+            // renders, so an entry cannot prove one page with another's form.
+            val recipe = recipes.singleOrNull { it.page == exemption.page } ?: fail("${exemption.page} has no Kotlin recipe")
+            val own = names(createHTML().html { body { recipe.render(this) } })
+            if (own.isEmpty()) failures.add("${exemption.page}: the recipe has no named field, so its answers cannot be tied to it")
+            // Without an echo the valid answer proves only that no error shows,
+            // which an empty page does too.
+            if (exemption.passedEcho.isEmpty()) failures.add("${exemption.page}: the valid answer echoes nothing")
             val failed = createHTML().html { head { title(exemption.page) }; body { exemption.failed(this) } }
             for (p in serverAnswer(failed, exemption).first) failures.add("${exemption.page}, the failed answer: $p")
             runCatching { assertLotek(failed) }.exceptionOrNull()?.let { failures.add("${exemption.page}, the failed answer: ${it.message}") }
             val passed = createHTML().html { head { title(exemption.page) }; body { exemption.passed(this) } }
+            for ((which, answer) in listOf("failed" to failed, "valid" to passed)) {
+                if (names(answer) != own) failures.add("${exemption.page}, the $which answer: the fields ${names(answer)} are not the recipe's $own")
+            }
             for (p in stillFailing(passed) + echoed(Jsoup.parse(passed), exemption.passedEcho)) failures.add("${exemption.page}, the valid answer: $p")
             runCatching { assertLotek(passed) }.exceptionOrNull()?.let { failures.add("${exemption.page}, the valid answer: ${it.message}") }
         }
@@ -491,40 +535,59 @@ class RecipesTest {
     }
 
     /**
-     * The rules a failed answer is held to, keyed to what it contains, and
-     * how many of them applied. An error summary must be visible, named by a
-     * heading with text, and have links to fields that exist and are marked
-     * invalid; a visible error text must describe a control marked invalid;
-     * what the entry says must be echoed, is.
+     * Whether the reader sees an element: neither it nor anything around it
+     * is `hidden`, or inside a closed `<dialog>` or `<details>`, as the core's
+     * check reads it.
+     */
+    private fun shown(e: Element): Boolean =
+        e.hasAttr("hidden").not() && e.parents().none {
+            it.hasAttr("hidden") || (it.tagName() in setOf("dialog", "details") && !it.hasAttr("open"))
+        }
+
+    private val SUMMARY = "lt-error-summary, .lt-error-summary"
+
+    /**
+     * The rules a failed answer is held to, and how many errors it shows. It
+     * must show an error, in an error summary or an error text the reader
+     * sees. A summary must be named by a heading with text, and have links to
+     * fields that exist and are marked invalid; an error text must describe a
+     * control marked invalid; what the entry says must be echoed is; and the
+     * field the entry names takes focus, and no other.
      */
     internal fun serverAnswer(html: String, exemption: Exemption): Pair<MutableList<String>, Int> {
         val problems = mutableListOf<String>()
-        var rules = 0
         val doc = Jsoup.parse(html)
-        for (box in doc.getElementsByTag("lt-error-summary")) {
-            rules += 1
-            if (box.hasAttr("hidden")) problems.add("the error summary is hidden")
+        val boxes = doc.select(SUMMARY)
+        for (box in boxes) {
+            if (!shown(box)) problems.add("the error summary is hidden")
             val title = box.attr("aria-labelledby").takeIf { it.isNotBlank() }?.let { doc.getElementById(it) }
             if (title == null || title.text().isBlank()) problems.add("the error summary is not named by a heading with text")
             val links = box.select("li a[href^=#]")
             if (links.isEmpty()) problems.add("the error summary has no links to the fields")
-            if (exemption.links != null && links.size != exemption.links) problems.add("the error summary has ${links.size} links, and the answer has ${exemption.links} faults")
+            else if (exemption.links != null && links.size != exemption.links) problems.add("the error summary has ${links.size} links, and the answer has ${exemption.links} faults")
             for (link in links) {
                 val target = doc.getElementById(link.attr("href").drop(1))
                 if (target == null) problems.add("the link ${link.attr("href")} points at no element")
                 else if (target.attr("aria-invalid") != "true") problems.add("the link ${link.attr("href")} points at a field that is not marked invalid")
             }
         }
-        for (error in doc.select(".lt-error-text:not([hidden])")) {
-            rules += 1
+        val texts = doc.select(".lt-error-text").filter(::shown)
+        for (error in texts) {
             val id = error.id()
             val described = doc.select("[aria-invalid=true]").any { id.isNotEmpty() && id in it.attr("aria-describedby").split(WHITESPACE) }
             if (!described) problems.add("the visible error text \"${error.text()}\" describes no control marked invalid")
         }
+        val errors = boxes.count(::shown) + texts.size
+        if (errors == 0) problems.add("the failed answer shows no error: no error summary and no error text the reader sees")
         problems += echoed(doc, exemption.echo)
-        rules += exemption.echo.size
-        if (rules == 0) problems.add("no rule applied to the failed answer, so it shows no error the check knows")
-        return problems to rules
+        val focused = doc.select("[autofocus]").map { it.id() }
+        if (focused != listOfNotNull(exemption.focus)) {
+            problems.add(
+                exemption.focus?.let { "the field $it does not take focus with autofocus alone: $focused do" }
+                    ?: "$focused take focus with autofocus, which is the error summary's",
+            )
+        }
+        return problems to errors
     }
 
     /** The fields whose value is not what the user typed. */
@@ -547,30 +610,45 @@ class RecipesTest {
      * What is wrong with the scripts of a page template: the template calls
      * the recipe, whose scripts are held to the HTML recipe above, so as many
      * copies of each as the recipe renders are taken off; what is left must
-     * be a registration written inline. Returns the problems and whether the
-     * template registers at all.
+     * be a registration written inline, from the package's WebJar. Returns
+     * the problems and the `defineLt…` functions the template calls.
      */
-    internal fun templateProblems(template: String, recipe: String): Pair<List<String>, Boolean> {
+    internal fun templateProblems(template: String, recipe: String): Pair<List<String>, Set<String>> {
         val own = Jsoup.parse(recipe).getElementsByTag("script").map { it.outerHtml() }.toMutableList()
         val problems = mutableListOf<String>()
-        var registers = false
+        val registered = mutableSetOf<String>()
         for (script in Jsoup.parse(template).getElementsByTag("script")) {
             if (own.remove(script.outerHtml())) continue
             if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
                 problems.add("the page template has a script that does more than register: ${script.outerHtml().take(120)}")
-            } else {
-                registers = true
+                continue
             }
+            val code = script.data().replace(COMMENTS, "")
+            for (source in Regex("""from\s*["']([^"']*)["']""").findAll(code).map { it.groupValues[1] }) {
+                if (!source.startsWith("${LotekWebJar.ROOT}/dist/")) problems.add("the page template registers from $source, which is not the package's WebJar")
+            }
+            registered += Regex("""\b(defineLt\w*)\s*\(""").findAll(code).map { it.groupValues[1] }
         }
-        return problems to registers
+        return problems to registered
     }
+
+    /** The web components on a page that the registration it has leaves out. */
+    internal fun unregistered(page: String, registered: Set<String>): List<String> =
+        Jsoup.parse(page).allElements.map { it.tagName() }.filter { it.startsWith("lt-") }.distinct().filter { tag ->
+            val own = "defineLt" + tag.removePrefix("lt-").split('-').joinToString("") { it.replaceFirstChar(Char::uppercase) }
+            "defineLt" !in registered && own !in registered
+        }
+
+    /** Markup without the spacing kotlinx.html indents it with, to find the recipe inside a page. */
+    private fun squashed(html: String): String = Jsoup.parse(html).body().html().replace(Regex(""">\s+<"""), "><").replace(WHITESPACE, " ")
 
     /** What still shows an error in an answer that should show none. */
     internal fun stillFailing(html: String): List<String> {
         val doc = Jsoup.parse(html)
-        return doc.select("lt-error-summary:not([hidden])").map { "the error summary is visible" } +
-            doc.select(".lt-error-text:not([hidden])").map { "the error text \"${it.text()}\" is visible" } +
-            doc.select("[aria-invalid=true]").map { "<${it.tagName()}> is marked invalid" }
+        return doc.select(SUMMARY).filter(::shown).map { "the error summary is visible" } +
+            doc.select(".lt-error-text").filter(::shown).map { "the error text \"${it.text()}\" is visible" } +
+            doc.select("[aria-invalid=true]").map { "<${it.tagName()}> is marked invalid" } +
+            doc.select("[autofocus]").map { "<${it.tagName()}> takes focus as if the form had failed" }
     }
 
     @Test
@@ -583,15 +661,19 @@ class RecipesTest {
             </body></html>
         """.trimIndent()
         val entry = Exemption("page", "x", "y", failed = {}, passed = {}, echo = mapOf("fixer" to "nobody"), links = 1)
-        assertEquals(emptyList<String>() to 3, serverAnswer(right, entry).let { it.first.toList() to it.second })
+        assertEquals(emptyList<String>() to 2, serverAnswer(right, entry).let { it.first.toList() to it.second })
         val mistakes = mapOf(
             "the box is hidden" to ("""<lt-error-summary aria-labelledby="t">""" to """<lt-error-summary aria-labelledby="t" hidden>""") to "is hidden",
             "an empty heading" to (""">The form has one error<""" to """><""") to "not named by a heading",
             "a link to nothing" to ("""href="#fixer"""" to """href="#Enter the address"""") to "points at no element",
             "a field not marked invalid" to (""" aria-invalid="true" aria-describedby""" to """ aria-describedby""") to "not marked invalid",
-            "a fault dropped" to ("""<li><a href="#fixer">Enter the address</a></li>""" to "") to "has 0 links",
+            "a fault dropped" to ("""<li><a href="#fixer">Enter the address</a></li>""" to "") to "has no links",
+            "a fault twice" to ("""<li><a href="#fixer">Enter the address</a></li>""" to """<li><a href="#fixer">Enter the address</a></li><li><a href="#fixer">Again</a></li>""") to "has 2 links",
             "the error text not wired" to ("""aria-describedby="fixer-error"""" to """aria-describedby="other"""") to "describes no control",
             "what was typed is lost" to ("""value="nobody"""" to """value=""""") to "the user typed",
+            "the box in a hidden region" to ("""<lt-error-summary aria-labelledby="t">""" to """<div hidden><lt-error-summary aria-labelledby="t">""") to "is hidden",
+            "the box in a closed dialog" to ("""<lt-error-summary aria-labelledby="t">""" to """<dialog><lt-error-summary aria-labelledby="t">""") to "is hidden",
+            "a field that takes focus from the box" to ("""<input id="fixer"""" to """<input autofocus id="fixer"""") to "the error summary's",
         )
         for ((case, mistake) in mistakes) {
             val (name, edit) = case
@@ -600,10 +682,21 @@ class RecipesTest {
             val found = serverAnswer(right.replace(from, to), entry).first
             assertTrue(found.any { mistake in it }, "$name: expected \"$mistake\", got $found")
         }
-        // An answer with no error the check knows applies no rule.
-        assertEquals(0, serverAnswer("<html><body><p>Thanks</p></body></html>", Exemption("page", "x", "y", {}, {})).second)
+        // An answer that shows no error fails, also when it echoes and marks the field.
+        val silent = """<html><body><input id="fixer" name="fixer" value="nobody" aria-invalid="true"></body></html>"""
+        assertEquals(0, serverAnswer(silent, entry).second)
+        assertTrue(serverAnswer(silent, entry).first.any { "shows no error" in it }, "an answer with no error shown")
+        // A box without links fails also where the entry gives no count.
+        val noLinks = right.replace("""<li><a href="#fixer">Enter the address</a></li>""", "")
+        assertTrue(serverAnswer(noLinks, Exemption("page", "x", "y", {}, {}, echo = entry.echo)).first.any { "has no links" in it }, "a box without links")
+        // The field the entry names must take focus, and the error text then shows the error.
+        val field = Exemption("page", "x", "y", {}, {}, focus = "fixer")
+        val text = """<html><body><input id="fixer" aria-invalid="true" aria-describedby="e"><p class="lt-error-text" id="e">Enter it</p></body></html>"""
+        assertEquals(emptyList<String>(), serverAnswer(text.replace("<input id", "<input autofocus id"), field).first)
+        assertTrue(serverAnswer(text, field).first.any { "does not take focus" in it }, "a field without autofocus")
         assertEquals(emptyList<String>(), stillFailing("<html><body><lt-error-summary hidden></lt-error-summary><p class=\"lt-error-text\" hidden>x</p></body></html>"))
         assertEquals(3, stillFailing(right).size)
+        assertEquals(listOf("<input> takes focus as if the form had failed"), stillFailing("""<html><body><input autofocus></body></html>"""))
     }
 
     @Test
@@ -613,16 +706,21 @@ class RecipesTest {
         val entry = Exemption("field", "x", "y", {}, {})
         assertEquals(emptyList<String>(), duplicateExemptions(listOf(entry, Exemption("field", "z", "y", {}, {}))))
         assertTrue(duplicateExemptions(listOf(entry, entry)).single().contains("2 times"), "one script listed twice")
-        val registration = """<script type="module">import { defineLt } from "/webjars/x/register.js"; defineLt()</script>"""
+        val registration = """<script type="module">import { defineLt } from "${LotekWebJar.REGISTER}"; defineLt()</script>"""
         val recipe = """<html><body><p>x</p><script type="module">go()</script></body></html>"""
         val template = { extra: String -> "<html><head></head><body><p>x</p><script type=\"module\">go()</script>$extra$registration</body></html>" }
-        assertEquals(emptyList<String>() to true, templateProblems(template(""), recipe))
+        assertEquals(emptyList<String>() to setOf("defineLt"), templateProblems(template(""), recipe))
+        assertTrue(templateProblems(template("").replace(LotekWebJar.ROOT, "/webjars/lotek/${LotekWebJar.VERSION}"), recipe).first.single().contains("not the package's WebJar"), "a mistyped WebJar path")
+        // Every web component on the page needs its own registration, or all of them.
+        assertEquals(emptyList<String>(), unregistered("<lt-popover></lt-popover><lt-error-summary></lt-error-summary>", setOf("defineLt")))
+        assertEquals(emptyList<String>(), unregistered("<lt-error-summary></lt-error-summary>", setOf("defineLtErrorSummary")))
+        assertEquals(listOf("lt-popover"), unregistered("<lt-popover></lt-popover>", setOf("defineLtTabs")))
         assertTrue(templateProblems(template("""<script type="module">more()</script>"""), recipe).first.single().contains("more than register"), "a script of its own")
         assertTrue(templateProblems(template("""<script type="module" src="/app.js"></script>"""), recipe).first.single().contains("more than register"), "a script loaded from elsewhere")
         assertTrue(templateProblems(template("""<script type="module">go()</script>"""), recipe).first.single().contains("more than register"), "the recipe's script run twice")
-        assertEquals(emptyList<String>() to false, templateProblems("<html><body><p>x</p><script type=\"module\">go()</script></body></html>", recipe), "a template that registers nothing")
-        // A failed answer that shows no error the check knows is a problem in itself.
-        assertTrue(serverAnswer("<html><body><p>Thanks</p></body></html>", Exemption("page", "x", "y", {}, {})).first.any { "no rule applied" in it })
+        assertEquals(emptyList<String>() to emptySet<String>(), templateProblems("<html><body><p>x</p><script type=\"module\">go()</script></body></html>", recipe), "a template that registers nothing")
+        // A failed answer that shows no error is a problem in itself.
+        assertTrue(serverAnswer("<html><body><p>Thanks</p></body></html>", Exemption("page", "x", "y", {}, {})).first.any { "shows no error" in it })
     }
 
     /**
@@ -639,12 +737,22 @@ class RecipesTest {
         for (recipe in recipes) {
             val alone = createHTML().html { body { recipe.render(this) } }
             var registers = false
+            var rendersRecipe = false
             for (template in recipe.templates) {
-                val (problems, registered) = templateProblems(createHTML().html { template() }, alone)
+                val page = createHTML().html { template() }
+                val (problems, registered) = templateProblems(page, alone)
                 failures += problems.map { "${recipe.page}: $it" }
-                registers = registers || registered
+                // Every web component on the page the template renders is registered there.
+                unregistered(page, registered).takeIf { it.isNotEmpty() }?.let {
+                    failures.add("${recipe.page}: the page template does not register $it")
+                }
+                registers = registers || registered.isNotEmpty()
+                rendersRecipe = rendersRecipe || squashed(alone) in squashed(page)
                 rendered += 1
             }
+            // A template that does not render the recipe shows the reader a page
+            // other than the one tested, and its registration proves nothing.
+            if (recipe.templates.isNotEmpty() && !rendersRecipe) failures.add("${recipe.page}: no page template renders ${recipe.function}()")
             // A page whose HTML recipe has a web component must register it.
             val hasWebComponent = javaClass.getResource("/recipes/${recipe.page}.html")?.readText()?.contains("<lt-") == true
             if (recipe.templates.isNotEmpty() && hasWebComponent && !registers) failures.add("${recipe.page}: the page template does not register the web components")
@@ -809,7 +917,10 @@ class RecipesTest {
             }
         }
         for (name in got.keys - wanted.keys - "class") {
-            if (name !in fromBuilders) problems.add("$path: $name is not in the HTML recipe, and no builder function writes it")
+            when {
+                name in DECIDES_WHAT_IT_DOES -> problems.add("$path: $name=\"${got[name]}\" is not in the HTML recipe, and decides what the element does")
+                name !in fromBuilders -> problems.add("$path: $name is not in the HTML recipe, and no builder function writes it")
+            }
         }
         val a = children(expected)
         val b = children(actual)

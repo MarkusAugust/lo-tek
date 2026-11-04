@@ -65,7 +65,9 @@ The container is added once, and the messages come from your code. That is the d
         // answer from the relay either. Any other answer that is not ok means
         // the server is there and said no.
         if (answer && [502, 503, 504].includes(answer.status)) answer = undefined
-        if (answer?.ok) {
+        // fetch follows a redirect, as to the log-in page when the session has
+        // run out, and the page it lands on is ok. That is no restart.
+        if (answer?.ok && !answer.redirected) {
           messages.show("Relay 14 is back", { color: "success" })
         } else if (answer) {
           messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })
@@ -227,7 +229,9 @@ The container is added once, and the messages come from your code. That is the d
                   // answer from the relay either. Any other answer that is not ok means
                   // the server is there and said no.
                   if (answer && [502, 503, 504].includes(answer.status)) answer = undefined
-                  if (answer?.ok) {
+                  // fetch follows a redirect, as to the log-in page when the session has
+                  // run out, and the page it lands on is ok. That is no restart.
+                  if (answer?.ok && !answer.redirected) {
                     messages.show("Relay 14 is back", { color: "success" })
                   } else if (answer) {
                     messages.show("Relay 14 refused the restart. Try again.", { color: "danger", duration: 0 })

@@ -73,13 +73,22 @@ function swap(text: string, from: string | RegExp, to: string): string {
   return out
 }
 
-const HOST = (
-  tabItems(page)
-    .filter((t) => t.name === "Plain HTML")
-    .flatMap((t) => htmlBlocks(t.code))
-    .map((b) => b.match(/<lt-session-timeout[\s\S]*?<\/lt-session-timeout>/))
-    .find((m) => m !== null)?.[0] ?? ""
-).replace(/\n\s*/g, "\n")
+/*
+ * The recipe's host, without the post on its Log out button: a real post
+ * would go to the test server and take the page with it. Without it the
+ * button closes the dialog with `value="logout"`, as the React recipe's does.
+ */
+const HOST = swap(
+  (
+    tabItems(page)
+      .filter((t) => t.name === "Plain HTML")
+      .flatMap((t) => htmlBlocks(t.code))
+      .map((b) => b.match(/<lt-session-timeout[\s\S]*?<\/lt-session-timeout>/))
+      .find((m) => m !== null)?.[0] ?? ""
+  ).replace(/\n\s*/g, "\n"),
+  /\s+formmethod="post"\s+formaction="[^"]*"/,
+  "",
+)
 const HOST_TAG = HOST.match(/^<lt-session-timeout[^>]*>/)?.[0] ?? ""
 const DIALOG_TAG = HOST.match(/<dialog[^>]*>/)?.[0] ?? ""
 const HEADING = HOST.match(/<h2[^>]*>([^<]+)<\/h2>/)

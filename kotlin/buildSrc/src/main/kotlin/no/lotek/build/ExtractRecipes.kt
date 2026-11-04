@@ -65,15 +65,11 @@ abstract class ExtractRecipes : DefaultTask() {
             // `HTML` that the test renders. A name in either that changes stops
             // here.
             val others = blocks(kotlin, "kotlin").filter { it != block }
-            val (declarations, pageTemplates) = others.partition(::declaresOnly)
-            // A declaration is compiled but never rendered, so a script in one
-            // would escape every rule on the scripts. A page template written as
-            // a function, `fun HTML.page() { … script … }`, would be one.
-            for (d in declarations) {
-                if (Regex("""\bscript\s*\(|\bunsafe\b|<script""").containsMatchIn(d)) {
-                    error("$where: a ```kotlin block that declares, beginning with `fun` or `class`, writes a script. The test does not render it: write the page template as statements, as the other tabs do.")
-                }
-            }
+            for (problem in recipeBlockProblems(block, function)) error("$where: $problem")
+            val kinds = others.map { it to (blockKind(it) ?: error("$where: a ```kotlin block that is neither declarations, `fun` or `class` at its top, nor a page template, `head { }` and `body { }` at its top. The test would compile it without rendering it:\n$it")) }
+            val declarations = kinds.filter { it.second == BlockKind.DECLARATIONS }.map { it.first }
+            val pageTemplates = kinds.filter { it.second == BlockKind.TEMPLATE }.map { it.first }
+            for (d in declarations) for (problem in declarationProblems(d)) error("$where: $problem")
             val templates = pageTemplates
                 .mapIndexed { i, t -> "\ninternal fun HTML.pageTemplate$i() {\n${t.prependIndent("    ")}\n}\n" }
             dir.resolve("Recipe.kt").writeText("package $pkg\n\n$block\n${declarations.joinToString("\n")}\n${templates.joinToString("")}")
@@ -182,17 +178,6 @@ abstract class ExtractRecipes : DefaultTask() {
     private fun tabAt(text: String, start: Int): String {
         val end = text.indexOf("</TabItem>", start)
         return text.substring(start, if (end < 0) text.length else end)
-    }
-
-    /**
-     * Whether a block only declares, a `fun` or a `class` at its top, such as
-     * the validation next to the recipe, rather than being the page template.
-     * Comments and blank lines are skipped; the first line of code decides.
-     */
-    private fun declaresOnly(block: String): Boolean {
-        val code = block.lines().map { it.trimEnd() }.firstOrNull { it.isNotBlank() && !it.trimStart().startsWith("//") }
-            ?: return false
-        return Regex("""^(fun |data class |class |enum class )""").containsMatchIn(code)
     }
 
     /** The code blocks in a language, without the indentation the tab gives them. */

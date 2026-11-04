@@ -138,7 +138,7 @@ Several sets are applied in order, and a later one wins, like `{...a} {...b}` in
 The whole round trip, with the form from the [error summary](/components/error-summary/) page. `GET /jobs` renders the form. `POST /jobs` checks the submission, and a failed one gets the form back with status 422, with what was typed and the summary filled in, and the component moves focus to the summary when the page arrives. A valid one is saved, and the browser is sent to `GET /jobs?ordered`, so a reload does not post it again, and that page says the job was ordered. The only script is the registration, once in the page.
 
 ```kotlin
-// build.gradle.kts, next to the Ktor server and lo-tek-kotlinx-html
+// build.gradle.kts, next to the Ktor 3 server and lo-tek-kotlinx-html
 dependencies {
     implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
 }
@@ -229,7 +229,7 @@ fun Application.jobs() {
 }
 ```
 
-The forms on the component pages post, so a real app needs the protection against cross-site request forgery it already has. kotlinx.html writes no token by itself, as a template engine with a security integration might. With Spring Security, pass the `CsrfToken` into the function and write it as a hidden field in each form, `hiddenInput(name = csrf.parameterName) { value = csrf.token }`. A script that posts with `fetch` cannot see the Kotlin value, so render it into the page as well, `meta(name = "_csrf", content = csrf.token)` and `meta(name = "_csrf_header", content = csrf.headerName)` in `head`, and send it as that header from there, as Spring Security's own documentation does. With Ktor, the CSRF plugin is in `io.ktor:ktor-server-csrf`.
+The forms on the component pages post, so a real app needs the protection against cross-site request forgery it already has. kotlinx.html writes no token by itself, as a template engine with a security integration might. With Spring Security, pass the `CsrfToken` into the function and write it as a hidden field in each form, `hiddenInput(name = csrf.parameterName) { value = csrf.token }`. A script that posts with `fetch` cannot see the Kotlin value, so render it into the page as well, `meta(name = "_csrf", content = csrf.token)` and `meta(name = "_csrf_header", content = csrf.headerName)` in `head`, and send it as that header from there, as Spring Security's own documentation does. Ktor's CSRF plugin, `io.ktor:ktor-server-csrf`, checks the `Origin` header rather than a token, so the forms need nothing written in them: `install(CSRF) { originMatchesHost() }`, or `allowOrigin("https://…")` behind a proxy that changes the host. Leave out `checkHeader`, which requires a header a plain form post never sends.
 
 ## Templates: JTE, Thymeleaf and the others
 
