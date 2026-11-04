@@ -519,7 +519,13 @@ impl Host<'_> {
                 nodes[e].name
             ),
         };
-        vec![finding("term-without-entry", word, self.link(), message, None)]
+        vec![finding(
+            "term-without-entry",
+            word,
+            self.link(),
+            message,
+            None,
+        )]
     }
 
     /// The suggestion list: `data-value` on the options and `.lt-suggestion__value` belong together.
@@ -680,11 +686,7 @@ fn looks_generated(id: &str) -> bool {
 /// with a `<dt>` and a `<dd>` of its own.
 fn is_entry(nodes: &[Node], n: usize) -> bool {
     let node = &nodes[n];
-    let child = |name: &str| {
-        nodes
-            .iter()
-            .any(|m| m.parent == Some(n) && m.name == name)
-    };
+    let child = |name: &str| nodes.iter().any(|m| m.parent == Some(n) && m.name == name);
     node.name == "div"
         && node.parent.is_some_and(|p| nodes[p].name == "dl")
         && child("dt")
