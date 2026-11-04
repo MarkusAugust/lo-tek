@@ -76,6 +76,33 @@ async function rest(ms = 400) {
   await waitForPaint()
 }
 
+/**
+ * Gives the test its own clock, for the tests about the hover delays. With
+ * the machine's clock, one hover on a busy machine took longer than the 300
+ * ms the card waits, and the card was open before the test could see it
+ * closed. `userEvent` works with a fake `setTimeout`, as in the model test.
+ *
+ * The mouse is parked in a corner first, on the machine's clock. The test
+ * before may have left it over the word, and the browser then sends
+ * `pointerenter` to the new word by itself, with the delay started on a
+ * clock the test does not move.
+ */
+async function useClock() {
+  const park = document.createElement("div")
+  park.id = "lt-park"
+  park.style.cssText =
+    "position: fixed; inset-block-end: 0; inset-inline-end: 0; inline-size: 8px; block-size: 8px"
+  document.body.append(park)
+  await userEvent.hover(park)
+  await rest()
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+}
+
+async function tick(ms: number) {
+  vi.advanceTimersByTime(ms)
+  await waitForPaint()
+}
+
 function pointer(type: string, target: Element, pointerType: string) {
   target.dispatchEvent(
     new PointerEvent(type, { pointerType, bubbles: type !== "pointerenter" }),
@@ -122,6 +149,7 @@ describe("lt-term", () => {
   })
 
   afterEach(() => {
+    vi.useRealTimers()
     document.body.innerHTML = ""
   })
 
@@ -174,27 +202,32 @@ describe("lt-term", () => {
     await paint()
     const word = $("word")
     const entry = $("term-signal")
+    await useClock()
 
     await userEvent.hover(word)
+    await tick(299)
     expect(entry.matches(":popover-open")).toBe(false)
-    await rest()
+    await tick(1)
     expect(entry.matches(":popover-open")).toBe(true)
 
     await userEvent.hover($("in-card"))
-    await rest()
+    await tick(400)
     expect(entry.matches(":popover-open")).toBe(true)
 
     await userEvent.hover($("elsewhere"))
-    await rest()
+    await tick(199)
+    expect(entry.matches(":popover-open")).toBe(true)
+    await tick(1)
     expect(entry.matches(":popover-open")).toBe(false)
   })
 
   it("does not open when the pointer only passes over the word", async () => {
     page1()
     await paint()
+    await useClock()
     await userEvent.hover($("word"))
     await userEvent.hover($("elsewhere"))
-    await rest()
+    await tick(400)
     expect($("term-signal").matches(":popover-open")).toBe(false)
   })
 
