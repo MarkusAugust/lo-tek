@@ -31,7 +31,7 @@ from day one. The jobs run one after another:
 | Job | What it checks |
 | --- | --- |
 | `authors` | that no commit has an agent as author |
-| `check` | lint, type checking of the code and the tests, the browser tests in Chromium, Firefox and WebKit, the build, the CLI and the language server in every host, the rendered page, the VS Code extension, that nothing is left ungenerated, and axe against the built documentation |
+| `check` | the Node and Bun versions against every package's engines, lint, type checking of the code and the tests, the browser tests in Chromium, Firefox and WebKit, the build, the CLI and the language server in every host, the rendered page, the VS Code extension, that nothing is left ungenerated, the site built with Netlify's command, and axe against it |
 | `core` | Rust formatting and clippy, the Rust tests, the WASI module, the core against the expected results, and the Kotlin tests |
 
 Three things do not run locally, and are listed with the reason in `SKIPPED` in the script:
@@ -42,6 +42,10 @@ so the list cannot linger after a step has been renamed. The steps with
 the CI machine what your machine already has. Locally, the Java you
 have installed is used. If `ci.yml` contains something the script does not understand, such as `env`,
 `if` or `defaults`, it stops before it runs anything.
+
+`ci-intellij.yml` runs after them when the branch touches one of the paths in its filter, as it would on the pull request, committed or not. It takes a couple of minutes, and needs the IDE in `intellij/.intellijPlatform`, which the first run downloads.
+
+Node comes from `.node-version`, which every workflow and Netlify read. The check stops on another major version than the one there, and says so on another minor or patch: `scripts/check-engines.ts` holds the pinned version against the engines of every installed package, so the difference cannot hide a version they refuse. Bun is pinned in the workflows and as `BUN_VERSION` in `netlify.toml`, and the same script requires them to agree.
 
 The step `Generated files are up to date` asks git whether the build changed anything, so run `check` after
 the change is committed. Otherwise the step fails on your own changes.
