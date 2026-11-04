@@ -28,22 +28,34 @@ for (const [key, file] of patches) {
   const at = key.lastIndexOf("@")
   const name = key.slice(0, at)
   const version = key.slice(at + 1)
-  // The package as each workspace resolves it, under bun's isolated linker.
-  const installed = [".", ...root.workspaces]
-    .map((workspace) => {
-      try {
-        return Bun.resolveSync(`${name}/package.json`, join(ROOT, workspace))
-      } catch {
-        return undefined
-      }
-    })
-    .filter((path): path is string => path !== undefined)
-    .filter(
-      (path) => JSON.parse(readFileSync(path, "utf8")).version === version,
-    )
+  // The package as each workspace resolves it, under bun's isolated linker,
+  // and every copy in bun's store, where a package only another one depends
+  // on is installed. A workspace with another version runs it unpatched.
+  const resolved = [".", ...root.workspaces].flatMap((workspace) => {
+    try {
+      return [Bun.resolveSync(`${name}/package.json`, join(ROOT, workspace))]
+    } catch {
+      return []
+    }
+  })
+  const stored = [
+    ...new Bun.Glob(
+      `node_modules/.bun/${name.replace("/", "+")}@${version}*/node_modules/${name}/package.json`,
+    ).scanSync({ cwd: ROOT, absolute: true }),
+  ]
+  const versionOf = (path: string) =>
+    (JSON.parse(readFileSync(path, "utf8")) as { version: string }).version
+  for (const path of resolved)
+    if (versionOf(path) !== version)
+      problems.push(
+        `${key}: ${path} is ${name} ${versionOf(path)}, which the patch is not applied to.`,
+      )
+  const installed = [...new Set([...resolved, ...stored])].filter(
+    (path) => versionOf(path) === version,
+  )
   if (installed.length === 0) {
     problems.push(
-      `${key}: no workspace has ${name} ${version} installed, so bun installs it unpatched. Make the patch again for the version that is installed.`,
+      `${key}: ${name} ${version} is not installed, so bun installs it unpatched. Make the patch again for the version that is installed.`,
     )
     continue
   }

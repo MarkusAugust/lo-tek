@@ -49,6 +49,14 @@ const PLUGINS: Record<string, string> = {
  * Gradle that runs it embeds, which is asked about below.
  */
 const GRADLE_CORE_PLUGINS = new Set([
+  "war",
+  "ear",
+  "groovy",
+  "scala",
+  "eclipse",
+  "checkstyle",
+  "pmd",
+  "codenarc",
   "java",
   "java-library",
   "java-platform",
@@ -151,6 +159,30 @@ function crates(): Query[] {
     })
 }
 
+/**
+ * The lines of every top-level `plugins { }` block in a build file, without
+ * comments, found by counting braces, so a block on one line is read too.
+ */
+function pluginLines(text: string): string[] {
+  const lines: string[] = []
+  for (const start of text.matchAll(/^plugins\s*\{/gm)) {
+    let depth = 0
+    let end = start.index
+    for (; end < text.length; end++) {
+      if (text[end] === "{") depth++
+      else if (text[end] === "}" && --depth === 0) break
+    }
+    const body = text.slice(start.index + start[0].length, end)
+    lines.push(
+      ...body
+        .split(/\n|;/)
+        .map((l) => l.replace(/\/\/.*$/, "").trim())
+        .filter(Boolean),
+    )
+  }
+  return lines
+}
+
 function maven(): Query[] {
   const files = Bun.spawnSync(["git", "ls-files", "*.gradle.kts"], {
     cwd: ROOT,
@@ -159,7 +191,8 @@ function maven(): Query[] {
     .split("\n")
     .filter(Boolean)
   const coordinates = new Set<string>()
-  const versionless: { file: string; line: string }[] = []
+  const versionless: { file: string; id: string; line: string }[] = []
+  const versioned = new Set<string>()
   let kotlinDsl = false
   for (const file of files) {
     const text = readFileSync(join(ROOT, file), "utf8")
@@ -179,50 +212,50 @@ function maven(): Query[] {
     ].map((m) => m[1])
     for (const version of core)
       coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
-    for (const [, version] of text.matchAll(
-      /\bkotlin\("[\w-]+"\) version "([^"]+)"/g,
-    )) {
-      coordinates.add(`org.jetbrains.kotlin:kotlin-gradle-plugin:${version}`)
-      if (core.length === 0)
-        coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
-    }
-    for (const [, id, version] of text.matchAll(
-      /\bid\("([^"]+)"\) version "([^"]+)"/g,
-    )) {
-      if (!(id in PLUGINS))
-        stop(`${file}: the plugin ${id} is missing from PLUGINS.`)
-      coordinates.add(`${PLUGINS[id]}:${version}`)
-    }
-    // A plugin without a version is a Gradle core plugin, `kotlin-dsl`, or
-    // one whose version is written in another build file. Anything else
-    // would be skipped without a word.
-    const block = text.match(/^plugins\s*\{([\s\S]*?)^\}/m)?.[1] ?? ""
-    for (const line of block
-      .split("\n")
-      .map((l) => l.replace(/\/\/.*$/, "").trim())
-      .filter(Boolean)) {
-      const core =
+    for (const line of pluginLines(text)) {
+      const builtIn =
         line.match(/^`([\w-]+)`$/)?.[1] ??
-        line.match(/^(java|application|base|idea|signing|jacoco)$/)?.[1]
-      if (core === "kotlin-dsl") kotlinDsl = true
-      else if (core) {
-        if (!GRADLE_CORE_PLUGINS.has(core))
-          stop(
-            `${file}: the plugin ${core} is neither a Gradle core plugin nor kotlin-dsl.`,
+        line.match(/^([a-z][\w-]*)$/)?.[1] ??
+        line.match(/^id\s*\(\s*"([\w-]+)"\s*\)$/)?.[1]
+      if (builtIn === "kotlin-dsl") kotlinDsl = true
+      else if (builtIn && GRADLE_CORE_PLUGINS.has(builtIn)) continue
+      else {
+        // One pattern for every other line, so a line it cannot read stops
+        // the run instead of passing a looser test and being skipped.
+        const m = line.match(
+          /^(kotlin|id)\s*\(\s*"([^"]+)"\s*\)(?:\s+version\s+"([^"]+)")?(?:\s+apply\s+(?:true|false))?$/,
+        )
+        if (!m) stop(`${file}: cannot read the plugin \`${line}\`.`)
+        const [, kind, name, version] = m
+        const id = kind === "kotlin" ? `org.jetbrains.kotlin.${name}` : name
+        if (!version) {
+          versionless.push({ file, id, line })
+          continue
+        }
+        versioned.add(id)
+        if (kind === "kotlin") {
+          coordinates.add(
+            `org.jetbrains.kotlin:kotlin-gradle-plugin:${version}`,
           )
-      } else if (!/\bversion\s+"/.test(line)) versionless.push({ file, line })
+          if (core.length === 0)
+            coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
+        } else {
+          if (!(id in PLUGINS))
+            stop(`${file}: the plugin ${id} is missing from PLUGINS.`)
+          coordinates.add(`${PLUGINS[id]}:${version}`)
+        }
+      }
     }
+    // A plugin applied outside the block brings no version of its own.
+    for (const [, id] of text.matchAll(
+      /\b(?:apply\s*\(\s*plugin\s*=|pluginManager\.apply\s*\()\s*"([^"]+)"/g,
+    ))
+      versionless.push({ file, id, line: `apply(plugin = "${id}")` })
   }
-  for (const { file, line } of versionless) {
-    const id = line.match(/^(?:kotlin|id)\("([^"]+)"\)/)?.[1]
-    const versioned =
-      id &&
-      files.some((f) =>
-        new RegExp(
-          `(?:kotlin|id)\\("${id.replace(/\./g, "\\.")}"\\) version "`,
-        ).test(readFileSync(join(ROOT, f), "utf8")),
-      )
-    if (!versioned)
+  // A plugin without a version is one whose version is written in another
+  // build file. Anything else would be skipped without a word.
+  for (const { file, id, line } of versionless) {
+    if (!versioned.has(id) && !GRADLE_CORE_PLUGINS.has(id))
       stop(`${file}: cannot read the version of the plugin \`${line}\`.`)
   }
   // `kotlin-dsl` brings the Kotlin Gradle plugin in the version the Gradle
@@ -246,6 +279,7 @@ function maven(): Query[] {
           `./gradlew --version in ${dir} gave no Kotlin version:\n${result.stderr.toString()}`,
         )
       coordinates.add(`org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin}`)
+      coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${kotlin}`)
     }
   }
   return [...coordinates].map((coordinate) => {
