@@ -1283,6 +1283,43 @@ for (const old of [
     "astro lost to react, but it decides how the style sheets come in",
   )
 
+  // A JVM build file means the markup comes from Kotlin or Java. A
+  // framework in package.json still decides, since it renders the markup,
+  // but `vite` and a package.json that names nothing do not: a Kotlin server
+  // often has one for its assets.
+  const jvm: [string, Record<string, string> | null, string][] = [
+    ["build.gradle.kts", null, "kotlin"],
+    ["build.gradle", null, "kotlin"],
+    ["pom.xml", null, "kotlin"],
+    ["build.gradle.kts", { vite: "8.0.0" }, "kotlin"],
+    ["build.gradle.kts", { typescript: "6.0.0" }, "kotlin"],
+    ["build.gradle.kts", { react: "19.0.0" }, "react"],
+  ]
+
+  for (const [file, dependencies, name] of jvm) {
+    const project = await mkdtemp(join(tmpdir(), "lotek-agent-jvm-"))
+    await writeFile(join(project, file), "")
+    if (dependencies)
+      await writeFile(
+        join(project, "package.json"),
+        JSON.stringify({ dependencies }),
+      )
+    const answer = await run(["agent"], project)
+    const what = `${file}${dependencies ? ` with ${Object.keys(dependencies)[0]}` : ""}`
+
+    expect(answer.code === 0, `agent with ${what} gave code ${answer.code}`)
+    expect(
+      answer.out === (await rulebook(name)),
+      `${what} did not give the ${name} rulebook: ${answer.out.slice(0, 50)}`,
+    )
+    if (name === "kotlin")
+      expect(
+        answer.err.includes(file),
+        `the message does not name ${file} as the reason: ${answer.err.slice(0, 80)}`,
+      )
+    await rm(project, { recursive: true, force: true })
+  }
+
   // Vue, Svelte, Solid and Lit share a rulebook, and whoever writes their
   // framework's name should not have to know. The alias is still visible in
   // the message.
@@ -1323,14 +1360,14 @@ for (const old of [
   // The markup in the rulebooks must pass LO-TEK's own check. An agent
   // instruction with an example the check would reject is worse than no
   // instruction.
-  for (const framework of [
-    "html",
-    "templates",
-    "bundles",
-    "react",
-    "astro",
-    "datastar",
-  ]) {
+  // Every rulebook the package ships, read from the list the command itself
+  // reads. A hand-written list here left a new rulebook unchecked.
+  const books: string[] = JSON.parse(
+    await readFile(join(packageDir, "manifest/files.json"), "utf8"),
+  ).agent.map((name: string) => name.replace(/\.md$/, ""))
+  expect(books.length > 0, "manifest/files.json lists no rulebooks")
+
+  for (const framework of books) {
     const book = await run(["agent", `--framework=${framework}`], folder)
     const blocks = [...book.out.matchAll(/```html\n([\s\S]*?)```/g)]
 

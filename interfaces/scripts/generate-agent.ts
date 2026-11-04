@@ -28,6 +28,7 @@ import {
   countCssComponents,
   countElements,
   cssTable,
+  kotlinEnums,
   PACKAGE,
   reflow,
   spacingAndFont,
@@ -35,6 +36,7 @@ import {
   VERSION,
   webTable,
 } from "./agent-parts.js"
+import { kotlinBlocks } from "./recipes.js"
 
 /** The package name, which bundlers resolve. */
 const PACKAGE_NAME = (component: string) => `@lo-tek/interfaces/${component}`
@@ -61,6 +63,34 @@ const STYLESHEET_URL = (component: string) => cdnUrl(`${component}.css`)
  */
 const URL_FOR = (_component: string, modulePath: string) =>
   `${CDN}/${modulePath}`
+
+/**
+ * The addresses on a JVM server, where the package is a WebJar the app serves.
+ * The path after `LotekWebJar.ROOT` is the one in the npm package, so it is
+ * read from `exports` like the CDN address.
+ */
+const WEBJAR_STYLESHEET = (component: string) =>
+  `\${LotekWebJar.ROOT}/${cdnUrl(`${component}.css`).slice(CDN.length + 1)}`
+
+const WEBJAR_MODULE = (_component: string, modulePath: string) =>
+  `\${LotekWebJar.ROOT}/${modulePath}`
+
+/*
+ * The field in the Kotlin rulebook is the recipe on the field page, and the
+ * page template next to it. `RecipesTest` in `kotlin/kotlinx-html` compiles
+ * both and compares what they render with the page's HTML recipe, so the
+ * rulebook shows code that is known to work.
+ */
+const FIELD_BLOCKS =
+  kotlinBlocks(
+    join(PACKAGE, "../documentation/src/content/docs/components/field.mdx"),
+  ) ?? []
+const FIELD_RECIPE = FIELD_BLOCKS.find((b) => b.includes("fun FlowContent."))
+const FIELD_PAGE = FIELD_BLOCKS.find((b) => /^head\s*\{/m.test(b))
+if (!FIELD_RECIPE || !FIELD_PAGE)
+  throw new Error(
+    "field.mdx must have a kotlinx.html tab with the recipe and the page template, which the Kotlin rulebook shows.",
+  )
 
 type Recipe = {
   /** The name the command takes, and the file name. */
@@ -94,6 +124,8 @@ type Recipe = {
   pointFive?: string
   /** The rows of the pitfall table that apply here. */
   pitfalls: [string, string][]
+  /** The last section, when the shared one does not apply here. */
+  closing?: string
 }
 
 const shortVersion = (recipe: Recipe) => `## Short version
@@ -162,26 +194,41 @@ something that is meant to be read.`
  * and that is exactly the mistake `/react` exists to prevent.
  */
 const themeExample = (recipe: Recipe) =>
-  recipe.name === "react"
-    ? `\`\`\`tsx
+  recipe.name === "kotlin"
+    ? `\`\`\`kotlin
+div {
+    attributes["data-theme"] = "light"
+    button { lt(Lt.button()); +"Save" }
+}
+\`\`\``
+    : recipe.name === "react"
+      ? `\`\`\`tsx
 <div data-theme="light">
   <button {...lt.button()}>Save</button>
 </div>
 \`\`\``
-    : `\`\`\`html
+      : `\`\`\`html
 <div data-theme="light">
   <button class="lt-button">Save</button>
 </div>
 \`\`\``
 
 const boundaryExample = (recipe: Recipe) =>
-  recipe.name === "react"
-    ? `\`\`\`tsx
+  recipe.name === "kotlin"
+    ? `\`\`\`kotlin
+div {
+    attributes["data-lt-boundary"] = ""
+    attributes["data-theme"] = "light"
+    button { lt(Lt.button()); +"Save" }
+}
+\`\`\``
+    : recipe.name === "react"
+      ? `\`\`\`tsx
 <div data-lt-boundary data-theme="light">
   <button {...lt.button()}>Save</button>
 </div>
 \`\`\``
-    : `\`\`\`html
+      : `\`\`\`html
 <div data-lt-boundary data-theme="light">
   <button class="lt-button">Save</button>
 </div>
@@ -195,6 +242,26 @@ const boundaryExample = (recipe: Recipe) =>
  * the checked one, and it is the button that is checked.
  */
 const pickerExample = (recipe: Recipe) => {
+  if (recipe.name === "kotlin") {
+    const line = (value: string, text: string, checked = false) =>
+      `    label {
+        lt(Lt.toggleGroup.option)
+        radioInput(name = "theme", classes = "lt-theme-control") { value = "${value}"${checked ? "; checked = true" : ""} }
+        +" ${text}"
+    }`
+    return `\`\`\`kotlin
+fieldSet {
+    lt(Lt.toggleGroup())
+    legend { lt(Lt.srOnly()); +"Theme" }
+${line("auto", "Follow the system", true)}
+${line("light", "Light")}
+${line("dark", "Dark")}
+}
+\`\`\`
+
+\`lt-theme-control\` has no builder function, so it is the one class written
+as a string.`
+  }
   const react = recipe.name === "react"
   const attr = react ? "className" : "class"
   const option = react
@@ -308,16 +375,24 @@ it must be in the **same tree as \`<html>\`**, since \`:has()\` does not see out
 of its own tree; a control inside a shadow root does not set the theme on the
 page.`
 
-const webComponents = (recipe: Recipe) => `## 4. Web components
-
-Three rules apply to all of them:
-
-1. ${recipe.registrationRule} The import has no side effect on its own;
-   it is the \`define\` call that registers the element.
-2. **Boolean attributes are true as long as they are present.**
-   \`hidden="false"\`, \`disabled="false"\` and \`open="false"\` turn it *on*.
-   To turn any of them off, remove the attribute entirely.
-3. **You write the markup, the component adds the behaviour.** \`<lt-field>\`
+/*
+ * The third rule of the web components. On a JVM server the field is wired
+ * by `Lt.field()`, so the rule there says when `<lt-field>` is not needed
+ * rather than how to write the markup it wires.
+ */
+const ruleThree = (recipe: Recipe) =>
+  recipe.name === "kotlin"
+    ? `**You write the markup, the component adds the behaviour.** \`<lt-field>\`
+   does not create your label or your control. With \`Lt.field()\` the server
+   writes the whole wiring, and \`<lt-field>\` is not needed; it is for markup
+   that cannot call a builder function, such as a JTE template. There you write
+   \`for\` on the label and \`id\` on the control, or wrap the control in a
+   \`<label>\`, and the component wires the help text and the error text. It
+   never writes an id on the control: an id the server did not send makes an
+   update from the server replace the field, with the focus and what the user
+   has typed. The field is invalid when the error text is there without
+   \`hidden\`.`
+    : `**You write the markup, the component adds the behaviour.** \`<lt-field>\`
    does not create your label or your control. You write \`${recipe.name === "react" ? "htmlFor" : "for"}\` on the label
    and \`id\` on the control, or wrap the control in a \`<label>\`, so the field
    has a name without JavaScript too. The component wires the help text and
@@ -327,7 +402,18 @@ Three rules apply to all of them:
        ? ", so the id is yours, from `useId()`"
        : ": an id the server did not send makes an update from the server replace the field, with the focus and what the user has typed"
 }. The field is invalid when the error text is there without
-   \`hidden\`.
+   \`hidden\`.`
+
+const webComponents = (recipe: Recipe) => `## 4. Web components
+
+Three rules apply to all of them:
+
+1. ${recipe.registrationRule} The import has no side effect on its own;
+   it is the \`define\` call that registers the element.
+2. **Boolean attributes are true as long as they are present.**
+   \`hidden="false"\`, \`disabled="false"\` and \`open="false"\` turn it *on*.
+   To turn any of them off, remove the attribute entirely.
+3. ${ruleThree(recipe)}
 
 ${webTable(recipe.address, recipe.stylesheetAddress)}
 
@@ -516,7 +602,7 @@ ${CHECK_IN_TESTS}`,
     title: "LO-TEK in templates and server-written HTML",
     intro: `The rulebook for LO-TEK where the server produces the markup:
 Go templates, Razor, PHP, Blade, Twig, Jinja, Django, ERB, Liquid, Handlebars,
-Nunjucks and Edge, and HTML built as strings in Kotlin, Java, C# or Python.
+Nunjucks and Edge, and HTML built as strings in C# or Python.
 
 This is the environment LO-TEK is made for. The components are CSS classes
 and web components, that is, things the browser understands directly, so a
@@ -525,9 +611,9 @@ JavaScript framework.
 
 In Kotlin or Java code that writes the HTML, the builder functions are
 \`Lt.field()\`, \`Lt.button()\` and the others, with enums for the values,
-and \`Lt.field()\` makes \`<lt-field>\` unnecessary. See
-https://lo-tek.sobernetics.no/kotlin/. The rest of this file is for templates
-that cannot call them.
+and \`Lt.field()\` makes \`<lt-field>\` unnecessary. The rulebook for a JVM
+server is https://lo-tek.sobernetics.no/agent/kotlin.md. The rest of this file
+is for templates that cannot call them.
 
 It is also the environment with the smallest safety net. No compiler looks at
 the attributes in a template that cannot call a builder function, and no type
@@ -688,15 +774,9 @@ template languages. WebStorm and IntelliJ IDEA Ultimate read
 "LO-TEK Interfaces" from JetBrains Marketplace adds the error messages and completion in
 HTML in a string marked with \`@Language("HTML")\` or \`// language=HTML\`.
 
-On the JVM without Node there is LO-TEK for Kotlin
-(https://lo-tek.sobernetics.no/kotlin/), with the builder functions as \`Lt\`
-and the check as \`assertLotek(html)\`. \`lotek.jar\` is the command line as
-\`java -jar lotek.jar check\`, and is attached to every release on GitHub:
-https://github.com/MarkusAugust/lo-tek/releases/latest. The Maven package
-\`io.github.markusaugust:lo-tek-interfaces\` with \`assertLotek(html)\` and the
-Gradle plugin \`io.github.markusaugust.lo-tek\` are on Maven Central, with the
-same version as the npm package. Not every npm version is on Maven: use the
-newest one there, and never write a \`version\` you have not seen on Central.`,
+On the JVM without Node, JTE and Thymeleaf templates included, the check is
+\`assertLotek(html)\` in a test, the Gradle plugin and \`java -jar lotek.jar
+check\`. All of it is in https://lo-tek.sobernetics.no/agent/kotlin.md.`,
     pitfalls: [
       BUNDLE_MISSING,
       NO_DEFINE,
@@ -1293,6 +1373,316 @@ a build step. Datastar does not need it in the browser.`,
       TYPESCRIPT_IN_SCRIPT,
     ],
   },
+  {
+    name: "kotlin",
+    stylesheetAddress: WEBJAR_STYLESHEET,
+    title: "LO-TEK in Kotlin and Java",
+    intro: `The rulebook for LO-TEK on a JVM server: Ktor, Spring, Javalin,
+http4k or anything else that writes HTML from Kotlin or Java, with
+kotlinx.html, in strings, or with a template engine such as JTE, Thymeleaf,
+Freemarker or Pebble.
+
+Nothing here needs Node or npm. The Maven package has the builder functions as
+\`Lt\`, with enums for the allowed values, the check as \`assertLotek(html)\`
+for your tests, and the CSS and the web components as a WebJar the app serves
+itself.
+
+The compiler is the first check: \`ButtonVariant.SECUNDARY\` does not
+compile, so code that calls the builder functions cannot invent a variant. It
+does not see markup written by hand next to them, or the wiring across a
+whole page. That is what \`assertLotek\` reads.`,
+    stylesheetRule: `**One \`<link>\` to \`LotekWebJar.CSS\` in the page
+   template,** once for the whole app, with the WebJar served under
+   \`/webjars\`. Without it, the components look unstyled. The answer is then
+   to add the link, never to write your own CSS to make them look right.`,
+    pointFour: `**Web components are registered once with \`defineLt()\` from
+   \`LotekWebJar.REGISTER\`** in the page template, and a boolean attribute is
+   true as long as it is there. In kotlinx.html a flag property set to
+   \`false\` removes the attribute, while \`attributes["hidden"] = "false"\`
+   still hides the element.`,
+    registrationRule: `**\`defineLt()\` runs once** in the page template, not
+   once per component.`,
+    address: WEBJAR_MODULE,
+    check: "java -jar lotek.jar check src/main/jte/*.kte",
+    pointFive: `**Check the HTML the server sends, in a test:**
+   \`assertLotek(html)\` fails with every finding as
+   \`line:column: error: message\`, or \`warning:\`. It knows every class,
+   every element, every attribute and every allowed value, and on a whole page
+   it also requires every \`for\` and \`aria-describedby\` to point to an id
+   that exists, and every field to have a label. With the app running, also
+   check every page you have changed:
+   \`java -jar lotek.jar check http://localhost:8080/page\`. You are done when
+   the tests are green and the command answers "The markup matches LO-TEK".`,
+    stylesheet: `## 1. The package, the stylesheet and the registration
+
+\`\`\`kotlin
+// build.gradle.kts
+dependencies {
+    implementation("io.github.markusaugust:lo-tek-interfaces:${VERSION}")
+    // Only with kotlinx.html: the extension lt(…) and one function per web component.
+    implementation("io.github.markusaugust:lo-tek-kotlinx-html:${VERSION}")
+}
+\`\`\`
+
+The version is the npm package's, but not every npm version is on Maven
+Central. Use the newest one there, and never write a version you have not seen
+on https://central.sonatype.com/artifact/io.github.markusaugust/lo-tek-interfaces.
+The package requires Java 17 or newer.
+
+The package is also a WebJar: the files are under
+\`META-INF/resources/webjars/lo-tek/<version>/\`, with the same paths as in the
+npm package. Spring Boot and servlet containers serve that folder without
+setup. Ktor needs one line in \`routing\`:
+\`staticResources("/webjars", "META-INF/resources/webjars")\`.
+
+\`LotekWebJar\` has the paths with the version in them, so the page never
+points to a version other than the one the package has. The page template,
+once for the whole app:
+
+\`\`\`kotlin
+head {
+    link(rel = "stylesheet", href = LotekWebJar.CSS)
+}
+body {
+    // The page.
+    script(type = "module") { unsafe { +"import { defineLt } from \\"\${LotekWebJar.REGISTER}\\"; defineLt()" } }
+}
+\`\`\`
+
+The same in a string, without kotlinx.html:
+
+\`\`\`kotlin
+fun page(content: String) = """
+<!DOCTYPE html>
+<html lang="en">
+<head><link rel="stylesheet" href="\${LotekWebJar.CSS}"></head>
+<body>
+$content
+<script type="module">
+  import { defineLt } from "\${LotekWebJar.REGISTER}"
+  defineLt()
+</script>
+</body>
+</html>
+"""
+\`\`\`
+
+\`lotek.css\` is ${BUNDLED_SIZE}, has every component, and is nearly
+always the right choice. If you want only the stylesheets the pages use,
+${TOKENS_FIRST} After that, one stylesheet per component, from the tables
+below, each under \`LotekWebJar.ROOT\`.`,
+    markup: `## 5. The builder functions
+
+\`Lt\` has the same builder functions and options as \`lt\` in TypeScript.
+Each gives the attributes for one element, as an \`Attributes\`, which is a
+\`Map<String, String>\`. In kotlinx.html, \`lt(…)\` puts them on the tag; in a
+string, \`toHtml()\` writes them out with the values escaped, and \`+\`
+combines two sets:
+
+\`\`\`kotlin
+val save = Lt.button(variant = ButtonVariant.SECONDARY)
+
+button { lt(save); +"Save draft" }
+
+val asText = """<button \${save.toHtml()}>Save draft</button>"""
+\`\`\`
+
+Both give \`<button class="lt-button" data-variant="secondary">Save draft</button>\`.
+In kotlinx.html several sets are applied in order, a later one wins, and the
+classes are added to those the tag already has.
+
+The ${countBuilderFunctions()} builder functions:
+
+${builderFunctions("Lt")}
+
+A builder function for several elements gives a data class with one field per
+element, such as \`label\`, \`control\`, \`help\` and \`error\` from
+\`Lt.field()\`. A part the template writes itself has its class as a set on
+the builder function: \`Lt.card.title\`, \`Lt.toggleGroup.option\`.
+
+The allowed values are enums. A value the builder function's default already
+gives writes no attribute.
+
+${kotlinEnums()}
+
+Every enum has \`value\`, the text in the HTML, and \`of(text)\`, which gives
+the constant, or \`null\` for a text that is not allowed. A value from a
+request goes through \`of\` with a fallback:
+\`ButtonVariant.of(text) ?: ButtonVariant.PRIMARY\`, never \`!!\`, which throws
+without saying what the text was.
+
+kotlinx.html has an \`InputType\` of its own. Import \`no.lotek.InputType\` by
+name next to \`kotlinx.html.*\`, as the recipes do, and use kotlinx.html's
+shortcuts, such as \`radioInput\`, for its own types.
+
+From Java the builder functions are static methods on \`Lt\`, and options can
+be left out from the end:
+
+\`\`\`java
+Attributes save = Lt.button(ButtonVariant.SECONDARY);
+\`\`\`
+
+## 6. A field
+
+\`Lt.field()\` writes the whole wiring between the label, the control, the help
+text and the error text, every time the server renders the form. The field
+then needs no \`<lt-field>\` and no script: \`<lt-field>\` is for markup that
+cannot call a builder function, such as a JTE template. Never use both on one
+field. This is the recipe from the field page, compiled and compared with its
+HTML on every build:
+
+\`\`\`kotlin
+${FIELD_RECIPE}
+\`\`\`
+
+The page template around it:
+
+\`\`\`kotlin
+${FIELD_PAGE}
+\`\`\`
+
+The handler for \`POST\` renders the form again with what was typed and
+\`invalid = true\`, with status 422, and the error text shows. A valid
+submission redirects, so a reload does not post it again.
+
+**The id is required, and an empty one throws.** Make it from a key in the
+data, never from the loop index, a counter or a random value, so it is unique
+on the page and the same on every render:
+
+\`\`\`kotlin
+data class Target(val code: String, val name: String, val note: String)
+
+fun FlowContent.notes(targets: List<Target>) {
+    for (target in targets) {
+        val field = Lt.field(id = "note-\${target.code}")
+        label { lt(field.label); +target.name }
+        input { lt(Lt.input(), field.control); name = "note-\${target.code}"; value = target.note }
+    }
+}
+\`\`\`
+
+A morph, as in Datastar or htmx with idiomorph, recognises an element by its
+id, and replaces one whose id changed, along with the focus and what the user
+had typed. With the index the element is kept, but the text ends up in the
+wrong row.`,
+    extra: `## 7. When the server sends new HTML
+
+If the page is patched as it runs, with Datastar, htmx or Turbo, the web
+components put back what the user chose when a patch tears it away: the
+selected tab in \`<lt-tabs>\`, an open \`<lt-popover>\`. The server needs
+nothing for that. If the server is to move the state, as in "go on to step
+2", write \`server-controlled\` on the host. Then every patch decides, and the
+component stops putting the user's choice back. The state is always in the
+markup the server sends: \`aria-selected\` on the tab and \`hidden\` on the
+panel in \`<lt-tabs>\`, and \`open\` on \`<lt-popover>\` and \`<lt-dialog>\`.
+
+A \`$\` that is meant for the page, as in a Datastar expression, is read by
+Kotlin as a template. Write \`\${'$'}count\`, or use a \`$$"""…"""\` string,
+where only \`$$\` interpolates.
+
+## 8. The check
+
+\`assertLotek\` checks the HTML the server sends, and throws an
+\`AssertionError\` with the findings, which JUnit, Kotest and TestNG all
+report:
+
+\`\`\`kotlin
+import kotlinx.html.body
+import kotlinx.html.html
+import kotlinx.html.stream.createHTML
+import no.lotek.assertLotek
+import org.junit.jupiter.api.Test
+
+class OrderFormTest {
+    @Test
+    fun \`the order form is correct markup\`() {
+        assertLotek(createHTML().html { body { orderForm(codename = "", invalid = true) } })
+    }
+}
+\`\`\`
+
+By default it checks a whole page: that every id that is pointed to exists,
+and that every field is wired. \`assertLotek(html, fragment = true)\` checks
+a piece of a page, such as one component, against the vocabulary only.
+\`Lotek.diagnosePage(html)\` gives the findings as a list instead.
+\`assertLotekRendered { script -> page.evaluate(script) }\` checks the page as
+a browser has rendered it, with Playwright for Java, and also fails on a class
+no stylesheet styles.
+
+It reads the HTML that comes out, not the code that made it, so it works the
+same for strings, kotlinx.html, JTE, Thymeleaf, Freemarker and Pebble: render
+the template to a text in a test, and give it to \`assertLotek\`. In the
+template files themselves, write the markup as the component pages show it.
+The rulebook for template syntax is
+https://lo-tek.sobernetics.no/agent/templates.md.
+
+The Gradle plugin checks the template files as part of \`check\`, without a
+test that renders them:
+
+\`\`\`kotlin
+// build.gradle.kts
+plugins {
+    id("io.github.markusaugust.lo-tek") version "${VERSION}"
+}
+
+lotek {
+    templates.from(fileTree("src/main/jte"))
+}
+\`\`\`
+
+\`lotek.jar\` is the command line, attached to every release on GitHub:
+https://github.com/MarkusAugust/lo-tek/releases/latest.
+
+\`\`\`bash
+java -jar lotek.jar check src/main/jte/*.kte
+java -jar lotek.jar check http://localhost:8080/form
+\`\`\`
+
+A finding you want to keep is suppressed with a comment above the tag:
+
+\`\`\`html
+<!-- lotek-ignore-next unknown-class -->
+<div class="lt-experiment">Testing a new layout</div>
+\`\`\`
+
+In IntelliJ the plugin "LO-TEK Interfaces" from JetBrains Marketplace runs
+the same check while you type, also in HTML in a Kotlin string marked with
+\`@Language("HTML")\` or \`// language=HTML\`. In Kotlin it warns about a set
+on an element its part cannot be, such as \`label { lt(field.control) }\`,
+about \`of(…)!!\`, and about an id from the loop index.`,
+    closing: `## When CSS is not enough
+
+The components are customised with tokens and \`--lt-\` variables. A complete
+colour theme from your brand colours is made with
+\`Lotek.buildTheme(recipe)\`, or with the Gradle plugin's \`lotekTheme\` task
+from a \`lotek.theme.json\`.
+
+All of this, with live examples: https://lo-tek.sobernetics.no/kotlin/`,
+    pitfalls: [
+      [
+        "The styles are missing",
+        "The `<link>` to `LotekWebJar.CSS` is missing, or `/webjars` is not served and it answers 404",
+      ],
+      NO_DEFINE,
+      FOREIGN_TEXT,
+      [
+        "The error text never shows, and the field counts as valid",
+        '`attributes["hidden"] = "false"` on the error text, which hides it all the same. Leave the attribute out, or let `Lt.field(invalid = …)` decide',
+      ],
+      [
+        "`Type mismatch` on `InputType`",
+        "kotlinx.html has an `InputType` too. Import `no.lotek.InputType` by name",
+      ],
+      [
+        "A field loses what the user typed after an update from the server",
+        "The id comes from the loop index, a counter or a random value, and changed between two renders",
+      ],
+      [
+        "`Unresolved reference` or the wrong value in a Datastar attribute",
+        `Kotlin read the \`$\` as a template. Write \`\${'$'}\``,
+      ],
+    ],
+  },
 ]
 
 /** The files the generator writes, with the content they should have. */
@@ -1321,7 +1711,7 @@ function assemble(recipe: Recipe): string {
       recipe.markup,
       ...(recipe.extra ? [recipe.extra] : []),
       pitfalls(recipe.pitfalls),
-      CLOSING,
+      recipe.closing ?? CLOSING,
     ].join("\n\n")}\n`,
   )
 }

@@ -26,6 +26,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Added
 
+- **A rulebook for coding agents on a Kotlin or Java server, `agent/kotlin.md`.**
+  It covers `Lt` with a table of every enum and its constants, kotlinx.html
+  and strings, the WebJar and `LotekWebJar`, ids from a key in the data,
+  `assertLotek` in tests, the Gradle plugin and `lotek.jar`. `lotek agent`
+  chooses it when the folder has `build.gradle.kts`, `build.gradle` or
+  `pom.xml`, unless `package.json` names a framework other than Vite; such a
+  folder used to get `templates`. `llms.txt` names Kotlin and the check
+  without Node.
 - **`<lt-term>` and `lt.term()`: a word in the text that shows its entry
   from a glossary on the same page.** The word is a link to the entry, a
   `<div>` with a `<dt>` and a `<dd>` in a `<dl>`, and stays one without

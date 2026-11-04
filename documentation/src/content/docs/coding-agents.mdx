@@ -25,7 +25,8 @@ npx @lo-tek/interfaces agent
 ```
 
 The command writes the rulebook for *this* project to standard output. It reads
-the environment from `package.json`, and reports on standard error what it chose and why,
+the environment from `package.json`, or from `build.gradle.kts`, `build.gradle` or `pom.xml`
+on the JVM, and reports on standard error what it chose and why,
 so the output can be piped cleanly:
 
 ```bash
@@ -33,16 +34,17 @@ npx @lo-tek/interfaces agent > lotek.md            # to a file of your choice
 npx @lo-tek/interfaces agent --framework=datastar   # choose yourself
 ```
 
-Six rulebooks, one per environment:
+Seven rulebooks, one per environment:
 
 | Name | For |
 | --- | --- |
 | `html` | plain HTML without a build step |
-| `templates` | Go, Razor, PHP, Blade, Twig, Jinja, Django, ERB, Liquid, Handlebars, Nunjucks, Edge, and HTML built as strings in Kotlin, Java, C# or Python |
+| `templates` | Go, Razor, PHP, Blade, Twig, Jinja, Django, ERB, Liquid, Handlebars, Nunjucks, Edge, and HTML built as strings in C# or Python |
 | `bundles` | Vue, Svelte, Solid, Lit, and plain TypeScript with Vite, Rollup, esbuild or webpack |
 | `react` | React |
 | `astro` | Astro |
 | `datastar` | HTML with Datastar |
+| `kotlin` | a Kotlin or Java server: `Lt` with kotlinx.html or strings, JTE, Thymeleaf and the other template engines, `assertLotek` in tests, the WebJar and the Gradle plugin |
 
 Vue, Svelte, Solid and Lit share `bundles`, because they do the same with
 the stylesheets, the attribute names and the registration. `--framework=svelte` still
@@ -97,6 +99,18 @@ https://lo-tek.sobernetics.no/agent/react.md if the package is not installed. Ru
 `npx @lo-tek/interfaces check <file>` on markup you have written, and
 `npx @lo-tek/interfaces check <address>` on every page you have changed, with
 the app running. You are done when both answer "The markup matches LO-TEK".
+```
+
+On a Kotlin or Java server there is no `node_modules`, so the line points to the address,
+and the check runs in the tests and from `lotek.jar`:
+
+```md
+The project uses LO-TEK (io.github.markusaugust:lo-tek-interfaces). Read the rules
+before you write markup or CSS: https://lo-tek.sobernetics.no/agent/kotlin.md.
+Check the HTML the server sends with `assertLotek(html)` in a test, and run
+`java -jar lotek.jar check <address>` on every page you have changed, with the app
+running. You are done when the tests are green and the command answers "The markup
+matches LO-TEK".
 ```
 
 Where it belongs:

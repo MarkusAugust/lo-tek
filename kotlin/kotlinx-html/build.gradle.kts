@@ -36,9 +36,20 @@ val extractRecipes = tasks.register<no.lotek.build.ExtractRecipes>("extractRecip
     sources.set(layout.buildDirectory.dir("generated/recipes/kotlin"))
     resources.set(layout.buildDirectory.dir("generated/recipes/resources"))
 }
+/*
+ * The Kotlin in the rulebook for coding agents, compiled as test sources too.
+ * `RulebookTest` renders the blocks and compares the rulebook's names with
+ * the package, so an example an agent copies cannot drift from the code.
+ */
+val rulebookFile = rootDir.resolve("../interfaces/agent/kotlin.md")
+val extractRulebook = tasks.register<no.lotek.build.ExtractRulebook>("extractRulebook") {
+    rulebook.set(rulebookFile)
+    sources.set(layout.buildDirectory.dir("generated/rulebook/kotlin"))
+}
 sourceSets.test {
     kotlin.srcDir(extractRecipes.map { it.sources })
     resources.srcDir(extractRecipes.map { it.resources })
+    kotlin.srcDir(extractRulebook.map { it.sources })
 }
 
 kotlin {
@@ -63,6 +74,9 @@ tasks.test {
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)
     // The test counts the kotlinx.html tabs in the pages itself, so a tab `extractRecipes` missed fails it.
     systemProperty("pages", componentPages.absolutePath)
+    // The rulebook's tables and names, read by `RulebookTest`.
+    systemProperty("rulebook", rulebookFile.absolutePath)
+    inputs.file(rulebookFile).withPathSensitivity(PathSensitivity.NONE)
     inputs.dir(componentPages).withPathSensitivity(PathSensitivity.RELATIVE)
     testLogging { events("failed") }
 }

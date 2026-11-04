@@ -2,7 +2,7 @@
 
 The rulebook for LO-TEK where the server produces the markup: Go templates,
 Razor, PHP, Blade, Twig, Jinja, Django, ERB, Liquid, Handlebars, Nunjucks and
-Edge, and HTML built as strings in Kotlin, Java, C# or Python.
+Edge, and HTML built as strings in C# or Python.
 
 This is the environment LO-TEK is made for. The components are CSS classes and
 web components, that is, things the browser understands directly, so a Go
@@ -11,9 +11,9 @@ JavaScript framework.
 
 In Kotlin or Java code that writes the HTML, the builder functions are
 `Lt.field()`, `Lt.button()` and the others, with enums for the values, and
-`Lt.field()` makes `<lt-field>` unnecessary. See
-https://lo-tek.sobernetics.no/kotlin/. The rest of this file is for templates
-that cannot call them.
+`Lt.field()` makes `<lt-field>` unnecessary. The rulebook for a JVM server is
+https://lo-tek.sobernetics.no/agent/kotlin.md. The rest of this file is for
+templates that cannot call them.
 
 It is also the environment with the smallest safety net. No compiler looks at
 the attributes in a template that cannot call a builder function, and no type
@@ -444,15 +444,10 @@ sixteen template languages. WebStorm and IntelliJ IDEA Ultimate read
 completion in HTML in a string marked with `@Language("HTML")` or
 `// language=HTML`.
 
-On the JVM without Node there is LO-TEK for Kotlin
-(https://lo-tek.sobernetics.no/kotlin/), with the builder functions as `Lt`
-and the check as `assertLotek(html)`. `lotek.jar` is the command line as
-`java -jar lotek.jar check`, and is attached to every release on GitHub:
-https://github.com/MarkusAugust/lo-tek/releases/latest. The Maven package
-`io.github.markusaugust:lo-tek-interfaces` with `assertLotek(html)` and the
-Gradle plugin `io.github.markusaugust.lo-tek` are on Maven Central, with the
-same version as the npm package. Not every npm version is on Maven: use the
-newest one there, and never write a `version` you have not seen on Central.
+On the JVM without Node, JTE and Thymeleaf templates included, the check is
+`assertLotek(html)` in a test, the Gradle plugin and
+`java -jar lotek.jar check`. All of it is in
+https://lo-tek.sobernetics.no/agent/kotlin.md.
 
 ## Known pitfalls
 

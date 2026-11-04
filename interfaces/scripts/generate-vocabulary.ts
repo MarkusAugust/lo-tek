@@ -49,7 +49,7 @@ import {
   type ElementDoc,
   elements,
 } from "./metadata"
-import { dedent, htmlBlocks } from "./recipes.js"
+import { dedent, htmlBlocks, kotlinBlocks } from "./recipes.js"
 
 export const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const DOCS = "https://lo-tek.sobernetics.no/components/"
@@ -304,23 +304,8 @@ export function snippets() {
  * `<Fragment slot="kotlin">` in an `<Example>`.
  */
 function kotlinRecipe(slug: string): string | undefined {
-  const page = readFileSync(join(PAGES, `${slug}.mdx`), "utf8")
-  // Both forms `ExtractRecipes` reads: the tab, and the slot in an <Example>.
-  // The same pattern as `tabStarts` in `ExtractRecipes`, spacing included.
-  const tabStart = page.search(/<TabItem\s+label\s*=\s*"kotlinx\.html"\s*>/)
-  const slotStart = page.indexOf('<Fragment slot="kotlin">')
-  const start = tabStart >= 0 ? tabStart : slotStart
-  if (start < 0) return undefined
-  const end = page.indexOf(tabStart >= 0 ? "</TabItem>" : "</Fragment>", start)
-  const tab = page.slice(start, end < 0 ? page.length : end)
-  const blocks = [
-    ...tab.matchAll(/^([ \t]*)```kotlin\n([\s\S]*?)\n[ \t]*```/gm),
-  ].map((m) =>
-    m[2]
-      .split("\n")
-      .map((line) => (line.startsWith(m[1]) ? line.slice(m[1].length) : line))
-      .join("\n"),
-  )
+  const blocks = kotlinBlocks(join(PAGES, `${slug}.mdx`))
+  if (!blocks) return undefined
   const recipe = blocks.find((b) => b.includes("fun FlowContent."))
   if (!recipe)
     throw new Error(

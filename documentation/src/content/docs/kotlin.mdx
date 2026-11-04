@@ -363,6 +363,10 @@ lotek {
 
 The plugin is on Maven Central together with the package, with the same version. Gradle finds it there without a separate `pluginManagement` block, since the Gradle Plugin Portal forwards to Maven Central for what it does not have itself. The tasks work with the configuration cache, and are up to date when neither the templates nor the fragments have changed.
 
+## For coding agents
+
+The rulebook for an agent on a Kotlin or Java server is [`/agent/kotlin.md`](https://lo-tek.sobernetics.no/agent/kotlin.md), and `java -jar lotek.jar agent` prints it in a project with `build.gradle.kts`, `build.gradle` or `pom.xml`. Its Kotlin is compiled and its enum table compared with the package by `RulebookTest` on every build. See [Coding agents](../coding-agents/) for the line to paste into the instruction file.
+
 ## How it works
 
 The check is written in Rust and built to one WebAssembly module. The same module runs in Node, in VS Code and here. On the JVM it is run by [Chicory](https://chicory.dev), a WebAssembly runtime written in pure Java. The module was compiled to JVM bytecode when the package was built, so it runs with the JIT and starts in a fraction of a second. A call borrows an instance from a pool and returns it afterwards, so tests that run at the same time do not wait for each other.

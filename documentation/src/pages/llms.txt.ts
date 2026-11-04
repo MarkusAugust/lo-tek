@@ -74,6 +74,11 @@ Check the markup when you are done, and fix what it reports:
     npx @lo-tek/interfaces check <file>
     npx @lo-tek/interfaces check http://localhost:8080/page
 
+On a JVM server without Node, \`assertLotek(html)\` from the Maven package
+\`io.github.markusaugust:lo-tek-interfaces\` does the same in a test, and
+\`java -jar lotek.jar check http://localhost:8080/page\` against the running
+app.
+
 It knows every class, every element, every attribute and every valid value,
 writes \`file:line:column: error: message\`, or \`warning:\`, and exits with an error code when it finds something.
 With an address it checks the page as the server sends it, and also requires
@@ -122,7 +127,7 @@ export const GET: APIRoute = async () => {
 
   const text = [
     "# LO-TEK",
-    `> ${pkg.description} Version ${pkg.version}. The components are CSS classes and web components, things the browser already understands, so the same components work in plain HTML, in a Go template, with bundles, in React, in Astro and with Datastar.`,
+    `> ${pkg.description} Version ${pkg.version}. The components are CSS classes and web components, things the browser already understands, so the same components work in plain HTML, in a Go template, with bundles, in React, in Astro, with Datastar and on a Kotlin or Java server, where the builder functions are \`Lt\` with enums.`,
     RULES,
     section(
       "Rulebooks for coding agents",
@@ -134,8 +139,9 @@ export const GET: APIRoute = async () => {
     ),
     `Each rulebook is complete for its environment. If the package is
 installed, the same files are in
-\`node_modules/@lo-tek/interfaces/agent/\`, and \`npx @lo-tek/interfaces agent\`
-prints the one that fits this project.`,
+\`node_modules/@lo-tek/interfaces/agent/\`, and \`npx @lo-tek/interfaces agent\`,
+or \`java -jar lotek.jar agent\` on the JVM, prints the one that fits this
+project.`,
     section("Guides", guides),
     section("Patterns", patterns),
     section("Components", components),
