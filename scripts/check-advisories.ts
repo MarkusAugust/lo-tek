@@ -78,6 +78,8 @@ const OWN_GROUP = "io.github.markusaugust:"
 const ACCEPTED: Record<string, string> = {
   "GHSA-g3hv-75wg-m249":
     "minimatch below 11.0.1. vscode-languageclient 9 (bundled in the extension) requires ^5, its newest version (11.0.0) ^10.2.6, and @vscode/vsce 4 ^10.2.6 too, so no version of either reaches 11.0.1. The extension matches only its own document selectors with it, never a pattern from the user, and vsce only our own files when the extension is packed",
+  "GHSA-r937-wjx7-w2jp":
+    "kotlin-gradle-plugin below 2.4.20, in the version kotlin-dsl brings from the Gradle that runs it: 2.0.21 in Gradle 8.14.3 (kotlin/buildSrc) and 2.4.0 in 9.7.1 (the same buildSrc through includeBuild in intellij). The fix is in Kotlin 2.4.20, and no released Gradle embeds it (9.8.2 has 2.4.10). The flaw is unsafe deserialisation of entries in the build cache, so it takes write access to the cache: there is no remote cache, and setup-gradle writes the cached Gradle home, the local build cache included, only from jobs on master (Documented: github.com/gradle/actions/blob/main/docs/setup-gradle.md). Take it out when a Gradle with Kotlin 2.4.20 or newer is released",
 }
 
 type Finding = { id: string; where: string; summary: string }
