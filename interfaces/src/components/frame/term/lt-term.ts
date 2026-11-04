@@ -49,16 +49,28 @@ function isEntry(element: Element): boolean {
   )
 }
 
-/** The id in the link's `href`, decoded, or `""` when there is none. */
-function fragmentOf(word: Element): string {
+/**
+ * The ids the link's `href` can mean, as the browser tries them: the
+ * fragment as written, then decoded. Empty when there is no fragment.
+ */
+function fragmentsOf(word: Element): string[] {
   const href = word.getAttribute("href") ?? ""
-  if (!href.startsWith("#") || href.length < 2) return ""
+  if (!href.startsWith("#") || href.length < 2) return []
+  const raw = href.slice(1)
   try {
-    return decodeURIComponent(href.slice(1))
+    const decoded = decodeURIComponent(raw)
+    return decoded === raw ? [raw] : [raw, decoded]
   } catch {
-    return href.slice(1)
+    return [raw]
   }
 }
+
+/**
+ * The `aria-details` the component wrote, per link. A value that is still
+ * there is the component's to change when `href` points elsewhere; any
+ * other value is the server's word, and stays.
+ */
+const detailsWritten = new WeakMap<Element, string>()
 
 type Shown = "no" | "hover" | "pinned"
 
@@ -131,8 +143,18 @@ export class LtTerm extends HostElement {
     let entry = LtTerm.roots.get(root)
     if (!entry) {
       const terms = new Set<LtTerm>()
-      const observer = new MutationObserver(() => {
-        for (const t of terms) t.sync()
+      const observer = new MutationObserver((records) => {
+        // Text alone, such as a countdown or a filtered list, cannot make
+        // or take an entry: only an element or an id can.
+        const elements = (nodes: NodeList) =>
+          [...nodes].some((n) => n.nodeType === Node.ELEMENT_NODE)
+        const matters = records.some(
+          (r) =>
+            r.type === "attributes" ||
+            elements(r.addedNodes) ||
+            elements(r.removedNodes),
+        )
+        if (matters) for (const t of terms) t.sync()
       })
       // Only nodes and ids: everything the component writes is something
       // else, so its own writes never call it.
@@ -182,8 +204,12 @@ export class LtTerm extends HostElement {
     this.detachWord()
   }
 
-  /** Whether the card is open, by the mouse or pinned. */
-  get open(): boolean {
+  /**
+   * Whether the card is open, by the mouse or pinned. A method and not a
+   * getter: React 19 sets a property with the same name as an attribute,
+   * and a getter without a setter throws.
+   */
+  private isOpen(): boolean {
     return this.shown !== "no"
   }
 
@@ -201,8 +227,12 @@ export class LtTerm extends HostElement {
   }
 
   private findTarget(word: Element): HTMLElement | null {
-    const id = fragmentOf(word)
-    return id === "" ? null : (this.root().getElementById?.(id) ?? null)
+    const root = this.root()
+    for (const id of fragmentsOf(word)) {
+      const found = root.getElementById?.(id)
+      if (found) return found
+    }
+    return null
   }
 
   private sync(): void {
@@ -223,6 +253,12 @@ export class LtTerm extends HostElement {
       word.addEventListener("pointerenter", this.handlePointerEnter)
       word.addEventListener("pointerleave", this.handlePointerLeave)
       this.word = word
+      // An open card follows the new link out of view, not the removed one,
+      // which counts as out of view at once.
+      if (this.visibility) {
+        this.visibility.disconnect()
+        this.visibility.observe(word)
+      }
     }
     addClass(word, TERM_CLASS)
 
@@ -251,6 +287,15 @@ export class LtTerm extends HostElement {
       )
     }
 
+    // `aria-details` the server wrote is its word, also when it points
+    // elsewhere. What the component wrote follows the entry, and goes with it.
+    const details = word.getAttribute("aria-details")
+    if (details === null || details === detailsWritten.get(word)) {
+      setAttr(word, "aria-details", entry?.id ?? null)
+      if (entry) detailsWritten.set(word, entry.id)
+      else detailsWritten.delete(word)
+    }
+
     if (!entry) {
       // Not an entry, so nothing expands. The link still goes where it points.
       setAttr(word, "aria-expanded", null)
@@ -258,12 +303,9 @@ export class LtTerm extends HostElement {
       return
     }
 
-    // Only what is missing: an `aria-details` the server wrote is its word.
-    if (!word.hasAttribute("aria-details"))
-      setAttr(word, "aria-details", entry.id)
-    setAttr(word, "aria-expanded", String(this.open))
+    setAttr(word, "aria-expanded", String(this.isOpen()))
 
-    if (!this.open) return
+    if (!this.isOpen()) return
     if (this.entry !== entry) {
       // A patch replaced the entry while it was open. The new one is the
       // card now; the old one is gone, and took the top layer with it.
@@ -319,7 +361,9 @@ export class LtTerm extends HostElement {
     if (!this.outside) {
       this.outside = new MutationObserver(() => this.sync())
       document.addEventListener("click", this.handleOutsideClick, true)
-      document.addEventListener("keydown", this.handleKeydown)
+      // In the capture phase: a card in an open popover is closer than the
+      // popover, and closes first. The popover leaves a used press alone.
+      document.addEventListener("keydown", this.handleKeydown, true)
       window.addEventListener("resize", this.reposition)
       window.addEventListener("scroll", this.reposition, true)
       this.visibility = new IntersectionObserver((records) => {
@@ -369,7 +413,7 @@ export class LtTerm extends HostElement {
     this.visibility?.disconnect()
     this.visibility = undefined
     document.removeEventListener("click", this.handleOutsideClick, true)
-    document.removeEventListener("keydown", this.handleKeydown)
+    document.removeEventListener("keydown", this.handleKeydown, true)
     window.removeEventListener("resize", this.reposition)
     window.removeEventListener("scroll", this.reposition, true)
     if (entry) this.release(entry)
@@ -444,7 +488,8 @@ export class LtTerm extends HostElement {
   }
 
   private handleKeydown = (event: KeyboardEvent): void => {
-    if (event.key !== "Escape" || !this.open || event.defaultPrevented) return
+    if (event.key !== "Escape" || !this.isOpen() || event.defaultPrevented)
+      return
     // A modal dialog opened over the card closes on its own press.
     for (const node of event.composedPath()) {
       if (node === this) break
@@ -457,12 +502,16 @@ export class LtTerm extends HostElement {
       }
     }
     event.preventDefault()
-    const active = this.root().activeElement
+    // From the path and not `activeElement`, which a shadow root answers
+    // with null when the focus is outside it. Back to the word when the
+    // focus was on it, in the card, or nowhere: on `<body>`, or on a dialog
+    // or a `<main>` the word is in. From a field elsewhere it stays.
+    const target = event.composedPath()[0]
     const back =
-      active === null ||
-      active === document.body ||
-      active === this.word ||
-      (this.entry?.contains(active) ?? false)
+      target instanceof Node &&
+      (target === this.word ||
+        (this.entry?.contains(target) ?? false) ||
+        target.contains(this))
     this.close()
     // Focus goes back to the word, without scrolling the page to it.
     if (back) this.word?.focus({ preventScroll: true })
@@ -493,12 +542,15 @@ export class LtTerm extends HostElement {
       // when the word is clear of that. A word in the middle under a tall
       // sheet is covered either way, and the sheet goes on the side away
       // from it.
-      const bottom = window.innerHeight - card.height
+      const bottom = document.documentElement.clientHeight - card.height
       if (anchor.bottom <= bottom) top = bottom
       else if (anchor.top >= card.height) top = 0
       else
         top =
-          anchor.top + anchor.height / 2 > window.innerHeight / 2 ? 0 : bottom
+          anchor.top + anchor.height / 2 >
+          document.documentElement.clientHeight / 2
+            ? 0
+            : bottom
       left = 0
     } else {
       // The space under the word is `--lt-term-gap`, which the stylesheet

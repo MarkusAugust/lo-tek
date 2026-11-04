@@ -686,9 +686,21 @@ fn looks_generated(id: &str) -> bool {
 /// with a `<dt>` and a `<dd>` of its own.
 fn is_entry(nodes: &[Node], n: usize) -> bool {
     let node = &nodes[n];
-    let child = |name: &str| nodes.iter().any(|m| m.parent == Some(n) && m.name == name);
-    node.name == "div"
-        && node.parent.is_some_and(|p| nodes[p].name == "dl")
-        && child("dt")
-        && child("dd")
+    if node.name != "div" || !node.parent.is_some_and(|p| nodes[p].name == "dl") {
+        return false;
+    }
+    // The children come right after the entry in document order: read only
+    // its own subtree, not the whole page once for every term.
+    let mut dt = false;
+    let mut dd = false;
+    for (m, child) in nodes.iter().enumerate().skip(n + 1) {
+        if !within(nodes, m, |a| std::ptr::eq(a, node)) {
+            break;
+        }
+        if child.parent == Some(n) {
+            dt |= child.name == "dt";
+            dd |= child.name == "dd";
+        }
+    }
+    dt && dd
 }

@@ -19,11 +19,13 @@ import {
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
 import { datastarPatch, morph } from "../../../testing/update"
+import { defineLtPopover, type LtPopover } from "../popover/lt-popover"
 import { defineLtTerm, LtTerm } from "./lt-term"
 import { term, termWithState } from "./term"
 
 import "../../../tokens/tokens.css"
 import "./term.css"
+import "../popover/popover.css"
 
 const SIGNAL = term({ id: "term-signal" })
 const PATCH = term({ id: "term-patch" })
@@ -414,6 +416,109 @@ describe("lt-term", () => {
     expect($("word").hasAttribute("aria-expanded")).toBe(false)
   })
 
+  it("follows a new link out of view after an update replaces it while the card is open", async () => {
+    mount(`
+      <p><lt-term id="host"><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term></p>
+      <div style="block-size: 300vh"></div>
+      ${GLOSSARY}
+    `)
+    await paint()
+    await userEvent.click($("word"))
+    await paint()
+    $("host").innerHTML = `<a ${attr(SIGNAL.word)} id="word">signals</a>`
+    await rest(200)
+    expect($("term-signal").matches(":popover-open")).toBe(true)
+
+    window.scrollBy({ top: window.innerHeight * 1.5, behavior: "instant" })
+    await rest(200)
+    expect($("term-signal").matches(":popover-open")).toBe(false)
+    window.scrollTo({ top: 0, behavior: "instant" })
+  })
+
+  it("points aria-details at the entry the link points at now, and leaves the server's", async () => {
+    mount(`
+      <p>
+        <lt-term><a href="#term-signal" id="mine">signals</a></lt-term>
+        <lt-term><a href="#term-signal" aria-details="server-said" id="theirs">signals</a></lt-term>
+      </p>
+      ${GLOSSARY}
+    `)
+    await paint()
+    expect($("mine").getAttribute("aria-details")).toBe("term-signal")
+
+    $("mine").setAttribute("href", "#term-patch")
+    $("theirs").setAttribute("href", "#term-patch")
+    await paint()
+    expect($("mine").getAttribute("aria-details")).toBe("term-patch")
+    expect($("theirs").getAttribute("aria-details")).toBe("server-said")
+
+    $("mine").setAttribute("href", "#term-nowhere")
+    await paint()
+    expect($("mine").hasAttribute("aria-details")).toBe(false)
+  })
+
+  it("closes a card in an open popover with Escape, and leaves the popover open", async () => {
+    defineLtPopover()
+    mount(`
+      <lt-popover id="menu">
+        <button class="lt-button" type="button">Policy</button>
+        <div class="lt-popover" id="panel">
+          <p>Paid unless an <lt-term><a ${attr(SIGNAL.word)} id="word">act of God</a></lt-term>.</p>
+        </div>
+      </lt-popover>
+      ${GLOSSARY}
+    `)
+    await paint()
+    ;(document.getElementById("menu") as LtPopover).show()
+    await paint()
+    $("word").focus()
+    await userEvent.keyboard("{Enter}")
+    await paint()
+    expect($("term-signal").matches(":popover-open")).toBe(true)
+
+    await userEvent.keyboard("{Escape}")
+    await paint()
+    expect($("term-signal").matches(":popover-open")).toBe(false)
+    expect($("panel").matches(":popover-open")).toBe(true)
+
+    await userEvent.keyboard("{Escape}")
+    await paint()
+    expect($("panel").matches(":popover-open")).toBe(false)
+  })
+
+  it("leaves the focus in a field outside its shadow root on Escape", async () => {
+    mount(
+      `<div id="shadow-host"></div><input id="field" aria-label="Claim number" />`,
+    )
+    const root = $("shadow-host").attachShadow({ mode: "open" })
+    root.innerHTML = `<p><lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term></p>${GLOSSARY}`
+    await paint()
+    const word = root.getElementById("word") as HTMLElement
+    word.click()
+    await paint()
+    expect(root.getElementById("term-signal")?.matches(":popover-open")).toBe(
+      true,
+    )
+
+    $("field").focus()
+    await userEvent.keyboard("{Escape}")
+    await paint()
+    expect(root.getElementById("term-signal")?.matches(":popover-open")).toBe(
+      false,
+    )
+    expect(document.activeElement).toBe($("field"))
+  })
+
+  it("finds an entry whose id is written with a percent sign, as the browser does", async () => {
+    mount(`
+      <p><lt-term><a href="#term-a%41" id="word">signals</a></lt-term></p>
+      <dl><div id="term-a%41"><dt>Signal</dt><dd>A value.</dd></div></dl>
+    `)
+    await paint()
+    expect($("word").getAttribute("aria-expanded")).toBe("false")
+    expect($("word").getAttribute("aria-details")).toBe("term-a%41")
+  })
+
   it("shows the new entry when the glossary is replaced while the card is open, and closes when it is gone", async () => {
     page1()
     await paint()
@@ -501,7 +606,9 @@ describe("lt-term", () => {
       await paint()
       const card = $("term-signal").getBoundingClientRect()
       expect(card.left).toBeGreaterThanOrEqual(0)
-      expect(card.right).toBeLessThanOrEqual(window.innerWidth)
+      expect(card.right).toBeLessThanOrEqual(
+        document.documentElement.clientWidth,
+      )
     } finally {
       await page.viewport(1280, 720)
     }
@@ -517,7 +624,9 @@ describe("lt-term", () => {
       const card = $("term-signal").getBoundingClientRect()
       expect(card.left).toBe(0)
       expect(Math.round(card.right)).toBe(document.documentElement.clientWidth)
-      expect(Math.round(card.bottom)).toBe(window.innerHeight)
+      expect(Math.round(card.bottom)).toBe(
+        document.documentElement.clientHeight,
+      )
       expect($("word").getBoundingClientRect().bottom).toBeLessThanOrEqual(
         card.top,
       )

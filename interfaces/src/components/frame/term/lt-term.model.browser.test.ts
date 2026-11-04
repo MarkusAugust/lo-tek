@@ -592,6 +592,9 @@ function expectedPosition(word: DOMRect, card: DOMRect, gap: number) {
   const edge = 4
   let top = word.bottom + gap
   let left = word.left
+  // The viewport without a classic scrollbar, as the card is clamped.
+  const innerWidth = document.documentElement.clientWidth
+  const innerHeight = document.documentElement.clientHeight
   left = Math.max(edge, Math.min(left, innerWidth - card.width - edge))
   if (top + card.height > innerHeight) top = word.top - card.height - gap
   top = Math.max(edge, Math.min(top, innerHeight - card.height - edge))

@@ -588,7 +588,6 @@ export async function whenUpgraded<T extends HTMLElement>(
   return element as T
 }
 
-/** The gap between the anchor and the panel, and between the panel and the window's edge. */
 /** The space between a panel and the window's edge. */
 const PLACE_EDGE = 4
 
@@ -614,24 +613,23 @@ export function place(
   alignRight: boolean,
   gap = 4,
 ): { top: number; left: number } {
+  // The viewport a fixed box lives in, without a classic scrollbar:
+  // `innerWidth` counts it, and a panel pushed in from the right edge sat
+  // under the scrollbar on Windows and Linux.
+  const width = document.documentElement.clientWidth || window.innerWidth
+  const height = document.documentElement.clientHeight || window.innerHeight
   let top = below ? anchor.bottom + gap : anchor.top - panel.height - gap
   let left = alignRight ? anchor.right - panel.width : anchor.left
 
   // `top-*` lacked the vertical clamp once, and a panel at the top of the
   // page lay entirely off screen, with no way to scroll it into view.
-  left = Math.max(
-    PLACE_EDGE,
-    Math.min(left, window.innerWidth - panel.width - PLACE_EDGE),
-  )
-  if (below && top + panel.height > window.innerHeight) {
+  left = Math.max(PLACE_EDGE, Math.min(left, width - panel.width - PLACE_EDGE))
+  if (below && top + panel.height > height) {
     top = anchor.top - panel.height - gap
   } else if (!below && top < PLACE_EDGE) {
     top = anchor.bottom + gap
   }
-  top = Math.max(
-    PLACE_EDGE,
-    Math.min(top, window.innerHeight - panel.height - PLACE_EDGE),
-  )
+  top = Math.max(PLACE_EDGE, Math.min(top, height - panel.height - PLACE_EDGE))
 
   return { top: Math.round(top), left: Math.round(left) }
 }

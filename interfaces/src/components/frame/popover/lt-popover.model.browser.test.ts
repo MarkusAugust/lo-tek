@@ -713,6 +713,9 @@ function expectedPosition(
   let left = end ? anchor.right - panel.width : anchor.left
   // Pushed into the window rather than switching edge, and to the other
   // side when there is no room on the one asked for.
+  // The viewport without a classic scrollbar, as the panel is clamped.
+  const innerWidth = document.documentElement.clientWidth
+  const innerHeight = document.documentElement.clientHeight
   left = Math.max(space, Math.min(left, innerWidth - panel.width - space))
   if (below && top + panel.height > innerHeight)
     top = anchor.top - panel.height - space
