@@ -12,8 +12,10 @@
  *   The tools that build and test the package run on this machine and in CI.
  * - Cargo: every crate from a registry in `Cargo.lock`, asked of OSV.
  * - Maven: every `group:artifact:version` written out in a tracked
- *   `*.gradle.kts`, asked of OSV. Only what is declared: the transitive
- *   dependencies need a Gradle resolution, and are not covered.
+ *   `*.gradle.kts`, the plugins, the standard library the published code
+ *   asks for, and the Kotlin a Gradle brings with `kotlin-dsl`, asked of
+ *   OSV. Only what is declared: the transitive dependencies need a Gradle
+ *   resolution, and are not covered, and neither is Gradle itself.
  *
  * An advisory that cannot be fixed yet goes in `ACCEPTED` with the reason.
  * An id there that is no longer reported stops the run, so the list cannot
@@ -40,15 +42,34 @@ const PLUGINS: Record<string, string> = {
   "com.vanniktech.maven.publish": "com.vanniktech:gradle-maven-publish-plugin",
 }
 
+/**
+ * The plugins that come with Gradle, applied as `` `name` `` without a
+ * version. They have no artifact of their own to ask about. `kotlin-dsl` is
+ * not among them: it brings the Kotlin Gradle plugin in the version the
+ * Gradle that runs it embeds, which is asked about below.
+ */
+const GRADLE_CORE_PLUGINS = new Set([
+  "java",
+  "java-library",
+  "java-platform",
+  "java-gradle-plugin",
+  "application",
+  "maven-publish",
+  "signing",
+  "base",
+  "distribution",
+  "idea",
+  "jacoco",
+  "version-catalog",
+])
+
 /** Our own artifacts, built from this repository. */
 const OWN_GROUP = "io.github.markusaugust:"
 
 /** Advisories that are known and cannot be fixed yet, with the reason. */
 const ACCEPTED: Record<string, string> = {
   "GHSA-g3hv-75wg-m249":
-    "minimatch below 11.0.1. vscode-languageclient (bundled in the extension) and @vscode/vsce require ^5 and ^10, also in their newest versions. The extension matches only its own document selectors with it, never a pattern from the user",
-  "GHSA-3g3m-2fjr-6pw4":
-    "glob 13 through @vscode/vsce, which requires ^13 also in its newest version. Only used when the extension is packed, on our own files",
+    "minimatch below 11.0.1. vscode-languageclient 9 (bundled in the extension) requires ^5, its newest version (11.0.0) ^10.2.6, and @vscode/vsce 4 ^10.2.6 too, so no version of either reaches 11.0.1. The extension matches only its own document selectors with it, never a pattern from the user, and vsce only our own files when the extension is packed",
 }
 
 type Finding = { id: string; where: string; summary: string }
@@ -96,15 +117,30 @@ function npm(): { checked: string; findings: Finding[] } {
       summary: `${a.severity}: ${a.title}`,
     })),
   )
-  return { checked: "the npm lockfile", findings }
+  // The number of packages, so a report on nothing cannot look like a clean one.
+  const lock = readFileSync(join(ROOT, "bun.lock"), "utf8")
+  const packages =
+    lock.slice(lock.indexOf('"packages"')).match(/^ {4}"[^"]+": \[/gm)
+      ?.length ?? 0
+  if (packages === 0) stop("Found no packages in bun.lock.")
+  return { checked: `${packages} npm packages`, findings }
 }
 
 type Query = { package: { ecosystem: string; name: string }; version: string }
 
 function crates(): Query[] {
   const lock = readFileSync(join(ROOT, "Cargo.lock"), "utf8")
-  return lock
-    .split("[[package]]")
+  const blocks = lock.split("[[package]]").slice(1)
+  // A crate without `source` is a member of the workspace. One from git or
+  // another source OSV cannot be asked about by version.
+  for (const block of blocks) {
+    const source = block.match(/^source = "([^"]+)"/m)?.[1]
+    if (source && !source.startsWith("registry+"))
+      stop(
+        `A crate in Cargo.lock comes from ${source}, which the check cannot ask about.`,
+      )
+  }
+  return blocks
     .filter((block) => /^source = "registry\+/m.test(block))
     .map((block) => {
       const name = block.match(/^name = "([^"]+)"/m)?.[1]
@@ -123,6 +159,8 @@ function maven(): Query[] {
     .split("\n")
     .filter(Boolean)
   const coordinates = new Set<string>()
+  const versionless: { file: string; line: string }[] = []
+  let kotlinDsl = false
   for (const file of files) {
     const text = readFileSync(join(ROOT, file), "utf8")
     for (const [, coordinate] of text.matchAll(/"([\w.-]+:[\w.-]+:[^"]+)"/g)) {
@@ -134,12 +172,19 @@ function maven(): Query[] {
         stop(`${file}: cannot read the version in "${coordinate}".`)
       coordinates.add(coordinate)
     }
-    // The Kotlin plugin brings the standard library in the same version.
+    // The standard library the code asks for is `coreLibrariesVersion`
+    // where it is set, and the plugin's own version otherwise.
+    const core = [
+      ...text.matchAll(/\bcoreLibrariesVersion\s*=\s*"([^"]+)"/g),
+    ].map((m) => m[1])
+    for (const version of core)
+      coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
     for (const [, version] of text.matchAll(
       /\bkotlin\("[\w-]+"\) version "([^"]+)"/g,
     )) {
       coordinates.add(`org.jetbrains.kotlin:kotlin-gradle-plugin:${version}`)
-      coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
+      if (core.length === 0)
+        coordinates.add(`org.jetbrains.kotlin:kotlin-stdlib:${version}`)
     }
     for (const [, id, version] of text.matchAll(
       /\bid\("([^"]+)"\) version "([^"]+)"/g,
@@ -147,6 +192,60 @@ function maven(): Query[] {
       if (!(id in PLUGINS))
         stop(`${file}: the plugin ${id} is missing from PLUGINS.`)
       coordinates.add(`${PLUGINS[id]}:${version}`)
+    }
+    // A plugin without a version is a Gradle core plugin, `kotlin-dsl`, or
+    // one whose version is written in another build file. Anything else
+    // would be skipped without a word.
+    const block = text.match(/^plugins\s*\{([\s\S]*?)^\}/m)?.[1] ?? ""
+    for (const line of block
+      .split("\n")
+      .map((l) => l.replace(/\/\/.*$/, "").trim())
+      .filter(Boolean)) {
+      const core =
+        line.match(/^`([\w-]+)`$/)?.[1] ??
+        line.match(/^(java|application|base|idea|signing|jacoco)$/)?.[1]
+      if (core === "kotlin-dsl") kotlinDsl = true
+      else if (core) {
+        if (!GRADLE_CORE_PLUGINS.has(core))
+          stop(
+            `${file}: the plugin ${core} is neither a Gradle core plugin nor kotlin-dsl.`,
+          )
+      } else if (!/\bversion\s+"/.test(line)) versionless.push({ file, line })
+    }
+  }
+  for (const { file, line } of versionless) {
+    const id = line.match(/^(?:kotlin|id)\("([^"]+)"\)/)?.[1]
+    const versioned =
+      id &&
+      files.some((f) =>
+        new RegExp(
+          `(?:kotlin|id)\\("${id.replace(/\./g, "\\.")}"\\) version "`,
+        ).test(readFileSync(join(ROOT, f), "utf8")),
+      )
+    if (!versioned)
+      stop(`${file}: cannot read the version of the plugin \`${line}\`.`)
+  }
+  // `kotlin-dsl` brings the Kotlin Gradle plugin in the version the Gradle
+  // that runs it embeds, so every Gradle in the repository is asked: a build
+  // can be run by another one through `includeBuild`.
+  if (kotlinDsl) {
+    for (const properties of Bun.spawnSync(
+      ["git", "ls-files", "*gradle-wrapper.properties"],
+      { cwd: ROOT },
+    )
+      .stdout.toString()
+      .split("\n")
+      .filter(Boolean)) {
+      const dir = join(ROOT, properties, "../../..")
+      const result = Bun.spawnSync(["./gradlew", "--version", "--quiet"], {
+        cwd: dir,
+      })
+      const kotlin = result.stdout.toString().match(/^Kotlin:\s+(\S+)/m)?.[1]
+      if (result.exitCode !== 0 || !kotlin)
+        stop(
+          `./gradlew --version in ${dir} gave no Kotlin version:\n${result.stderr.toString()}`,
+        )
+      coordinates.add(`org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin}`)
     }
   }
   return [...coordinates].map((coordinate) => {
