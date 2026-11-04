@@ -1,6 +1,6 @@
 ---
 title: Dialog
-description: Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().
+description: Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.
 ---
 
 import { TabItem, Tabs } from "@astrojs/starlight/components"
@@ -15,13 +15,13 @@ import "@lo-tek/interfaces/tokens.css"
 import "@lo-tek/interfaces/dialog.css"
 ```
 
-Opening it **must** be a call. `showModal()` moves focus inside, keeps focus within the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup does none of this, and is just a box on the page. There is no declarative way to open a modal dialog, neither in LO-TEK nor in HTML.
+Opening it **must** be a call. `showModal()` moves focus inside, keeps focus within the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup does none of this, and is just a box on the page. HTML now has a way without a script, a button with `commandfor` and `command="show-modal"`, which has been [Baseline since December 2025](https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/command). In a browser from before that the button does nothing, so the recipes open the dialog with `showModal()`.
 
-That is a problem for only one kind of app: one with nowhere to make the call from, because all markup is produced on the server. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`.
+A click in the page makes the call with one line of script. When it is the server that decides the dialog is open, as with an answer that asks the user to confirm or a patch from Datastar, there is nowhere to make the call from. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`.
 
 ## How to use it
 
-The "Try it" tab is the dialog in action. The other four are the dialog written for one environment each, and each of them is the complete recipe. The first three make the call themselves; the Datastar version lets `<lt-dialog>` do it, because a server that only sends HTML has nowhere to call from. The stylesheets are the same in all four, and are listed in each tab.
+The "Try it" tab is the dialog in action. The other five are the dialog written for one environment each, and each of them is the complete recipe. Plain HTML, React, Astro and kotlinx.html open it on a click, with `showModal()`; the Datastar version lets the server decide that it is open, and `<lt-dialog>` makes the call. Each tab lists the stylesheets it needs.
 
 <Tabs>
   <TabItem label="Try it">
@@ -47,25 +47,21 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
       <div class="lt-dialog__body">
         <p>The crew keeps the advance. This cannot be undone.</p>
       </div>
+      <!-- "Keep the job" only closes the dialog. "Cancel the job" posts to the
+           server: formmethod on the button overrides method="dialog". -->
       <form method="dialog" class="lt-dialog__footer">
         <button class="lt-button" data-variant="secondary" value="keep">Keep the job</button>
-        <button class="lt-button" data-variant="danger" value="cancel">Cancel the job</button>
+        <button class="lt-button" data-variant="danger" formmethod="post" formaction="/jobs/222-0481/cancel">Cancel the job</button>
       </form>
     </dialog>
 
     <script type="module">
       const dialog = document.getElementById("confirm")
 
+      // showModal() and not commandfor, which does nothing in a browser from
+      // before December 2025. This is the one script the recipe needs.
       document.getElementById("open-confirm").addEventListener("click", () => {
-        // Escape and close() without a value leave the previous value in place.
-        dialog.returnValue = ""
         dialog.showModal()
-      })
-
-      dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "cancel") {
-          // Cancel the job here
-        }
       })
     </script>
     ```
@@ -145,23 +141,17 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
       </div>
       <form method="dialog" {...box.footer}>
         <button {...lt.button({ variant: "secondary" })} value="keep">Keep the job</button>
-        <button {...lt.button({ variant: "danger" })} value="cancel">Cancel the job</button>
+        <button {...lt.button({ variant: "danger" })} formmethod="post" formaction="/jobs/222-0481/cancel">Cancel the job</button>
       </form>
     </dialog>
 
     <script>
       const dialog = document.getElementById("confirm") as HTMLDialogElement
 
+      // showModal() and not commandfor, which does nothing in a browser from
+      // before December 2025. This is the one script the recipe needs.
       document.getElementById("open-confirm")?.addEventListener("click", () => {
-        // Escape and close() without a value leave the previous value in place.
-        dialog.returnValue = ""
         dialog.showModal()
-      })
-
-      dialog.addEventListener("close", () => {
-        if (dialog.returnValue === "cancel") {
-          // Cancel the job here
-        }
       })
     </script>
     ```
@@ -216,15 +206,75 @@ The "Try it" tab is the dialog in action. The other four are the dialog written 
     ```
 
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The dialog opens with `showModal()` in the browser, as in the HTML tab, for the reason at the top of the page. The choice goes to the server: "Cancel the job" posts to `/jobs/222-0481/cancel`, and "Keep the job" only closes the dialog.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+
+    fun FlowContent.cancelJob() {
+        val box = Lt.dialog(titleId = "confirm-title")
+        button { lt(Lt.button(variant = ButtonVariant.DANGER)); id = "open-confirm"; type = ButtonType.button; +"Cancel the job" }
+        dialog {
+            lt(box.dialog)
+            id = "confirm"
+            h2 { lt(box.title); +"Cancel job 222-0481?" }
+            div {
+                lt(box.body)
+                p { +"The crew keeps the advance. This cannot be undone." }
+            }
+            form {
+                lt(box.footer)
+                attributes["method"] = "dialog"
+                button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); value = "keep"; +"Keep the job" }
+                button {
+                    lt(Lt.button(variant = ButtonVariant.DANGER))
+                    formMethod = ButtonFormMethod.post
+                    formAction = "/jobs/222-0481/cancel"
+                    +"Cancel the job"
+                }
+            }
+        }
+        script(type = "module") {
+            unsafe {
+                +"""
+                const dialog = document.getElementById("confirm")
+
+                // showModal() and not commandfor, which does nothing in a browser from
+                // before December 2025. This is the one script the recipe needs.
+                document.getElementById("open-confirm").addEventListener("click", () => {
+                  dialog.showModal()
+                })
+                """
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        cancelJob()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+
+    If the server should open the dialog itself, put it in `ltDialog { lt(box.host) }` and pass `open = true`, as in the Datastar tab.
+  </TabItem>
 </Tabs>
+
+The heading's id comes from the template, and the dialog takes its name from it. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render: a screen reader follows `aria-labelledby` to it, and a morph recognises an element by its id. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 The button in "Try it" does what a server would otherwise do: it sets `open` on `<lt-dialog>`, as the Datastar recipe does. The dialog in "Try it" also has a coloured header with a subtitle, described under [Coloured header](#coloured-header).
 
-## What all four have in common
+## What the recipes have in common
 
-Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. The first three recipes make the call themselves; the Datastar recipe lets `<lt-dialog>` do it, because a server that only sends HTML has nowhere to call from. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
+Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. Plain HTML, React, Astro and kotlinx.html make the call on a click; the Datastar recipe lets the server decide that the dialog is open, and `<lt-dialog>` makes the call. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
 
-`<form method="dialog">` closes the dialog when a button is pressed, and puts the button's `value` in `dialog.returnValue`. Then you need no listeners on the buttons, and Enter works as expected.
+`<form method="dialog">` closes the dialog when a button is pressed, and puts the button's `value` in `dialog.returnValue`. Then you need no listeners on the buttons, and Enter works as expected. A button with `formmethod="post"` submits the form to its `formaction` instead, and the dialog stays open until the next page arrives, as "Cancel the job" does in the Plain HTML, Astro and kotlinx.html recipes. In the React and Datastar recipes it closes the dialog with `value="cancel"`, and the app or the server cancels the job.
 
 Escape closes the dialog on its own. To prevent that, for example in the middle of a save, cancel the `cancel` event. Do it rarely: a dialog that cannot be closed is a trap.
 
@@ -257,9 +307,9 @@ Without `showModal()` the markup is a box on the page. That is the state the ser
 
 ## When the server opens the dialog
 
-This section only applies to apps without code of their own in the browser. If you have JavaScript there, skip it: `showModal()` is one call, and a component in between gives you nothing.
+This section applies when the server decides that the dialog is open, not a click in the browser: an answer that asks the user to confirm, or a patch from Datastar or htmx. When a click opens it, as in the recipes above, `showModal()` is one call, and a component in between gives you nothing.
 
-An app in Datastar, htmx, a Go template or a Razor view has no such place. It sends `open` on `<lt-dialog>`, and the component makes the call.
+The server has nowhere to call `showModal()` from. It sends `open` on `<lt-dialog>`, and the component makes the call.
 
 ```js
 import { defineLtDialog } from "@lo-tek/interfaces/dialog"
@@ -281,7 +331,7 @@ defineLtDialog()
 </lt-dialog>
 ```
 
-Inside `<lt-dialog>` the component names the dialog from the first heading outside the body: `aria-labelledby` pointing at the heading's id, which it creates if it is missing, and the class `lt-dialog__title` on the heading. A heading inside `lt-dialog__body` belongs to the content, not to the dialog, and never becomes the title. If the server wrote `aria-labelledby` or `aria-label`, that stays. If the dialog has neither and no heading outside the body either, the component warns in the console. When the markup is produced with JavaScript, `lt.dialog({ titleId })` writes the same.
+Inside `<lt-dialog>` the component names the dialog from the first heading outside the body: `aria-labelledby` pointing at the heading's id, which it creates if it is missing, and the class `lt-dialog__title` on the heading. A heading inside `lt-dialog__body` belongs to the content, not to the dialog, and never becomes the title. If the server wrote `aria-labelledby` or `aria-label`, that stays. If the dialog has neither and no heading outside the body either, the component warns in the console. When the code that renders the markup can call a builder function, `lt.dialog({ titleId })` or `Lt.dialog()` writes the same.
 
 **Give the button that closes the dialog a `value`.** Without JavaScript the dialog is a box on the page, and `<form method="dialog">` closes it before any script has run. The component recognises what has already happened from `returnValue`, which the browser sets to the button's value. If it is empty, the component sees a host that says "open" and a closed dialog, and opens it again.
 
@@ -331,11 +381,11 @@ const box = lt.dialog({ titleId: "order-title", open: true })
 </lt-dialog>
 ```
 
-The import goes to `/react` here, since the example is JSX. From there the keys are `className` and `htmlFor`. If you write the markup in something else, import `@lo-tek/interfaces` and get `class` and `for`.
+The import goes to `/react` here, since the example is JSX. From there the keys are `className` and `htmlFor`. If the markup is not JSX, import `@lo-tek/interfaces` and get `class` and `for`, or call `Lt.dialog()` on a Kotlin or Java server.
 
 `lt.dialog.title`, `lt.dialog.body` and `lt.dialog.footer` give the class names alone. See [Type-safe use](../../type-safe-use/).
 
-If you produce the markup with JavaScript and control everything in the browser, you need no component: call `showModal()` yourself, as in the "Plain HTML" recipe above. Then do not pass `open` to `lt.dialog()`. The attribute is the server's message to `<lt-dialog>`, and `showModal()` throws `InvalidStateError` on a dialog that is already open.
+If the app has code in the browser that calls `showModal()`, you need no component, whatever rendered the markup: call `showModal()` yourself, as in the "Plain HTML" recipe above. Then do not pass `open` to `lt.dialog()`. The attribute is the server's message to `<lt-dialog>`, and `showModal()` throws `InvalidStateError` on a dialog that is already open.
 
 In React the attribute is also the only thing that matches when the server renders the dialog open. The component sets `open` on `<dialog>` before React hydrates, so if it was not in the server's HTML, React reported a mismatch on every single page load.
 

@@ -26,10 +26,10 @@ export const LT_ERROR_SUMMARY_PARTS = {
  * Takes the user from an error in the summary to the field that failed.
  *
  * The server writes the content: the heading and the list of links. When the
- * markup is written with JavaScript, `lt.errorSummary()` also writes the
- * class, `role="alert"` and `tabindex="-1"` on the box, and the component
- * leaves them alone. When the markup comes from a template without
- * JavaScript, the component fills in those three and the class on the
+ * markup is written with a builder function, `lt.errorSummary()` also writes
+ * the class, `role="alert"` and `tabindex="-1"` on the box, and the component
+ * leaves them alone. When the markup comes from a template without one, the
+ * component fills in those three and the class on the
  * heading, and sets them back when a patch removes them. Either way, a box
  * without a name gets `aria-labelledby` pointing at its heading. The component
  * creates no nodes: it used to, and then the heading disappeared on the
@@ -185,7 +185,7 @@ export class LtErrorSummary extends HostElement {
   }
 
   /**
-   * Fills in what a template without JavaScript did not write. Only what is
+   * Fills in what a template without a builder function did not write. Only what is
    * missing: a role the server chose stays, and so does a `tabindex`.
    */
   private wire(): void {

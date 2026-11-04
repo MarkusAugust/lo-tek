@@ -4,7 +4,7 @@ import type { Elements } from "./types.js"
 export const elements: Elements = {
   "lt-field": {
     "link": "https://lo-tek.sobernetics.no/components/field/",
-    "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup produced without JavaScript. When the markup is produced with JavaScript, use `lt.field()` instead.",
+    "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
     "attributes": {
       "disabled": {
         "type": "flag",
@@ -310,7 +310,7 @@ export const elements: Elements = {
   },
   "lt-dialog": {
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
-    "description": "Makes a `<dialog class=\"lt-dialog\">` modal with `showModal()`, for servers that cannot call it themselves. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
+    "description": "Makes a `<dialog class=\"lt-dialog\">` the server sends open a real modal, with `showModal()`. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
     "attributes": {
       "open": {
         "type": "flag",
@@ -393,7 +393,7 @@ export const elements: Elements = {
   },
   "lt-session-timeout": {
     "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
-    "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
+    "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out with a button that closes the dialog, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
     "attributes": {
       "warn-at": {
         "type": "number",

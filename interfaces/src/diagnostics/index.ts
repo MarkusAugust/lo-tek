@@ -3,8 +3,8 @@
  *
  * `diagnoseMarkup(html)` is the same check the editor extensions run while
  * you type, and that `lotek check` runs on the command line. It is here
- * because markup produced without JavaScript, in a Go template, a Kotlin
- * string or a Razor view, has no compiler looking at the attributes. A test
+ * because markup from a template, in Go, a Kotlin string or a Razor view, has
+ * no compiler looking at the attributes. A test
  * in the app can then run it over the HTML the server actually sends:
  *
  * ```ts

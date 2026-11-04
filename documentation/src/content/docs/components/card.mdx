@@ -54,6 +54,32 @@ lt.setAttributes(card, lt.card({ interactive: true }))
 `lt.card.title` gives the class for the heading. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.policies() {
+    div {
+        lt(Lt.card())
+        h3 { lt(Lt.card.title); +"Runner's policy AV-2079-0233" }
+        p { +"Taken out 4 March. Premium EB 1,200 a month." }
+        span { lt(Lt.badge(color = BadgeColor.SUCCESS)); +"Active" }
+    }
+    div {
+        lt(Lt.card(variant = SurfaceVariant.FILLED))
+        h3 { lt(Lt.card.title); +"Claim AV-2079-0481" }
+        p { +"We need a death certificate before we can process the claim." }
+        button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); +"Upload attachment" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

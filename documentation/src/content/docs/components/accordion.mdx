@@ -62,6 +62,37 @@ panel.addEventListener("toggle", () => {
 `lt.accordion.content` gives the class for the content. `toggle` is the browser's own event, and fires both when the user opens the panel and when you set `open` from code.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.questions() {
+    details {
+        lt(Lt.accordion())
+        summary { +"Who can take out a runner's policy?" }
+        div {
+            lt(Lt.accordion.content)
+            p { +"Anyone who jacks in for a living can apply, once our medical has cleared them. You must be over 18, and the deck must be registered in your own name." }
+        }
+    }
+    details {
+        lt(Lt.accordion())
+        attributes["open"] = ""
+        summary { +"How long does a claim take?" }
+        div {
+            lt(Lt.accordion.content)
+            p { +"We process a claim within three weeks. If attachments are missing, we write to whoever filed it." }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | Attribute | Effect |

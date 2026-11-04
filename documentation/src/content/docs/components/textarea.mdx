@@ -60,6 +60,28 @@ field.addEventListener("blur", () => {
 `state` is the same type as in [Input](../input/) and [Select](../select/), so the value can be passed between them. `lt.setAttributes` clears the state from the previous call, so the field does not stay red after the error is fixed.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.order() {
+    label { lt(Lt.label()); htmlFor = "objective"; +"Objective" }
+    textArea(rows = "3") { lt(Lt.textarea()); id = "objective"; placeholder = "State the objective" }
+    label { lt(Lt.label()); htmlFor = "fixer-note"; +"Note for the fixer" }
+    textArea { lt(Lt.textarea(state = FieldState.SUCCESS)); id = "fixer-note"; +"The floor plans follow by the usual drop." }
+    label { lt(Lt.label()); htmlFor = "terms"; +"Terms" }
+    textArea { lt(Lt.textarea(state = FieldState.INVALID)); id = "terms"; +"Too short" }
+    label { lt(Lt.label()); htmlFor = "order-log"; +"Order log" }
+    textArea { lt(Lt.textarea()); id = "order-log"; disabled = true; +"A crew has taken job 222-0481. The order is locked." }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-state` | Used for |

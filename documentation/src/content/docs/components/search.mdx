@@ -47,6 +47,27 @@ lt.setAttributes(field, lt.search())
 `lt.search()` sets both `lt-input` and `lt-search`, and `type="search"`. `lt.search.row` gives the class for the row with the field and the button.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.breakerSearch() {
+    form {
+        lt(Lt.search.row)
+        attributes["role"] = "search"
+        label { lt(Lt.label(), Lt.srOnly()); htmlFor = "search"; +"Search breakers" }
+        input { lt(Lt.search()); id = "search"; name = "q"; placeholder = "Search breakers" }
+        button { lt(Lt.button()); type = ButtonType.submit; +"Search" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 `type="search"` gives the browser's own cross for clearing the field, and "Search" instead of "Enter" on the mobile keyboard. Safari and Chrome draw the cross differently, Firefox does not draw it at all, and whether Escape clears the field varies.

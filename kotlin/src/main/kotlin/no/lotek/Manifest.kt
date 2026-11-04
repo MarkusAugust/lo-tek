@@ -87,10 +87,20 @@ data class Manifest(
                             required = option["required"] as? Boolean ?: wrong("$path.required", "true or false"),
                             type = optionType(option["type"].obj("$path.type"), "$path.type"),
                             description = option["description"]?.str("$path.description"),
+                            default = option["default"]?.str("$path.default"),
                         )
                     },
                 returns = returns(b["returns"].obj("$at.returns"), "$at.returns"),
                 classes = b["classes"]?.texts("$at.classes") ?: emptyMap(),
+                description = b["description"]?.str("$at.description"),
+                example = b["example"]?.str("$at.example"),
+                docs = b["docs"]?.str("$at.docs"),
+                parts =
+                    b["parts"]?.obj("$at.parts")?.mapValues { (field, p) ->
+                        val path = "$at.parts.$field"
+                        val part = p.obj(path)
+                        BuilderPart(element = part["element"].str("$path.element"), part = part["part"].str("$path.part"))
+                    } ?: emptyMap(),
             )
 
         private fun optionType(t: Map<String, Any?>, at: String): OptionType =
@@ -346,6 +356,28 @@ data class Builder(
      * in TypeScript: the name on the function and the class. Empty for most.
      */
     val classes: Map<String, String> = emptyMap(),
+    /**
+     * The comment on the function in TypeScript, without the code examples.
+     * `null` in a manifest from before 0.40; `schemaVersion` is the same, so
+     * the reader tolerates it missing, as with [example], [docs] and [parts].
+     */
+    val description: String? = null,
+    /** The code examples in the comment, in TypeScript. */
+    val example: String? = null,
+    /** The page the function is documented on. */
+    val docs: String? = null,
+    /**
+     * Which part of a frame component each set in the result fills, as
+     * `field.control` fills the control of `lt-field`. A set that fills no
+     * part is not here.
+     */
+    val parts: Map<String, BuilderPart> = emptyMap(),
+)
+
+/** A part of a frame component, as `control` in `lt-field`. Its selector is in [Manifest.elements]. */
+data class BuilderPart(
+    val element: String,
+    val part: String,
 )
 
 /** One option, like `variant` in `lt.button()`. [description] is the first paragraph of the comment on the option in the type. */
@@ -354,6 +386,8 @@ data class BuilderOption(
     val required: Boolean,
     val type: OptionType,
     val description: String?,
+    /** The value that gives the same answer as leaving the option out, for an option with a closed list. */
+    val default: String? = null,
 )
 
 /** What an option takes: a closed list, a flag, text, a number or a list of texts. */

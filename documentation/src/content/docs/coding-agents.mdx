@@ -157,7 +157,7 @@ exists, and every field to have a label. This works the same in every language, 
 it is the HTML that is checked. Flags and examples for tests are on
 [Command line](../command-line/).
 
-In a typed project, the types are the first check: `lt.button({ variant })`
+In a typed project, the types are the first check, as the enums of `Lt.button(variant = …)` are in Kotlin: `lt.button({ variant })`
 turns a variant that does not exist into a compile error, and if you import
 `@lo-tek/interfaces/react-jsx`, the same applies to the attributes on
 the web components. A hand-written `className` or `data-variant` is seen by neither

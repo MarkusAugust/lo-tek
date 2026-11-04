@@ -14,7 +14,7 @@
       "end": 19,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "<input> has no label: no <label for> pointing at it, no <label> around it, and no aria-label or aria-labelledby. A screen reader announces the field without a name. Write for on the label and id on the field in the template, or put the label around the field. If the markup is built with JavaScript, lt.field({ id }) does it."
+      "message": "<input> has no label: no <label for> pointing at it, no <label> around it, and no aria-label or aria-labelledby. A screen reader announces the field without a name. Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it."
     },
     {
       "start": 63,

@@ -269,6 +269,10 @@ const TAB_NAMES = new Set([
   "Astro",
   "Datastar",
   "TypeScript",
+  // The kotlinx.html tabs are compiled, rendered and compared with the page's HTML
+  // recipe by `RecipesTest` in `kotlin/kotlinx-html`, which no text rule here
+  // could do.
+  "kotlinx.html",
 ])
 
 /**
@@ -401,11 +405,22 @@ for (const file of readdirSync(PAGES).filter(
     // requirement would be impossible to state, since the two have a rule
     // each.
     const ts = m.match(/<Fragment slot="ts">([\s\S]*?)<\/Fragment>/)
+    // `slot="kotlin"` is the kotlinx.html tab, which `RecipesTest` compiles
+    // and compares with the markup; it is neither half here.
+    const kotlin = m.match(/<Fragment slot="kotlin">([\s\S]*?)<\/Fragment>/)
+    let markup = ts ? m.replace(ts[0], "") : m
+    if (kotlin) markup = markup.replace(kotlin[0], "")
     tabs.push({
       name: "Plain HTML",
-      code: ts ? m.replace(ts[0], "") : m,
+      code: markup,
       inRecipe: section.includes(m),
     })
+    if (kotlin)
+      tabs.push({
+        name: "kotlinx.html",
+        code: kotlin[1],
+        inRecipe: section.includes(m),
+      })
     // `imports` belongs to both halves: it says which stylesheets the example
     // needs, whichever tab they are shown in.
     const declaration = m.match(/imports=\{\[[^\]]*\]\}/)?.[0] ?? ""

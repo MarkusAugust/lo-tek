@@ -56,6 +56,37 @@ lt.setAttributes(list, lt.list({ variant: "divided" }))
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.lists() {
+    ul {
+        lt(Lt.list())
+        li { +"Floor plans" }
+        li { +"Guard rotation for sub-level two" }
+        li { +"Camera map of the loading dock" }
+    }
+    ol {
+        lt(Lt.list())
+        li { +"State the objective" }
+        li { +"Set the budget" }
+        li { +"Order the job" }
+    }
+    ul {
+        lt(Lt.list(variant = ListVariant.DIVIDED))
+        li { +"Job 222-0481, deliver by 4 March" }
+        li { +"Job 222-0482, deliver by 4 April" }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

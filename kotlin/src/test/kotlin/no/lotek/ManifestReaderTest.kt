@@ -215,20 +215,32 @@ class ManifestReaderTest {
             m["fields"]?.map()?.values?.forEach { shapesIn(it) }
         }
         var withClasses = 0
+        var withParts = 0
+        var described = 0
+        var defaults = 0
         for ((i, b) in builders.withIndex()) {
             val expected = b.map()
             val read = Lotek.manifest.builders[i]
-            known(b, "name", "options", "returns", "table", "classes", at = read.name)
+            known(b, "name", "description", "example", "docs", "parts", "options", "returns", "table", "classes", at = read.name)
             assertEquals(expected["classes"] ?: emptyMap<String, String>(), read.classes, "${read.name} classes")
+            assertEquals(listOf(expected["description"], expected["example"], expected["docs"]), listOf(read.description, read.example, read.docs), "${read.name} documentation")
+            assertEquals(
+                expected["parts"] ?: emptyMap<String, Any?>(),
+                read.parts.mapValues { (_, p) -> mapOf("element" to p.element, "part" to p.part) },
+                "${read.name} parts",
+            )
+            if (read.parts.isNotEmpty()) withParts += 1
+            if (read.description != null) described += 1
             if (read.classes.isNotEmpty()) withClasses += 1
             val rawOptions = expected["options"] as List<*>
             assertEquals(rawOptions.size, read.options.size, read.name)
             for ((j, o) in rawOptions.withIndex()) {
                 val e = o.map()
                 val r = read.options[j]
-                known(o, "name", "required", "type", "description", at = "${read.name} ${e["name"]}")
+                known(o, "name", "required", "type", "description", "default", at = "${read.name} ${e["name"]}")
                 known(e["type"], "kind", "values", at = "${read.name} ${e["name"]} type")
-                assertEquals(listOf(e["name"], e["required"], e["type"], e["description"]), listOf(r.name, r.required, typeJson(r.type), r.description), "${read.name} ${e["name"]}")
+                assertEquals(listOf(e["name"], e["required"], e["type"], e["description"], e["default"]), listOf(r.name, r.required, typeJson(r.type), r.description, r.default), "${read.name} ${e["name"]}")
+                if (r.default != null) defaults += 1
                 kinds += e["type"].map()["kind"] as String
                 options += 1
             }
@@ -240,6 +252,9 @@ class ManifestReaderTest {
         }
         assertTrue(options > 0, "No builder function had options, so the comparison said nothing.")
         assertTrue(withClasses > 0, "No builder function had classes for its parts, so that branch of the reader is untested.")
+        assertTrue(withParts > 0, "No builder function had parts, so that branch of the reader is untested.")
+        assertEquals(builders.size, described, "every builder function has a description in the manifest")
+        assertTrue(defaults > 0, "No option had a default, so that branch of the reader is untested.")
         assertEquals(setOf("values", "flag", "text", "number", "textList"), kinds, "every option type must be in the manifest, otherwise a branch in the reader is untested")
         // No builder function returns plain text today, so that branch is tested below, with a rewritten manifest.
         assertTrue(shapes.containsAll(setOf("attributes", "values", "list", "group")), "the shapes in the manifest were $shapes, so a branch in the reader is untested")
@@ -251,8 +266,9 @@ class ManifestReaderTest {
         assertEquals(Returns.Attributes(optional = true), group.fields.getValue("host"))
         // Every option has a description today, so an option without one is tested by removing the first.
         // The description is last in the option, so the comma before it must go too, or the JSON becomes invalid.
-        // The same sentence is on the class attribute further up, so the replacement is made from \"builders\" onwards.
-        val buildersAt = text.indexOf("\"builders\"")
+        // The same sentence is on the class attribute further up, so the replacement is made from the first option onwards.
+        // The function itself has a description before its options, so the search starts at the first option.
+        val buildersAt = text.indexOf("\"options\"", text.indexOf("\"builders\""))
         val firstDescription = Regex(",\\n\\s*\"description\": \"(?:[^\"\\\\]|\\\\.)*\"").find(text, buildersAt)!!
         val withoutDescription = Manifest.parse(text.substring(0, buildersAt) + text.substring(buildersAt).replaceFirst(firstDescription.value, ""))
         assertEquals(null, withoutDescription.builders.first().options.first().description)

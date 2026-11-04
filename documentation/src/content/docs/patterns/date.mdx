@@ -21,7 +21,7 @@ LO-TEK has no date picker. The browser has one, and it is better than ours was.
 </lt-field>
 ```
 
-If your server runs JavaScript, it writes the attributes itself and does not need `<lt-field>`:
+If the code that renders the markup can call a builder function, in TypeScript, Kotlin or Java, it writes the attributes itself and does not need `<lt-field>`:
 
 ```ts
 import { lt } from "@lo-tek/interfaces"

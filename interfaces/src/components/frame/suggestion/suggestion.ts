@@ -14,7 +14,9 @@ export const SUGGESTION_STATUS_CLASS = "lt-sr-only" as const
 export type SuggestionOptions = Omit<FieldOptions, "id"> & {
   /**
    * Shared id stem. The control becomes `${id}`, the list `${id}-list`, and
-   * the options `${id}-option-${key}`.
+   * the options `${id}-option-${key}`. Make it from a key in the data, never
+   * from the loop index or a counter, so it is unique on the page and the
+   * same on every render.
    */
   id: string
   /**

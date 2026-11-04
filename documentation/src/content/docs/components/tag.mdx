@@ -42,6 +42,23 @@ tag.setAttribute("aria-pressed", "false")
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.tags() {
+    span { lt(Lt.tag()); +"cutter" }
+    span { lt(Lt.tag(variant = SurfaceVariant.FILLED)); +"worm" }
+    span { lt(Lt.tag()); attributes["aria-disabled"] = "true"; +"retired" }
+}
+```
+
+</Fragment>
 </Example>
 
 | `data-variant` | Used for |

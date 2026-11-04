@@ -17,10 +17,12 @@ export { createFieldId }
 
 export type FieldOptions = {
   /**
-   * The id of the control. Required.
+   * The id of the control. Required. Make it from a key in the data, never
+   * from the loop index or a counter, so it is unique on the page and the
+   * same on every render.
    *
    * In React it comes from `useId()`. Otherwise the field's name is usually
-   * the obvious choice. If you know for certain that the markup is rendered
+   * the obvious choice, and in a loop the name with the row's key. If you know for certain that the markup is rendered
    * once, call `createFieldId()` yourself.
    *
    * It used to be optional, and the function created one when it was

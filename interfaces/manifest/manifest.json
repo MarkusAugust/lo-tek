@@ -1,12 +1,12 @@
 {
   "$schema": "./manifest.schema.json",
   "schemaVersion": 1,
-  "version": "0.39.0",
+  "version": "0.40.0",
   "textLanguage": "en",
   "elements": {
     "lt-field": {
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup produced without JavaScript. When the markup is produced with JavaScript, use `lt.field()` instead.",
+      "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
       "attributes": {
         "disabled": {
           "type": "flag",
@@ -312,7 +312,7 @@
     },
     "lt-dialog": {
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
-      "description": "Makes a `<dialog class=\"lt-dialog\">` modal with `showModal()`, for servers that cannot call it themselves. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
+      "description": "Makes a `<dialog class=\"lt-dialog\">` the server sends open a real modal, with `showModal()`. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.",
       "attributes": {
         "open": {
           "type": "flag",
@@ -395,7 +395,7 @@
     },
     "lt-session-timeout": {
       "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
-      "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
+      "description": "Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method=\"dialog\">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out with a button that closes the dialog, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.",
       "attributes": {
         "warn-at": {
           "type": "number",
@@ -1483,7 +1483,7 @@
     "lt-dialog": {
       "component": "dialog",
       "title": "Dialog",
-      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
       "content": "free",
       "parts": {
@@ -1528,14 +1528,14 @@
             "danger"
           ],
           "default": "neutral",
-          "description": "Colour of the header. Default: none."
+          "description": "Colour of the header. Default: `neutral`, which gives none."
         }
       }
     },
     "lt-dialog__body": {
       "component": "dialog",
       "title": "Dialog",
-      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
       "content": "free",
       "partOf": "lt-dialog",
@@ -1544,7 +1544,7 @@
     "lt-dialog__title": {
       "component": "dialog",
       "title": "Dialog",
-      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
       "content": "text",
       "partOf": "lt-dialog",
@@ -1553,7 +1553,7 @@
     "lt-dialog__footer": {
       "component": "dialog",
       "title": "Dialog",
-      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
       "content": "free",
       "partOf": "lt-dialog",
@@ -1562,7 +1562,7 @@
     "lt-dialog__header": {
       "component": "dialog",
       "title": "Dialog",
-      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
       "content": "parts",
       "partOf": "lt-dialog",
@@ -1584,7 +1584,7 @@
     "lt-dialog__subtitle": {
       "component": "dialog",
       "title": "Dialog",
-      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for servers that cannot call showModal().",
+      "description": "Modal dialog built on the native dialog element. Six classes and no JavaScript, with an optional component for when the server decides that the dialog is open.",
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
       "content": "text",
       "partOf": "lt-dialog",
@@ -1879,6 +1879,8 @@
   "builders": [
     {
       "name": "accordion",
+      "description": "The attributes for a panel that can be expanded.\n\nThe class goes on a `<details>` with a `<summary>` first. The browser handles opening, closing, the keyboard and screen readers announcing \"expanded\" or \"collapsed\". Build the same thing from buttons and `aria-expanded`, and all of that must be written again, and the browser's find in page no longer finds text inside a closed panel.",
+      "example": "<details {...accordion()}>\n  <summary>Who can take out a policy?</summary>\n  <div class={accordion.content}>…</div>\n</details>",
       "options": [
         {
           "name": "variant",
@@ -1890,7 +1892,8 @@
               "plain"
             ]
           },
-          "description": "Its own frame, or just a line between the panels. Default: `default`."
+          "description": "Its own frame, or just a line between the panels. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -1916,10 +1919,13 @@
       },
       "classes": {
         "content": "lt-accordion__content"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/accordion/"
     },
     {
       "name": "alert",
+      "description": "The attributes for a message about the whole page or a whole form.\n\nThe role is not set here, because it depends on when the message comes. If it is in the markup from the start, it should have no role. If it appears while the page is idle, it needs `role=\"status\"`, or `role=\"alert\"` if the user must stop.",
+      "example": "<div {...alert({ color: \"warning\" })}>\n  <p class={alert.title}>Your routes have not been saved</p>\n</div>",
       "options": [
         {
           "name": "color",
@@ -1967,10 +1973,13 @@
       },
       "classes": {
         "title": "lt-alert__title"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/alert/"
     },
     {
       "name": "avatar",
+      "description": "The attributes for a profile picture or initials.\n\nIf the name is already next to it, the picture is decoration: set `aria-hidden=\"true\"` on it, or the name is announced twice. If the picture stands alone, it must have a text that says who it is.",
+      "example": "<span {...avatar({ size: \"small\" })} aria-hidden=\"true\">DP</span>",
       "options": [
         {
           "name": "size",
@@ -1983,7 +1992,8 @@
               "large"
             ]
           },
-          "description": "Size. Default: `medium`."
+          "description": "Size. Default: `medium`.",
+          "default": "medium"
         },
         {
           "name": "variant",
@@ -1995,7 +2005,8 @@
               "square"
             ]
           },
-          "description": "Round or rounded square. Default: `circle`."
+          "description": "Round or rounded square. Default: `circle`.",
+          "default": "circle"
         }
       ],
       "returns": {
@@ -2032,10 +2043,13 @@
       },
       "classes": {
         "stack": "lt-avatar-stack"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/avatar/"
     },
     {
       "name": "badge",
+      "description": "The attributes for a status badge.",
+      "example": "<span {...badge({ color: \"success\" })}>Paid</span>",
       "options": [
         {
           "name": "color",
@@ -2050,7 +2064,8 @@
               "neutral"
             ]
           },
-          "description": "What the status means. Default: `info`."
+          "description": "What the status means. Default: `info`.",
+          "default": "info"
         }
       ],
       "returns": {
@@ -2082,10 +2097,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/badge/"
     },
     {
       "name": "breadcrumbs",
+      "description": "The attributes for a breadcrumb trail.\n\nThe class goes on an `<ol>` inside a `<nav>` with a text that says what the navigation is, for example `aria-label=\"You are here\"`. The order matters, so the list must be numbered even though the numbers are not shown.\n\nThe separator between the steps is added with CSS. Had it been in the markup, screen readers would have read \"slash\" between every step.",
+      "example": "<nav aria-label=\"You are here\">\n  <ol {...breadcrumbs()}>\n    <li><a href=\"/\">Home</a></li>\n    <li><a href=\"/claims\" aria-current=\"page\">My claims</a></li>\n  </ol>\n</nav>",
       "options": [],
       "returns": {
         "kind": "attributes"
@@ -2098,10 +2116,13 @@
           },
           "options": {}
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/breadcrumbs/"
     },
     {
       "name": "button",
+      "description": "The attributes for a button.",
+      "example": "<button {...button({ variant: \"secondary\" })}>Save draft</button>",
       "options": [
         {
           "name": "variant",
@@ -2115,7 +2136,8 @@
               "danger"
             ]
           },
-          "description": "How weighty the action is. Default: `primary`."
+          "description": "How weighty the action is. Default: `primary`.",
+          "default": "primary"
         }
       ],
       "returns": {
@@ -2144,10 +2166,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/button/"
     },
     {
       "name": "card",
+      "description": "The attributes for a card.\n\n`interactive` gives hover and a focus ring, but makes nothing clickable by itself. If the whole card should be pressable, the element must be an `<a>` or a `<button>`. A `<div>` with a click listener can neither be reached with the keyboard nor be announced as something to press.",
+      "example": "<a {...card({ interactive: true })} href=\"/claims/AV-2079-0481\">…</a>",
       "options": [
         {
           "name": "variant",
@@ -2159,7 +2184,8 @@
               "filled"
             ]
           },
-          "description": "Surface or outline. Default: `outline`."
+          "description": "Surface or outline. Default: `outline`.",
+          "default": "outline"
         },
         {
           "name": "interactive",
@@ -2201,10 +2227,13 @@
       },
       "classes": {
         "title": "lt-card__title"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/card/"
     },
     {
       "name": "checkbox",
+      "description": "The attributes for a checkbox.\n\n`type` is set here, so the box cannot become a text field with a box's styling. The indeterminate state is set with `element.indeterminate = true` in JavaScript, not as an attribute, because HTML has no such attribute.",
+      "example": "<input {...checkbox({ state: \"invalid\" })} />",
       "options": [
         {
           "name": "state",
@@ -2217,7 +2246,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -2248,10 +2278,13 @@
       },
       "classes": {
         "row": "lt-checkbox-row"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/checkbox/"
     },
     {
       "name": "connectionStatus",
+      "description": "The attributes for the bar that says the connection is lost.\n\nBy definition the server cannot tell you it is unreachable. When it is down, nothing comes from it to render. So the component creates all the content itself, and `data-ignore-morph` stops a later patch from tearing it away the moment the connection is back. The host is the live region, `role=\"status\"` with `aria-live=\"polite\"`, so the region exists before the bar and its text arrive.",
+      "example": "<lt-connection-status {...lt.connectionStatus()} />",
       "options": [
         {
           "name": "offlineText",
@@ -2303,10 +2336,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/connection-status/"
     },
     {
       "name": "dialog",
+      "description": "The attributes for a dialog.\n\nOpening a dialog is a call, not an attribute: only `showModal()` moves focus in, keeps focus inside the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup is a box on the page.\n\nThat is a problem for a server that only sends HTML, since it cannot call anything in the browser. So the server says the dialog is open, and `<lt-dialog>` makes the call.\n\nThe two `open`s are not the same, and it is worth keeping them apart:\n\n- `open` on the **host** is the server saying the dialog should be shown. It is not preserved. If it were, the server could never open the dialog again after the user had closed it once. If the server sends the region again with `open` still set, the dialog opens again. For a dismissal to last, the app must tell the server.\n- `open` on the **`<dialog>`** is set by the browser itself when `showModal()` is called. It is not in the server's HTML, so a morph removes it, and the component puts it back. The server also writes it when it knows the dialog should be shown: without JavaScript a `<dialog>` without `open` is hidden, and its content does not exist for the reader. With the attribute it stands as a box on the page until the component turns it into a modal.",
+      "example": "const box = lt.dialog({ titleId: \"cancel-title\", open: true })\n\n<lt-dialog {...box.host}>\n  <dialog {...box.dialog}>\n    <h2 {...box.title}>Cancel job 222-0481?</h2>\n    <div {...box.body}>The crew keeps the advance. This cannot be undone.</div>\n    <form method=\"dialog\" {...box.footer}>\n      <button class=\"lt-button\" value=\"keep\">Keep the job</button>\n    </form>\n  </dialog>\n</lt-dialog>",
       "options": [
         {
           "name": "titleId",
@@ -2314,7 +2350,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`."
+          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "open",
@@ -2338,7 +2374,8 @@
               "danger"
             ]
           },
-          "description": "Colour of the header. Default: none."
+          "description": "Colour of the header. Default: `neutral`, which gives none.",
+          "default": "neutral"
         }
       ],
       "returns": {
@@ -2546,10 +2583,27 @@
             }
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/dialog/",
+      "parts": {
+        "dialog": {
+          "element": "lt-dialog",
+          "part": "dialog"
+        },
+        "title": {
+          "element": "lt-dialog",
+          "part": "title"
+        },
+        "body": {
+          "element": "lt-dialog",
+          "part": "body"
+        }
       }
     },
     {
       "name": "divider",
+      "description": "The attributes for a divider.\n\nThe class goes on an `<hr>`. If the line separates two parts of the content, it is information screen readers should get. If it is only decoration between two boxes that are already apart, set `aria-hidden=\"true\"` on it.",
+      "example": "<hr {...divider({ variant: \"subtle\" })} />",
       "options": [
         {
           "name": "variant",
@@ -2562,7 +2616,8 @@
               "strong"
             ]
           },
-          "description": "How visible the line is. Default: `default`."
+          "description": "How visible the line is. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -2588,10 +2643,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/divider/"
     },
     {
       "name": "errorSummary",
+      "description": "The attributes for an error summary.\n\nThe server writes the whole box, including the heading and the list. `<lt-error-summary>` only moves focus and handles clicks on the links. The component used to create the heading itself, and then it disappeared on every morph in Datastar.",
+      "example": "const summary = lt.errorSummary({\n  count: errors.length,\n  id: \"errors\",\n  titleId: \"errors-title\",\n})\n\n<lt-error-summary {...summary.host}>\n  <h2 {...summary.title}>You need to fix 2 errors</h2>\n  <ul><li><a href=\"#fixer\">The fixer's address is missing an @</a></li></ul>\n</lt-error-summary>",
       "options": [
         {
           "name": "count",
@@ -2607,7 +2665,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "The id of the box, so the form can move focus here after submission."
+          "description": "The id of the box, so the form can move focus here after submission. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "titleId",
@@ -2628,10 +2686,19 @@
             "kind": "attributes"
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/error-summary/",
+      "parts": {
+        "title": {
+          "element": "lt-error-summary",
+          "part": "title"
+        }
       }
     },
     {
       "name": "errorText",
+      "description": "The attributes for an error text below a field.",
+      "example": "<p {...errorText({ variant: \"warning\" })}>…</p>",
       "options": [
         {
           "name": "variant",
@@ -2643,7 +2710,8 @@
               "warning"
             ]
           },
-          "description": "Whether the error stops submission or only warns. Default: `error`."
+          "description": "Whether the error stops submission or only warns. Default: `error`.",
+          "default": "error"
         }
       ],
       "returns": {
@@ -2666,10 +2734,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/error-text/"
     },
     {
       "name": "field",
+      "description": "Connects the label, field, help text and error text.\n\nThe same calculation `<lt-field>` does in the browser, but as data, for the code that renders the markup. Then no web component is needed.",
+      "example": "const field = lt.field({ id: \"fixer\", required: \"text\", help: true, error: true, invalid })\n\n<label {...field.label}>Fixer's address</label>\n<input {...lt.input({ type: \"email\", state: field.state })} {...field.control} />\n<p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>\n<p {...lt.errorText()} {...field.error}>Enter the fixer's address, for example fixer@relay.example.</p>",
       "options": [
         {
           "name": "id",
@@ -2677,7 +2748,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "The id of the control. Required."
+          "description": "The id of the control. Required. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "help",
@@ -2780,10 +2851,31 @@
             ]
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/field/",
+      "parts": {
+        "label": {
+          "element": "lt-field",
+          "part": "label"
+        },
+        "control": {
+          "element": "lt-field",
+          "part": "control"
+        },
+        "help": {
+          "element": "lt-field",
+          "part": "help"
+        },
+        "error": {
+          "element": "lt-field",
+          "part": "error"
+        }
       }
     },
     {
       "name": "fieldset",
+      "description": "The attributes for a group of controls that belong together.\n\n`<fieldset>` with `<legend>` is the one way to give a set of radio buttons or checkboxes a shared label that screen readers actually announce before each choice.",
+      "example": "<fieldset {...fieldset({ state: \"invalid\" })}>\n  <legend {...legend({ required: \"symbol\" })}>Delivery method</legend>\n</fieldset>",
       "options": [
         {
           "name": "state",
@@ -2796,7 +2888,8 @@
               "success"
             ]
           },
-          "description": "Validation state for the whole group. Default: `default`."
+          "description": "Validation state for the whole group. Default: `default`.",
+          "default": "default"
         },
         {
           "name": "disabled",
@@ -2838,10 +2931,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/fieldset/"
     },
     {
       "name": "fileUpload",
+      "description": "The attributes for a file upload field.\n\nThe field is a plain `<input type=\"file\">`. The button inside is the browser's own, and its text comes from the operating system's language. It cannot be translated, so the label above the field must say what to upload.\n\n`accept` is a help in the file picker, not a barrier. The user can choose \"all files\", so the type must be checked on the server anyway.",
+      "example": "<input {...fileUpload({ multiple: true, accept: \".bin\" })} />",
       "options": [
         {
           "name": "state",
@@ -2854,7 +2950,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         },
         {
           "name": "multiple",
@@ -2918,10 +3015,13 @@
       },
       "classes": {
         "list": "lt-file-upload-list"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/file-upload/"
     },
     {
       "name": "heading",
+      "description": "The attributes for a heading.\n\nSize and level are two different things. The level is `<h1>` to `<h6>` and sets the structure screen readers navigate by; `size` only sets how large the text looks. An `<h2>` that should look small is correct; an `<h4>` chosen because it was small enough skips a level in the structure.",
+      "example": "<h2 {...heading({ size: \"m\" })}>Attachments</h2>",
       "options": [
         {
           "name": "size",
@@ -2937,7 +3037,8 @@
               "mega"
             ]
           },
-          "description": "Visual size. Default: `l`."
+          "description": "Visual size. Default: `l`.",
+          "default": "l"
         }
       ],
       "returns": {
@@ -2972,10 +3073,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/heading/"
     },
     {
       "name": "helpText",
+      "description": "The attributes for help text below a field.",
+      "example": "<p {...helpText({ variant: \"warning\" })}>…</p>",
       "options": [
         {
           "name": "variant",
@@ -2989,7 +3093,8 @@
               "warning"
             ]
           },
-          "description": "How loudly the text should speak. Default: `muted`."
+          "description": "How loudly the text should speak. Default: `muted`.",
+          "default": "muted"
         }
       ],
       "returns": {
@@ -3018,10 +3123,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/help-text/"
     },
     {
       "name": "icon",
+      "description": "The attributes for an icon. The class goes on an `<svg>`, and the svg comes from the app's icon set: LO-TEK ships no icons.\n\nThe icon is as large as the text around it, and is drawn in the colour the svg says, which should be `currentColor`. Without `label` it is decoration, and if it stands alone in a button, the button must get its name somewhere else: `aria-label` on the button, or a text with `lt-sr-only`. The core reports a button that lacks one.",
+      "example": "<button {...button()} aria-label=\"Delete ticket #0331\">\n  <svg {...icon()} viewBox=\"0 0 24 24\">…</svg>\n</button>",
       "options": [
         {
           "name": "label",
@@ -3054,10 +3162,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/icon/"
     },
     {
       "name": "input",
+      "description": "The attributes for a text field.\n\n`type` sets both the HTML type and the icon variant, so the two cannot get out of step. Write them by hand, and it is easy to get a date field that looks like a date field, but where nothing happens when the user presses the icon.",
+      "example": "<input {...input({ type: \"date\", state: \"invalid\" })} />",
       "options": [
         {
           "name": "type",
@@ -3079,7 +3190,8 @@
               "time"
             ]
           },
-          "description": "The HTML type. Set as `type`, and decides the icon. Default: `text`."
+          "description": "The HTML type. Set as `type`, and decides the icon. Default: `text`.",
+          "default": "text"
         },
         {
           "name": "state",
@@ -3092,7 +3204,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -3161,10 +3274,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/input/"
     },
     {
       "name": "label",
+      "description": "The attributes for a label.\n\nThe marker is only visual, so set `required` on the field itself as well, or the screen reader is not told that it must be filled in.",
+      "example": "<label {...label({ required: \"symbol\" })} htmlFor=\"fixer\">Fixer's address</label>",
       "options": [
         {
           "name": "required",
@@ -3197,10 +3313,12 @@
       ],
       "returns": {
         "kind": "attributes"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/label/"
     },
     {
       "name": "legend",
+      "description": "The attributes for the label of a group.\n\nThe same marker as `label()`, but on a `<legend>`.",
       "options": [
         {
           "name": "required",
@@ -3233,10 +3351,13 @@
       ],
       "returns": {
         "kind": "attributes"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/fieldset/"
     },
     {
       "name": "link",
+      "description": "The attributes for a link.\n\nAn `<a>` without `href` is no link to a screen reader and is not in the tab order. `role` and `tabindex` give it both back while it is disabled.",
+      "example": "<a {...link()} href=\"/small-print\">Read the small print</a>\n<a {...link({ disabled: true })}>See annual statement</a>",
       "options": [
         {
           "name": "disabled",
@@ -3269,10 +3390,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/link/"
     },
     {
       "name": "list",
+      "description": "The attributes for a list.\n\nThe class goes on `<ul>` or `<ol>`. `plain` and `divided` remove the bullets visually, but the list stays a list, so the screen reader still says how many items it has. That is why the variant exists: without it people would use `<div>` to get rid of the bullets. The exception is Safari, where a `<ul>` without visible bullets can need `role=\"list\"`. See the component page.",
+      "example": "<ul {...list({ variant: \"divided\" })}>…</ul>",
       "options": [
         {
           "name": "variant",
@@ -3285,7 +3409,8 @@
               "divided"
             ]
           },
-          "description": "Bullets, plain rows, or rows with a line between them. Default: `default`."
+          "description": "Bullets, plain rows, or rows with a line between them. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -3311,10 +3436,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/list/"
     },
     {
       "name": "pagination",
+      "description": "The attributes for pagination.\n\nThe class goes on a `<ul>` inside a `<nav aria-label=\"Pagination\">`. Each page is a link with its own address, not a button: the user can then open page three in a new tab, and come back with the back button.\n\nThe current page is marked with `aria-current=\"page\"`, which both gives the colour and is what the screen reader announces.",
+      "example": "<nav aria-label=\"Pagination\">\n  <ul {...pagination()}>…</ul>\n</nav>",
       "options": [],
       "returns": {
         "kind": "attributes"
@@ -3330,10 +3458,13 @@
       },
       "classes": {
         "gap": "lt-pagination__gap"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/pagination/"
     },
     {
       "name": "paragraph",
+      "description": "The attributes for a paragraph.\n\nThe width is limited to 70 characters. Longer lines make it hard to find the start of the next one, and that is the most common reason a text is hard to read even when the type is large enough.",
+      "example": "<p {...paragraph({ variant: \"lead\" })}>A short summary of what the page is about.</p>",
       "options": [
         {
           "name": "size",
@@ -3346,7 +3477,8 @@
               "large"
             ]
           },
-          "description": "Text size. Default: `medium`."
+          "description": "Text size. Default: `medium`.",
+          "default": "medium"
         },
         {
           "name": "variant",
@@ -3358,7 +3490,8 @@
               "lead"
             ]
           },
-          "description": "`lead` is the introduction right below the heading. Default: `default`."
+          "description": "`lead` is the introduction right below the heading. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -3392,10 +3525,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/paragraph/"
     },
     {
       "name": "popover",
+      "description": "The attributes for a popover.\n\nThe server writes both the button and the panel, with the wiring between them. `<lt-popover>` works out the position and closes on a click outside.",
+      "example": "const box = lt.popover({ id: \"help\" })\n\n<lt-popover>\n  <button {...box.trigger}>What is the late fee?</button>\n  <div {...box.panel}>EB 100 a night past the return date. No exceptions.</div>\n</lt-popover>",
       "options": [
         {
           "name": "id",
@@ -3403,7 +3539,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the panel. Connects the button to the panel with `aria-controls`."
+          "description": "Id of the panel. Connects the button to the panel with `aria-controls`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "open",
@@ -3425,7 +3561,8 @@
               "top-end"
             ]
           },
-          "description": "Which edge the panel hangs from. Default: `bottom-start`."
+          "description": "Which edge the panel hangs from. Default: `bottom-start`.",
+          "default": "bottom-start"
         }
       ],
       "returns": {
@@ -3521,10 +3658,23 @@
             }
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/popover/",
+      "parts": {
+        "trigger": {
+          "element": "lt-popover",
+          "part": "trigger"
+        },
+        "panel": {
+          "element": "lt-popover",
+          "part": "panel"
+        }
       }
     },
     {
       "name": "progress",
+      "description": "The attributes for a progress bar on a `<progress>`.\n\nThe element has the semantics built in: the browser exposes it as `role=\"progressbar\"` and announces how far it has come. You need neither a role, `aria-valuenow` nor `aria-valuemax`.\n\nLeave out `value`, and the bar becomes indeterminate: \"something is going on, we do not know for how long\". That is the same as `lt.spinner()` says, so choose one of them.\n\n`max` defaults to 100 and is always written out, against the rule that a default gives no attribute. The reason is that the rule is about appearance, where the CSS already has the answer. `max` is semantics, and HTML's own default is `1`: a `<progress value=\"40\">` without `max` shows a full bar, without anything saying so.",
+      "example": "<progress {...progress({ value: 3, max: 7, label: \"Step 3 of 7\" })} />",
       "options": [
         {
           "name": "value",
@@ -3628,10 +3778,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/progress/"
     },
     {
       "name": "radio",
+      "description": "The attributes for a radio button.\n\nAll the buttons in a group must have the same `name`. That connection is what lets only one be selected, and lets the arrow keys move between them. You set `name` yourself, since only you know what the group is called.",
+      "example": "<input {...radio()} name=\"delivery\" value=\"post\" />",
       "options": [
         {
           "name": "state",
@@ -3644,7 +3797,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -3675,10 +3829,13 @@
       },
       "classes": {
         "row": "lt-radio-row"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/radio/"
     },
     {
       "name": "search",
+      "description": "The attributes for a search field.\n\nThe field is an `lt-input` with room for the magnifying glass, so both classes are set. `type=\"search\"` gives the browser's own cross for clearing the field, and on mobile a keyboard with \"Search\" instead of \"Enter\".",
+      "example": "<input {...search()} name=\"q\" />",
       "options": [
         {
           "name": "state",
@@ -3691,7 +3848,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -3722,10 +3880,13 @@
       },
       "classes": {
         "row": "lt-search-row"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/search/"
     },
     {
       "name": "select",
+      "description": "The attributes for a dropdown list.",
+      "example": "<select {...select({ state: \"invalid\" })} />\n<select {...select({ picker: \"styled\" })} />",
       "options": [
         {
           "name": "state",
@@ -3738,7 +3899,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         },
         {
           "name": "picker",
@@ -3750,7 +3912,8 @@
               "styled"
             ]
           },
-          "description": "Who draws the dropdown list. Default: `auto`."
+          "description": "Who draws the dropdown list. Default: `auto`.",
+          "default": "auto"
         }
       ],
       "returns": {
@@ -3785,10 +3948,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/select/"
     },
     {
       "name": "sessionTimeout",
+      "description": "The attributes for the warning that a signed-in session is about to expire.\n\nThe renderer writes the dialog and all of the text, in its own language and with its own translation tool. The component only keeps time: it opens and closes the dialog, fills in the number and announces the countdown.\n\nThe buttons are plain buttons in a `<form method=\"dialog\">`. The browser closes the dialog and sets `returnValue` to the button's `value`, and the component reads it. `data-ignore-morph` asks Datastar's morph to leave the warning alone. Without it the morph takes `open` and the number while the dialog is in the top layer. The component puts `open` back, and the number comes back on the next tick. With the attribute the number stays the whole time.",
+      "example": "const session = lt.sessionTimeout({ titleId: \"session-title\" })\n\n<lt-session-timeout {...session.host}>\n  <dialog {...session.dialog}>\n    <h2 {...session.title}>Your session is ending</h2>\n    <p {...session.text}>\n      Your session on the Lattice ends in <span {...session.count}></span>. Unsaved routes will be lost.\n    </p>\n    <span {...session.live}></span>\n    <form {...session.actions}>\n      <button {...session.extend}>Stay connected</button>\n      <button {...session.logout}>Log out</button>\n    </form>\n  </dialog>\n</lt-session-timeout>",
       "options": [
         {
           "name": "titleId",
@@ -3796,7 +3962,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`."
+          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "warnAt",
@@ -4046,10 +4212,43 @@
             }
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/session-timeout/",
+      "parts": {
+        "dialog": {
+          "element": "lt-session-timeout",
+          "part": "dialog"
+        },
+        "title": {
+          "element": "lt-session-timeout",
+          "part": "title"
+        },
+        "text": {
+          "element": "lt-session-timeout",
+          "part": "text"
+        },
+        "count": {
+          "element": "lt-session-timeout",
+          "part": "count"
+        },
+        "live": {
+          "element": "lt-session-timeout",
+          "part": "status"
+        },
+        "extend": {
+          "element": "lt-session-timeout",
+          "part": "button"
+        },
+        "logout": {
+          "element": "lt-session-timeout",
+          "part": "button"
+        }
       }
     },
     {
       "name": "skeleton",
+      "description": "The attributes for a placeholder while the content loads.\n\nThe shapes are always hidden from screen readers. They say nothing about what is coming, and a row of empty boxes being announced is worse than silence. Announce the wait in one place instead, with `role=\"status\"`.",
+      "example": "<div {...skeleton({ variant: \"text\" })} />",
       "options": [
         {
           "name": "variant",
@@ -4062,7 +4261,8 @@
               "circle"
             ]
           },
-          "description": "Shape. Default: `block`."
+          "description": "Shape. Default: `block`.",
+          "default": "block"
         }
       ],
       "returns": {
@@ -4089,10 +4289,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/skeleton/"
     },
     {
       "name": "skipLink",
+      "description": "The attributes for a skip-to-content link.\n\nThe link must be the first element in `<body>`, and point to the id of the main content. It sits off screen until it gets focus, and therefore cannot be hidden with `display: none`: the keyboard could not reach it either, and the whole point is lost.",
+      "example": "<a {...skipLink()} href=\"#main-content\">Skip to main content</a>",
       "options": [],
       "returns": {
         "kind": "attributes"
@@ -4105,10 +4308,13 @@
           },
           "options": {}
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/skip-link/"
     },
     {
       "name": "spinner",
+      "description": "The attributes for a loading indicator.\n\nWithout `label` the ring is only a shape, and is hidden from screen readers with `aria-hidden`, as an icon without a label is. With `label` it becomes a `role=\"status\"` that says what is going on. If you already have a visible text next to it, let that carry the message and drop `label`, so the same thing is not announced twice.",
+      "example": "<span {...spinner({ label: \"Loading sectors\" })} />",
       "options": [
         {
           "name": "size",
@@ -4121,7 +4327,8 @@
               "large"
             ]
           },
-          "description": "Size. Default: `medium`."
+          "description": "Size. Default: `medium`.",
+          "default": "medium"
         },
         {
           "name": "label",
@@ -4139,7 +4346,8 @@
         "kind": "attributes",
         "table": {
           "base": {
-            "class": "lt-spinner"
+            "class": "lt-spinner",
+            "aria-hidden": "true"
           },
           "options": {
             "size": {
@@ -4156,6 +4364,7 @@
             "label": {
               "cases": {},
               "template": {
+                "aria-hidden": null,
                 "role": "status",
                 "aria-label": "{label}"
               },
@@ -4165,10 +4374,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/spinner/"
     },
     {
       "name": "srOnly",
+      "description": "The attributes for text that only screen readers should get.\n\nUse it when a label or explanation is needed by someone listening to the page, but would be noise to someone looking at it. If the content should be gone for everyone, use `hidden` instead.",
+      "example": "<span {...srOnly()}>Opens in a new tab</span>",
       "options": [],
       "returns": {
         "kind": "attributes"
@@ -4181,10 +4393,12 @@
           },
           "options": {}
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/sr-only/"
     },
     {
       "name": "suggestion",
+      "description": "The attributes for a field with a suggestion list.\n\nThe server writes both the field and the list. The web component filters, handles the arrow keys and keeps `aria-activedescendant` in sync. It renders nothing: it used to create the whole field itself, and then there was nothing to fill in before the script had run.\n\nNo preserve list. The attributes that change while the user types are set by the web component, and it sets them back when a patch strips them. If something else has already filtered, set `prefiltered` on `<lt-suggestion>`, and the web component leaves both the options and the empty message alone. If the server should also decide whether the list is expanded and which option is highlighted, set `server-controlled` as well.",
       "options": [
         {
           "name": "invalid",
@@ -4268,7 +4482,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "Shared id stem. The control becomes `${id}`, the list `${id}-list`, and the options `${id}-option-${key}`."
+          "description": "Shared id stem. The control becomes `${id}`, the list `${id}-list`, and the options `${id}-option-${key}`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "keys",
@@ -4345,10 +4559,43 @@
             ]
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/suggestion/",
+      "parts": {
+        "label": {
+          "element": "lt-suggestion",
+          "part": "label"
+        },
+        "control": {
+          "element": "lt-suggestion",
+          "part": "control"
+        },
+        "list": {
+          "element": "lt-suggestion",
+          "part": "list"
+        },
+        "options": {
+          "element": "lt-suggestion",
+          "part": "option"
+        },
+        "empty": {
+          "element": "lt-suggestion",
+          "part": "empty"
+        },
+        "status": {
+          "element": "lt-suggestion",
+          "part": "status"
+        },
+        "value": {
+          "element": "lt-suggestion",
+          "part": "value"
+        }
       }
     },
     {
       "name": "switch",
+      "description": "The attributes for an on/off switch.\n\nThe switch is a checkbox with `role=\"switch\"`. Screen readers then announce it as \"on\" and \"off\" rather than \"checked\", while the keyboard and `FormData` work as for a plain checkbox.\n\nThe switch has no validation state. A choice that is on or off cannot be invalid in itself; if turning it on is required, the requirement belongs in a checkbox with `required`.",
+      "example": "<input {...switchControl()} />",
       "options": [
         {
           "name": "disabled",
@@ -4384,10 +4631,13 @@
       },
       "classes": {
         "row": "lt-switch-row"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/switch/"
     },
     {
       "name": "table",
+      "description": "The attributes for a table.\n\nThe class goes on a real `<table>` with `<thead>` and `<th>`. The header cells are what let screen readers say \"Amount, 1,240 kroner\" when the user is in a cell. Build the table from `<div>` elements, and that connection does not exist.",
+      "example": "<table {...table({ variant: \"striped\" })}>…</table>",
       "options": [
         {
           "name": "variant",
@@ -4399,7 +4649,8 @@
               "striped"
             ]
           },
-          "description": "Every other row on a muted surface. Default: `default`."
+          "description": "Every other row on a muted surface. Default: `default`.",
+          "default": "default"
         },
         {
           "name": "hoverable",
@@ -4441,10 +4692,13 @@
       },
       "classes": {
         "scroll": "lt-table-scroll"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/table/"
     },
     {
       "name": "tableSort",
+      "description": "The attributes for a sortable column header.\n\n`aria-sort` is on the `<th>`, not on the button, because the cell is what describes the column. Only the sorted column has the attribute. The arrow is drawn from the same attribute, so what the screen reader says and what is shown cannot drift apart. The sorting itself is the app's job.",
+      "example": "const date = lt.tableSort({ direction: \"descending\" })\n\n<th scope=\"col\" {...date.header}>\n  <button {...date.button}>Date</button>\n</th>",
       "options": [
         {
           "name": "direction",
@@ -4503,10 +4757,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/table/"
     },
     {
       "name": "tabs",
+      "description": "The attributes for a tab list where the tabs are links to the panels.\n\nOnly links, ids and classes. Without JavaScript the tab list is then a plain list of links, and the panels follow one another: a table of contents that works for everyone. The roles, which tab is selected and which panels are hidden are written by `<lt-tabs>`. Had they been here, the markup without JavaScript would have said \"tab\" about a link that does not behave like one, and hidden the panels.\n\nThe first tab is selected when the page loads. Another one comes from the address, such as `#file-attachments`, or from `selected` and `select()` on `<lt-tabs>`.",
+      "example": "const tabs = lt.tabs({ id: \"file\", keys: [\"claim\", \"attachments\"], label: \"Parts of the claim\" })",
       "options": [
         {
           "name": "id",
@@ -4514,7 +4771,7 @@
           "type": {
             "kind": "text"
           },
-          "description": "The shared id stem. The panels become `${id}-${key}`, and the headings in them `${id}-${key}-heading`."
+          "description": "The shared id stem. The panels become `${id}-${key}`, and the headings in them `${id}-${key}-heading`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
         },
         {
           "name": "keys",
@@ -4558,10 +4815,27 @@
             }
           }
         }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/tabs/",
+      "parts": {
+        "list": {
+          "element": "lt-tabs",
+          "part": "list"
+        },
+        "tabs": {
+          "element": "lt-tabs",
+          "part": "tab"
+        },
+        "panels": {
+          "element": "lt-tabs",
+          "part": "panel"
+        }
       }
     },
     {
       "name": "tag",
+      "description": "The attributes for a tag.\n\nA tag labels content: keywords on an article, selected filters above a list. If it says what state something is in, Badge is right instead.\n\n`selectable` gives hover and a focus ring, but makes nothing pressable. The element must be a `<button>`, and you set `aria-pressed` yourself, since only you know whether the tag is selected.",
+      "example": "<button {...tag({ selectable: true })} aria-pressed=\"true\">Cutter</button>",
       "options": [
         {
           "name": "variant",
@@ -4573,7 +4847,8 @@
               "filled"
             ]
           },
-          "description": "Outline or muted surface. Default: `outline`."
+          "description": "Outline or muted surface. Default: `outline`.",
+          "default": "outline"
         },
         {
           "name": "selectable",
@@ -4612,10 +4887,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/tag/"
     },
     {
       "name": "textarea",
+      "description": "The attributes for a multi-line text field.",
+      "example": "<textarea {...textarea({ state: \"invalid\" })} />",
       "options": [
         {
           "name": "state",
@@ -4628,7 +4906,8 @@
               "success"
             ]
           },
-          "description": "Validation state. Default: `default`."
+          "description": "Validation state. Default: `default`.",
+          "default": "default"
         }
       ],
       "returns": {
@@ -4655,10 +4934,12 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/textarea/"
     },
     {
       "name": "toast",
+      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
       "options": [
         {
           "name": "label",
@@ -4759,10 +5040,13 @@
             }
           }
         }
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/toast/"
     },
     {
       "name": "toggleGroup",
+      "description": "The attributes for a group where one option is selected at a time.\n\nThe group is radio buttons in disguise. Each option is a `<label>` with an `<input type=\"radio\">` inside, visually shrunk away. You then keep the arrow keys, `FormData` and the screen reader saying \"2 of 3\" without writing any of it again.\n\nIf the choices are actions rather than a setting, such as \"bold, italic, underline\", buttons with `aria-pressed` belong there instead.",
+      "example": "<fieldset {...toggleGroup()}>\n  <legend class=\"lt-sr-only\">View</legend>\n  <label class={toggleGroup.option}>\n    <input type=\"radio\" name=\"view\" value=\"dry\" checked /> Dry\n  </label>\n</fieldset>",
       "options": [],
       "returns": {
         "kind": "attributes"
@@ -4778,10 +5062,13 @@
       },
       "classes": {
         "option": "lt-toggle-group__option"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/toggle-group/"
     },
     {
       "name": "tooltip",
+      "description": "The attributes for the wrapper around a trigger and a tooltip bubble.\n\nThe bubble shows on hover and on focus. The focus part is not optional: a bubble that only comes with the mouse does not exist for keyboard users.\n\nThe text in the bubble must be connected to the trigger with `aria-describedby`. Without it the bubble is just something that appears on screen, and is never announced.\n\nUse it for something extra, never for something the user must have. On a touch screen there is neither hover nor focus before something is tapped.",
+      "example": "<span {...tooltip()}>\n  <button aria-describedby=\"hint\">Appraise</button>\n  <span class={tooltip.bubble} role=\"tooltip\" id=\"hint\">At street value</span>\n</span>",
       "options": [],
       "returns": {
         "kind": "attributes"
@@ -4797,7 +5084,8 @@
       },
       "classes": {
         "bubble": "lt-tooltip__bubble"
-      }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/tooltip/"
     }
   ],
   "tokens": {

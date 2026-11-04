@@ -449,6 +449,82 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
   }),
 }
 
+/** Where a set from a builder function goes: a part of a frame component. */
+export type BuilderPart = { element: string; part: string }
+
+/**
+ * Which part of a frame component each set from a builder function fills:
+ * `field.control` is the control in `<lt-field>`. The selector stays on the
+ * part, so what a set may go on is said in one place, the same place the
+ * component and `lotek check` read. `null` is a set that fills no part, such
+ * as the host itself or a box only the stylesheet knows.
+ *
+ * Every set a builder function returns must be here, with a part that exists:
+ * `generate-manifest.ts` stops otherwise, so a new set gets a decision rather
+ * than a hole. The editors read it from `builders[].parts` in the manifest.
+ */
+export const BUILDER_PARTS: Record<
+  string,
+  Record<string, BuilderPart | null>
+> = {
+  dialog: {
+    host: null,
+    dialog: { element: LT_DIALOG_TAG, part: "dialog" },
+    header: null,
+    title: { element: LT_DIALOG_TAG, part: "title" },
+    subtitle: null,
+    body: { element: LT_DIALOG_TAG, part: "body" },
+    footer: null,
+  },
+  errorSummary: {
+    host: null,
+    title: { element: LT_ERROR_SUMMARY_TAG, part: "title" },
+  },
+  field: {
+    label: { element: LT_FIELD_TAG, part: "label" },
+    control: { element: LT_FIELD_TAG, part: "control" },
+    help: { element: LT_FIELD_TAG, part: "help" },
+    error: { element: LT_FIELD_TAG, part: "error" },
+  },
+  popover: {
+    host: null,
+    trigger: { element: LT_POPOVER_TAG, part: "trigger" },
+    panel: { element: LT_POPOVER_TAG, part: "panel" },
+  },
+  sessionTimeout: {
+    host: null,
+    dialog: { element: LT_SESSION_TIMEOUT_TAG, part: "dialog" },
+    title: { element: LT_SESSION_TIMEOUT_TAG, part: "title" },
+    text: { element: LT_SESSION_TIMEOUT_TAG, part: "text" },
+    count: { element: LT_SESSION_TIMEOUT_TAG, part: "count" },
+    live: { element: LT_SESSION_TIMEOUT_TAG, part: "status" },
+    actions: null,
+    extend: { element: LT_SESSION_TIMEOUT_TAG, part: "button" },
+    logout: { element: LT_SESSION_TIMEOUT_TAG, part: "button" },
+  },
+  suggestion: {
+    label: { element: LT_SUGGESTION_TAG, part: "label" },
+    control: { element: LT_SUGGESTION_TAG, part: "control" },
+    list: { element: LT_SUGGESTION_TAG, part: "list" },
+    options: { element: LT_SUGGESTION_TAG, part: "option" },
+    empty: { element: LT_SUGGESTION_TAG, part: "empty" },
+    status: { element: LT_SUGGESTION_TAG, part: "status" },
+    value: { element: LT_SUGGESTION_TAG, part: "value" },
+    // The help text and the error text of a suggestion field are those of
+    // the field around it, which `<lt-suggestion>` does not read.
+    help: null,
+    error: null,
+  },
+  tableSort: { header: null, button: null },
+  tabs: {
+    list: { element: LT_TABS_TAG, part: "list" },
+    tabs: { element: LT_TABS_TAG, part: "tab" },
+    panels: { element: LT_TABS_TAG, part: "panel" },
+    headings: null,
+  },
+  toast: { host: null, message: null, close: null },
+}
+
 const flag = (description: string): AttributeDoc => ({
   description,
   value: "flag",
@@ -474,7 +550,7 @@ export const elements: readonly ElementDoc[] = [
   element<typeof LtField>(
     LT_FIELD_TAG,
     "field",
-    "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup produced without JavaScript. When the markup is produced with JavaScript, use `lt.field()` instead.",
+    "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
     {
       disabled: flag("The control is disabled."),
       optional: flag("The field is optional, and the label says so."),
@@ -641,7 +717,7 @@ export const elements: readonly ElementDoc[] = [
   element<typeof LtDialog>(
     LT_DIALOG_TAG,
     "dialog",
-    'Makes a `<dialog class="lt-dialog">` modal with `showModal()`, for servers that cannot call it themselves. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.',
+    'Makes a `<dialog class="lt-dialog">` the server sends open a real modal, with `showModal()`. The host around the dialog. Gives the dialog its name from the first heading outside `lt-dialog__body` when neither `aria-labelledby` nor `aria-label` is there.',
     {
       open: flag(
         "The dialog is open. For the server to show it, `open` must be on `<dialog>` too.",
@@ -683,7 +759,7 @@ export const elements: readonly ElementDoc[] = [
   element<typeof LtSessionTimeout>(
     LT_SESSION_TIMEOUT_TAG,
     "session-timeout",
-    'Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method="dialog">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.',
+    'Warns before a signed-in session expires, and counts down. The renderer writes the dialog and the text inside the element: a `<dialog>` with `.lt-session-timeout__count` for the number, `[role=status]` for the announcement and the buttons in a `<form method="dialog">`. Dispatches `session-warn` when the dialog opens, `session-extend` when the user wants to continue, `session-logout` when the user logs out with a button that closes the dialog, `session-expired` when time is up, and `session-activity` at most once per `activity-interval` while the user is active, so the app can keep the server session alive.',
     {
       "warn-at": number("Seconds without activity before the warning appears."),
       "expires-at": number(
@@ -699,7 +775,10 @@ export const elements: readonly ElementDoc[] = [
         description:
           "The session continues: the user closed the warning with a button other than log out or with Escape, or the app called `extend()`.",
       },
-      "session-logout": { description: "The user chose to log out." },
+      "session-logout": {
+        description:
+          'The user chose to log out with a button that closes the dialog. A Log out button with `formmethod="post"` submits to the server instead, and the event does not come.',
+      },
       "session-expired": { description: "Time is up." },
       "session-activity": {
         description:

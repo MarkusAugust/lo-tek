@@ -52,6 +52,27 @@ lt.setAttributes(lead, lt.paragraph({ variant: "lead" }))
 ```
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.smallPrint() {
+    h2 { lt(Lt.heading()); +"The small print" }
+    p { lt(Lt.paragraph(variant = ParagraphVariant.LEAD)); +"Everything a runner's policy covers, and everything it does not." }
+    p {
+        lt(Lt.paragraph())
+        +"The premium is drawn on the first of every month. A claim must be filed within 30 days, with a death certificate and the runner's last log. Black ICE, power surges and other runners count as acts of God, and are not covered."
+    }
+    p { lt(Lt.paragraph(size = Size.SMALL)); +"Last updated 4 March 2079." }
+}
+```
+
+</Fragment>
 </Example>
 
 | Attribute | Used for |

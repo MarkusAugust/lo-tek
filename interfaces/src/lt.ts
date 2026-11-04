@@ -106,8 +106,8 @@ export const lt = {
    * <p {...lt.errorText()} {...field.error}>Enter the fixer's address, for example fixer@relay.example.</p>
    * ```
    *
-   * The same calculation `<lt-field>` does, but as data, for markup created
-   * with JavaScript. Then no web component is needed.
+   * The same calculation `<lt-field>` does in the browser, but as data, for
+   * the code that renders the markup. Then no web component is needed.
    */
   field: computeFieldAttributes,
   /** A group of controls that belong together. Its label is `lt.legend`. */

@@ -55,6 +55,33 @@ lt.setAttributes(list, lt.pagination())
 `lt.pagination.gap` gives the class for the gap in the number sequence. See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.pages() {
+    nav {
+        attributes["aria-label"] = "Pagination"
+        ul {
+            lt(Lt.pagination())
+            li { a(href = "#") { attributes["aria-label"] = "Previous page"; +"Previous" } }
+            li { a(href = "#") { attributes["aria-label"] = "Page 1"; +"1" } }
+            li { a(href = "#") { attributes["aria-label"] = "Page 2"; attributes["aria-current"] = "page"; +"2" } }
+            li { a(href = "#") { attributes["aria-label"] = "Page 3"; +"3" } }
+            li { span { lt(Lt.pagination.gap); +"…" } }
+            li { a(href = "#") { attributes["aria-label"] = "Page 9"; +"9" } }
+            li { a(href = "#") { attributes["aria-label"] = "Next page"; +"Next" } }
+        }
+    }
+}
+```
+
+</Fragment>
 </Example>
 
 A number on its own says little when it is read out in the middle of a sequence. `aria-label="Page 3"` makes the link understandable, and `aria-current="page"` says which page the user is on.

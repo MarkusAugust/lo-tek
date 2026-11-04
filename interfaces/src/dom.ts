@@ -72,7 +72,8 @@ export type Attributes = Record<string, string | boolean | undefined>
  * Call it again to change state. What the builder function manages and is
  * not in the new set is removed, and the `lt-` classes are replaced. A
  * builder function manages the attributes it has an option for:
- * `lt.spinner()` has `label`, and so manages `role` and `aria-label`. What it
+ * `lt.spinner()` has `label`, and so manages `role`, `aria-label` and
+ * `aria-hidden`. What it
  * has no option for stays as it is: `lt.button()` has never written
  * `disabled`, so a disabled button is still disabled afterwards. `id` and
  * `for` are never removed.

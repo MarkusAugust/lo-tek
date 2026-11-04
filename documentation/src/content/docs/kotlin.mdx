@@ -3,7 +3,7 @@ title: Kotlin and Java
 description: The builder functions with enums, and LO-TEK's check in ordinary tests, on the JVM without Node and without JavaScript.
 ---
 
-LO-TEK for Kotlin gives you three things: the builder functions from `lt`, where the allowed values are `enum`s; the same check that `lotek check` and the editor use, as an ordinary function in your tests; and the CSS and the web components as a WebJar. Everything runs in the JVM or is served by the app. No Node, no npm, no process to start and nothing to install alongside.
+LO-TEK for Kotlin gives you three things: the builder functions from `Lt`, where the allowed values are `enum`s; the same check that `lotek check` and the editor use, as an ordinary function in your tests; and the CSS and the web components as a WebJar. Everything runs in the JVM or is served by the app. No Node, no npm, no process to start and nothing to install alongside.
 
 ```kotlin
 // build.gradle.kts
@@ -68,13 +68,15 @@ val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, 
 
 """
 <label ${field.label.toHtml()}>Fixer's address</label>
-<input ${(Lt.input(type = InputType.EMAIL, state = field.state) + field.control).toHtml()}>
+<input ${(Lt.input(type = InputType.EMAIL) + field.control).toHtml()}>
 <p ${(Lt.helpText() + field.help).toHtml()}>The board writes to the fixer, never to the crew.</p>
 <p ${(Lt.errorText() + field.error).toHtml()}>Enter the fixer's address, for example fixer@relay.example.</p>
 """
 ```
 
 A flag such as `hidden` has the empty text as its value, and is written as the name alone.
+
+The id is required, and an empty one throws. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render: a morph recognises an element by its id, and replaces one whose id changed, along with what the user typed. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 The parts a template writes itself, such as the heading in a card or an option in a toggle group, have their classes on the builder function, with the same names as in TypeScript. Each is a set with the class, so it goes where every other answer goes. The exception is a part the answer already gives, such as the header of `Lt.dialog`: there the set in the answer is the way, and the constant TypeScript also has is left out.
 
@@ -90,9 +92,27 @@ The parts a template writes itself, such as the heading in a card or an option i
 
 The builder functions are generated from the manifest LO-TEK writes from the TypeScript code, and the few where the options interact, such as `field` and `tabs`, are written by hand. All are tested against more than a thousand build cases with the answer from TypeScript. If one builder function gives one attribute differently, the package is not released.
 
+### From Java
+
+The builder functions are static methods on `Lt`, and the options can be left out from the back:
+
+```java
+import no.lotek.*;
+
+Attributes save = Lt.button(ButtonVariant.SECONDARY);
+FieldParts field = Lt.field("fixer");
+ButtonVariant variant = ButtonVariant.of(request.getParameter("variant"));
+```
+
+An option in the middle of the list needs the ones before it, as `null` when they are left out. `JavaCallTest` compiles these calls in Java on every build.
+
+### In the editor
+
+The documentation on each builder function, the options with their defaults and a link to the component page, comes from the same manifest, so IntelliJ shows it in Quick Documentation on `Lt.button(…)` from the sources jar.
+
 ## kotlinx.html
 
-`io.github.markusaugust:lo-tek-kotlinx-html` has one extension, `lt(…)`, which puts the attributes from the builder functions on a tag. It is a separate package, so the main package does not bring kotlinx.html to those who do not use it.
+`io.github.markusaugust:lo-tek-kotlinx-html` has one extension, `lt(…)`, which puts the attributes from the builder functions on a tag, and one function per web component, such as `ltField { … }` for `<lt-field>`, since kotlinx.html knows only the elements in HTML. It is a separate package, so the main package does not bring kotlinx.html to those who do not use it.
 
 ```kotlin
 import kotlinx.html.*
@@ -100,36 +120,116 @@ import no.lotek.*
 import no.lotek.InputType
 import no.lotek.html.lt
 
-fun FlowContent.fixerField(invalid: Boolean) {
+fun FlowContent.fixerField(fixer: String, invalid: Boolean) {
     val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)
     label { lt(field.label); +"Fixer's address" }
-    input { lt(Lt.input(type = InputType.EMAIL, state = field.state), field.control); name = "fixer" }
+    input { lt(Lt.input(type = InputType.EMAIL), field.control); name = "fixer"; required = true; value = fixer }
     p { lt(Lt.helpText(), field.help); +"The board writes to the fixer, never to the crew." }
     p { lt(Lt.errorText(), field.error); +"Enter the fixer's address, for example fixer@relay.example." }
 }
 ```
 
+Every component page has a kotlinx.html tab in this form. `RecipesTest` compiles every one, renders it, and compares it with the HTML recipe on the same page.
+
 Several sets are applied in order, and a later one wins, like `{...a} {...b}` in JSX. The classes are added to those the tag has, so `div(classes = "my-own") { lt(Lt.card()) }` gives both. `InputType` is imported on its own, since kotlinx.html has one with the same name.
 
 ### With Ktor
 
+The whole round trip, with the form from the [error summary](/components/error-summary/) page. `GET /jobs` renders the form. `POST /jobs` checks the submission, and a failed one gets the form back with status 422, with what was typed and the summary filled in, and the component moves focus to the summary when the page arrives. A valid one is saved, and the browser is sent to `GET /jobs?ordered`, so a reload does not post it again, and that page says the job was ordered. The only script is the registration, once in the page.
+
 ```kotlin
-routing {
-    staticResources("/webjars", "META-INF/resources/webjars")
-    get("/jobs") {
-        call.respondHtml {
-            head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
-            body {
-                form(action = "/jobs", method = FormMethod.post) {
-                    fixerField(invalid = false)
-                    button { lt(Lt.button()); +"Order the job" }
-                }
-                script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+// build.gradle.kts, next to the Ktor 3 server and lo-tek-kotlinx-html
+dependencies {
+    implementation("io.ktor:ktor-server-html-builder:$ktorVersion")
+}
+```
+
+```kotlin
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.Application
+import io.ktor.server.html.respondHtml
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.routing
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.InputType
+import no.lotek.html.lt
+import no.lotek.html.ltErrorSummary
+
+data class Fault(val field: String, val message: String)
+
+// The faults for what was submitted. Empty when the job can be ordered.
+fun faultsIn(fixer: String): List<Fault> =
+    if (fixer.contains("@")) emptyList()
+    else listOf(Fault("fixer", "Enter the fixer's address with an @"))
+
+fun FlowContent.orderForm(fixer: String = "", faults: List<Fault> = emptyList()) {
+    val summary = Lt.errorSummary(count = faults.size, id = "errors")
+    val field = Lt.field(id = "fixer", invalid = faults.any { it.field == "fixer" })
+    form(action = "/jobs", method = FormMethod.post) {
+        // The server checks the address. The browser's own check of
+        // type="email" would stop the submission before it got there.
+        attributes["novalidate"] = ""
+        ltErrorSummary {
+            lt(summary.host)
+            h2 {
+                lt(summary.title)
+                if (faults.isNotEmpty()) +(if (faults.size == 1) "The form has one error" else "The form has ${faults.size} errors")
+            }
+            ul {
+                lt(Lt.list())
+                for (fault in faults) li { a(href = "#${fault.field}") { +fault.message } }
+            }
+        }
+        label { lt(field.label); +"Fixer's address" }
+        input {
+            lt(Lt.input(type = InputType.EMAIL), field.control)
+            name = "fixer"
+            if (fixer.isNotEmpty()) value = fixer
+        }
+        button { lt(Lt.button()); +"Order the job" }
+    }
+}
+
+fun HTML.jobsPage(ordered: Boolean = false, content: FlowContent.() -> Unit) {
+    attributes["lang"] = "en"
+    head {
+        title("Order a job")
+        link(rel = "stylesheet", href = LotekWebJar.CSS)
+    }
+    body {
+        if (ordered) div { lt(Lt.alert(color = AlertColor.SUCCESS)); p { +"The job has been ordered." } }
+        content()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+}
+
+fun Application.jobs() {
+    routing {
+        staticResources("/webjars", "META-INF/resources/webjars")
+        get("/jobs") {
+            val ordered = call.request.queryParameters.contains("ordered")
+            call.respondHtml { jobsPage(ordered) { orderForm() } }
+        }
+        post("/jobs") {
+            val fixer = call.receiveParameters()["fixer"].orEmpty().trim()
+            val faults = faultsIn(fixer)
+            if (faults.isEmpty()) {
+                // Save the job here.
+                call.respondRedirect("/jobs?ordered")
+            } else {
+                call.respondHtml(HttpStatusCode.UnprocessableEntity) { jobsPage { orderForm(fixer, faults) } }
             }
         }
     }
 }
 ```
+
+The forms on the component pages post, so a real app needs the protection against cross-site request forgery it already has. kotlinx.html writes no token by itself, as a template engine with a security integration might. With Spring Security, pass the `CsrfToken` into the function and write it as a hidden field in each form, `hiddenInput(name = csrf.parameterName) { value = csrf.token }`. A script that posts with `fetch` cannot see the Kotlin value, so render it into the page as well, `meta(name = "_csrf", content = csrf.token)` and `meta(name = "_csrf_header", content = csrf.headerName)` in `head`, and send it as that header from there, as Spring Security's own documentation does. Ktor's CSRF plugin, `io.ktor:ktor-server-csrf`, checks the `Origin` header rather than a token, so the forms need nothing written in them: `install(CSRF) { originMatchesHost() }`, or `allowOrigin("https://…")` behind a proxy that changes the host. Leave out `checkHeader`, which requires a header a plain form post never sends.
 
 ## Templates: JTE, Thymeleaf and the others
 
@@ -159,7 +259,7 @@ fun `the form is wired correctly`() {
 
 ```text
 LO-TEK found 2 findings:
-12:30: error: for="fixer" points to the id "fixer", which does not exist on the page. … [id-not-found]
+12:30: error: for="fixer" points at the id "fixer", which does not exist on the page. … [id-not-found]
 18:9: warning: The class "lt-buton" does not exist in LO-TEK. Did you mean lt-button? [unknown-class]
 ```
 
@@ -270,3 +370,10 @@ The check is written in Rust and built to one WebAssembly module. The same modul
 ## In IntelliJ
 
 The plugin [LO-TEK Interfaces](https://plugins.jetbrains.com/plugin/34764-lotek) runs the same check while you type, also in HTML in a Kotlin string marked with `@Language("HTML")` or `// language=HTML`. See [The editor](../the-editor/#jetbrains).
+
+With the builder functions it does four more things in Kotlin:
+
+- completion shows the description and the default of each option next to it;
+- it warns about a set on an element its part cannot be, like `label { lt(field.control) }`, and moves it where exactly one element can take it;
+- it warns about `ButtonVariant.of(value)!!`, which throws without saying what the value was, about an id from the loop index, a random value or the same text in every row, and about `Lt.field(error = true)` without `field.error`;
+- `ltfield`, `lttabs` and one for each of the other web components, at the top level of a file, insert the Kotlin recipe from the component page, with the ids left for you to fill in.

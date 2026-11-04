@@ -10,7 +10,7 @@ import ScreenReaderContract from "../../../components/ScreenReaderContract.astro
 When a submission stops, the user should learn why, and reach the field in one click. The server writes the heading and the list. The component does the two things the browser does not do by itself: it moves focus here when the box becomes visible, and it gives focus to the control itself when a link is followed.
 
 :::note[Two routes to the same markup]
-When the markup is made with JavaScript, `lt.errorSummary({ id })` gives the box the class, `role="alert"`, `tabindex="-1"`, and its name from the heading, whose id it makes from the box's (`errors-title`), already in the HTML. When it is made without JavaScript, the template writes the heading's `id` and the box's `aria-labelledby`, as it writes `for` and `id` on a field, and the component sets the class, the role and `tabindex`. The component never writes an id: a morph replaces an element whose id the server did not send. Focus moving here, and on to the field, comes from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
+When the code that renders the markup can call a builder function, in TypeScript, Kotlin or Java, `lt.errorSummary({ id })` gives the box the class, `role="alert"`, `tabindex="-1"`, and its name from the heading, whose id it makes from the box's (`errors-title`), already in the HTML. When it cannot, in a Go template, PHP or plain HTML, the template writes the heading's `id` and the box's `aria-labelledby`, as it writes `for` and `id` on a field, and the component sets the class, the role and `tabindex`. The component never writes an id: a morph replaces an element whose id the server did not send. Focus moving here, and on to the field, comes from the component in both cases. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
 :::
 
 ```ts
@@ -40,7 +40,7 @@ defineLtErrorSummary()
     ```
 
     ```html
-    <form novalidate>
+    <form action="/jobs" method="post" novalidate>
       <!-- The component sets the class, role="alert" and tabindex="-1"; the id and aria-labelledby that name the box are the template's. -->
       <lt-error-summary id="errors" aria-labelledby="errors-title" hidden>
         <h2 id="errors-title"></h2>
@@ -64,9 +64,16 @@ defineLtErrorSummary()
       const box = document.getElementById("errors")
 
       function showErrors(errors) {
-        box.querySelector("ul").innerHTML = errors
-          .map((e) => `<li><a href="#${e.id}">${e.message}</a></li>`)
-          .join("")
+        box.querySelector("ul").replaceChildren(
+          ...errors.map((e) => {
+            const link = document.createElement("a")
+            link.href = `#${e.id}`
+            link.textContent = e.message
+            const item = document.createElement("li")
+            item.append(link)
+            return item
+          }),
+        )
 
         // The heading and hidden are written here, as a server would.
         if (errors.length > 0) {
@@ -81,19 +88,21 @@ defineLtErrorSummary()
 
       const fixer = document.getElementById("fixer")
 
+      // The script stands in for the server's answer: it stops a submission
+      // that fails, and writes what the server would send. One that passes
+      // goes to the server.
       document.querySelector("form").addEventListener("submit", (event) => {
-        event.preventDefault()
-
         const errors = fixer.value.includes("@")
           ? []
           : [{ id: "fixer", message: "Enter the fixer's address with an @" }]
 
+        if (errors.length > 0) event.preventDefault()
         showErrors(errors)
       })
     </script>
     ```
 
-    The component moves focus here as soon as `hidden` is removed. The messages here are written in the script. If they come from a server or from the user, set them with `textContent`, not through `innerHTML`.
+    The component moves focus here as soon as `hidden` is removed. The script only stands in for a server: with one, the server renders the box filled in and without `hidden`, as in [The markup](#the-markup) and the kotlinx.html tab, and the page needs no script beyond the registration. The messages are set with `textContent`, never through `innerHTML`, since they can contain what the user typed.
   </TabItem>
   <TabItem label="React">
     ```ts
@@ -181,7 +190,67 @@ defineLtErrorSummary()
 
     If the form fails again while the box is already visible, focus does not move, because the signal is that `hidden` is removed. Send two patches in the same response then: first the box with `hidden`, then the box without. The component sees that it was hidden and shown again, and moves focus. See [The markup](#the-markup).
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin server you call `Lt.errorSummary()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server validates the submission and renders the form again with the faults: the heading and the links are filled in, and the box is hidden when there are none. There is no script beyond the registration. The component moves focus to the box when the page arrives with it visible.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.InputType
+    import no.lotek.html.lt
+    import no.lotek.html.ltErrorSummary
+
+    data class Fault(val field: String, val message: String)
+
+    fun FlowContent.orderForm(fixer: String = "", faults: List<Fault> = emptyList()) {
+        val summary = Lt.errorSummary(count = faults.size, id = "errors")
+        val field = Lt.field(id = "fixer", invalid = faults.any { it.field == "fixer" })
+        form(action = "/jobs", method = FormMethod.post) {
+            attributes["novalidate"] = ""
+            ltErrorSummary {
+                lt(summary.host)
+                h2 {
+                    lt(summary.title)
+                    if (faults.isNotEmpty()) +(if (faults.size == 1) "The form has one error" else "The form has ${faults.size} errors")
+                }
+                ul {
+                    lt(Lt.list())
+                    for (fault in faults) li { a(href = "#${fault.field}") { +fault.message } }
+                }
+            }
+            label { lt(field.label); +"Fixer's address" }
+            input {
+                lt(Lt.input(type = InputType.EMAIL), field.control)
+                name = "fixer"
+                // What the user typed comes back, so a failed submission loses nothing.
+                if (fixer.isNotEmpty()) value = fixer
+            }
+            button { lt(Lt.button()); +"Order the job" }
+        }
+    }
+    ```
+
+    The handler for `POST /jobs` validates and answers with the same function, with status 422 when something failed. With Ktor, see [With Ktor](/kotlin/#with-ktor):
+
+    ```kotlin
+    // The faults for what was submitted. Empty when the job can be ordered.
+    fun faultsIn(fixer: String): List<Fault> =
+        if (fixer.contains("@")) emptyList()
+        else listOf(Fault("fixer", "Enter the fixer's address with an @"))
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        orderForm()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
+
+The ids of the box and the heading come from the template. Make them from a key in the data, never from the loop index or a counter, so they are unique on the page and the same on every render: a morph recognises an element by its id. See [Ids that survive an update](/markup-and-behaviour/#ids-that-survive-an-update).
 
 ## The markup
 
@@ -199,7 +268,7 @@ const box = lt.errorSummary({ count: errors.length, id: "errors" })
 </lt-error-summary>
 ```
 
-The server writes the heading and the list. The component used to create the heading itself, and then it disappeared at the first update from the server and never came back. `lt.errorSummary({ id })` writes the class, `role="alert"`, `tabindex="-1"` and the name from the heading when the markup is made with JavaScript; otherwise the component sets the class, the role and `tabindex`, and puts them back if a patch removes them. If the server has written a different role, it stays. The name needs an id on the heading, which the template writes: when the heading has one and the box no name, the component points `aria-labelledby` at it, and follows a heading a patch has replaced; when the heading has none, it says so in the console. See [Markup and behaviour](/markup-and-behaviour/).
+The server writes the heading and the list. The component used to create the heading itself, and then it disappeared at the first update from the server and never came back. When the code that renders the markup can call a builder function, `lt.errorSummary({ id })` or `Lt.errorSummary()` writes the class, `role="alert"`, `tabindex="-1"` and the name from the heading; otherwise the component sets the class, the role and `tabindex`, and puts them back if a patch removes them. If the server has written a different role, it stays. The name needs an id on the heading, which the template writes: when the heading has one and the box no name, the component points `aria-labelledby` at it, and follows a heading a patch has replaced; when the heading has none, it says so in the console. See [Markup and behaviour](/markup-and-behaviour/).
 
 When there are no errors, the builder function sets `hidden` on the box. An empty summary with the heading "The form has 0 errors" is worse than none.
 

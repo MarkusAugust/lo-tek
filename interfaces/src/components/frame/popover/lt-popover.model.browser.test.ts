@@ -55,14 +55,24 @@ import "../../../tokens/tokens.css"
 import "./popover.css"
 import "../../css/button/button.css"
 
-/** The popover in the "Plain HTML" recipe, without its scripts. */
+/**
+ * The popover in the "Plain HTML" recipe, without its scripts and without the
+ * forms around its actions: a real post would go to the test server and take
+ * the page with it, and the server's answer is a version sent, which the steps
+ * below already do.
+ */
 const RECIPE_BLOCK = (() => {
   const block = tabItems(page)
     .filter((t) => t.name === "Plain HTML")
     .flatMap((t) => htmlBlocks(t.code))
     .find((b) => b.includes("<lt-popover"))
   if (!block) throw new Error("no recipe with <lt-popover> on the page")
-  return block.replace(/<script[\s\S]*?<\/script>/g, "")
+  const out = block
+    .replace(/<script[\s\S]*?<\/script>/g, "")
+    .replace(/<form\s[^>]*method="post"[^>]*>|<\/form>/g, "")
+  if (/<form[\s>]/.test(out))
+    throw new Error("the recipe has a form that is not a post")
+  return out
 })()
 
 /** The recipe's host: what the server sends again, by its id. */

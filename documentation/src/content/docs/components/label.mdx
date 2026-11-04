@@ -70,6 +70,31 @@ if (input) input.required = true
 `required: "symbol"` gives only the asterisk. That the field has to be filled in is said by `required` on the field itself.
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.InputType
+import no.lotek.html.lt
+
+fun FlowContent.order() {
+    label { lt(Lt.label()); htmlFor = "codename"; +"Codename" }
+    input { lt(Lt.input(type = InputType.TEXT)); id = "codename" }
+    label { lt(Lt.label(required = RequiredMarker.SYMBOL)); htmlFor = "fixer"; +"Fixer's address" }
+    input { lt(Lt.input(type = InputType.EMAIL)); id = "fixer"; required = true }
+    label { lt(Lt.label(required = RequiredMarker.TEXT)); htmlFor = "budget"; +"Budget" }
+    input { lt(Lt.input(type = InputType.TEXT)); id = "budget"; attributes["inputmode"] = "numeric"; required = true }
+    label { lt(Lt.label(optional = true)); htmlFor = "entry"; +"Entry point" }
+    input { lt(Lt.input(type = InputType.TEXT)); id = "entry" }
+    label { lt(Lt.label(disabled = true)); htmlFor = "reference"; +"Reference" }
+    input { lt(Lt.input(type = InputType.TEXT)); id = "reference"; disabled = true }
+}
+```
+
+</Fragment>
 </Example>
 
 | Attribute | Effect |

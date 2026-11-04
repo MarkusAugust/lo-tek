@@ -50,6 +50,23 @@ To make the bar indeterminate again, remove the attribute: `bar.removeAttribute(
 See [Type-safe use](../../type-safe-use/).
 
 </Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.subscription() {
+    progress { lt(Lt.progress(value = 27, max = 30, label = "Subscription CM-2079-0090", valueText = "Your walls expire in 3 days.")) }
+    progress { lt(Lt.progress(value = 100, max = 100, color = ProgressColor.SUCCESS, label = "Renewal paid")) }
+    progress { lt(Lt.progress(label = "Checking your walls")) }
+}
+```
+
+</Fragment>
 </Example>
 
 ## `max` defaults to 100
