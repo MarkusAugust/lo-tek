@@ -519,6 +519,8 @@ describe("lt-term", () => {
         window.innerHeight * 0.6 + 1,
       )
       expect(entry.scrollHeight).toBeGreaterThan(entry.clientHeight)
+      // Scrolling to the end of it does not move the page behind.
+      expect(getComputedStyle(entry).overscrollBehaviorY).toBe("contain")
     })
   })
 

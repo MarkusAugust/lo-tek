@@ -170,6 +170,42 @@ defineLtTerm()
 
     The server can send the article again with `datastar-patch-elements` while a card is open. The morph removes `popover` and `aria-expanded`, which the server did not send, and the web component puts them back, so the card stays open with the new text.
   </TabItem>
+  <TabItem label="kotlinx.html">
+    On a Kotlin server you call `Lt.term()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The id is the entry's, and the link points to it. `ltTerm` is phrasing content, so it stands in a `p`. kotlinx.html allows `dt` and `dd` only directly in `dl`, so `ltTermEntry` writes the `<div>` around them.
+
+    ```kotlin
+    import kotlinx.html.*
+    import no.lotek.*
+    import no.lotek.html.lt
+    import no.lotek.html.ltTerm
+    import no.lotek.html.ltTermEntry
+
+    fun FlowContent.policyTerms() {
+        val actOfGod = Lt.term(id = "term-act-of-god")
+        p {
+            +"A claim is paid out unless the death was an "
+            ltTerm { a { lt(actOfGod.word); +"act of God" } }
+            +"."
+        }
+        h2 { +"Glossary" }
+        dl {
+            ltTermEntry(actOfGod.entry) {
+                dt { +"Act of God" }
+                dd { +"A cause of death the policy does not cover. The insurer can add to the list without notice." }
+            }
+        }
+    }
+    ```
+
+    ```kotlin
+    // Once for the whole app, in the page template. Not once per component.
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    body {
+        policyTerms()
+        script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+    }
+    ```
+  </TabItem>
 </Tabs>
 
 ```ts

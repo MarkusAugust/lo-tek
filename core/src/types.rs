@@ -191,6 +191,7 @@ pub const RULES: &[&str] = &[
     "panel-without-id",
     "tab-link-without-panel",
     "tab-without-link",
+    "term-without-entry",
     "text-in-label",
     "value-without-field",
     "error-text-contradicts",

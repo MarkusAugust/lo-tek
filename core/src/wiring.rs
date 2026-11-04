@@ -198,6 +198,7 @@ pub(crate) fn check_wiring(
                 "lt-tabs" => out.extend(host.tabs()),
                 "lt-suggestion" => out.extend(host.suggestion()),
                 "lt-field" => out.extend(host.field()),
+                "lt-term" => out.extend(host.term()),
                 _ => {}
             }
         }
@@ -476,6 +477,51 @@ impl Host<'_> {
         out
     }
 
+    /// The word in `<lt-term>` points at a glossary entry: a `<div>` in a
+    /// `<dl>` with a `<dt>` and a `<dd>`. Only on a whole page: in a template
+    /// the glossary can be in another file.
+    fn term(&self) -> Vec<Finding> {
+        if !self.page_mode {
+            return Vec::new();
+        }
+        let nodes = self.nodes();
+        let Some(w) = self.first("word") else {
+            return Vec::new();
+        };
+        let word = &nodes[w];
+        if templated_node(word) {
+            return Vec::new();
+        }
+        let Some(href) = plain_value(word, "href") else {
+            return Vec::new();
+        };
+        if href.len() < 2 || is_templated_value(href) {
+            return Vec::new();
+        }
+        // Like the browser: the fragment as written, and otherwise decoded.
+        let target = &href[1..];
+        let found = self
+            .page
+            .ids
+            .get(&decode(target))
+            .or_else(|| self.page.ids.get(&fragment(target)));
+        let message = match found {
+            None => format!(
+                "<{}> points at #{}, and no element has that id. Give the glossary entry the id; until then the word is a plain link, and no card opens.",
+                self.tag(),
+                lossy(target)
+            ),
+            Some(&e) if is_entry(nodes, e) => return Vec::new(),
+            Some(&e) => format!(
+                "<{}> points at #{}, which is <{}> and not a glossary entry. The entry is a <div> in a <dl> with a <dt> and a <dd>: put the id on the <div>. Until then the word is a plain link, and no card opens.",
+                self.tag(),
+                lossy(target),
+                nodes[e].name
+            ),
+        };
+        vec![finding("term-without-entry", word, self.link(), message, None)]
+    }
+
     /// The suggestion list: `data-value` on the options and `.lt-suggestion__value` belong together.
     fn suggestion(&self) -> Vec<Finding> {
         let nodes = self.nodes();
@@ -628,4 +674,19 @@ fn looks_generated(id: &str) -> bool {
     GENERATED_PREFIXES
         .iter()
         .any(|p| id.strip_prefix(p).is_some_and(|tail| base36(tail, 7)))
+}
+
+/// A glossary entry, as `<lt-term>` recognises one: a `<div>` in a `<dl>`,
+/// with a `<dt>` and a `<dd>` of its own.
+fn is_entry(nodes: &[Node], n: usize) -> bool {
+    let node = &nodes[n];
+    let child = |name: &str| {
+        nodes
+            .iter()
+            .any(|m| m.parent == Some(n) && m.name == name)
+    };
+    node.name == "div"
+        && node.parent.is_some_and(|p| nodes[p].name == "dl")
+        && child("dt")
+        && child("dd")
 }

@@ -74,6 +74,10 @@
        than running off the screen. */
     max-block-size: calc(100dvh - var(--lt-spacing-4));
     overflow-y: auto;
+    /* Scrolling to the end of the explanation stops there. Otherwise it
+       went on to the page behind, the word left the view, and the card
+       closed while the reader was still in it. */
+    overscroll-behavior: contain;
   }
 
   /* `--lt-term-left` is the distance from the left edge of the viewport.

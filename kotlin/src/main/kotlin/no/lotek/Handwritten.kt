@@ -268,6 +268,18 @@ internal object Handwritten {
         )
     }
 
+    /** `Lt.term`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
+    fun term(id: String): TermParts {
+        // A made-up id would point at nothing: only the template knows the entry's.
+        require(!id.all(::isJsWhitespace)) {
+            "Lt.term: id is required. It is the id of the entry in the glossary, such as \"term-signal\"."
+        }
+        return TermParts(
+            word = Attributes(mapOf("class" to "lt-term", "href" to "#$id", "aria-details" to id)),
+            entry = Attributes(mapOf("class" to "lt-term__entry", "id" to id)),
+        )
+    }
+
     /** `Lt.tabs`. The public member and its documentation are generated in `Lt.kt` from the manifest. */
     fun tabs(
         id: String,
