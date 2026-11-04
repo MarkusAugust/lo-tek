@@ -119,7 +119,9 @@ function changedFiles(): string[] | undefined {
   const base = git("merge-base", "HEAD", "origin/master")
   if (base.exitCode !== 0) return undefined
   return [
-    git("diff", "--name-only", base.stdout.toString().trim()),
+    // Both sides of a rename: a file moved out of a filtered folder still
+    // touches it.
+    git("diff", "--name-only", "--no-renames", base.stdout.toString().trim()),
     git("ls-files", "--others", "--exclude-standard"),
   ].flatMap((result) => result.stdout.toString().split("\n").filter(Boolean))
 }

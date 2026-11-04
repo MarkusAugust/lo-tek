@@ -1,6 +1,6 @@
 [build]
   base = "."
-  command = "bun install && bun --filter @lo-tek/interfaces build && cd documentation && npx astro build"
+  command = "bun install --frozen-lockfile && bun --filter @lo-tek/interfaces build && cd documentation && npx astro build"
   publish = "documentation/dist"
 
 # Node comes from `.node-version` in the base directory, as in every workflow.
