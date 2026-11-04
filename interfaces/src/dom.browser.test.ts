@@ -126,6 +126,7 @@ const BASE_OPTIONS: Record<string, Record<string, unknown>> = {
   suggestion: { id: "suggestion", keys: ["a", "b"] },
   dialog: { titleId: "title" },
   popover: { id: "panel" },
+  term: { id: "term-signal" },
   errorSummary: { count: 1 },
   sessionTimeout: { titleId: "session" },
 }

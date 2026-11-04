@@ -414,6 +414,22 @@ const COMPONENTS: Record<string, Case[]> = {
       </lt-tabs>`,
     },
   ],
+  term: [
+    {
+      // The word at the end of the line, so the card has to be pushed in
+      // from the right edge.
+      markup: `<p style="text-align: end">A claim is paid out unless the death was an
+          <lt-term><a class="lt-term" href="#narrow-act-of-god">act of God</a></lt-term></p>
+        <dl>
+          <div class="lt-term__entry" id="narrow-act-of-god">
+            <dt>Act of God</dt>
+            <dd>A cause of death the policy does not cover. The insurer can add to the list without notice, and has done so every year since 2071.</dd>
+          </div>
+        </dl>`,
+      open: () => element<HTMLElement>("lt-term a").click(),
+      opened: ".lt-term__entry:popover-open",
+    },
+  ],
 }
 
 /** The component folders, read from the test files. Each folder has one, see `check-test-files.ts`. */

@@ -431,11 +431,17 @@ export class LtTerm extends HostElement {
     const boxes = word.getClientRects()
     const anchor = boxes[boxes.length - 1] ?? word.getBoundingClientRect()
     const rtl = word.matches(":dir(rtl)")
+    // The space under the word is `--lt-term-gap`, which the stylesheet
+    // puts in `scroll-margin-block-start`: there the browser has worked it
+    // out in pixels, whatever unit the page gave it.
+    const gap =
+      Number.parseFloat(getComputedStyle(entry).scrollMarginBlockStart) || 0
     const { top, left } = place(
       anchor,
       entry.getBoundingClientRect(),
       true,
       rtl,
+      gap,
     )
     if (entry.style.getPropertyValue("--lt-term-top") !== `${top}px`)
       entry.style.setProperty("--lt-term-top", `${top}px`)

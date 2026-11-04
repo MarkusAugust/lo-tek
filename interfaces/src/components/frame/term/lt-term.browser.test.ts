@@ -267,6 +267,32 @@ describe("lt-term", () => {
     window.scrollTo({ top: 0, behavior: "instant" })
   })
 
+  it("puts the gap in --lt-term-gap between the word and the card", async () => {
+    page1()
+    await paint()
+    const word = $("word")
+    const entry = $("term-signal")
+    const gap = () =>
+      entry.getBoundingClientRect().top -
+      ([...word.getClientRects()].at(-1) as DOMRect).bottom
+
+    await userEvent.click(word)
+    await paint()
+    // The default is `--lt-spacing-2`, 0.5rem.
+    expect(Math.abs(gap() - 8)).toBeLessThan(1.5)
+    await userEvent.click(word)
+    await paint()
+
+    document.documentElement.style.setProperty("--lt-term-gap", "1.5rem")
+    try {
+      await userEvent.click(word)
+      await paint()
+      expect(Math.abs(gap() - 24)).toBeLessThan(1.5)
+    } finally {
+      document.documentElement.style.removeProperty("--lt-term-gap")
+    }
+  })
+
   it("hands the entry over when another word opens it", async () => {
     mount(`
       <p>
