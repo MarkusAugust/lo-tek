@@ -26,6 +26,7 @@ import { term, termWithState } from "./term"
 import "../../../tokens/tokens.css"
 import "./term.css"
 import "../popover/popover.css"
+import "../../css/button/button.css"
 
 const SIGNAL = term({ id: "term-signal" })
 const PATCH = term({ id: "term-patch" })
@@ -46,7 +47,7 @@ const GLOSSARY = `
 
 function page1(): void {
   mount(`
-    <p><button type="button" id="elsewhere">Elsewhere</button></p>
+    <p><button class="lt-button" type="button" id="elsewhere">Elsewhere</button></p>
     <p id="text">Datastar keeps
       <lt-term id="host"><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>
       in the browser, and a
