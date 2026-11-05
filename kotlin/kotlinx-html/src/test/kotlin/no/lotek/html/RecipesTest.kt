@@ -632,16 +632,24 @@ class RecipesTest {
         val registered = mutableSetOf<String>()
         val libraries = mutableSetOf<String>()
         val early = mutableListOf<String>()
+        val registeredBefore = mutableSetOf<String>()
         for (script in Jsoup.parse(template).getElementsByTag("script")) {
-            if (own.remove(script.outerHtml())) continue
-            // A library the HTML recipe loads, with exactly its type and address,
+            if (own.remove(script.outerHtml())) {
+                // The recipe's own registration counts for the order below, and
+                // only there: the template must still register by itself.
+                if (isRegistration(script.data())) registeredBefore += Regex("""\b(defineLt\w*)\s*\(""").findAll(withoutComments(script.data())).map { it.groupValues[1] }
+                continue
+            }
+            // A library the HTML recipe loads, with exactly its type and address
+            // and nothing else (`async` or `defer` take it out of the order),
             // once, and after the registration: module scripts run in the order
             // they stand, and a request the library sends before the web
             // components exist reaches an element without its methods.
             val library = "${script.attr("type")} ${script.attr("src")}"
-            if (library in sources && script.data().isBlank()) {
+            val plain = script.attributes().map { it.key }.toSet() == setOf("type", "src")
+            if (library in sources && plain && script.data().isBlank()) {
                 if (!libraries.add(library)) problems.add("the page template loads ${script.attr("src")} twice")
-                if (registered.isEmpty()) early.add(script.attr("src"))
+                if (registered.isEmpty() && registeredBefore.isEmpty()) early.add(script.attr("src"))
                 continue
             }
             if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
@@ -655,7 +663,7 @@ class RecipesTest {
             registered += Regex("""\b(defineLt\w*)\s*\(""").findAll(code).map { it.groupValues[1] }
         }
         // A page with nothing to register, like the switch, may load the library anywhere.
-        if (registered.isNotEmpty()) early.forEach { problems.add("the page template loads $it before the registration") }
+        if (registered.isNotEmpty() || registeredBefore.isNotEmpty()) early.forEach { problems.add("the page template loads $it before the registration") }
         return problems to registered
     }
 
@@ -774,6 +782,11 @@ class RecipesTest {
         assertTrue(templateProblems(loaded("""<script src="$datastar"></script>"""), recipe, library).first.single().contains("more than register"), "the library as a classic script")
         assertTrue(templateProblems(loaded("""<script type="module" src="$datastar"></script>""".repeat(2)), recipe, library).first.single().contains("twice"), "the library loaded twice")
         assertTrue(templateProblems(template("""<script type="module" src="$datastar"></script>"""), recipe, library).first.single().contains("before the registration"), "the library before the registration")
+        assertTrue(templateProblems(loaded("""<script type="module" async src="$datastar"></script>"""), recipe, library).first.single().contains("more than register"), "the library with async, out of the order")
+        // A registration in the recipe's own script counts, so the library
+        // before it is still found.
+        val registering = """<html><body><p>x</p>$registration</body></html>"""
+        assertTrue(templateProblems("""<html><head><script type="module" src="$datastar"></script></head><body><p>x</p>$registration</body></html>""", registering, library).first.single().contains("before the registration"), "the library before the recipe's own registration")
         assertTrue(templateProblems(template("""<script type="module">go()</script>"""), recipe).first.single().contains("more than register"), "the recipe's script run twice")
         assertEquals(emptyList<String>() to emptySet<String>(), templateProblems("<html><body><p>x</p><script type=\"module\">go()</script></body></html>", recipe), "a template that registers nothing")
         // A failed answer that shows no error is a problem in itself.

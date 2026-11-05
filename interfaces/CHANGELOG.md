@@ -35,6 +35,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   in its template after the registration, and the server answers with a 200: the signals as
   `application/json`, or the toast's call as `text/javascript`.
 
+### Fixed
+
+- **The rulebook for Datastar, `agent/datastar.md`, loads Datastar after
+  the registration.** Module scripts run in the order they stand, and with
+  Datastar first the answer to a request at load could reach a web component
+  before it was registered.
+
 ## 0.41.0 (2026-11-05)
 
 ### Added

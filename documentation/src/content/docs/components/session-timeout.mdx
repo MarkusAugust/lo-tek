@@ -129,10 +129,6 @@ defineLtSessionTimeout()
   </TabItem>
   <TabItem label="Datastar">
     ```html
-    <!-- Datastar itself. Without it the `data-` attributes below do nothing. -->
-    <script type="module"
-            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
-
     <!-- The stylesheets the page needs. Without a build step it is `<link>`,
          not `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
@@ -146,6 +142,12 @@ defineLtSessionTimeout()
 
       defineLtSessionTimeout()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
 
     <lt-session-timeout class="lt-session-timeout" warn-at="1500" expires-at="1800"
                         data-ignore-morph

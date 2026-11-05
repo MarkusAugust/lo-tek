@@ -160,10 +160,6 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
   <TabItem label="Datastar">
 
     ```html
-    <!-- Datastar itself. Without it the `data-` attributes below do nothing. -->
-    <script type="module"
-            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
-
     <!-- The stylesheets the page needs. Without a build step it is `<link>`,
          not `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
@@ -185,6 +181,12 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
 
       defineLtDialog()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
 
     <!-- The region the server sends, and sends again on every patch. When
          `open` is on the host, the component calls showModal(). No client code

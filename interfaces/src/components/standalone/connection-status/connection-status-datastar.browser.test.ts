@@ -74,15 +74,23 @@ function bar(): string | null {
 async function save(click: () => void): Promise<void> {
   const finished = new Promise<void>((resolve) => {
     const done = (event: Event) => {
-      if ((event as CustomEvent).detail?.type !== "finished") return
+      const detail = (event as CustomEvent).detail
+      // Datastar's `el` is the element that sent the request.
+      if (
+        detail?.type !== "finished" ||
+        detail.el !== document.querySelector("button")
+      )
+        return
       document.removeEventListener("datastar-fetch", done)
       resolve()
     }
     document.addEventListener("datastar-fetch", done)
   })
+  const calls = vi.mocked(window.fetch).mock.calls.length
   click()
   await finished
-  expect(vi.mocked(window.fetch)).toHaveBeenCalled()
+  // This click sent a request of its own.
+  expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls + 1)
 }
 
 describe("the connection status in the Datastar recipe", () => {

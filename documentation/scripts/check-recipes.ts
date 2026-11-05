@@ -35,6 +35,8 @@ const PACKAGE = JSON.parse(
 )
 
 const findings: string[] = []
+/** The Datastar tabs the rule on the load order has looked at, counted where it looks. */
+let datastarTabs = 0
 const report = (page: string, message: string) =>
   findings.push(`${page}: ${message}`)
 
@@ -773,6 +775,38 @@ for (const file of readdirSync(PAGES).filter(
         )
     }
 
+    /*
+     * Datastar after the registration, and never `async`.
+     *
+     * Module scripts run in the order they stand. With Datastar first, the
+     * answer to a request at load reached `<lt-connection-status>` before it
+     * was upgraded, in all three engines, and `el.reportFailure` was not a
+     * function. The order was fixed on that page alone first, while four other
+     * Datastar tabs and the Kotlin templates said the opposite.
+     */
+    if (tab.name === "Datastar") {
+      const code = tab.code
+      const datastar = code.search(/<script\b[^>]*datastar[^>]*\.js/)
+      const registration = code.search(/\bdefineLt\w*\s*\(\s*\)/)
+      if (datastar !== -1) {
+        datastarTabs += 1
+        if (registration !== -1 && datastar < registration)
+          report(
+            page,
+            `${where} loads Datastar before the registration. Module scripts run in order, so a request at load reaches the web component before it is upgraded.`,
+          )
+        // Every script tag that loads Datastar, `async` anywhere in it.
+        const tags = code.match(/<script\b[^>]*>/g) ?? []
+        if (
+          tags.some((t) => /datastar[^"']*\.js/.test(t) && /\basync\b/.test(t))
+        )
+          report(
+            page,
+            `${where} loads Datastar with async, which takes it out of the order`,
+          )
+      }
+    }
+
     const packageNameInImport = /from\s+\n?\s*"@lo-tek\/interfaces/.test(
       tab.code,
     )
@@ -791,10 +825,17 @@ for (const file of readdirSync(PAGES).filter(
   }
 }
 
+// Counted from what the rule read, so a change that finds no Datastar tab
+// cannot pass for one that found them all in order.
+if (datastarTabs === 0)
+  report("all pages", "the rule on Datastar's load order found no Datastar tab")
+
 if (findings.length > 0) {
   console.error(
     `Found ${findings.length} problems in the recipes:\n${findings.map((f) => `  - ${f}`).join("\n")}`,
   )
   process.exit(1)
 }
-console.log("The recipes point at things that exist.")
+console.log(
+  `The recipes point at things that exist. Datastar loads after the registration in ${datastarTabs} Datastar tabs.`,
+)

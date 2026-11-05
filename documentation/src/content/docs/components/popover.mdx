@@ -157,10 +157,6 @@ defineLtPopover()
   </TabItem>
   <TabItem label="Datastar">
     ```html
-    <!-- Datastar itself. Without it the `data-` attributes below do nothing. -->
-    <script type="module"
-            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
-
     <!-- The stylesheets the page needs. Without a build step it is `<link>`,
          not `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
@@ -194,6 +190,12 @@ defineLtPopover()
 
       defineLtPopover()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
     ```
 
     `data-attr:open` sets and removes the attribute according to the signal, and `data-on:popover-toggle` picks up that the user closed the panel with Escape or a click outside. Without the latter the signal and the panel would get out of step.

@@ -192,13 +192,6 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     [Datastar](https://data-star.dev) adds reactivity to plain HTML with `data-*` attributes. One script, no build step.
 
     ```html
-    <script
-      type="module"
-      src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"
-    ></script>
-    ```
-
-    ```html
     <!-- The stylesheets the page needs. Without a build step it is `<link>`,
          not `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
@@ -240,6 +233,12 @@ Both use the same function underneath, so the contract cannot drift apart. The o
 
       defineLtField()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
     ```
 
     `data-attr:hidden` hides the error text when the field is valid and shows it when it is invalid. `<lt-field>` sees that the error text is visible, and sets `aria-invalid` and `aria-describedby` on the field. The field has no id the component created, so a patch from the server recognises it, and what the user has typed stays.

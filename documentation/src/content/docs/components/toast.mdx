@@ -169,10 +169,6 @@ The container is added once, and the messages come from your code. That is the d
   </TabItem>
   <TabItem label="Datastar">
     ```html
-    <!-- Datastar itself. Without it the `data-` attributes below do nothing. -->
-    <script type="module"
-            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
-
     <!-- The stylesheets the page needs. Without a build step it is `<link>`, not
          `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
@@ -199,6 +195,12 @@ The container is added once, and the messages come from your code. That is the d
 
       defineLtToast()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
     ```
 
     The messages are not state to be mirrored in a signal. They are something that happens, so the server answers `@post` with the call itself, as `content-type: text/javascript`, which Datastar runs:

@@ -252,9 +252,10 @@ Astro builds the HTML, Datastar gives it behaviour, and neither part requires a 
 
 ## HTML with Datastar
 
-[Datastar](https://data-star.dev) adds reactivity to plain HTML with `data-*` attributes. One script, no build step. The same premise as LO-TEK.
+[Datastar](https://data-star.dev) adds reactivity to plain HTML with `data-*` attributes. One script, no build step. The same premise as LO-TEK. It goes after the script that registers the web components: module scripts run in the order they stand, and with Datastar first the answer to a request at load can reach a web component before it is registered.
 
 ```html
+<!-- After the script that registers the web components, further down. -->
 <script
   type="module"
   src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"

@@ -40,11 +40,17 @@ it.
 
 ```html
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.41.0/dist/lotek.css">
+<!-- The registration, defineLt*(), stands here, before Datastar. -->
 <script
   type="module"
   src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"
 ></script>
 ```
+
+**Datastar after the `defineLt*()` script.** Module scripts run in the order
+they stand. With Datastar first, the answer to a request at load can reach a
+web component before it is registered, and a `data-on` that calls one of its
+methods throws. Never `async` on either.
 
 `lotek.css` is 112 kB, 14 kB compressed, and has all the components. If you
 want only what you use, `tokens.css` defines all the variables, and all the
