@@ -567,8 +567,13 @@ const TOKEN_PAGE = {
  * the markup never shows. A text shown only in such a state cannot be placed
  * by reading the markup: "Glossary" is over the term's card while
  * `<lt-term>` has it open, and a page with a glossary may never open one.
+ * Such a text is left out. Inside `:not()` the state is the one the markup
+ * starts in, so the text is placed as if the pseudo-class were not there.
  */
 const SHOWN_IN_A_STATE = [":popover-open"]
+
+/** The pseudo-classes a text rule may otherwise have: they say where, not when. */
+const STRUCTURAL = [":not(", ":has("]
 
 /**
  * The texts a stylesheet shows that a variable replaces: `content:
@@ -606,7 +611,20 @@ function textsInCss(
     const found = value === undefined ? undefined : replaceableText(value)
     if (!found || !isText(found.text)) continue
     for (const selector of splitOutside(selectors, /,/)) {
-      if (SHOWN_IN_A_STATE.some((state) => selector.includes(state))) continue
+      // The pseudo-classes outside `:not()`, past the pseudo-element.
+      const classes = [
+        ...selector
+          .replace(/::[\w-]+/g, "")
+          .replace(/:not\(((?:[^()]|\([^()]*\))*)\)/g, "")
+          .matchAll(/:[\w-]+\(?/g),
+      ].map((m) => m[0])
+      if (classes.some((c) => SHOWN_IN_A_STATE.includes(c))) continue
+      const unknown = classes.find((c) => !STRUCTURAL.includes(c))
+      if (unknown) {
+        throw new Error(
+          `${file}: the text "${found.text}" in \`${selector}\` is shown under ${unknown}, which the markup does not say. Add it to SHOWN_IN_A_STATE when it is a state the browser sets, or place the text without it.`,
+        )
+      }
       const compounds = compoundsOf(selector)
       const own = (compound: string) => compound.replace(notIn, "")
       const classIn = (compound: string) =>
@@ -622,10 +640,14 @@ function textsInCss(
       const subject = compounds[compounds.length - 1] ?? ""
       let name = classIn(subject)
       let text: CssText | undefined
+      let missing = "no class, and no list with the class before it"
       if (name) {
         // An attribute inside `:has()` is on another element.
         const attribute = own(subject).match(attributeIn)
         const unless = unlessIn(subject)
+        missing = own(subject).includes(":has(")
+          ? "an attribute in :has(), which is on another element"
+          : "no attribute, and the check cannot tell when it is shown"
         if (attribute && !own(subject).includes(":has(")) {
           text = {
             variable: found.variable,
@@ -641,6 +663,7 @@ function textsInCss(
         while (at >= 0 && !classIn(compounds[at])) at--
         const attribute = before.exec(compounds[at + 2] ?? "")
         name = at < 0 ? undefined : classIn(compounds[at])
+        missing = `no child of ${name ?? "a list"} with :has(~ [attribute]) right after >`
         const unless = at < 0 ? [] : unlessIn(compounds[at])
         if (
           name &&
@@ -660,7 +683,7 @@ function textsInCss(
       }
       if (!name || !text) {
         throw new Error(
-          `${file}: the text "${found.text}" in \`${selector}\` is shown where the generator cannot tell. Put it on the element with the class and an attribute, or on the children of a list before the one with an attribute, as in lt-steps.`,
+          `${file}: the text "${found.text}" in \`${selector}\` has ${missing}. Put it on the element with the class and an attribute, or on the children of a list before the one with an attribute, as in lt-steps.`,
         )
       }
       // The same text from two selectors in one rule, as the step's link and

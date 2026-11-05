@@ -58,7 +58,7 @@ class ManifestReaderTest {
                     buildMap {
                         put("variable", t.variable)
                         put("text", t.text)
-                        t.attribute?.let { put("attribute", it) }
+                        put("attribute", t.attribute)
                         t.value?.let { put("value", it) }
                         if (t.unless.isNotEmpty()) put("unless", t.unless)
                         if (t.siblingsBefore) put("siblingsBefore", true)

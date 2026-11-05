@@ -211,6 +211,11 @@ const READER: [string, unknown, unknown][] = [
     [".lt-card", " ", '.lt-x[class~="a"]', ">", 'li[data-v="a > b"]'],
   ],
   [
+    'li[data-v="a\\"> b"] > .lt-a\\>b',
+    compoundsOf('li[data-v="a\\"> b"] > .lt-a\\>b'),
+    ['li[data-v="a\\"> b"]', ">", ".lt-a\\>b"],
+  ],
+  [
     'li[data-v="a]>b"] a',
     compoundsOf('li[data-v="a]>b"] a'),
     ['li[data-v="a]>b"]', " ", "a"],

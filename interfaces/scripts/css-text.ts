@@ -75,6 +75,7 @@ export function compoundsOf(selector: string): string[] {
   let depth = 0
   let quote: string | undefined
   let combinator: string | undefined
+  let escaped = false
   const end = () => {
     if (current === "") return
     if (combinator !== undefined && out.length > 0) out.push(combinator)
@@ -83,6 +84,13 @@ export function compoundsOf(selector: string): string[] {
     combinator = undefined
   }
   for (const char of selector.trim()) {
+    // A backslash takes the character after it as it is, in a string and
+    // in a name: `[x="a\"b"]`, `.lt-a\>b`.
+    if (escaped || char === "\\") {
+      escaped = !escaped
+      current += char
+      continue
+    }
     if (quote) {
       if (char === quote) quote = undefined
     } else if (char === '"' || char === "'") quote = char

@@ -151,28 +151,32 @@ pub(crate) fn check_css_texts(
                             .is_some_and(|v| lossy(trimmed(v)) == *wanted),
                     })
                 };
-                let inside = subtree(nodes, n);
-                // On the children before the one with the attribute: shown
-                // when a child other than the first carries it.
-                let shown = if text.siblings_before {
-                    inside
-                        .iter()
-                        .filter(|m| m.parent == Some(n))
-                        .skip(1)
-                        .any(carries)
-                } else {
-                    carries(node)
-                };
                 let sets = |m: &Node| {
                     value(m, "style")
                         .and_then(|a| a.value.as_deref())
                         .is_some_and(|v| lossy(v).contains(&text.variable))
                 };
-                // On the element or above it, and for a text on the children
-                // also inside it, where the children are.
-                let set_inline = std::iter::successors(Some(n), |&i| nodes[i].parent)
-                    .any(|i| sets(&nodes[i]))
-                    || text.siblings_before && inside.iter().any(sets);
+                // On the children before the last one with the attribute,
+                // which `li:has(~ [x])` matches. The variable replaces the
+                // text there when every such child, or something inside it,
+                // sets it.
+                let (shown, set_on_children) = if text.siblings_before {
+                    let end = n + 1 + subtree(nodes, n).len();
+                    let children: Vec<usize> = (n + 1..end)
+                        .filter(|&m| nodes[m].parent == Some(n))
+                        .collect();
+                    let last = children.iter().rposition(|&c| carries(&nodes[c]));
+                    let done = &children[..last.unwrap_or(0)];
+                    let set = done
+                        .iter()
+                        .all(|&c| sets(&nodes[c]) || subtree(nodes, c).iter().any(sets));
+                    (!done.is_empty(), set)
+                } else {
+                    (carries(node), false)
+                };
+                let set_inline = set_on_children
+                    || std::iter::successors(Some(n), |&i| nodes[i].parent)
+                        .any(|i| sets(&nodes[i]));
                 if !shown || set_inline || text.unless.iter().any(|u| value(node, u).is_some()) {
                     continue;
                 }
@@ -340,6 +344,11 @@ mod tests {
             r#"<li style="--lt-steps-done-text: 'Fullført '"><a href="/a">Sted</a></li><li aria-current="step">Vegger</li>"#,
         );
         assert!(check(&on_step, ".lt-steps { color: red }").is_empty());
+        // Not on one of two done steps.
+        let one_of_two = page(
+            r#"<li style="--lt-steps-done-text: 'Fullført '">Sted</li><li>Befaring</li><li aria-current="step">Vegger</li>"#,
+        );
+        assert_eq!(check(&one_of_two, ".lt-steps { color: red }").len(), 1);
         // But not on an element after the list.
         let after = format!(
             r#"{}<p style="--lt-steps-done-text: 'Fullført '">Ute</p>"#,
