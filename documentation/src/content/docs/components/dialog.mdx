@@ -254,6 +254,8 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
     // Once for the whole app, in the page template. Not once per component.
     head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
     body {
+        // The page that asks the user to confirm, so the dialog is sent open. On
+        // a page where it waits for a request, call cancelJob(open = false).
         cancelJob()
         script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
     }

@@ -216,7 +216,7 @@ The switch promises that the change applies. So it also has to say when saving f
     The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `renew` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`, the switch is saved through Datastar, as in the Datastar tab, and the page has no script of its own. The server renders the saved choice into the signal and the `checked` attribute, so the switch stands right before Datastar has loaded.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`, the switch is saved through Datastar, as in the Datastar tab, and the page has no script of its own. The server renders the saved choice into the signal and the `checked` attribute, so the switch stands right before Datastar has loaded, and `autocomplete="off"` on the form around it keeps Firefox from putting back the state from before a reload: [HTML does not allow the attribute on a checkbox](https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)).
 
     ```kotlin
     import kotlinx.html.*
@@ -249,7 +249,7 @@ The switch promises that the change applies. So it also has to say when saving f
     }
     ```
 
-    The answer to `@put` is the outcome. `@put` sends the signals as JSON, `{"renew": true, "status": ""}`, and an answer with `content-type: application/json` sets the signals it names. Datastar reads it only from a 200: an answer with an error status sets nothing, and the switch would stand where the user left it. A save that went through answers with the status, and a refusal is a 200 that puts `renew` back and says why. So is a session that has run out: Datastar follows a redirect, and the log-in page it lands on is a 200 that puts nothing back, so a request with the `Datastar-Request` header is answered, not redirected:
+    The answer to `@put` is the outcome. `@put` sends the signals as JSON, `{"renew": true, "status": ""}`, and an answer with `content-type: application/json` sets the signals it names. Datastar reads it only from a 200: an answer with an error status sets nothing, and the switch would stand where the user left it. A save that went through answers with the status, and a refusal is a 200 that puts `renew` back and says why. So is a session that has run out: Datastar follows a redirect and morphs the log-in page it lands on into this one, with the switch still where the user left it, so a request with the `Datastar-Request` header is answered, not redirected:
 
     ```json
     {"renew": false, "status": "Could not save. Try again."}
