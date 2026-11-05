@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.41.0 (2026-11-05)
+
 ### Added
 
 - **A rulebook for coding agents on a Kotlin or Java server, `agent/kotlin.md`.**

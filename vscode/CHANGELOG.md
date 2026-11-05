@@ -3,6 +3,21 @@
 The extension has its own version number. It does not follow the package,
 since it only changes when an element or an attribute does.
 
+## 0.13.0
+
+The checker and the vocabulary from `@lo-tek/interfaces` 0.41.0.
+
+- **`<lt-term>` and `lt-steps`.** Completion and hover for the term, a word
+  that shows its entry from a glossary, with the classes `lt-term` and
+  `lt-term__entry`, and for the step indicator `lt-steps`. A snippet for
+  the term, from the recipe on its page.
+- **`term-without-entry`, a finding on a whole page,** when a word in
+  `<lt-term>` points at an id the page does not have, or at something that
+  is not a glossary entry.
+- **`untranslated-text` covers the step indicator's "Completed "** on a
+  page in another language, when the stylesheets do not set
+  `--lt-steps-done-text`.
+
 ## 0.12.0
 
 - **The snippets leave the ids empty.** They filled in the id from the

@@ -38,7 +38,7 @@
     },
     "interfaces": {
       "name": "@lo-tek/interfaces",
-      "version": "0.40.0",
+      "version": "0.41.0",
       "bin": {
         "lotek": "dist/cli.js",
       },
@@ -60,7 +60,7 @@
     },
     "vscode": {
       "name": "interfaces",
-      "version": "0.12.0",
+      "version": "0.13.0",
       "devDependencies": {
         "@lo-tek/interfaces": "workspace:*",
         "@types/node": "24.12.4",
