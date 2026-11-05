@@ -184,6 +184,19 @@ export const elements: Elements = {
       }
     }
   },
+  "lt-term": {
+    "link": "https://lo-tek.sobernetics.no/components/term/",
+    "description": "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary.",
+    "attributes": {},
+    "parts": {
+      "word": {
+        "selector": "a[href^='#']",
+        "description": "The word: a link to the glossary entry, such as `<a href=\"#term-signal\">`. The entry is a `<div>` with that id in a `<dl>`, with a `<dt>` and a `<dd>`, anywhere on the page.",
+        "content": "text",
+        "unique": true
+      }
+    }
+  },
   "lt-suggestion": {
     "link": "https://lo-tek.sobernetics.no/components/suggestion/",
     "description": "Field with a suggestion list. A `<label for>`, an `<input id>`, an `.lt-suggestion__list` with `<li>` items and a `[role=status]` are enough; the component sets the roles and the wiring where the markup came without them, and gives the list and the options ids. The field never gets an id from the component. Filters as the user types, moves the highlight with the arrow keys and announces the number of matches.",

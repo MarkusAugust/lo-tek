@@ -1,0 +1,177 @@
+@layer lotek {
+  /* The word. It is a link, but reads as part of the sentence: the colour
+     is the text's, and the dotted line says it has an explanation. */
+  .lt-term {
+    color: inherit;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(
+      --lt-term-underline-color,
+      var(--lt-color-accent-fill)
+    );
+    text-decoration-thickness: 0.1em;
+    text-underline-offset: 0.2em;
+  }
+
+  /* Only where there is a pointer that hovers. iOS keeps `:hover` on a
+     link after a tap, and the line stayed solid until the next tap
+     somewhere else. */
+  @media (hover: hover) {
+    .lt-term:hover {
+      text-decoration-style: solid;
+    }
+  }
+
+  /* The word whose card is open, so the reader sees what the card belongs
+     to. It matters most on a narrow screen, where the card is a sheet at
+     the edge of the window and not next to the word. */
+  .lt-term[aria-expanded="true"] {
+    text-decoration-style: solid;
+    background: var(--lt-color-accent-surface);
+    border-radius: var(--lt-spacing-0-5);
+  }
+
+  .lt-term:focus-visible {
+    outline: var(--lt-focus-ring);
+    outline-offset: 2px;
+    border-radius: var(--lt-spacing-0-5);
+  }
+
+  /* The card is the glossary entry itself, in the top layer while
+     `<lt-term>` has it open. Every rule stands on `:popover-open`, so the
+     entry looks as the page made it everywhere else. */
+  .lt-term__entry:popover-open {
+    /* The position is relative to the viewport. The values are set by the
+       web component, which works them out against the word. */
+    position: fixed;
+    inset: auto;
+    inset-block-start: var(--lt-term-top, 0);
+    inset-inline-start: var(--lt-term-left, 0);
+    margin: 0;
+    /* The space between the word and the card. The web component reads it
+       from here, where the browser has turned it into pixels, and places the
+       card with it. The card is never scrolled to, so the property does
+       nothing else. */
+    scroll-margin-block-start: var(--lt-term-gap, var(--lt-spacing-2));
+    box-sizing: border-box;
+    inline-size: max-content;
+    max-inline-size: var(
+      --lt-term-width,
+      min(22rem, calc(100vw - var(--lt-spacing-8)))
+    );
+    padding: var(--lt-term-padding, var(--lt-spacing-3) var(--lt-spacing-4));
+    font-family: inherit;
+    font-size: var(--lt-font-size-m);
+    line-height: var(--lt-line-height-default);
+    color: var(--lt-color-neutral-text-strong);
+    background: var(--lt-color-neutral-surface);
+    border: 1px solid var(--lt-color-neutral-border-strong);
+    border-inline-start: var(--lt-spacing-1) solid
+      var(--lt-term-accent-color, var(--lt-color-accent-fill));
+    border-radius: var(--lt-term-radius, var(--lt-spacing-1));
+    box-shadow: var(--lt-shadow-overlay);
+    /* An explanation taller than the window scrolls in the card rather
+       than running off the screen. */
+    max-block-size: calc(100dvh - var(--lt-spacing-4));
+    overflow-y: auto;
+    /* Scrolling to the end of the explanation stops there. Otherwise it
+       went on to the page behind, the word left the view, and the card
+       closed while the reader was still in it. */
+    overscroll-behavior: contain;
+  }
+
+  /* `--lt-term-left` is the distance from the left edge of the viewport.
+     `inset-inline-start` is the right edge in a right-to-left document, so
+     there it is flipped, as on the popover. */
+  .lt-term__entry:popover-open:dir(rtl) {
+    inset-inline-start: auto;
+    inset-inline-end: var(--lt-term-left, 0);
+  }
+
+  /* On a narrow screen the card is a sheet across the window, at the
+     bottom, or at the top when the word is down where the sheet would
+     cover it. A card by the word covered the lines the reader was about to
+     read, and closing it meant reaching for the middle of the screen.
+     `--lt-term-sheet` tells the web component which form the card has; the
+     stylesheet is the one place that decides. The width is `sm` in the
+     breakpoints in `tokens.ts`: a media query cannot read a variable. */
+  @media (width < 640px) {
+    .lt-term__entry:popover-open {
+      --lt-term-sheet: 1;
+      inset-inline: 0;
+      inline-size: auto;
+      max-inline-size: none;
+      max-block-size: var(--lt-term-sheet-height, 60dvh);
+      padding-block-end: calc(
+        var(--lt-spacing-3) +
+        env(safe-area-inset-bottom, 0px)
+      );
+      border-radius: 0;
+      border-inline-end: none;
+    }
+
+    /* The direction does not matter across the whole width. Without this
+       the rule above for right to left won, and the sheet hung from the
+       word. */
+    .lt-term__entry:popover-open:dir(rtl) {
+      inset-inline: 0;
+    }
+  }
+
+  /* The label over the term. CSS cannot import a text, so it is read from a
+     variable with the English text as the fallback. */
+  .lt-term__entry:popover-open::before {
+    content: var(--lt-term-label-text, "Glossary");
+    display: block;
+    margin-block-end: var(--lt-spacing-1);
+    font-family: var(--lt-term-label-font, inherit);
+    font-size: var(--lt-font-size-xs);
+    line-height: var(--lt-line-height-compact);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lt-color-accent-text);
+  }
+
+  .lt-term__entry:popover-open > dt {
+    margin: 0;
+    font-weight: var(--lt-font-weight-semibold);
+  }
+
+  .lt-term__entry:popover-open > dd {
+    margin: 0;
+  }
+
+  @starting-style {
+    .lt-term__entry:popover-open {
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lt-term__entry:popover-open {
+      transition: opacity 120ms ease;
+    }
+  }
+
+  /* More contrast: the line under the word is solid and in the text's own
+     colour, and the card's edge is as strong as the text. */
+  @media (prefers-contrast: more) {
+    .lt-term {
+      text-decoration-style: solid;
+      text-decoration-color: currentColor;
+    }
+
+    .lt-term__entry:popover-open {
+      border-block-color: var(--lt-color-neutral-text-strong);
+      border-inline-end-color: var(--lt-color-neutral-text-strong);
+    }
+  }
+
+  /* High contrast: the shadow is removed and the surface is the page's, so
+     the edge is what holds the card apart from the text under it. */
+  @media (forced-colors: active) {
+    .lt-term__entry:popover-open {
+      border-color: CanvasText;
+    }
+  }
+}

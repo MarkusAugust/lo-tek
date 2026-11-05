@@ -3,6 +3,7 @@ import {
   defineElement,
   HostElement,
   isServerControlled,
+  place,
   SERVER_CONTROLLED,
   setAttr,
   setFlag,
@@ -507,7 +508,6 @@ export class LtPopover extends HostElement {
 
     const anchor = this.triggerElement.getBoundingClientRect()
     const panel = this.panel.getBoundingClientRect()
-    const space = 4
 
     const below = this.placement.startsWith("bottom")
     // `start` and `end` follow the reading direction: in a right-to-left
@@ -520,30 +520,10 @@ export class LtPopover extends HostElement {
     const rtl = this.panel.matches(":dir(rtl)")
     const alignRight = this.placement.endsWith("end") !== rtl
 
-    let top = below ? anchor.bottom + space : anchor.top - panel.height - space
-    let left = alignRight ? anchor.right - panel.width : anchor.left
+    const { top, left } = place(anchor, panel, below, alignRight)
 
-    // The panel must not end up off screen. If it goes out at the side, it is
-    // moved in. If there is no room on the side of the button the placement asks
-    // for, it goes on the other side, and is then clamped into the viewport
-    // either way. `top-*` lacked the last part, and a panel at the top of the
-    // page lay entirely off screen, with no way to scroll it into view.
-    left = Math.max(
-      space,
-      Math.min(left, window.innerWidth - panel.width - space),
-    )
-    if (below && top + panel.height > window.innerHeight) {
-      top = anchor.top - panel.height - space
-    } else if (!below && top < space) {
-      top = anchor.bottom + space
-    }
-    top = Math.max(
-      space,
-      Math.min(top, window.innerHeight - panel.height - space),
-    )
-
-    this.panel.style.setProperty("--lt-popover-top", `${Math.round(top)}px`)
-    this.panel.style.setProperty("--lt-popover-left", `${Math.round(left)}px`)
+    this.panel.style.setProperty("--lt-popover-top", `${top}px`)
+    this.panel.style.setProperty("--lt-popover-left", `${left}px`)
   }
 
   private emit(open: boolean): void {

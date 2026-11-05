@@ -35,6 +35,7 @@ import { skeleton } from "./components/css/skeleton/skeleton.js"
 import { skipLink } from "./components/css/skip-link/skip-link.js"
 import { spinner } from "./components/css/spinner/spinner.js"
 import { srOnly } from "./components/css/sr-only/sr-only.js"
+import { steps } from "./components/css/steps/steps.js"
 import { switchControl } from "./components/css/switch/switch.js"
 import { table, tableSort } from "./components/css/table/table.js"
 import { tag } from "./components/css/tag/tag.js"
@@ -55,6 +56,7 @@ import {
   type TabsWithStateOptions,
   tabsWithState,
 } from "./components/frame/tabs/tabs.js"
+import { termWithState } from "./components/frame/term/term.js"
 import { connectionStatus } from "./components/standalone/connection-status/connection-status.js"
 import { toast } from "./components/standalone/toast/toast.js"
 import { type Attributes, setAttributes as setHtmlAttributes } from "./dom.js"
@@ -261,6 +263,7 @@ export const lt = {
   progress: forReact(progress),
   spinner: forReact(spinner),
   srOnly: forReact(srOnly),
+  steps: forReact(steps),
   switch: forReact(switchControl),
   toggleGroup: forReact(toggleGroup),
   tooltip: forReact(tooltip),
@@ -351,6 +354,18 @@ export const lt = {
       item: toReactAttributes(built.item),
       tabs: built.tabs.map(toReactAttributes),
       panels: built.panels.map(toReactAttributes),
+    }
+  },
+
+  /**
+   * With `aria-expanded`, which `<lt-term>` writes: React reports a mismatch
+   * for an attribute it did not render. See `termWithState`.
+   */
+  term: (options: Parameters<typeof termWithState>[0]) => {
+    const built = termWithState(options)
+    return {
+      word: toReactAttributes(built.word),
+      entry: toReactAttributes(built.entry),
     }
   },
 

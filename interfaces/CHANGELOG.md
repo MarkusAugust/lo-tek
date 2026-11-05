@@ -24,6 +24,64 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.41.0 (2026-11-05)
+
+### Added
+
+- **A rulebook for coding agents on a Kotlin or Java server, `agent/kotlin.md`.**
+  It covers `Lt` with a table of every enum and its constants, kotlinx.html
+  and strings, the WebJar and `LotekWebJar`, ids from a key in the data,
+  `assertLotek` in tests, the Gradle plugin and `lotek.jar`. `llms.txt`
+  names Kotlin and the check without Node.
+- **`<lt-term>` and `lt.term()`: a word in the text that shows its entry
+  from a glossary on the same page.** The word is a link to the entry, a
+  `<div>` with a `<dt>` and a `<dd>` in a `<dl>`, and stays one without
+  JavaScript. The web component shows the entry itself as a card by the
+  word, in the top layer: the mouse opens it after a rest, a click, a tap or
+  Enter pins it, and Escape, a click outside or the word scrolling out of
+  view closes it. Below the `sm` breakpoint the card is a sheet across the
+  bottom of the window, or the top when the word is down there. Nothing is
+  copied and no id is made in the browser, so the card survives an update
+  from the server. `lt.term({ id })` writes `href` and `aria-details` on the
+  link, the classes `lt-term` and `lt-term__entry`, and the id; `/react`
+  adds `aria-expanded="false"`. `Lt.term()` in Kotlin, and `ltTerm` and
+  `ltTermEntry` in kotlinx.html. New entry points `./term` and
+  `./term.css`, new component variables `--lt-term-width`,
+  `--lt-term-gap`, `--lt-term-padding`, `--lt-term-radius`,
+  `--lt-term-accent-color`, `--lt-term-underline-color`,
+  `--lt-term-label-text`, `--lt-term-label-font` and
+  `--lt-term-sheet-height`, and the default text "Glossary".
+- **`lt-steps` and `lt.steps()`: a step indicator for a task over several
+  pages.** The class goes on an `<ol>` with one `<li>` per step, and
+  `aria-current="step"` on the step the user is on. The steps before it are
+  drawn as done, with a check the screen reader reads as "Completed", as part
+  of the step's link when it has one. Below `28rem` of the list's own width
+  the steps stand in a column. `Lt.steps()` in Kotlin. New entry points
+  `./steps` and `./steps.css`, new component variables
+  `--lt-steps-marker-size`, `--lt-steps-done-icon` and
+  `--lt-steps-done-text`, and the default text
+  "Completed ".
+- **The check reports `untranslated-text` for the step indicator's
+  "Completed "** on a page in another language, as for the other texts in
+  the stylesheets. In the manifest's `texts` on a class,
+  `siblingsBefore: true` is a text shown on the children before the one with
+  the attribute, and the Kotlin `CssText` has `siblingsBefore`. The term's
+  "Glossary" is not checked, since the card shows it only while it is open.
+- **The check reports `term-without-entry`** on a whole page, when a word
+  in `<lt-term>` points at an id the page does not have, or at something
+  that is not a glossary entry.
+- **`place()` in `@lo-tek/interfaces/host-element`**, the placement
+  `<lt-popover>` worked out, now shared with `<lt-term>`.
+
+### Changed
+
+- **`lotek agent` gives the Kotlin rulebook in a folder with
+  `build.gradle.kts`, `build.gradle`, `settings.gradle.kts`,
+  `settings.gradle` or `pom.xml`,** unless `package.json` names a framework
+  other than Vite. Such a folder used to get `templates`, or `bundles` when it
+  also had a `package.json`. `--framework=templates` and
+  `--framework=bundles` still give those.
+
 ### Fixed
 
 - **The snippets and the live templates follow the corrected recipes.** In

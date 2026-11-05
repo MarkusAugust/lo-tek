@@ -13,7 +13,9 @@
  *     string in the component. That covers `setText`, `textContent`,
  *     `append`, `aria-label` and constants named `DEFAULT_…`;
  *   - a text in `content:` in CSS is read from an `--lt-` variable, with the
- *     text as the fallback, since a stylesheet cannot import anything;
+ *     text as the fallback, since a stylesheet cannot import anything. The
+ *     variable may be the alternative text after a symbol, as in
+ *     `"\2713" / var(--lt-steps-done-text, "Completed")`;
  *   - each of the texts is in the table on the documentation page about
  *     translation, so the page cannot promise that everything can be
  *     translated without saying how.
@@ -28,6 +30,13 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { DEFAULT_TEXTS } from "../src/components/default-texts.js"
+import {
+  compoundsOf,
+  isText,
+  replaceableText,
+  splitOutside,
+  stringsIn,
+} from "./css-text.js"
 
 const COMPONENTS = new URL("../src/components", import.meta.url).pathname
 const TEXT_FILE = join(COMPONENTS, "default-texts.ts")
@@ -51,13 +60,6 @@ function withoutComments(source: string): string {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`])\/\/.*$/gm, "$1")
-}
-
-/** A CSS string with the escapes unpacked: `\\e5 ` becomes "å". */
-function unescapeCss(value: string): string {
-  return value.replace(/\\([0-9a-f]+) ?/gi, (_t, code: string) =>
-    String.fromCodePoint(Number.parseInt(code, 16)),
-  )
 }
 
 function lineOf(source: string, index: number): number {
@@ -127,18 +129,17 @@ const fallbacks: string[] = []
 let cssRead = 0
 for (const file of files(COMPONENTS, ".css")) {
   const source = withoutComments(readFileSync(file, "utf8"))
-  for (const match of source.matchAll(/content\s*:\s*([^;}]+)/g)) {
+  // Not the condition of an `@supports (content: …)`, which is no text.
+  for (const match of source.matchAll(/(?<![(\w-])content\s*:\s*([^;}]+)/g)) {
     const value = match[1].trim()
-    const strings = [...value.matchAll(/(["'])((?:(?!\1).)*)\1/g)].map(
-      (s) => s[2],
-    )
     // A symbol like "/" or "×" is not language. A letter is, also when
     // escaped: `\e5 ` is å.
-    const texts = strings.map(unescapeCss).filter((s) => /\p{L}/u.test(s))
+    const texts = stringsIn(value).filter(isText)
     if (texts.length === 0) continue
-    // The whole value has to be one variable with the text as the fallback.
-    // Text next to the variable cannot be replaced.
-    if (!/^var\(--lt-[a-z0-9-]+\s*,\s*(["'])(?:(?!\1).)*\1\s*\)$/.test(value)) {
+    // The whole value has to be one variable with the text as the fallback,
+    // or a symbol with the variable as its alternative text. Text next to the
+    // variable cannot be replaced, and a letter in the symbol is text.
+    if (replaceableText(value) === undefined) {
       problems.push(
         `${relative(process.cwd(), file)}:${lineOf(source, match.index ?? 0)}: ` +
           `content: ${value} has text that cannot be replaced. ` +
@@ -185,6 +186,58 @@ for (const text of expected) {
     continue
   }
   documented++
+}
+
+/*
+ * The reader the generator shares, on the forms that went wrong once: a
+ * symbol escaped with a letter in its hex, a symbol that is text, and a
+ * combinator character inside brackets or a string. The generator places
+ * the texts in the manifest with it, so a wrong answer here is a text
+ * `untranslated-text` reports in the wrong place, or never.
+ */
+const READER: [string, unknown, unknown][] = [
+  [
+    '"\\25B6" / var(--lt-x-text, "Open")',
+    replaceableText('"\\25B6" / var(--lt-x-text, "Open")'),
+    { variable: "--lt-x-text", text: "Open" },
+  ],
+  [
+    '"Done" / var(--lt-x-text, "Open")',
+    replaceableText('"Done" / var(--lt-x-text, "Open")'),
+    undefined,
+  ],
+  [
+    '.lt-steps > li:has(~ [aria-current="step"]) > a::before',
+    compoundsOf('.lt-steps > li:has(~ [aria-current="step"]) > a::before'),
+    [".lt-steps", ">", 'li:has(~ [aria-current="step"])', ">", "a::before"],
+  ],
+  [
+    '.lt-card .lt-x[class~="a"]>li[data-v="a > b"]',
+    compoundsOf('.lt-card .lt-x[class~="a"]>li[data-v="a > b"]'),
+    [".lt-card", " ", '.lt-x[class~="a"]', ">", 'li[data-v="a > b"]'],
+  ],
+  [
+    'li[data-v="a\\"> b"] > .lt-a\\>b',
+    compoundsOf('li[data-v="a\\"> b"] > .lt-a\\>b'),
+    ['li[data-v="a\\"> b"]', ">", ".lt-a\\>b"],
+  ],
+  [
+    '.lt-x[data-v="a\\",b"], .lt-y',
+    splitOutside('.lt-x[data-v="a\\",b"], .lt-y', /,/),
+    ['.lt-x[data-v="a\\",b"]', ".lt-y"],
+  ],
+  [
+    'li[data-v="a]>b"] a',
+    compoundsOf('li[data-v="a]>b"] a'),
+    ['li[data-v="a]>b"]', " ", "a"],
+  ],
+]
+for (const [input, got, expected] of READER) {
+  if (JSON.stringify(got) !== JSON.stringify(expected)) {
+    problems.push(
+      `css-text.ts reads ${input} as ${JSON.stringify(got)}, not ${JSON.stringify(expected)}.`,
+    )
+  }
 }
 
 /*

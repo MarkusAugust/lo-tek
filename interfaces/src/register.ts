@@ -20,6 +20,7 @@ import { defineLtPopover } from "./components/frame/popover/lt-popover.js"
 import { defineLtSessionTimeout } from "./components/frame/session-timeout/lt-session-timeout.js"
 import { defineLtSuggestion } from "./components/frame/suggestion/lt-suggestion.js"
 import { defineLtTabs } from "./components/frame/tabs/lt-tabs.js"
+import { defineLtTerm } from "./components/frame/term/lt-term.js"
 import { defineLtConnectionStatus } from "./components/standalone/connection-status/lt-connection-status.js"
 import { defineLtToast } from "./components/standalone/toast/lt-toast.js"
 
@@ -40,4 +41,5 @@ export function defineLt(): void {
   defineLtToast()
   defineLtSessionTimeout()
   defineLtConnectionStatus()
+  defineLtTerm()
 }

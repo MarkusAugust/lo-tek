@@ -1,0 +1,149 @@
+---
+title: Steps
+description: A step indicator that shows where the user is in a task over several pages. A CSS component with one class and no JavaScript.
+---
+
+import Example from "../../../components/Example.astro"
+import ScreenReaderContract from "../../../components/ScreenReaderContract.astro"
+
+Where the user is in a task that takes several pages, like an order or an application. The class goes on an `<ol>` with one `<li>` per step, and `aria-current="step"` says which step the user is on. The steps before it are drawn as done, so that is all the markup has to say.
+
+If the task has no named steps, only a share that is done, [Progress](../progress/) is the better fit.
+
+## How to use it
+
+<Example imports={["tokens.css", "steps.css"]}
+  styles={["steps"]} layout="stack" maxWidth="48rem" code={`
+<ol class="lt-steps" aria-label="Order">
+  <li><a href="#">Site</a></li>
+  <li><a href="#">Survey</a></li>
+  <li aria-current="step">Walls</li>
+  <li>Payment</li>
+  <li>Confirmation</li>
+</ol>
+`}>
+<Fragment slot="ts">
+
+`lt` is used in two ways, and which one depends on whether you create the element or find it.
+
+**If you create the markup,** spread the attributes in. That is the way in React, Astro and anything else that renders. The current step comes from the data, and a done step links back:
+
+```tsx
+import { lt } from "@lo-tek/interfaces/react"
+
+const STEPS = [
+  { key: "site", name: "Site" },
+  { key: "survey", name: "Survey" },
+  { key: "walls", name: "Walls" },
+  { key: "payment", name: "Payment" },
+  { key: "confirmation", name: "Confirmation" },
+]
+
+export function OrderSteps({ current }: { current: number }) {
+  return (
+    <ol {...lt.steps()} aria-label="Order">
+      {STEPS.map((step, i) => (
+        <li key={step.key} aria-current={i === current ? "step" : undefined}>
+          {i < current ? <a href={`/order/${step.key}`}>{step.name}</a> : step.name}
+        </li>
+      ))}
+    </ol>
+  )
+}
+```
+
+The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
+
+**If the element is already there,** set them on it. That is the way when you enhance HTML a server or a template has sent:
+
+```ts
+import { lt } from "@lo-tek/interfaces"
+
+const order = document.querySelector<HTMLOListElement>("#order-steps")
+
+lt.setAttributes(order, lt.steps())
+```
+
+</Fragment>
+<Fragment slot="kotlin">
+
+On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`. The builder functions are in `Lt`, with an enum for each list of values:
+
+```kotlin
+import kotlinx.html.*
+import no.lotek.*
+import no.lotek.html.lt
+
+fun FlowContent.orderSteps() {
+    ol {
+        lt(Lt.steps())
+        attributes["aria-label"] = "Order"
+        li { a(href = "#") { +"Site" } }
+        li { a(href = "#") { +"Survey" } }
+        li { attributes["aria-current"] = "step"; +"Walls" }
+        li { +"Payment" }
+        li { +"Confirmation" }
+    }
+}
+```
+
+</Fragment>
+</Example>
+
+Two things have to be in the markup:
+
+| What | Why |
+| --- | --- |
+| `<ol>`, not `<ul>` | The order is part of the meaning, and the screen reader says how many steps there are |
+| `aria-current="step"` on the `<li>` the user is on | It is what the screen reader announces as the current step, and what the done steps are read from. On a link inside the step it does neither, since the stylesheet reads it on the `<li>` |
+
+A name on the list, `aria-label="Order"`, tells the steps apart from the other lists on the page.
+
+## The steps before the current one are done
+
+The stylesheet draws every step before the one with `aria-current="step"` as done, with a check instead of the number. The screen reader reads the check as "Completed". There is no attribute for a done step, so the markup cannot say one thing while the drawing says another.
+
+It also means that a user who goes back to an earlier step sees the steps after it as not done again. That is what the indicator is for: it shows where the user is, and what is still in front of them from there. If the steps after it are still saved, say so on the page.
+
+A done step can be a link back to it. The current step and the ones after it are plain text.
+
+## In a narrow box
+
+The steps share the row. When the list is narrower than `28rem`, they stand in a column instead, with the marker at the start of each line: a row of five steps on a phone gives each name less room than one word.
+
+<Example styles={["steps"]} layout="stack" maxWidth="20rem" code={`
+<ol class="lt-steps" aria-label="Order">
+  <li><a href="#">Site</a></li>
+  <li><a href="#">Survey</a></li>
+  <li aria-current="step">Walls</li>
+  <li>Payment</li>
+  <li>Confirmation</li>
+</ol>
+`} />
+
+The width that counts is the list's own, not the window's, so the indicator also stands in a column in a narrow side panel. The list is a size container for that reason, and takes the width of the box it stands in. In a flex row, give it a width of its own, `flex: 1` for example: a size container has no width from its content, and without one it shrinks to nothing.
+
+## Classes you can style
+
+| Class | What it is |
+| --- | --- |
+| `.lt-steps` | The list of steps |
+
+| Variable | Default |
+| --- | --- |
+| `--lt-steps-marker-size` | `var(--lt-spacing-7)`, the circle with the number or the check |
+| `--lt-steps-done-icon` | `var(--lt-icon-check)`, the check on a done step, the same as in the [Checkbox](../checkbox/). Any image will do: a `url()` or a gradient |
+| `--lt-steps-done-text` | `"Completed "`, what the screen reader reads for the check, with the space before the step's name |
+
+The marker is `::before` on the step's link, or on the step itself when it has no link, and the line to the next step is `::after` on the step. [Translation](../../translation/) shows how to set `--lt-steps-done-text` by the language of the page.
+
+See [Customising](../../customising/) for how the variables and the layer work.
+
+## Accessibility
+
+<ScreenReaderContract component="steps" />
+
+- The number on the marker is decoration, with an empty alternative text: the list already says which step it is, and "3 Walls" would only repeat it.
+- The check is read as "Completed" in front of the step's name. When the done step is a link, the text is part of the link's name, so a keyboard user who tabs to it hears it too.
+- Say where the user is in the page's heading as well, such as "Walls, step 3 of 5". The indicator is a list someone has to find, and the heading is what the screen reader reads first.
+- Do not use the indicator as the only way between the steps. Every step still needs its own buttons forward and back.

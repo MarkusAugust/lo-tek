@@ -81,6 +81,27 @@
     ],
     "description": "A panel that hangs from a button and closes itself. A button and a panel with the class `lt-popover` and an id from the template; the component sets `popover` and `aria-controls` where the markup came without them, but never the id."
   },
+  "lt-term": {
+    "prefix": "lt-term",
+    "body": [
+      "<!-- The word links to the entry. The web component sets the class,",
+      "     aria-details and aria-expanded on the link. -->",
+      "<p>",
+      "  A claim is paid out unless the death was an",
+      "  <lt-term><a href=\"#$1\">act of God</a></lt-term>.",
+      "</p>",
+      "",
+      "<!-- The entry is a <div> in a <dl>, with the id the link points to. -->",
+      "<h2>Glossary</h2>",
+      "<dl>",
+      "  <div id=\"$1\">",
+      "    <dt>Act of God</dt>",
+      "    <dd>A cause of death the policy does not cover. The insurer can add to the list without notice.</dd>",
+      "  </div>",
+      "</dl>"
+    ],
+    "description": "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary."
+  },
   "lt-suggestion": {
     "prefix": "lt-suggestion",
     "body": [

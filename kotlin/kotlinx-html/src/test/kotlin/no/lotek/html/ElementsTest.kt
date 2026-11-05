@@ -3,7 +3,11 @@ package no.lotek.html
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlinx.html.FlowContent
+import kotlinx.html.a
+import kotlinx.html.dd
 import kotlinx.html.div
+import kotlinx.html.dl
+import kotlinx.html.dt
 import kotlinx.html.id
 import kotlinx.html.p
 import kotlinx.html.stream.createHTML
@@ -16,6 +20,7 @@ class ElementsTest {
         { ltTabs() },
         { ltErrorSummary() },
         { ltPopover() },
+        { ltTerm() },
         { ltSuggestion() },
         { ltDialog() },
         { ltToast() },
@@ -31,6 +36,34 @@ class ElementsTest {
                 ?: error("Not one empty element: $html")
         }
         assertEquals(Lotek.manifest.elements.keys.sorted(), tags.sorted())
+    }
+
+    @Test
+    fun `a term stands in a paragraph, with the link from the builder function in it`() {
+        val term = Lt.term(id = "term-signal")
+        val html = createHTML(prettyPrint = false).p {
+            +"Datastar keeps "
+            ltTerm { a { lt(term.word); +"signals" } }
+        }
+        assertEquals(
+            "<p>Datastar keeps <lt-term><a class=\"lt-term\" href=\"#term-signal\" aria-details=\"term-signal\">signals</a></lt-term></p>",
+            html,
+        )
+    }
+
+    @Test
+    fun `a glossary entry puts the dt and the dd in the div`() {
+        val term = Lt.term(id = "term-signal")
+        val html = createHTML(prettyPrint = false).dl {
+            ltTermEntry(term.entry) {
+                dt { +"Signal" }
+                dd { +"A value." }
+            }
+        }
+        assertEquals(
+            "<dl><div class=\"lt-term__entry\" id=\"term-signal\"><dt>Signal</dt><dd>A value.</dd></div></dl>",
+            html,
+        )
     }
 
     @Test

@@ -1,0 +1,19 @@
+{
+  "markup": [],
+  "page": [
+    {
+      "start": 62,
+      "end": 63,
+      "severity": "warning",
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "message": "<lt-term> points at #term-act-of-god, which is <dt> and not a glossary entry. The entry is a <div> in a <dl> with a <dt> and a <dd>: put the id on the <div>. Until then the word is a plain link, and no card opens."
+    },
+    {
+      "start": 146,
+      "end": 147,
+      "severity": "warning",
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "message": "<lt-term> points at #term-black-ice, and no element has that id. Give the glossary entry the id; until then the word is a plain link, and no card opens."
+    }
+  ]
+}

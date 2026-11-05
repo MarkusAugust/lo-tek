@@ -1,0 +1,240 @@
+@layer lotek {
+  /*
+   * The step indicator: an `<ol>` with one `<li>` per step, and
+   * `aria-current="step"` on the step the user is on. The steps before it are
+   * done, read from the markup with `:has()`, so the server only says where
+   * the user is.
+   *
+   * Every step has a marker, its number or a check, and a line to the next
+   * step. The marker is `::before` on the step's link when the step has one,
+   * so a done step says "Completed" as part of the link's name, and on the
+   * step itself otherwise. The line is `::after` on the step, and is a
+   * border: a background is removed in high contrast mode, and the line with
+   * it.
+   *
+   * The list is a size container. Below 28rem the steps stand in a column,
+   * with the marker at the start of the line: a row of five steps on a phone
+   * gives each label less room than one word.
+   */
+  .lt-steps {
+    box-sizing: border-box;
+    container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: lt-steps;
+    font-family: inherit;
+    font-size: var(--lt-font-size-s);
+    line-height: var(--lt-line-height-default);
+    color: var(--lt-color-neutral-text-subtle);
+  }
+
+  /* Every step gets the same share of the row. The line to the next marker
+     reaches half a step past this one, so the shares must be equal. A name
+     longer than its share breaks inside a word rather than running into the
+     next step; `break-word` breaks only a word that does not fit. */
+  .lt-steps > li {
+    box-sizing: border-box;
+    position: relative;
+    flex: 1 1 0;
+    min-inline-size: 0;
+    padding-block-start: calc(
+      var(--lt-steps-marker-size, var(--lt-spacing-7)) +
+      var(--lt-spacing-2)
+    );
+    padding-inline: var(--lt-spacing-1);
+    overflow-wrap: break-word;
+    text-align: center;
+    counter-increment: lt-steps;
+  }
+
+  .lt-steps > li:not(:has(> a))::before,
+  .lt-steps > li > a::before {
+    content: counter(lt-steps);
+    position: absolute;
+    inset-block-start: 0;
+    inset-inline-start: calc(
+      50% -
+      var(--lt-steps-marker-size, var(--lt-spacing-7)) /
+      2
+    );
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    inline-size: var(--lt-steps-marker-size, var(--lt-spacing-7));
+    block-size: var(--lt-steps-marker-size, var(--lt-spacing-7));
+    border: 2px solid var(--lt-color-neutral-border);
+    border-radius: 50%;
+    background: var(--lt-color-neutral-canvas);
+    color: var(--lt-color-neutral-text-subtle);
+    font-weight: var(--lt-font-weight-semibold);
+    line-height: 1;
+  }
+
+  /* The number is decoration: the list already says which step it is. The
+     empty alternative text keeps it out of the name. Browsers that do not
+     know the form discard the whole declaration, so it sits behind
+     `@supports`, as the separator in the breadcrumbs does. */
+  @supports (content: "1" / "") {
+    .lt-steps > li:not(:has(> a))::before,
+    .lt-steps > li > a::before {
+      content: counter(lt-steps) / "";
+    }
+  }
+
+  .lt-steps > li:has(~ li)::after {
+    content: "";
+    position: absolute;
+    inset-block-start: calc(
+      var(--lt-steps-marker-size, var(--lt-spacing-7)) /
+      2 -
+      1px
+    );
+    inset-inline-start: calc(
+      50% +
+      var(--lt-steps-marker-size, var(--lt-spacing-7)) /
+      2 +
+      var(--lt-spacing-1)
+    );
+    inset-inline-end: calc(
+      -50% +
+      var(--lt-steps-marker-size, var(--lt-spacing-7)) /
+      2 +
+      var(--lt-spacing-1)
+    );
+    border-block-start: 2px solid var(--lt-color-neutral-border);
+  }
+
+  .lt-steps a {
+    color: var(--lt-color-accent-text);
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+  }
+
+  .lt-steps a:hover {
+    color: var(--lt-color-accent-text-strong);
+  }
+
+  .lt-steps a:focus-visible {
+    outline: var(--lt-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .lt-steps > [aria-current="step"] {
+    color: var(--lt-color-neutral-text-strong);
+    font-weight: var(--lt-font-weight-semibold);
+  }
+
+  .lt-steps > [aria-current="step"]:not(:has(> a))::before,
+  .lt-steps > [aria-current="step"] > a::before {
+    border-color: var(--lt-color-accent-fill);
+    color: var(--lt-color-accent-text);
+  }
+
+  /* Done: every step before the current one. */
+  .lt-steps > li:has(~ [aria-current="step"]) {
+    color: var(--lt-color-neutral-text);
+  }
+
+  /* The check is the checkbox's token, cut out of the filled marker as a
+     mask, so the surface behind shows through it. Painted as an image, its
+     stroke had a fixed colour, and in high contrast mode a white check on a
+     light `Highlight` could not be seen. `--lt-steps-done-icon` takes any
+     image; its shape is what counts. */
+  .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
+  .lt-steps > li:has(~ [aria-current="step"]) > a::before {
+    content: "";
+    border-color: var(--lt-color-accent-fill);
+    background: var(--lt-color-accent-fill);
+    mask:
+      var(--lt-steps-done-icon, var(--lt-icon-check)) center / 60% no-repeat,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+
+  /* The empty content is read out as the text, so the screen reader says
+     that the step is done. `::before` is put in front of the name without a
+     space (AccName 2F.ii), so the space is in the text. Behind `@supports`
+     for the reason above: without it the step has no text. */
+  @supports (content: "" / "") {
+    .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
+    .lt-steps > li:has(~ [aria-current="step"]) > a::before {
+      content: "" / var(--lt-steps-done-text, "Completed ");
+    }
+  }
+
+  .lt-steps > li:has(~ [aria-current="step"])::after {
+    border-color: var(--lt-color-accent-fill);
+  }
+
+  @container (width < 28rem) {
+    .lt-steps > li {
+      flex-basis: 100%;
+      min-block-size: calc(
+        var(--lt-steps-marker-size, var(--lt-spacing-7)) +
+        var(--lt-spacing-4)
+      );
+      padding-block: max(
+          0px,
+          (var(--lt-steps-marker-size, var(--lt-spacing-7)) - 1lh) /
+          2
+        )
+        var(--lt-spacing-4);
+      padding-inline: calc(
+          var(--lt-steps-marker-size, var(--lt-spacing-7)) +
+          var(--lt-spacing-3)
+        )
+        0;
+      text-align: start;
+    }
+
+    .lt-steps > li:not(:has(> a))::before,
+    .lt-steps > li > a::before {
+      inset-inline-start: 0;
+    }
+
+    .lt-steps > li:has(~ li)::after {
+      inset-block: calc(
+          var(--lt-steps-marker-size, var(--lt-spacing-7)) +
+          var(--lt-spacing-1)
+        )
+        var(--lt-spacing-1);
+      inset-inline: calc(
+          var(--lt-steps-marker-size, var(--lt-spacing-7)) /
+          2 -
+          1px
+        )
+        auto;
+      border-block-start: 0;
+      border-inline-start: 2px solid var(--lt-color-neutral-border);
+    }
+
+    .lt-steps > li:has(~ [aria-current="step"])::after {
+      border-color: var(--lt-color-accent-fill);
+    }
+  }
+
+  /*
+   * High contrast: the colours are overridden, so the current step and the
+   * done ones would look like the rest. `Highlight` is the system's colour
+   * for what is selected, and a system colour is allowed to stand.
+   */
+  @media (forced-colors: active) {
+    .lt-steps > [aria-current="step"]:not(:has(> a))::before,
+    .lt-steps > [aria-current="step"] > a::before {
+      border-color: Highlight;
+    }
+
+    .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
+    .lt-steps > li:has(~ [aria-current="step"]) > a::before {
+      border-color: Highlight;
+      background-color: Highlight;
+    }
+
+    .lt-steps > li:has(~ [aria-current="step"])::after {
+      border-color: Highlight;
+    }
+  }
+}

@@ -18,6 +18,7 @@ import "./components/css/pagination/pagination.css"
 import "./components/css/radio/radio.css"
 import "./components/css/select/select.css"
 import "./components/css/skip-link/skip-link.css"
+import "./components/css/steps/steps.css"
 import "./components/css/switch/switch.css"
 import "./components/css/table/table.css"
 import "./components/css/tag/tag.css"
@@ -51,6 +52,11 @@ const PAGE = `
   <nav class="lt-breadcrumbs" aria-label="You are here">
     <ol><li><a href="#start">Start</a></li><li><a href="#claim">Your claim</a></li></ol>
   </nav>
+
+  <ol class="lt-steps" aria-label="Order">
+    <li><a href="#site">Site</a></li>
+    <li aria-current="step">Walls</li>
+  </ol>
 
   <a class="lt-link" href="#terms">Read the terms</a>
   <button class="lt-button" type="button">Order the job</button>

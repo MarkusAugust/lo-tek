@@ -757,6 +757,31 @@ export const classes: Classes = {
     "content": "text",
     "attributes": {}
   },
+  "lt-steps": {
+    "component": "steps",
+    "title": "Steps",
+    "description": "A step indicator that shows where the user is in a task over several pages. A CSS component with one class and no JavaScript.",
+    "link": "https://lo-tek.sobernetics.no/components/steps/",
+    "content": "parts",
+    "parts": {
+      "step": {
+        "selector": "li",
+        "description": "One step, with its name as text, or a link back to it. The step the user is on has `aria-current=\"step\"`, and the steps before it are drawn as done.",
+        "content": "free",
+        "multiple": true
+      }
+    },
+    "texts": [
+      {
+        "variable": "--lt-steps-done-text",
+        "text": "Completed ",
+        "attribute": "aria-current",
+        "value": "step",
+        "siblingsBefore": true
+      }
+    ],
+    "attributes": {}
+  },
   "lt-switch": {
     "component": "switch",
     "title": "Switch",
@@ -1303,6 +1328,35 @@ export const classes: Classes = {
     "description": "Tab list of links to their panels. Frame component.",
     "link": "https://lo-tek.sobernetics.no/components/tabs/",
     "content": "free",
+    "attributes": {}
+  },
+  "lt-term": {
+    "component": "term",
+    "title": "Term",
+    "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+    "link": "https://lo-tek.sobernetics.no/components/term/",
+    "content": "text",
+    "attributes": {}
+  },
+  "lt-term__entry": {
+    "component": "term",
+    "title": "Term",
+    "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+    "link": "https://lo-tek.sobernetics.no/components/term/",
+    "content": "parts",
+    "parts": {
+      "term": {
+        "selector": "dt",
+        "description": "The term, as it stands in the glossary.",
+        "content": "text",
+        "unique": true
+      },
+      "description": {
+        "selector": "dd",
+        "description": "The explanation. It can hold links and code.",
+        "content": "free"
+      }
+    },
     "attributes": {}
   },
   "lt-connection-status": {

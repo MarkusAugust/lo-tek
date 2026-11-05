@@ -287,7 +287,7 @@ describe("lt.field together with the field functions", () => {
  * swap: if you add a builder function and a helper at the same time, the
  * number stays put, and a renamed name does not change it at all.
  */
-const BUILDER_FUNCTION_COUNT = 46
+const BUILDER_FUNCTION_COUNT = 48
 
 /** Those that give attributes per part rather than one flat set. */
 const COMPOSITE_NAMES = [
@@ -299,6 +299,7 @@ const COMPOSITE_NAMES = [
   "suggestion",
   "tableSort",
   "tabs",
+  "term",
   "toast",
 ]
 
@@ -384,6 +385,7 @@ describe("attributes only the morpher reads", () => {
         lt.suggestion({ id: "search", keys: ["a", "b"], open: true }),
       tableSort: () => lt.tableSort({ direction: "ascending" }),
       tabs: () => lt.tabs({ id: "tabs", keys: ["a", "b"], label: "Tabs" }),
+      term: () => lt.term({ id: "term-signal" }),
       toast: () => lt.toast(),
     },
   )

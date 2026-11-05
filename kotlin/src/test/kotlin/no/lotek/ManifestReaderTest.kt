@@ -61,6 +61,7 @@ class ManifestReaderTest {
                         put("attribute", t.attribute)
                         t.value?.let { put("value", it) }
                         if (t.unless.isNotEmpty()) put("unless", t.unless)
+                        if (t.siblingsBefore) put("siblingsBefore", true)
                     }
                 },
                 "$name texts",

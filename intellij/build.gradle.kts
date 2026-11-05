@@ -78,6 +78,14 @@ intellijPlatform {
         // Shown on the Marketplace and in the IDE on update, and must be in
         // English like the description. Write a new line for each version.
         changeNotes = """
+            <b>0.7.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
+            0.41.0. Completion for <code>&lt;lt-term&gt;</code>, the classes
+            <code>lt-term</code>, <code>lt-term__entry</code> and <code>lt-steps</code>, and
+            <code>Lt.term()</code> and <code>Lt.steps()</code> in Kotlin. Live templates for
+            the term in HTML and kotlinx.html. <code>term-without-entry</code> on a whole
+            page, and <code>untranslated-text</code> for the step indicator's
+            "Completed ".
+            <br><br>
             <b>0.6.0</b>: The builder functions in Kotlin. Completion of the options and
             their values in <code>Lt.*</code> calls, with the description and the default
             of each, and enum values inserted qualified. Four inspections: a part on the

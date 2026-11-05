@@ -194,6 +194,7 @@ export default defineConfig({
                 { label: "Skip Link", slug: "components/skip-link" },
                 { label: "Spinner", slug: "components/spinner" },
                 { label: "Sr Only", slug: "components/sr-only" },
+                { label: "Steps", slug: "components/steps" },
                 { label: "Switch", slug: "components/switch" },
                 { label: "Table", slug: "components/table" },
                 { label: "Tag", slug: "components/tag" },
@@ -215,6 +216,7 @@ export default defineConfig({
                 },
                 { label: "Suggestion", slug: "components/suggestion" },
                 { label: "Tabs", slug: "components/tabs" },
+                { label: "Term", slug: "components/term" },
               ],
             },
             {

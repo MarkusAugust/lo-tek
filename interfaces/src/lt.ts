@@ -33,6 +33,7 @@ import { skeleton } from "./components/css/skeleton/skeleton.js"
 import { skipLink } from "./components/css/skip-link/skip-link.js"
 import { spinner } from "./components/css/spinner/spinner.js"
 import { srOnly } from "./components/css/sr-only/sr-only.js"
+import { steps } from "./components/css/steps/steps.js"
 import { switchControl } from "./components/css/switch/switch.js"
 import { table, tableSort } from "./components/css/table/table.js"
 import { tag } from "./components/css/tag/tag.js"
@@ -46,6 +47,7 @@ import { popover } from "./components/frame/popover/popover.js"
 import { sessionTimeout } from "./components/frame/session-timeout/session-timeout.js"
 import { suggestion } from "./components/frame/suggestion/suggestion.js"
 import { tabs } from "./components/frame/tabs/tabs.js"
+import { term } from "./components/frame/term/term.js"
 import { connectionStatus } from "./components/standalone/connection-status/connection-status.js"
 import { toast } from "./components/standalone/toast/toast.js"
 import { setAttributes } from "./dom.js"
@@ -143,6 +145,7 @@ export const lt = {
   spinner,
   /** Text only screen readers get. Requires `sr-only.css`. */
   srOnly,
+  steps,
   /**
    * The field and the suggestion list. `<lt-suggestion>` handles the
    * keyboard and the filtering, the server writes the markup.
@@ -169,6 +172,11 @@ export const lt = {
    */
   tableSort,
   tag,
+  /**
+   * A word in the text, linked to its entry in a glossary on the same page.
+   * `<lt-term>` around the link shows the entry as a card by the word.
+   */
+  term,
   textarea,
 
   /**

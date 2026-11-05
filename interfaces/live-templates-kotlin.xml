@@ -27,6 +27,12 @@
       <option name="KOTLIN_TOPLEVEL" value="true" />
     </context>
   </template>
+  <template name="ltterm" value="fun FlowContent.policyTerms() {&#10;    val actOfGod = no.lotek.Lt.term(id = &quot;$term_act_of_god$&quot;)&#10;    p {&#10;        +&quot;A claim is paid out unless the death was an &quot;&#10;        ltTerm { a { lt(actOfGod.word); +&quot;act of God&quot; } }&#10;        +&quot;.&quot;&#10;    }&#10;    h2 { +&quot;Glossary&quot; }&#10;    dl {&#10;        ltTermEntry(actOfGod.entry) {&#10;            dt { +&quot;Act of God&quot; }&#10;            dd { +&quot;A cause of death the policy does not cover. The insurer can add to the list without notice.&quot; }&#10;        }&#10;    }&#10;}" description="The Kotlin recipe from the term page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
+    <variable name="term_act_of_god" expression="" defaultValue="" alwaysStopAt="true" />
+    <context>
+      <option name="KOTLIN_TOPLEVEL" value="true" />
+    </context>
+  </template>
   <template name="ltsuggestion" value="data class Breaker(val code: String, val name: String)&#10;&#10;fun FlowContent.breakerSearch(&#10;    breakers: List&lt;Breaker&gt; = listOf(Breaker(&quot;crowbar&quot;, &quot;Crowbar&quot;), Breaker(&quot;needle&quot;, &quot;Needle&quot;)),&#10;) {&#10;    val search = no.lotek.Lt.suggestion(id = &quot;$breaker$&quot;, keys = breakers.map { it.code })&#10;    ltSuggestion {&#10;        id = &quot;$breaker_search$&quot;&#10;        label { lt(search.label); +&quot;Breaker&quot; }&#10;        input { lt(search.control); name = &quot;$breaker$&quot; }&#10;        ul {&#10;            lt(search.list)&#10;            breakers.zip(search.options).forEach { (breaker, option) -&gt; li { lt(option); +breaker.name } }&#10;        }&#10;        p { lt(search.empty); +&quot;No matches&quot; }&#10;        span { lt(search.status) }&#10;    }&#10;}" description="The Kotlin recipe from the suggestion page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
     <variable name="breaker" expression="" defaultValue="" alwaysStopAt="true" />
     <variable name="breaker_search" expression="" defaultValue="" alwaysStopAt="true" />

@@ -30,7 +30,7 @@
       "end": 177,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/translation/",
-      "message": "<label> is on a page in \"nb\", and the stylesheet shows \"(required)\" after it, in \"en\", which a screen reader reads as part of the name. Set --lt-label-required-text in the page's language in a stylesheet of your own."
+      "message": "<label> is on a page in \"nb\", and the stylesheet shows \"(required)\" with it, in \"en\", which a screen reader reads out. Set --lt-label-required-text in the page's language in a stylesheet of your own."
     }
   ]
 }

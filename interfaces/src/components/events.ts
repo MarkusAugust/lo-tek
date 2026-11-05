@@ -7,6 +7,7 @@ import type { LtPopover } from "./frame/popover/lt-popover.js"
 import type { LtSessionTimeout } from "./frame/session-timeout/lt-session-timeout.js"
 import type { LtSuggestion } from "./frame/suggestion/lt-suggestion.js"
 import type { LtTabs } from "./frame/tabs/lt-tabs.js"
+import type { LtTerm } from "./frame/term/lt-term.js"
 import type { LtConnectionStatus } from "./standalone/connection-status/lt-connection-status.js"
 import type { LtToast } from "./standalone/toast/lt-toast.js"
 
@@ -63,6 +64,7 @@ declare global {
     "lt-session-timeout": LtSessionTimeout
     "lt-suggestion": LtSuggestion
     "lt-tabs": LtTabs
+    "lt-term": LtTerm
     "lt-toast": LtToast
   }
 }

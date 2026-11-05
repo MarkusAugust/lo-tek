@@ -587,3 +587,49 @@ export async function whenUpgraded<T extends HTMLElement>(
   customElements.upgrade(element)
   return element as T
 }
+
+/** The space between a panel and the window's edge. */
+const PLACE_EDGE = 4
+
+/**
+ * Where a panel in the top layer goes next to the element that opened it,
+ * as distances from the window's top and left edge.
+ *
+ * `below` asks for the panel under the anchor, otherwise over it, and
+ * `alignRight` lines the panel's right edge up with the anchor's. `gap` is
+ * the space between the anchor and the panel. The panel must not end up off
+ * screen. If it goes out at the side, it is moved in. If there is no room on
+ * the side of the anchor that was asked for, it goes on the other side, and
+ * is then clamped into the viewport either way.
+ *
+ * `<lt-popover>` and `<lt-term>` place their panels with it, and write the
+ * answer as two variables the stylesheet reads. It lives here so a copy from
+ * `lotek takeover` finds it through `@lo-tek/interfaces/host-element`.
+ */
+export function place(
+  anchor: DOMRect,
+  panel: DOMRect,
+  below: boolean,
+  alignRight: boolean,
+  gap = 4,
+): { top: number; left: number } {
+  // The viewport a fixed box lives in, without a classic scrollbar:
+  // `innerWidth` counts it, and a panel pushed in from the right edge sat
+  // under the scrollbar on Windows and Linux.
+  const width = document.documentElement.clientWidth || window.innerWidth
+  const height = document.documentElement.clientHeight || window.innerHeight
+  let top = below ? anchor.bottom + gap : anchor.top - panel.height - gap
+  let left = alignRight ? anchor.right - panel.width : anchor.left
+
+  // `top-*` lacked the vertical clamp once, and a panel at the top of the
+  // page lay entirely off screen, with no way to scroll it into view.
+  left = Math.max(PLACE_EDGE, Math.min(left, width - panel.width - PLACE_EDGE))
+  if (below && top + panel.height > height) {
+    top = anchor.top - panel.height - gap
+  } else if (!below && top < PLACE_EDGE) {
+    top = anchor.bottom + gap
+  }
+  top = Math.max(PLACE_EDGE, Math.min(top, height - panel.height - PLACE_EDGE))
+
+  return { top: Math.round(top), left: Math.round(left) }
+}

@@ -155,6 +155,8 @@ export type {
 export { spinner } from "./components/css/spinner/spinner.js"
 export type { SrOnlyAttributes } from "./components/css/sr-only/sr-only.js"
 export { srOnly } from "./components/css/sr-only/sr-only.js"
+export type { StepsAttributes } from "./components/css/steps/steps.js"
+export { steps } from "./components/css/steps/steps.js"
 export type {
   SwitchAttributes,
   SwitchOptions,
@@ -207,6 +209,8 @@ export * from "./components/frame/suggestion/lt-suggestion.js"
 export * from "./components/frame/suggestion/suggestion.js"
 export * from "./components/frame/tabs/lt-tabs.js"
 export * from "./components/frame/tabs/tabs.js"
+export * from "./components/frame/term/lt-term.js"
+export * from "./components/frame/term/term.js"
 export * from "./components/standalone/connection-status/connection-status.js"
 export * from "./components/standalone/connection-status/lt-connection-status.js"
 export * from "./components/standalone/toast/lt-toast.js"

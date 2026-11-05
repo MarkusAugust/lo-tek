@@ -80,6 +80,10 @@ pub struct CssText {
     pub value: Option<String>,
     /// Attributes that keep the text from showing.
     pub unless: Vec<String>,
+    /// The attribute is on a child of the element with the class, and the
+    /// text is shown on the children before it, as "Completed " is on the
+    /// steps before the one with `aria-current="step"` in `lt-steps`.
+    pub siblings_before: bool,
 }
 
 /// An attribute a class takes, like `data-variant` on `lt-button`, or a
@@ -191,6 +195,7 @@ pub const RULES: &[&str] = &[
     "panel-without-id",
     "tab-link-without-panel",
     "tab-without-link",
+    "term-without-entry",
     "text-in-label",
     "value-without-field",
     "error-text-contradicts",

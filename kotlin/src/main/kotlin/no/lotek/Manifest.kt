@@ -215,6 +215,7 @@ data class Manifest(
                             attribute = text["attribute"].str("$path.attribute"),
                             value = text["value"]?.str("$path.value"),
                             unless = text["unless"]?.strings("$path.unless") ?: emptyList(),
+                            siblingsBefore = text["siblingsBefore"] == true,
                         )
                     },
                 attributes =
@@ -294,7 +295,10 @@ data class DefaultText(
 /**
  * A text a stylesheet shows on an element with the class and [attribute],
  * with [value] when the selector requires one and none of [unless], and the
- * CSS [variable] that replaces it.
+ * CSS [variable] that replaces it. With [siblingsBefore], the attribute is on
+ * a child of the element with the class, and the text is shown on the
+ * children before it, as "Completed " is on the steps before the one with
+ * `aria-current="step"` in `lt-steps`.
  */
 data class CssText(
     val variable: String,
@@ -302,6 +306,7 @@ data class CssText(
     val attribute: String,
     val value: String?,
     val unless: List<String>,
+    val siblingsBefore: Boolean = false,
 )
 
 /** An attribute on an element, like `server-controlled`. [values] is empty except for [AttributeType.VALUES]. */

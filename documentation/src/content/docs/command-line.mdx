@@ -286,17 +286,19 @@ npx @lo-tek/interfaces agent --framework=datastar
 ```
 
 Without flags, the environment is read from the dependencies in `package.json`: Astro, React,
-Datastar, or a build step such as Vite. If there is no `package.json`, as in a Kotlin or Go app,
-it is the rulebook for templates. Which one it chose, and why, is written to standard error.
+Datastar, or a build step such as Vite. A Gradle or Maven build file gives the rulebook for
+Kotlin, unless `package.json` names a framework other than Vite. Without either, as in a Go
+app, it is the rulebook for templates. Which one it chose, and why, is written to standard error.
 
 | `--framework` | The rulebook for |
 | --- | --- |
 | `html` | hand-written HTML without a build step, where the browser loads the files directly |
-| `templates` | server-written HTML: Go templates, Razor, PHP, Jinja, ERB and others, and HTML written in code |
+| `templates` | server-written HTML: Go templates, Razor, PHP, Jinja, ERB and others, and HTML written in C# or Python |
 | `bundles` | a build step where the markup is plain HTML: Vue, Svelte, Solid, Lit and Vite |
 | `react` | React |
 | `astro` | Astro |
 | `datastar` | HTML with Datastar |
+| `kotlin` | a Kotlin or Java server, with `Lt`, kotlinx.html, the template engines on the JVM and `assertLotek` |
 
 How the agent finds the rulebook is described on [Coding agents](../coding-agents/).
 

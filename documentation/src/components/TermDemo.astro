@@ -1,0 +1,39 @@
+---
+import { lt } from "@lo-tek/interfaces"
+import Preview from "./Preview.astro"
+
+// The server writes the links and the glossary. The web component shows the
+// entry the link points to as a card by the word, and writes aria-expanded.
+const actOfGod = lt.term({ id: "term-act-of-god" })
+const blackIce = lt.term({ id: "term-black-ice" })
+---
+
+<Preview id="demo-term" styles={["term", "paragraph", "heading", "link"]} layout="flow" maxWidth="34rem">
+	<p class="lt-paragraph">
+		The premium is drawn on the first of every month. A claim is paid out
+		unless the death was an
+		<lt-term><a {...actOfGod.word}>act of God</a></lt-term>, and
+		<lt-term><a {...blackIce.word}>black ICE</a></lt-term> counts as one.
+	</p>
+
+	<h2 class="lt-heading" data-size="s">Glossary</h2>
+	<dl>
+		<div {...actOfGod.entry}>
+			<dt>Act of God</dt>
+			<dd>
+				A cause of death the policy does not cover. The insurer can add to
+				the list without notice. <a class="lt-link" href="#terms">Read the terms</a>
+			</dd>
+		</div>
+		<div {...blackIce.entry}>
+			<dt>Black ICE</dt>
+			<dd>Intrusion countermeasures that strike back at the runner through the interface.</dd>
+		</div>
+	</dl>
+</Preview>
+
+<script>
+	import { defineLtTerm } from "@lo-tek/interfaces/term"
+
+	defineLtTerm()
+</script>

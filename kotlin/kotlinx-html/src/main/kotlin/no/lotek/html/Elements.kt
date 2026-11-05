@@ -1,9 +1,13 @@
 package no.lotek.html
 
+import kotlinx.html.DL
 import kotlinx.html.FlowContent
+import kotlinx.html.FlowOrPhrasingContent
 import kotlinx.html.HTMLTag
 import kotlinx.html.HtmlBlockTag
+import kotlinx.html.HtmlInlineTag
 import kotlinx.html.TagConsumer
+import kotlinx.html.div
 import kotlinx.html.visit
 
 /**
@@ -32,6 +36,36 @@ fun FlowContent.ltErrorSummary(block: LtElement.() -> Unit = {}) = element("lt-e
 
 /** `<lt-popover>`: a button and the panel it opens. */
 fun FlowContent.ltPopover(block: LtElement.() -> Unit = {}) = element("lt-popover", block)
+
+/**
+ * A LO-TEK web component that stands in running text, such as `<lt-term>`.
+ * It is phrasing content, so it can go in a `p`, and holds phrasing content.
+ */
+class LtInlineElement(tagName: String, consumer: TagConsumer<*>) :
+    HTMLTag(tagName, consumer, emptyMap(), null, inlineTag = true, emptyTag = false),
+    HtmlInlineTag
+
+/** `<lt-term>`: a word in the text that shows its glossary entry in a card by the word. */
+fun FlowOrPhrasingContent.ltTerm(block: LtInlineElement.() -> Unit = {}) =
+    LtInlineElement("lt-term", consumer).visit(block)
+
+/**
+ * A glossary entry in a `dl`: the `div` around a `dt` and its `dd`, with the
+ * set from `Lt.term().entry` on it. kotlinx.html allows `dt` and `dd` only
+ * directly in `dl`, so `div { dt { } }` does not compile. Here the block has
+ * the `dl` as its receiver, and the `dt` and `dd` it writes land in the `div`.
+ *
+ * ```kotlin
+ * dl { ltTermEntry(signal.entry) { dt { +"Signal" }; dd { +"A value." } } }
+ * ```
+ */
+fun DL.ltTermEntry(entry: Map<String, String>, block: DL.() -> Unit) {
+    val list = this
+    div {
+        lt(entry)
+        list.block()
+    }
+}
 
 /** `<lt-suggestion>`: a field with a suggestion list. */
 fun FlowContent.ltSuggestion(block: LtElement.() -> Unit = {}) = element("lt-suggestion", block)

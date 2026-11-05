@@ -4,6 +4,7 @@
     "bundles",
     "datastar",
     "html",
+    "kotlin",
     "react",
     "templates"
   ],
@@ -242,6 +243,14 @@
     },
     {
       "category": "css",
+      "name": "steps",
+      "files": [
+        "steps.css",
+        "steps.ts"
+      ]
+    },
+    {
+      "category": "css",
       "name": "switch",
       "files": [
         "switch.css",
@@ -349,6 +358,15 @@
         "lt-tabs.ts",
         "tabs.css",
         "tabs.ts"
+      ]
+    },
+    {
+      "category": "frame",
+      "name": "term",
+      "files": [
+        "lt-term.ts",
+        "term.css",
+        "term.ts"
       ]
     },
     {

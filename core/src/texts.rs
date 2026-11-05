@@ -113,6 +113,20 @@ pub(crate) fn check_texts(nodes: &[Node], vocabulary: &Vocabulary) -> Vec<Findin
     out
 }
 
+/// The nodes inside node `n`. The nodes are in document order, so they
+/// follow it, and each has a parent at `n` or after it, up to the first that
+/// does not.
+fn subtree(nodes: &[Node], n: usize) -> &[Node] {
+    let mut end = n + 1;
+    while nodes
+        .get(end)
+        .is_some_and(|m| m.parent.is_some_and(|p| p >= n && p < end))
+    {
+        end += 1;
+    }
+    &nodes[n + 1..end]
+}
+
 pub(crate) fn check_css_texts(
     nodes: &[Node],
     vocabulary: &Vocabulary,
@@ -128,18 +142,44 @@ pub(crate) fn check_css_texts(
                 if styles.variables.contains(&text.variable) {
                     continue;
                 }
-                let shown = value(node, &text.attribute).is_some_and(|a| match &text.value {
-                    None => true,
-                    Some(wanted) => a
-                        .value
-                        .as_deref()
-                        .is_some_and(|v| lossy(trimmed(v)) == *wanted),
-                });
-                let set_inline = std::iter::successors(Some(n), |&i| nodes[i].parent).any(|i| {
-                    value(&nodes[i], "style")
+                let carries = |node: &Node| {
+                    value(node, &text.attribute).is_some_and(|a| match &text.value {
+                        None => true,
+                        Some(wanted) => a
+                            .value
+                            .as_deref()
+                            .is_some_and(|v| lossy(trimmed(v)) == *wanted),
+                    })
+                };
+                let sets = |m: &Node| {
+                    value(m, "style")
                         .and_then(|a| a.value.as_deref())
                         .is_some_and(|v| lossy(v).contains(&text.variable))
-                });
+                };
+                // On the `<li>` children before the last one with the
+                // attribute, which `.lt-steps > li:has(~ [x])` matches. The
+                // text is `::before` on the step or on its link, so the
+                // variable replaces it when every such step, or the link
+                // right inside it, sets it.
+                let (shown, set_on_children) = if text.siblings_before {
+                    let end = n + 1 + subtree(nodes, n).len();
+                    let child_of =
+                        |p: usize| (n + 1..end).filter(move |&m| nodes[m].parent == Some(p));
+                    let steps: Vec<usize> =
+                        child_of(n).filter(|&m| nodes[m].name == "li").collect();
+                    let last = steps.iter().rposition(|&c| carries(&nodes[c]));
+                    let done = &steps[..last.unwrap_or(0)];
+                    let set = done.iter().all(|&c| {
+                        sets(&nodes[c])
+                            || child_of(c).any(|a| nodes[a].name == "a" && sets(&nodes[a]))
+                    });
+                    (!done.is_empty(), set)
+                } else {
+                    (carries(node), false)
+                };
+                let set_inline = set_on_children
+                    || std::iter::successors(Some(n), |&i| nodes[i].parent)
+                        .any(|i| sets(&nodes[i]));
                 if !shown || set_inline || text.unless.iter().any(|u| value(node, u).is_some()) {
                     continue;
                 }
@@ -152,7 +192,7 @@ pub(crate) fn check_css_texts(
                     severity: Severity::Warning,
                     link: LINK.into(),
                     message: format!(
-                        "<{}> is on a page in \"{lang}\", and the stylesheet shows \"{}\" after it, in \"{}\", which a screen reader reads as part of the name. Set {} in the page's language in a stylesheet of your own.",
+                        "<{}> is on a page in \"{lang}\", and the stylesheet shows \"{}\" with it, in \"{}\", which a screen reader reads out. Set {} in the page's language in a stylesheet of your own.",
                         node.name,
                         text.text.trim(),
                         vocabulary.text_language.as_deref().unwrap_or(""),
@@ -267,5 +307,70 @@ mod tests {
         );
         // Without the style sheets the rule cannot tell.
         assert!(rules(diagnose_markup(&html, &vocabulary)).is_empty());
+    }
+
+    #[test]
+    fn warns_about_a_text_shown_on_the_children_before_the_one_with_the_attribute() {
+        // The done steps say "Completed ", and they are the steps before the
+        // one with `aria-current="step"`.
+        let vocabulary = manifest::for_tests();
+        let check = |html: &str, css: &str| -> Vec<String> {
+            rules(crate::diagnose::check_styles(
+                &utf16(html),
+                &vocabulary,
+                &read_styles(css),
+            ))
+        };
+        let page = |steps: &str| {
+            format!(
+                r#"<html lang="nb"><ol class="lt-steps">{steps}</ol><p aria-current="step">Ute</p></html>"#
+            )
+        };
+        let second = page(r#"<li><a href="/a">Sted</a></li><li aria-current="step">Vegger</li>"#);
+        let found = check(&second, ".lt-steps { color: red }");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].contains("--lt-steps-done-text"), "{found:?}");
+        assert!(check(&second, r#":root { --lt-steps-done-text: "Fullført "; }"#).is_empty());
+        for quiet in [
+            // The first step is current, so no step is done.
+            r#"<li aria-current="step">Sted</li><li>Vegger</li>"#,
+            // No step is current, and the paragraph after the list is not a step.
+            r#"<li>Sted</li><li>Vegger</li>"#,
+            // On the link, not the step: the stylesheet does not read it there.
+            r#"<li>Sted</li><li><a href="/b" aria-current="step">Vegger</a></li>"#,
+        ] {
+            let found = check(&page(quiet), ".lt-steps { color: red }");
+            assert!(found.is_empty(), "{quiet}: {found:?}");
+        }
+        // The variable set on a step, where the text is shown.
+        let on_step = page(
+            r#"<li style="--lt-steps-done-text: 'Fullført '"><a href="/a">Sted</a></li><li aria-current="step">Vegger</li>"#,
+        );
+        assert!(check(&on_step, ".lt-steps { color: red }").is_empty());
+        // Not deeper than the link, where no `::before` reads it, and not on
+        // a child of the list that is not a step.
+        let deep = page(
+            r#"<li><span style="--lt-steps-done-text: 'Fullført '">Sted</span></li><li aria-current="step">Vegger</li>"#,
+        );
+        assert_eq!(check(&deep, ".lt-steps { color: red }").len(), 1);
+        let template = page(r#"<template></template><li aria-current="step">Vegger</li>"#);
+        assert!(check(&template, ".lt-steps { color: red }").is_empty());
+        // Not on one of two done steps.
+        let one_of_two = page(
+            r#"<li style="--lt-steps-done-text: 'Fullført '">Sted</li><li>Befaring</li><li aria-current="step">Vegger</li>"#,
+        );
+        assert_eq!(check(&one_of_two, ".lt-steps { color: red }").len(), 1);
+        // But not on an element after the list.
+        let after = format!(
+            r#"{}<p style="--lt-steps-done-text: 'Fullført '">Ute</p>"#,
+            second.trim_end_matches("</html>")
+        );
+        assert_eq!(
+            check(&format!("{after}</html>"), ".lt-steps { color: red }").len(),
+            1
+        );
+        let on_list =
+            r#"<html lang="nb"><ol class="lt-steps" aria-current="step"><li>Sted</li></ol></html>"#;
+        assert!(check(on_list, ".lt-steps { color: red }").is_empty());
     }
 }

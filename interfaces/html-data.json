@@ -200,6 +200,20 @@
       ]
     },
     {
+      "name": "lt-term",
+      "description": {
+        "kind": "markdown",
+        "value": "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary."
+      },
+      "attributes": [],
+      "references": [
+        {
+          "name": "Documentation",
+          "url": "https://lo-tek.sobernetics.no/components/term/"
+        }
+      ]
+    },
+    {
       "name": "lt-suggestion",
       "description": {
         "kind": "markdown",

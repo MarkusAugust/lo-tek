@@ -1,6 +1,6 @@
 {
   "name": "@lo-tek/interfaces",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "description": "Framework-agnostic design system: tokens, CSS components and web components.",
   "license": "MIT",
   "author": "August Søberg-Klyver",
@@ -63,6 +63,7 @@
     "./card.css": "./src/components/css/card/card.css",
     "./divider.css": "./src/components/css/divider/divider.css",
     "./progress.css": "./src/components/css/progress/progress.css",
+    "./steps.css": "./src/components/css/steps/steps.css",
     "./spinner.css": "./src/components/css/spinner/spinner.css",
     "./badge.css": "./src/components/css/badge/badge.css",
     "./label.css": "./src/components/css/label/label.css",
@@ -74,6 +75,7 @@
     "./error-text.css": "./src/components/css/error-text/error-text.css",
     "./field.css": "./src/components/frame/field/field.css",
     "./tabs.css": "./src/components/frame/tabs/tabs.css",
+    "./term.css": "./src/components/frame/term/term.css",
     "./error-summary.css": "./src/components/frame/error-summary/error-summary.css",
     "./label": {
       "types": "./dist/components/css/label/label.d.ts",
@@ -160,6 +162,10 @@
       "types": "./dist/components/css/file-upload/file-upload.d.ts",
       "import": "./dist/components/css/file-upload/file-upload.js"
     },
+    "./term": {
+      "types": "./dist/components/frame/term/lt-term.d.ts",
+      "import": "./dist/components/frame/term/lt-term.js"
+    },
     "./popover": {
       "types": "./dist/components/frame/popover/lt-popover.d.ts",
       "import": "./dist/components/frame/popover/lt-popover.js"
@@ -203,6 +209,10 @@
     "./progress": {
       "types": "./dist/components/css/progress/progress.d.ts",
       "import": "./dist/components/css/progress/progress.js"
+    },
+    "./steps": {
+      "types": "./dist/components/css/steps/steps.d.ts",
+      "import": "./dist/components/css/steps/steps.js"
     },
     "./spinner": {
       "types": "./dist/components/css/spinner/spinner.d.ts",

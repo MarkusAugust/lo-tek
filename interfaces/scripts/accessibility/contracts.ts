@@ -422,6 +422,55 @@ const popover: Contract = {
   ],
 }
 
+/*
+ * The word stays a link, and `aria-expanded` from the web component says that
+ * it opens something. The focus never leaves the word: the card is the
+ * glossary entry, which the reader can also reach in the glossary, so the
+ * state change on the link is what tells the screen reader that the card
+ * opened and closed.
+ */
+const term: Contract = {
+  component: "term",
+  steps: [
+    {
+      name: "focus-word",
+      do: [{ focus: "lt-term > a" }],
+      focus: {
+        role: "link",
+        name: "act of God",
+        states: ["expandable"],
+        notStates: ["expanded"],
+      },
+    },
+    {
+      name: "open",
+      do: [{ press: "Enter" }],
+      focus: { role: "link", name: "act of God", states: ["expanded"] },
+      changes: { states: ["expanded"] },
+    },
+    {
+      // Escape closes the card, and the focus is still on the word.
+      name: "escape",
+      do: [{ press: "Escape" }],
+      focus: { role: "link", name: "act of God", notStates: ["expanded"] },
+    },
+  ],
+  mutations: [
+    {
+      // Without the id on the entry the link points at nothing: the word
+      // stays a plain link, which expands nothing.
+      name: "the entry not recognised",
+      replace: ['<div id="term-act-of-god">', "<div>"],
+      failsAt: "focus-word",
+    },
+    {
+      name: "the component not registered",
+      replace: ["defineLtTerm()\n", "\n"],
+      failsAt: "focus-word",
+    },
+  ],
+}
+
 const toast: Contract = {
   component: "toast",
   steps: [
@@ -880,6 +929,44 @@ const iconWithTitle: Contract = {
   ],
 }
 
+/**
+ * The steps before the current one are done, and their marker is `::before`
+ * on the step's link, with "Completed " as the alternative text of the
+ * check. AccName 2F.ii puts it in front of the link's text. The number on
+ * the current step and the ones after has an empty alternative text.
+ */
+const steps: Contract = {
+  component: "steps",
+  example: 0,
+  steps: [
+    {
+      name: "focus-done-step",
+      do: [{ focus: "li:nth-child(1) > a" }],
+      focus: { role: "link", name: "Completed Site" },
+    },
+    {
+      name: "focus-step-before-current",
+      do: [{ focus: "li:nth-child(2) > a" }],
+      focus: { role: "link", name: "Completed Survey" },
+    },
+  ],
+  mutations: [
+    {
+      name: "no step is current",
+      replace: [' aria-current="step"', ""],
+      failsAt: "focus-done-step",
+    },
+    {
+      name: "the current step moved to the second",
+      replace: [
+        '<li><a href="#">Survey</a></li>\n  <li aria-current="step">Walls</li>',
+        '<li aria-current="step"><a href="#">Survey</a></li>\n  <li>Walls</li>',
+      ],
+      failsAt: "focus-step-before-current",
+    },
+  ],
+}
+
 export const CONTRACTS: Contract[] = [
   dialog,
   field,
@@ -888,6 +975,7 @@ export const CONTRACTS: Contract[] = [
   ...tabNames,
   errorSummary,
   popover,
+  term,
   toast,
   sessionTimeout,
   connectionStatus,
@@ -901,4 +989,5 @@ export const CONTRACTS: Contract[] = [
   switchControl,
   icon,
   iconWithTitle,
+  steps,
 ]

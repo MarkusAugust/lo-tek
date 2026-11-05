@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url"
 import { lt } from "../src/index.js"
 import { classes } from "../src/vocabulary/classes.js"
 import { elements } from "../src/vocabulary/elements.js"
+import { readBuilderFunctions } from "./builder-functions.js"
 import { FAMILIES, ROLES, roleToCss } from "./color-contract.js"
 import { buildBundledCss, bundledSize } from "./css-bundle.js"
 
@@ -312,12 +313,95 @@ const HELPERS = new Set([
 ])
 
 /** The builder functions in `lt`. Kotlin and Java have the same ones in `Lt`. */
-export function builderFunctions(): string {
+export function builderFunctions(object: "lt" | "Lt" = "lt"): string {
   const name = Object.keys(lt)
     .filter((key) => !HELPERS.has(key))
     .sort()
 
-  return name.map((builderFunction) => `\`lt.${builderFunction}()\``).join(", ")
+  return name
+    .map((builderFunction) => `\`${object}.${builderFunction}()\``)
+    .join(", ")
+}
+
+/**
+ * The enums `Lt` takes for the allowed values, as a table for the Kotlin
+ * rulebook: the name, the constants and the builder functions that use it.
+ *
+ * The names follow the rule `GenerateApi` in `kotlin/buildSrc` writes the
+ * enums by: a set of values one builder function uses is
+ * `<Builder><Option>`, such as `ButtonVariant`, and a set several use has one
+ * shared name. The rule is repeated here, since the rulebook is written
+ * before Gradle runs, so `RulebookTest` in `kotlin/kotlinx-html` reads the
+ * table back and compares every row with the enums in the package.
+ */
+const KOTLIN_SHARED: Record<string, string> = {
+  state: "FieldState",
+  required: "RequiredMarker",
+  size: "Size",
+  variant: "SurfaceVariant",
+}
+
+const pascal = (text: string) => text.split(/[-_]/).map(capitalise).join("")
+
+export function kotlinEnums(): string {
+  const sets = new Map<
+    string,
+    { option: string; values: string[]; users: string[]; where: string[] }
+  >()
+  const use = (
+    option: string,
+    values: string[],
+    user: string,
+    where: string,
+  ) => {
+    const key = `${option}\u0000${values.join("\u0000")}`
+    const set = sets.get(key) ?? { option, values, users: [], where: [] }
+    if (!set.users.includes(user)) set.users.push(user)
+    set.where.push(where)
+    sets.set(key, set)
+  }
+
+  for (const builder of readBuilderFunctions()) {
+    for (const option of builder.options) {
+      if (option.type.kind !== "values") continue
+      use(
+        option.name,
+        option.type.values,
+        builder.name,
+        `\`${option.name}\` in \`Lt.${builder.name}()\``,
+      )
+    }
+    if (builder.returns.kind !== "group") continue
+    for (const [name, field] of Object.entries(builder.returns.fields)) {
+      if (field.kind !== "values") continue
+      use(
+        name,
+        field.values,
+        `${builder.name}()`,
+        `\`${name}\` from \`Lt.${builder.name}()\``,
+      )
+    }
+  }
+
+  const rows = [...sets.values()].map((set) => {
+    const name =
+      set.users.length > 1
+        ? (KOTLIN_SHARED[set.option] ?? pascal(set.option))
+        : pascal(set.users[0]) + pascal(set.option)
+    const constants = set.values
+      .map((value) => `\`${value.toUpperCase().replaceAll("-", "_")}\``)
+      .join(", ")
+    return {
+      name,
+      line: `| \`${name}\` | ${constants} | ${set.where.join("<br>")} |`,
+    }
+  })
+
+  return [
+    "| Enum | Constants | Used for |",
+    "| --- | --- | --- |",
+    ...rows.sort((a, b) => a.name.localeCompare(b.name)).map((row) => row.line),
+  ].join("\n")
 }
 
 export function countBuilderFunctions(): number {

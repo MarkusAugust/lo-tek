@@ -231,6 +231,17 @@ const COMPONENTS: Record<string, Case[]> = {
       markup: `<span class="lt-spinner" role="status" aria-label="Loading the sector"></span>`,
     },
   ],
+  steps: [
+    {
+      markup: `<ol class="lt-steps" aria-label="Order">
+        <li><a href="#">Site</a></li>
+        <li><a href="#">Survey</a></li>
+        <li aria-current="step">Walls and the small print from the next of kin</li>
+        <li>Payment</li>
+        <li>Confirmation</li>
+      </ol>`,
+    },
+  ],
   "sr-only": [
     {
       markup: `<span class="lt-sr-only">${LONG}, and a long help text only screen readers hear</span>`,
@@ -412,6 +423,22 @@ const COMPONENTS: Record<string, Case[]> = {
         <section class="lt-tabs__panel" id="narrow-decision"><h2>Decision</h2>Not processed yet.</section>
         <section class="lt-tabs__panel" id="narrow-appeal"><h2>Appeal against the decision</h2>No appeal.</section>
       </lt-tabs>`,
+    },
+  ],
+  term: [
+    {
+      // The word at the end of the line, so the card has to be pushed in
+      // from the right edge.
+      markup: `<p style="text-align: end">A claim is paid out unless the death was an
+          <lt-term><a class="lt-term" href="#narrow-act-of-god">act of God</a></lt-term></p>
+        <dl>
+          <div class="lt-term__entry" id="narrow-act-of-god">
+            <dt>Act of God</dt>
+            <dd>A cause of death the policy does not cover. The insurer can add to the list without notice, and has done so every year since 2071.</dd>
+          </div>
+        </dl>`,
+      open: () => element<HTMLElement>("lt-term a").click(),
+      opened: ".lt-term__entry:popover-open",
     },
   ],
 }

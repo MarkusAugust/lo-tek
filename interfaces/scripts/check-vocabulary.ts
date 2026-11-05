@@ -24,6 +24,7 @@
 
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { splitOutside } from "./css-text.js"
 import {
   classesData,
   files,
@@ -373,22 +374,7 @@ function pageMarkup(component: string): string {
   return markup
 }
 /** The alternatives in a selector list, split on commas outside brackets. */
-function alternatives(selector: string): string[] {
-  const out: string[] = []
-  let depth = 0
-  let start = 0
-  for (let i = 0; i < selector.length; i++) {
-    const c = selector[i]
-    if (c === "(" || c === "[") depth++
-    else if (c === ")" || c === "]") depth--
-    else if (c === "," && depth === 0) {
-      out.push(selector.slice(start, i).trim())
-      start = i + 1
-    }
-  }
-  out.push(selector.slice(start).trim())
-  return out
-}
+const alternatives = (selector: string) => splitOutside(selector, /,/)
 /** The number of matches for a selector in the markup, with Bun's built-in parser. */
 async function matches(selector: string, markup: string): Promise<number> {
   let count = 0

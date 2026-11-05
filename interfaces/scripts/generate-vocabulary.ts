@@ -43,13 +43,19 @@ import type {
 } from "../src/vocabulary/types.js"
 import { flagsFor, readBuilderFunctions } from "./builder-functions.js"
 import {
+  compoundsOf,
+  isText,
+  replaceableText,
+  splitOutside,
+} from "./css-text.js"
+import {
   type AttributeDoc,
   type ClassDoc,
   classDocs,
   type ElementDoc,
   elements,
 } from "./metadata"
-import { dedent, htmlBlocks } from "./recipes.js"
+import { dedent, htmlBlocks, kotlinBlocks } from "./recipes.js"
 
 export const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const DOCS = "https://lo-tek.sobernetics.no/components/"
@@ -304,23 +310,8 @@ export function snippets() {
  * `<Fragment slot="kotlin">` in an `<Example>`.
  */
 function kotlinRecipe(slug: string): string | undefined {
-  const page = readFileSync(join(PAGES, `${slug}.mdx`), "utf8")
-  // Both forms `ExtractRecipes` reads: the tab, and the slot in an <Example>.
-  // The same pattern as `tabStarts` in `ExtractRecipes`, spacing included.
-  const tabStart = page.search(/<TabItem\s+label\s*=\s*"kotlinx\.html"\s*>/)
-  const slotStart = page.indexOf('<Fragment slot="kotlin">')
-  const start = tabStart >= 0 ? tabStart : slotStart
-  if (start < 0) return undefined
-  const end = page.indexOf(tabStart >= 0 ? "</TabItem>" : "</Fragment>", start)
-  const tab = page.slice(start, end < 0 ? page.length : end)
-  const blocks = [
-    ...tab.matchAll(/^([ \t]*)```kotlin\n([\s\S]*?)\n[ \t]*```/gm),
-  ].map((m) =>
-    m[2]
-      .split("\n")
-      .map((line) => (line.startsWith(m[1]) ? line.slice(m[1].length) : line))
-      .join("\n"),
-  )
+  const blocks = kotlinBlocks(join(PAGES, `${slug}.mdx`))
+  if (!blocks) return undefined
   const recipe = blocks.find((b) => b.includes("fun FlowContent."))
   if (!recipe)
     throw new Error(
@@ -572,46 +563,134 @@ const TOKEN_PAGE = {
 }
 
 /**
- * The texts a stylesheet shows: `content: var(--lt-…, "…")`, with the class
- * and the attribute in the rule's selector. A text without a letter, like
- * " *", is in no language, and is left out.
+ * The pseudo-classes for a state the browser or a web component sets, which
+ * the markup never shows. A text shown only in such a state cannot be placed
+ * by reading the markup: "Glossary" is over the term's card while
+ * `<lt-term>` has it open, and a page with a glossary may never open one.
+ * Such a text is left out. Inside `:not()` the state is the one the markup
+ * starts in, so the text is placed as if the pseudo-class were not there.
  */
-function textsInCss(css: string): { name: string; text: CssText }[] {
+const SHOWN_IN_A_STATE = [":popover-open"]
+
+/** The pseudo-classes a text rule may otherwise have: they say where, not when. */
+const STRUCTURAL = [":not(", ":has("]
+
+/**
+ * The texts a stylesheet shows that a variable replaces: `content:
+ * var(--lt-…, "…")`, or a symbol with the variable as its alternative text,
+ * read by `replaceableText()` as `check-texts.ts` reads them. The last
+ * `content` in a rule is the one that applies. A text without a letter,
+ * like " *", is in no language, and is left out. Where the text is shown is
+ * read from the rule's selector, in one of two forms:
+ *
+ *   - the last compound has the class and the attribute:
+ *     `.lt-label[data-required="text"]::after`. A `:not()` there gives
+ *     `unless`;
+ *   - the class is on the list, and the text on the children before the one
+ *     with the attribute: `.lt-steps > li:has(~ [aria-current="step"])`,
+ *     with anything after it. That is `siblingsBefore`.
+ *
+ * Any other selector stops the generator, as a text the check could
+ * otherwise never report. A text in `SHOWN_IN_A_STATE` is left out, since
+ * no markup says where it is.
+ */
+function textsInCss(
+  css: string,
+  file: string,
+): { name: string; text: CssText }[] {
   const clean = css.replace(/\/\*[\s\S]*?\*\//g, "")
   const out: { name: string; text: CssText }[] = []
   const rule = /([^{}]+)\{([^{}]*)\}/g
   const attributeIn = /\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'))?\]/
+  const notIn = /:not\(((?:[^()]|\([^()]*\))*)\)/g
+  const before =
+    /^[\w-]*:has\(\s*~\s*\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'))?\]\s*\)/
   for (const [, selectors, body] of clean.matchAll(rule)) {
-    const content = body.match(
-      /content:\s*var\((--lt-[\w-]+),\s*(?:"([^"]*)"|'([^']*)')\)/,
-    )
-    const text = content?.[2] ?? content?.[3]
-    if (!content || text === undefined || !/\p{L}/u.test(text)) continue
-    for (const selector of selectors.split(",")) {
-      // The element the text is on: the last compound selector.
-      const subject =
-        selector
-          .trim()
-          .split(/\s*[>+~]\s*|\s+/)
-          .pop() ?? ""
-      const unless = [...subject.matchAll(/:not\(([^)]*)\)/g)].flatMap(
-        ([, inside]) => [...inside.matchAll(/\[([\w-]+)/g)].map((m) => m[1]),
-      )
-      const own = subject.replace(/:not\([^)]*\)/g, "")
-      const name = own.match(/\.(lt-[\w-]+)/)?.[1]
-      const attribute = own.match(attributeIn)
-      if (!name || !attribute) continue
-      const value = attribute[2] ?? attribute[3]
-      out.push({
-        name,
-        text: {
-          variable: content[1],
-          text,
-          attribute: attribute[1],
-          ...(value !== undefined ? { value } : {}),
-          ...(unless.length > 0 ? { unless } : {}),
-        },
-      })
+    const values = [...body.matchAll(/(?<![(\w-])content\s*:\s*([^;}]+)/g)]
+    const value = values[values.length - 1]?.[1].trim()
+    const found = value === undefined ? undefined : replaceableText(value)
+    if (!found || !isText(found.text)) continue
+    for (const selector of splitOutside(selectors, /,/)) {
+      // The pseudo-classes outside `:not()`, past the pseudo-element.
+      const classes = [
+        ...selector
+          .replace(/::[\w-]+/g, "")
+          .replace(/:not\(((?:[^()]|\([^()]*\))*)\)/g, "")
+          .matchAll(/:[\w-]+\(?/g),
+      ].map((m) => m[0])
+      if (classes.some((c) => SHOWN_IN_A_STATE.includes(c))) continue
+      const unknown = classes.find((c) => !STRUCTURAL.includes(c))
+      if (unknown) {
+        throw new Error(
+          `${file}: the text "${found.text}" in \`${selector}\` is shown under ${unknown}, which the generator does not know. Add it to STRUCTURAL when it says where the text is, to SHOWN_IN_A_STATE when it is a state the browser sets, or place the text without it.`,
+        )
+      }
+      const compounds = compoundsOf(selector)
+      const own = (compound: string) => compound.replace(notIn, "")
+      const classIn = (compound: string) =>
+        own(compound).match(/\.(lt-[\w-]+)/)?.[1]
+      const unlessIn = (compound: string) =>
+        [...compound.matchAll(notIn)].flatMap(([, inside]) =>
+          [...inside.matchAll(/\[([\w-]+)/g)].map((m) => m[1]),
+        )
+      const valueIn = (match: RegExpMatchArray) =>
+        (match[2] ?? match[3]) !== undefined
+          ? { value: match[2] ?? match[3] }
+          : {}
+      const subject = compounds[compounds.length - 1] ?? ""
+      let name = classIn(subject)
+      let text: CssText | undefined
+      let missing = "no class, and no list with the class before it"
+      if (name) {
+        // An attribute inside `:has()` is on another element.
+        const attribute = own(subject).match(attributeIn)
+        const unless = unlessIn(subject)
+        missing = own(subject).includes(":has(")
+          ? "an attribute in :has(), which is on another element"
+          : "no attribute, and the check cannot tell when it is shown"
+        if (attribute && !own(subject).includes(":has(")) {
+          text = {
+            variable: found.variable,
+            text: found.text,
+            attribute: attribute[1],
+            ...valueIn(attribute),
+            ...(unless.length > 0 ? { unless } : {}),
+          }
+        }
+      } else {
+        // The nearest compound with a class before the subject.
+        let at = compounds.length - 1
+        while (at >= 0 && !classIn(compounds[at])) at--
+        const attribute = before.exec(compounds[at + 2] ?? "")
+        name = at < 0 ? undefined : classIn(compounds[at])
+        missing = `no child of ${name ?? "a list"} with :has(~ [attribute]) right after >`
+        const unless = at < 0 ? [] : unlessIn(compounds[at])
+        if (
+          name &&
+          compounds[at + 1] === ">" &&
+          attribute &&
+          compounds.slice(at + 1).every((c) => unlessIn(c).length === 0)
+        ) {
+          text = {
+            variable: found.variable,
+            text: found.text,
+            attribute: attribute[1],
+            ...valueIn(attribute),
+            ...(unless.length > 0 ? { unless } : {}),
+            siblingsBefore: true,
+          }
+        }
+      }
+      if (!name || !text) {
+        throw new Error(
+          `${file}: the text "${found.text}" in \`${selector}\` has ${missing}. Put it on the element with the class and an attribute, or on the children of a list before the one with an attribute, as in lt-steps.`,
+        )
+      }
+      // The same text from two selectors in one rule, as the step's link and
+      // the step itself, is one text.
+      const key = JSON.stringify(text)
+      if (!out.some((o) => o.name === name && JSON.stringify(o.text) === key))
+        out.push({ name, text })
     }
   }
   return out
@@ -664,7 +743,7 @@ export function classesData(): Classes {
             link,
             attributes: {},
           }
-        for (const { name, text } of textsInCss(css)) {
+        for (const { name, text } of textsInCss(css, file)) {
           const entry = found[name]
           if (entry) entry.texts = [...(entry.texts ?? []), text]
         }

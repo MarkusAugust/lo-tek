@@ -158,6 +158,8 @@ type LtPopoverAttributes = Host &
     placement?: "bottom-start" | "bottom-end" | "top-start" | "top-end"
   }
 
+type LtTermAttributes = Host
+
 type LtSessionTimeoutAttributes = Host & {
   /** Seconds without activity before the warning appears. */
   "warn-at"?: number | string
@@ -192,6 +194,7 @@ declare module "react" {
       "lt-popover": LtPopoverAttributes
       "lt-suggestion": LtSuggestionAttributes
       "lt-tabs": LtTabsAttributes
+      "lt-term": LtTermAttributes
       "lt-session-timeout": LtSessionTimeoutAttributes
       "lt-connection-status": LtConnectionStatusAttributes
       "lt-toast": LtToastAttributes
@@ -208,5 +211,6 @@ export type {
   LtSessionTimeoutAttributes,
   LtSuggestionAttributes,
   LtTabsAttributes,
+  LtTermAttributes,
   LtToastAttributes,
 }

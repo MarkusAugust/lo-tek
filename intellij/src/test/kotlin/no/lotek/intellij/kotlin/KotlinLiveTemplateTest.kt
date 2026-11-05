@@ -15,7 +15,7 @@ class KotlinLiveTemplateTest : KotlinTestCase() {
 
     fun `test there is a template for every tab for kotlinx html`() {
         val names = templates.map { it.key }.sorted()
-        assertEquals(listOf("ltconnectionstatus", "ltdialog", "lterrorsummary", "ltfield", "ltpopover", "ltsessiontimeout", "ltsuggestion", "lttabs", "lttoast"), names)
+        assertEquals(listOf("ltconnectionstatus", "ltdialog", "lterrorsummary", "ltfield", "ltpopover", "ltsessiontimeout", "ltsuggestion", "lttabs", "ltterm", "lttoast"), names)
     }
 
     fun `test every template compiles where it is inserted, with the ids empty`() {

@@ -1156,7 +1156,7 @@ fn excluded(dom: &Dom, n: usize) -> Result<bool, String> {
 }
 
 /// The text CSS generates in `::before` or `::after`, from the computed
-/// `content`. Only a plain string is read: anything else is refused.
+/// `content`. Only plain strings are read, and an alternative text of them: anything else is refused.
 fn generated(dom: &Dom, n: usize, fact: &str) -> Result<String, String> {
     if is_replaced(dom, n) {
         return Ok(String::new());
@@ -1188,7 +1188,11 @@ fn is_replaced(dom: &Dom, n: usize) -> bool {
     )
 }
 
-/// The computed `content` the host wrote, when it is a plain string.
+/// The computed `content` the host wrote, when it is a plain string, or
+/// anything followed by an alternative text of plain strings. CSS Generated
+/// Content 3, "Alternative Text for content": the text after the `/` is what
+/// accessibility is given instead of the content, so `"✓" / "Completed"` is
+/// "Completed" and `counter(x) / ""` is nothing.
 fn browser_generated(dom: &Dom, n: usize, fact: &str) -> Result<String, String> {
     let Some(content) = dom.attribute(n, fact) else {
         return Err(missing(dom.name(n).unwrap_or("?"), fact));
@@ -1197,21 +1201,52 @@ fn browser_generated(dom: &Dom, n: usize, fact: &str) -> Result<String, String> 
     if matches!(content, "" | "none" | "normal") {
         return Ok(String::new());
     }
-    let quoted = content.len() >= 2
-        && (content.starts_with('"') && content.ends_with('"')
-            || content.starts_with('\'') && content.ends_with('\''));
-    let inner = if quoted {
-        &content[1..content.len() - 1]
-    } else {
-        ""
-    };
-    if !quoted || inner.contains(['"', '\'', '\\']) {
-        return Err(format!(
-            "<{}> has {fact}=\"{content}\": the core reads only a plain string",
+    let refused = || {
+        format!(
+            "<{}> has {fact}=\"{content}\": the core reads only a plain string, or an alternative text of plain strings",
             dom.name(n).unwrap_or("?")
-        ));
+        )
+    };
+    // The `/` that starts the alternative text, outside the strings. A
+    // backslash in a string escapes the character after it.
+    let mut quote = None;
+    let mut escaped = false;
+    let slash = content.char_indices().find_map(|(i, c)| {
+        match (quote, c) {
+            _ if escaped => escaped = false,
+            (Some(_), '\\') => escaped = true,
+            (None, '"' | '\'') => quote = Some(c),
+            (Some(q), _) if c == q => quote = None,
+            (None, '/') => return Some(i),
+            _ => {}
+        }
+        None
+    });
+    let text = match slash {
+        Some(i) => &content[i + 1..],
+        None => content,
+    };
+    plain_strings(text.trim()).ok_or_else(refused)
+}
+
+/// One or more plain strings next to each other, joined: `"a" "b"` is "ab".
+/// `None` for anything else, or a string with an escape in it. The other
+/// quote may stand in a string: `"L'étape "`.
+fn plain_strings(mut text: &str) -> Option<String> {
+    let mut out = String::new();
+    loop {
+        let q = text.chars().next().filter(|c| matches!(c, '"' | '\''))?;
+        let end = text[1..].find(q)? + 1;
+        let inner = &text[1..end];
+        if inner.contains('\\') {
+            return None;
+        }
+        out.push_str(inner);
+        text = text[end + 1..].trim_start();
+        if text.is_empty() {
+            return Some(out);
+        }
     }
-    Ok(inner.to_string())
 }
 
 #[derive(Clone, Copy, Default)]
@@ -2028,6 +2063,39 @@ mod tests {
             );
         let tree = accessibility_tree(&utf16(&html)).unwrap();
         assert_eq!(node(&tree, "textbox").name, "Email (required)");
+    }
+
+    #[test]
+    fn generated_content_with_an_alternative_text_gives_the_text() {
+        // CSS Generated Content 3: the text after the `/` replaces the
+        // content for accessibility, and an empty one leaves it out.
+        let name = |before: &str| {
+            let html = String::from_utf16(&rendered(r##"<a href="/site">Site</a>"##))
+                .unwrap()
+                .replacen(
+                    "data-lt-ax-before=\"none\"",
+                    // As the host writes it: an attribute, with `'` escaped.
+                    &format!("data-lt-ax-before='{}'", before.replace('\'', "&#39;")),
+                    1,
+                );
+            accessibility_tree(&utf16(&html)).map(|tree| node(&tree, "link").name.clone())
+        };
+        // AccName 2F.ii: `::before` is prepended without a space, so the
+        // space is in the text.
+        assert_eq!(name(r#""✓" / "Completed ""#).unwrap(), "Completed Site");
+        assert_eq!(name(r#""✓" / "Completed""#).unwrap(), "CompletedSite");
+        assert_eq!(name(r#"counter(lt-steps) / """#).unwrap(), "Site");
+        assert_eq!(name(r#""a" "b ""#).unwrap(), "ab Site");
+        assert_eq!(name(r#""/" / "Step " "2 ""#).unwrap(), "Step 2 Site");
+        // An escaped quote before the slash does not end the string.
+        assert_eq!(name(r#""\"" / "Quoted ""#).unwrap(), "Quoted Site");
+        assert_eq!(
+            name(r#""" / "L'étape terminée ""#).unwrap(),
+            "L'étape terminée Site"
+        );
+        for refused in [r#"counter(lt-steps)"#, r#""✓" / attr(title)"#, r#""a\"b""#] {
+            assert!(name(refused).is_err(), "{refused}");
+        }
     }
 
     #[test]

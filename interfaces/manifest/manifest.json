@@ -1,7 +1,7 @@
 {
   "$schema": "./manifest.schema.json",
   "schemaVersion": 1,
-  "version": "0.40.0",
+  "version": "0.41.0",
   "textLanguage": "en",
   "elements": {
     "lt-field": {
@@ -183,6 +183,19 @@
           "detail": {
             "open": "boolean"
           }
+        }
+      }
+    },
+    "lt-term": {
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "description": "A word in the text that shows its glossary entry in a card by the word. A link to the entry's id is enough; the component sets the class, `aria-details` and `aria-expanded` on the link, and shows the entry itself in the top layer while the card is open. Without JavaScript the word is a link to the glossary.",
+      "attributes": {},
+      "parts": {
+        "word": {
+          "selector": "a[href^='#']",
+          "description": "The word: a link to the glossary entry, such as `<a href=\"#term-signal\">`. The entry is a `<div>` with that id in a `<dl>`, with a `<dt>` and a `<dd>`, anywhere on the page.",
+          "content": "text",
+          "unique": true
         }
       }
     },
@@ -1275,6 +1288,31 @@
       "content": "text",
       "attributes": {}
     },
+    "lt-steps": {
+      "component": "steps",
+      "title": "Steps",
+      "description": "A step indicator that shows where the user is in a task over several pages. A CSS component with one class and no JavaScript.",
+      "link": "https://lo-tek.sobernetics.no/components/steps/",
+      "content": "parts",
+      "parts": {
+        "step": {
+          "selector": "li",
+          "description": "One step, with its name as text, or a link back to it. The step the user is on has `aria-current=\"step\"`, and the steps before it are drawn as done.",
+          "content": "free",
+          "multiple": true
+        }
+      },
+      "texts": [
+        {
+          "variable": "--lt-steps-done-text",
+          "text": "Completed ",
+          "attribute": "aria-current",
+          "value": "step",
+          "siblingsBefore": true
+        }
+      ],
+      "attributes": {}
+    },
     "lt-switch": {
       "component": "switch",
       "title": "Switch",
@@ -1825,6 +1863,35 @@
       "description": "Tab list of links to their panels. Frame component.",
       "link": "https://lo-tek.sobernetics.no/components/tabs/",
       "content": "free",
+      "attributes": {}
+    },
+    "lt-term": {
+      "component": "term",
+      "title": "Term",
+      "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "content": "text",
+      "attributes": {}
+    },
+    "lt-term__entry": {
+      "component": "term",
+      "title": "Term",
+      "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
+      "link": "https://lo-tek.sobernetics.no/components/term/",
+      "content": "parts",
+      "parts": {
+        "term": {
+          "selector": "dt",
+          "description": "The term, as it stands in the glossary.",
+          "content": "text",
+          "unique": true
+        },
+        "description": {
+          "selector": "dd",
+          "description": "The explanation. It can hold links and code.",
+          "content": "free"
+        }
+      },
       "attributes": {}
     },
     "lt-connection-status": {
@@ -4397,6 +4464,25 @@
       "docs": "https://lo-tek.sobernetics.no/components/sr-only/"
     },
     {
+      "name": "steps",
+      "description": "The attributes for a step indicator, which shows where the user is in a task over several pages, like an order.\n\nThe class goes on an `<ol>` with one `<li>` per step, and the step the user is on has `aria-current=\"step\"`. The steps before it are drawn as done, with a check the screen reader reads as \"Completed\", so the markup only says where the user is. A done step can be a link back to it.",
+      "example": "<ol {...steps()} aria-label=\"Order\">\n  <li><a href=\"/order/site\">Site</a></li>\n  <li aria-current=\"step\">Walls</li>\n  <li>Payment</li>\n</ol>",
+      "options": [],
+      "returns": {
+        "kind": "attributes"
+      },
+      "table": {
+        "kind": "attributes",
+        "table": {
+          "base": {
+            "class": "lt-steps"
+          },
+          "options": {}
+        }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/steps/"
+    },
+    {
       "name": "suggestion",
       "description": "The attributes for a field with a suggestion list.\n\nThe server writes both the field and the list. The web component filters, handles the arrow keys and keeps `aria-activedescendant` in sync. It renders nothing: it used to create the whole field itself, and then there was nothing to fill in before the script had run.\n\nNo preserve list. The attributes that change while the user types are set by the web component, and it sets them back when a patch strips them. If something else has already filtered, set `prefiltered` on `<lt-suggestion>`, and the web component leaves both the options and the empty message alone. If the server should also decide whether the list is expanded and which option is highlighted, set `server-controlled` as well.",
       "options": [
@@ -4891,6 +4977,39 @@
       "docs": "https://lo-tek.sobernetics.no/components/tag/"
     },
     {
+      "name": "term",
+      "description": "The attributes for a word in the text that is explained in a glossary on the same page.\n\nOnly what holds without JavaScript: the word is a link to the entry, and `aria-details` says the entry explains it. `<lt-term>` around the link opens the entry as a card by the word, and writes `aria-expanded`.",
+      "example": "const signal = lt.term({ id: \"term-signal\" })\n\n<p>Datastar keeps <lt-term><a {...signal.word}>signals</a></lt-term> in the browser.</p>\n<dl>\n  <div {...signal.entry}><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>\n</dl>",
+      "options": [
+        {
+          "name": "id",
+          "required": true,
+          "type": {
+            "kind": "text"
+          },
+          "description": "Id of the entry in the glossary: the `<div>` around the `<dt>` and `<dd>`. The word links to it, and the web component shows the entry itself as the card. Make it from the term, such as `term-signal`, so it is the same on every render."
+        }
+      ],
+      "returns": {
+        "kind": "group",
+        "fields": {
+          "word": {
+            "kind": "attributes"
+          },
+          "entry": {
+            "kind": "attributes"
+          }
+        }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/term/",
+      "parts": {
+        "word": {
+          "element": "lt-term",
+          "part": "word"
+        }
+      }
+    },
+    {
       "name": "textarea",
       "description": "The attributes for a multi-line text field.",
       "example": "<textarea {...textarea({ state: \"invalid\" })} />",
@@ -5369,6 +5488,11 @@
         "--lt-spinner-size": "var(--lt-spacing-6)",
         "--lt-spinner-thickness": "2px"
       },
+      "steps": {
+        "--lt-steps-marker-size": "var(--lt-spacing-7)",
+        "--lt-steps-done-icon": "var(--lt-icon-check)",
+        "--lt-steps-done-text": "\"Completed \""
+      },
       "suggestion": {
         "--lt-suggestion-max-height": "calc(var(--lt-spacing-10) * 4)",
         "--lt-suggestion-radius": "var(--lt-spacing-1)",
@@ -5389,6 +5513,17 @@
       "tag": {
         "--lt-tag-padding": "var(--lt-spacing-0-5) var(--lt-spacing-2)",
         "--lt-tag-radius": "var(--lt-spacing-1)"
+      },
+      "term": {
+        "--lt-term-underline-color": "var(--lt-color-accent-fill)",
+        "--lt-term-gap": "var(--lt-spacing-2)",
+        "--lt-term-width": "min(22rem, calc(100vw - var(--lt-spacing-8)))",
+        "--lt-term-padding": "var(--lt-spacing-3) var(--lt-spacing-4)",
+        "--lt-term-accent-color": "var(--lt-color-accent-fill)",
+        "--lt-term-radius": "var(--lt-spacing-1)",
+        "--lt-term-sheet-height": "60dvh",
+        "--lt-term-label-text": "\"Glossary\"",
+        "--lt-term-label-font": "inherit"
       },
       "textarea": {
         "--lt-textarea-min-height": "calc(var(--lt-spacing-4) * 5)",
