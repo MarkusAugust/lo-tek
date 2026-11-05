@@ -207,7 +207,7 @@ The container is added once, and the messages come from your code. That is the d
     document.getElementById("messages").show("Relay 14 is back", { color: "success" })
     ```
 
-    A refusal is the same answer with the danger message and `duration: 0`. Datastar runs the answer only from a 200: an error status runs nothing, and a server that does not answer gets no message, which is what [Connection Status](/components/connection-status/) is for.
+    A refusal is the same answer with the danger message and `duration: 0`. Datastar runs the answer only from a 200: an error status runs nothing, and a server that does not answer gets no message, which is what [Connection Status](/components/connection-status/) is for. Datastar also follows a redirect, so a request with the `Datastar-Request` header is answered with the message when the session has run out, not redirected to the log-in page.
   </TabItem>
   <TabItem label="kotlinx.html">
     On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`, and the Datastar recipe. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone. The button posts with `@post`, and the server answers with the call to `show()`, as in the Datastar tab. The page has no script of its own. After an ordinary form submission and a redirect, the next page renders an [alert](/components/alert/) instead, as in [With Ktor](/kotlin/#with-ktor).

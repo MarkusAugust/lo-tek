@@ -24,6 +24,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Changed
+
+- **The Kotlin live templates have no script of their own.** They are the
+  Datastar recipe rendered by the server: the switch saves with
+  `data-on:change="@put(…)"`, the dialog is sent open and its choices go
+  with `@post`, the session timeout sends its events on with `data-on`, the
+  toast's button posts and the server answers with the call to `show()`,
+  and the connection status hears of a lost server through
+  `data-on:datastar-fetch__document`. Each loads Datastar.
+
 ## 0.41.0 (2026-11-05)
 
 ### Added

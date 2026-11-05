@@ -198,13 +198,18 @@ The switch promises that the change applies. So it also has to say when saving f
     <script type="module"
             src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
 
-    <div class="lt-switch-row"
-         data-signals="{renew: false, status: ''}">
-      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew"
-             data-bind:renew
-             data-on:change="@put('/api/subscription')" />
-      <label class="lt-label" for="auto-renew">Auto-renew</label>
-    </div>
+    <!-- autocomplete="off" stands on the form, since HTML does not allow it on
+         a checkbox. Without it Firefox keeps the state from before a reload
+         until Datastar has loaded. -->
+    <form autocomplete="off">
+      <div class="lt-switch-row"
+           data-signals="{renew: false, status: ''}">
+        <input class="lt-switch" type="checkbox" role="switch" id="auto-renew"
+               data-bind:renew
+               data-on:change="@put('/api/subscription')" />
+        <label class="lt-label" for="auto-renew">Auto-renew</label>
+      </div>
+    </form>
     <p class="lt-help-text" role="status" data-text="$status"></p>
     ```
 
@@ -221,24 +226,30 @@ The switch promises that the change applies. So it also has to say when saving f
     fun FlowContent.autoRenew(on: Boolean = false) {
         // Datastar itself. Without it the `data-` attributes below do nothing.
         script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
-        div {
-            lt(Lt.switch.row)
-            attributes["data-signals"] = "{renew: $on, status: ''}"
-            input {
-                lt(Lt.`switch`())
-                id = "auto-renew"
-                checked = on
-                attributes["data-bind:renew"] = ""
-                attributes["data-on:change"] = "@put('/api/subscription')"
+        // autocomplete="off" stands on the form, since HTML does not allow it on
+        // a checkbox. Without it Firefox keeps the state from before a reload
+        // over the one the server rendered, until Datastar has loaded.
+        form {
+            autoComplete = false
+            div {
+                lt(Lt.switch.row)
+                attributes["data-signals"] = "{renew: $on, status: ''}"
+                input {
+                    lt(Lt.`switch`())
+                    id = "auto-renew"
+                    checked = on
+                    attributes["data-bind:renew"] = ""
+                    attributes["data-on:change"] = "@put('/api/subscription')"
+                }
+                label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
             }
-            label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
         }
         // `\$status` is Datastar's signal, not a Kotlin template.
         p { lt(Lt.helpText()); attributes["role"] = "status"; attributes["data-text"] = "\$status" }
     }
     ```
 
-    The answer to `@put` is the outcome. `@put` sends the signals as JSON, `{"renew": true, "status": ""}`, and an answer with `content-type: application/json` sets the signals it names. Datastar reads it only from a 200: an answer with an error status sets nothing, and the switch would stand where the user left it. A save that went through answers with the status, and a refusal is a 200 that puts `renew` back and says why:
+    The answer to `@put` is the outcome. `@put` sends the signals as JSON, `{"renew": true, "status": ""}`, and an answer with `content-type: application/json` sets the signals it names. Datastar reads it only from a 200: an answer with an error status sets nothing, and the switch would stand where the user left it. A save that went through answers with the status, and a refusal is a 200 that puts `renew` back and says why. So is a session that has run out: Datastar follows a redirect, and the log-in page it lands on is a 200 that puts nothing back, so a request with the `Datastar-Request` header is answered, not redirected:
 
     ```json
     {"renew": false, "status": "Could not save. Try again."}

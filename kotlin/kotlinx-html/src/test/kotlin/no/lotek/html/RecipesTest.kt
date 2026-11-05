@@ -31,11 +31,10 @@ import org.jsoup.nodes.TextNode
  * The kotlinx.html tab on a component page renders the markup of the page's HTML
  * recipe, with the builder functions doing the wiring.
  *
- * The HTML recipe is the answer. It is the one checked against the morphers
- * and without JavaScript (`update.browser.test.ts`,
- * `check-without-javascript.ts`), so the Kotlin recipe is held to it rather
- * than tested again in a browser. The two are compared as trees, without
- * comments, `<script>` and `<link>`:
+ * The HTML recipe is the answer: the page's "Plain HTML" tab, or its
+ * "Datastar" tab when the Kotlin recipe loads Datastar (`ExtractRecipes`).
+ * The Kotlin recipe is held to it rather than tested again in a browser. The
+ * two are compared as trees, without comments, `<script>` and `<link>`:
  *
  *   - the same scripts, apart from the registration, which the Kotlin
  *     recipe has once in the page template, and apart from the one HTML
