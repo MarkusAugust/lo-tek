@@ -58,10 +58,10 @@ class ManifestReaderTest {
                     buildMap {
                         put("variable", t.variable)
                         put("text", t.text)
-                        put("attribute", t.attribute)
+                        t.attribute?.let { put("attribute", it) }
                         t.value?.let { put("value", it) }
                         if (t.unless.isNotEmpty()) put("unless", t.unless)
-                        if (t.within) put("within", true)
+                        if (t.siblingsBefore) put("siblingsBefore", true)
                     }
                 },
                 "$name texts",

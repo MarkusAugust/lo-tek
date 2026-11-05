@@ -128,23 +128,23 @@ pub(crate) fn check_css_texts(
                 if styles.variables.contains(&text.variable) {
                     continue;
                 }
-                let carries = |node: &Node| {
-                    value(node, &text.attribute).is_some_and(|a| match &text.value {
+                let carries = |node: &Node| match &text.attribute {
+                    None => true,
+                    Some(attribute) => value(node, attribute).is_some_and(|a| match &text.value {
                         None => true,
                         Some(wanted) => a
                             .value
                             .as_deref()
                             .is_some_and(|v| lossy(trimmed(v)) == *wanted),
-                    })
+                    }),
                 };
-                // The nodes are in document order, so what is inside the
-                // node follows it, up to the first node that is not.
-                let shown = if text.within {
+                // On the children before the one with the attribute: shown
+                // when a child other than the first carries it.
+                let shown = if text.siblings_before {
                     nodes[n + 1..]
                         .iter()
-                        .take_while(|m| {
-                            std::iter::successors(m.parent, |&i| nodes[i].parent).any(|i| i == n)
-                        })
+                        .filter(|m| m.parent == Some(n))
+                        .skip(1)
                         .any(carries)
                 } else {
                     carries(node)
@@ -166,7 +166,7 @@ pub(crate) fn check_css_texts(
                     severity: Severity::Warning,
                     link: LINK.into(),
                     message: format!(
-                        "<{}> is on a page in \"{lang}\", and the stylesheet shows \"{}\" after it, in \"{}\", which a screen reader reads as part of the name. Set {} in the page's language in a stylesheet of your own.",
+                        "<{}> is on a page in \"{lang}\", and the stylesheet shows \"{}\" with it, in \"{}\", which a screen reader reads out. Set {} in the page's language in a stylesheet of your own.",
                         node.name,
                         text.text.trim(),
                         vocabulary.text_language.as_deref().unwrap_or(""),
@@ -284,9 +284,9 @@ mod tests {
     }
 
     #[test]
-    fn warns_about_a_text_shown_for_an_attribute_inside_the_class() {
-        // The done steps say "Completed", and they are the steps before the
-        // one with `aria-current="step"`, which is inside `lt-steps`.
+    fn warns_about_a_text_shown_on_the_children_before_the_one_with_the_attribute() {
+        // The done steps say "Completed ", and they are the steps before the
+        // one with `aria-current="step"`.
         let vocabulary = manifest::for_tests();
         let check = |html: &str, css: &str| -> Vec<String> {
             rules(crate::diagnose::check_styles(
@@ -295,17 +295,50 @@ mod tests {
                 &read_styles(css),
             ))
         };
-        let current = r#"<html lang="nb"><ol class="lt-steps"><li><a href="/a">Sted</a></li><li aria-current="step">Vegger</li></ol><p aria-current="step">Ute</p></html>"#;
-        let found = check(current, ".lt-steps { color: red }");
+        let page = |steps: &str| {
+            format!(
+                r#"<html lang="nb"><ol class="lt-steps">{steps}</ol><p aria-current="step">Ute</p></html>"#
+            )
+        };
+        let second = page(r#"<li><a href="/a">Sted</a></li><li aria-current="step">Vegger</li>"#);
+        let found = check(&second, ".lt-steps { color: red }");
         assert_eq!(found.len(), 1, "{found:?}");
         assert!(found[0].contains("--lt-steps-done-text"), "{found:?}");
-        assert!(check(current, r#":root { --lt-steps-done-text: "Fullført "; }"#).is_empty());
-        // No step is current, and the attribute after the list is not in it.
-        let none = r#"<html lang="nb"><ol class="lt-steps"><li>Sted</li><li>Vegger</li></ol><p aria-current="step">Ute</p></html>"#;
-        assert!(check(none, ".lt-steps { color: red }").is_empty());
-        // The attribute on the list itself is not a step.
+        assert!(check(&second, r#":root { --lt-steps-done-text: "Fullført "; }"#).is_empty());
+        for quiet in [
+            // The first step is current, so no step is done.
+            r#"<li aria-current="step">Sted</li><li>Vegger</li>"#,
+            // No step is current, and the paragraph after the list is not a step.
+            r#"<li>Sted</li><li>Vegger</li>"#,
+            // On the link, not the step: the stylesheet does not read it there.
+            r#"<li>Sted</li><li><a href="/b" aria-current="step">Vegger</a></li>"#,
+        ] {
+            let found = check(&page(quiet), ".lt-steps { color: red }");
+            assert!(found.is_empty(), "{quiet}: {found:?}");
+        }
         let on_list =
             r#"<html lang="nb"><ol class="lt-steps" aria-current="step"><li>Sted</li></ol></html>"#;
         assert!(check(on_list, ".lt-steps { color: red }").is_empty());
+    }
+
+    #[test]
+    fn warns_about_a_text_shown_without_an_attribute() {
+        // The label over the term in the card, "Glossary", is shown whenever
+        // the card is.
+        let vocabulary = manifest::for_tests();
+        let html = utf16(
+            r##"<html lang="nb"><p><lt-term><a href="#t">ord</a></lt-term></p><dl><div class="lt-term__entry" id="t"><dt>Ord</dt><dd>Et ord.</dd></div></dl></html>"##,
+        );
+        let check = |css: &str| {
+            rules(crate::diagnose::check_styles(
+                &html,
+                &vocabulary,
+                &read_styles(css),
+            ))
+        };
+        let found = check(".lt-term__entry { color: red }");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].contains("\"Glossary\""), "{found:?}");
+        assert!(check(r#":root { --lt-term-label-text: "Ordliste"; }"#).is_empty());
     }
 }

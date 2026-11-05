@@ -70,19 +70,20 @@ pub struct DefaultText {
     pub replaced_by: Vec<String>,
 }
 
-/// A text a stylesheet shows on an element with the class and the
-/// attribute, and the CSS variable that replaces it.
+/// A text a stylesheet shows on an element with the class, and with the
+/// attribute when there is one, and the CSS variable that replaces it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CssText {
     pub variable: String,
     pub text: String,
-    pub attribute: String,
+    pub attribute: Option<String>,
     pub value: Option<String>,
     /// Attributes that keep the text from showing.
     pub unless: Vec<String>,
-    /// The attribute is on an element inside the one with the class, as
-    /// `aria-current="step"` is on a step in `lt-steps`.
-    pub within: bool,
+    /// The attribute is on a child of the element with the class, and the
+    /// text is shown on the children before it, as "Completed " is on the
+    /// steps before the one with `aria-current="step"` in `lt-steps`.
+    pub siblings_before: bool,
 }
 
 /// An attribute a class takes, like `data-variant` on `lt-button`, or a

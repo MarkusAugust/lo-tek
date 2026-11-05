@@ -143,9 +143,9 @@ export const lt = {
   skipLink,
   progress,
   spinner,
-  steps,
   /** Text only screen readers get. Requires `sr-only.css`. */
   srOnly,
+  steps,
   /**
    * The field and the suggestion list. `<lt-suggestion>` handles the
    * keyboard and the filtering, the server writes the markup.

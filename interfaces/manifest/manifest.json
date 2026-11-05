@@ -1308,7 +1308,7 @@
           "text": "Completed ",
           "attribute": "aria-current",
           "value": "step",
-          "within": true
+          "siblingsBefore": true
         }
       ],
       "attributes": {}
@@ -1892,6 +1892,12 @@
           "content": "free"
         }
       },
+      "texts": [
+        {
+          "variable": "--lt-term-label-text",
+          "text": "Glossary"
+        }
+      ],
       "attributes": {}
     },
     "lt-connection-status": {

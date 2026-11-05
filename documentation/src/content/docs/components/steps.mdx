@@ -95,7 +95,7 @@ Two things have to be in the markup:
 | What | Why |
 | --- | --- |
 | `<ol>`, not `<ul>` | The order is part of the meaning, and the screen reader says how many steps there are |
-| `aria-current="step"` on the step the user is on | It is what the screen reader announces as the current step, and what the done steps are read from |
+| `aria-current="step"` on the `<li>` the user is on | It is what the screen reader announces as the current step, and what the done steps are read from. On a link inside the step it does neither, since the stylesheet reads it on the `<li>` |
 
 A name on the list, `aria-label="Order"`, tells the steps apart from the other lists on the page.
 

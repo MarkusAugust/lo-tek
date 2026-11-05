@@ -1207,10 +1207,14 @@ fn browser_generated(dom: &Dom, n: usize, fact: &str) -> Result<String, String> 
             dom.name(n).unwrap_or("?")
         )
     };
-    // The `/` that starts the alternative text, outside the strings.
+    // The `/` that starts the alternative text, outside the strings. A
+    // backslash in a string escapes the character after it.
     let mut quote = None;
+    let mut escaped = false;
     let slash = content.char_indices().find_map(|(i, c)| {
         match (quote, c) {
+            _ if escaped => escaped = false,
+            (Some(_), '\\') => escaped = true,
             (None, '"' | '\'') => quote = Some(c),
             (Some(q), _) if c == q => quote = None,
             (None, '/') => return Some(i),
@@ -2081,6 +2085,8 @@ mod tests {
         assert_eq!(name(r#"counter(lt-steps) / """#).unwrap(), "Site");
         assert_eq!(name(r#""a" "b ""#).unwrap(), "ab Site");
         assert_eq!(name(r#""/" / "Step " "2 ""#).unwrap(), "Step 2 Site");
+        // An escaped quote before the slash does not end the string.
+        assert_eq!(name(r#""\"" / "Quoted ""#).unwrap(), "Quoted Site");
         for refused in [r#"counter(lt-steps)"#, r#""✓" / attr(title)"#, r#""a\"b""#] {
             assert!(name(refused).is_err(), "{refused}");
         }

@@ -90,19 +90,21 @@ export type Element = {
 export type DefaultText = { text: string; replacedBy: readonly string[] }
 
 /**
- * A text the stylesheet shows on an element with the class and `attribute`,
- * with `value` when the selector requires one, and none of the attributes in
- * `unless`. With `within`, the attribute is on an element inside the one with
- * the class, as `aria-current="step"` is on a step in `lt-steps`. `variable`
- * is the CSS variable that replaces it.
+ * A text the stylesheet shows on an element with the class, and with
+ * `attribute` when the selector requires one (with `value` when it requires
+ * that too), and none of the attributes in `unless`. With `siblingsBefore`,
+ * the attribute is on a child of the element with the class, and the text
+ * is shown on the children before it, as "Completed " is on the steps before
+ * the one with `aria-current="step"` in `lt-steps`. `variable` is the CSS
+ * variable that replaces it.
  */
 export type CssText = {
   variable: string
   text: string
-  attribute: string
+  attribute?: string
   value?: string
   unless?: readonly string[]
-  within?: true
+  siblingsBefore?: true
 }
 
 /** The content of `elements.ts`: tag to element. */

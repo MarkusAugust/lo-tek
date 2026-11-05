@@ -78,9 +78,36 @@ describe("lt-steps", () => {
     const list = document.querySelector(".lt-steps") as HTMLElement
     list.style.setProperty("--lt-steps-done-text", '"Fullført "')
 
-    if (ALTERNATIVE) {
-      expect(marker("survey").content).toBe('"✓" / "Fullført "')
-    }
+    // Without the alternative text the variable is not read, and the check
+    // stays as it is.
+    expect(marker("survey").content).toBe(
+      ALTERNATIVE ? '"✓" / "Fullført "' : '"✓"',
+    )
+  })
+
+  it("breaks a name longer than its share of the row, rather than run into the next step", async () => {
+    mount(`<div id="box" style="inline-size: 37rem">
+      <ol class="lt-steps" aria-label="Order">
+        <li id="first">Site</li>
+        <li id="long" aria-current="step">Confirmationofthesmallprint</li>
+        <li>Survey</li><li>Walls</li><li>Payment</li><li>Done</li>
+      </ol>
+    </div>`)
+    await waitForPaint()
+
+    const long = document.getElementById("long") as HTMLElement
+    // Still a row, and the name stays inside its own step.
+    expect(long.getBoundingClientRect().top).toBe(
+      (document.getElementById("first") as Element).getBoundingClientRect().top,
+    )
+    // The text, not the step: the line to the next marker reaches past the
+    // step on purpose, and `scrollWidth` counts it.
+    const text = document.createRange()
+    text.selectNodeContents(long)
+    const name = text.getBoundingClientRect()
+    const step = long.getBoundingClientRect()
+    expect(name.left).toBeGreaterThanOrEqual(step.left)
+    expect(name.right).toBeLessThanOrEqual(step.right)
   })
 
   it("lines up the steps in a row, and in a column below 36rem", async () => {

@@ -32,7 +32,9 @@
   }
 
   /* Every step gets the same share of the row. The line to the next marker
-     reaches half a step past this one, so the shares must be equal. */
+     reaches half a step past this one, so the shares must be equal. A name
+     longer than its share breaks inside a word rather than running into the
+     next step; `break-word` breaks only a word that does not fit. */
   .lt-steps > li {
     box-sizing: border-box;
     position: relative;
@@ -43,6 +45,7 @@
       var(--lt-spacing-2)
     );
     padding-inline: var(--lt-spacing-1);
+    overflow-wrap: break-word;
     text-align: center;
     counter-increment: lt-steps;
   }

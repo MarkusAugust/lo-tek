@@ -30,6 +30,7 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { DEFAULT_TEXTS } from "../src/components/default-texts.js"
+import { isText, replaceableText, stringsIn } from "./css-text.js"
 
 const COMPONENTS = new URL("../src/components", import.meta.url).pathname
 const TEXT_FILE = join(COMPONENTS, "default-texts.ts")
@@ -53,13 +54,6 @@ function withoutComments(source: string): string {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`])\/\/.*$/gm, "$1")
-}
-
-/** A CSS string with the escapes unpacked: `\\e5 ` becomes "å". */
-function unescapeCss(value: string): string {
-  return value.replace(/\\([0-9a-f]+) ?/gi, (_t, code: string) =>
-    String.fromCodePoint(Number.parseInt(code, 16)),
-  )
 }
 
 function lineOf(source: string, index: number): number {
@@ -132,22 +126,14 @@ for (const file of files(COMPONENTS, ".css")) {
   // Not the condition of an `@supports (content: …)`, which is no text.
   for (const match of source.matchAll(/(?<![(\w-])content\s*:\s*([^;}]+)/g)) {
     const value = match[1].trim()
-    const strings = [...value.matchAll(/(["'])((?:(?!\1).)*)\1/g)].map(
-      (s) => s[2],
-    )
     // A symbol like "/" or "×" is not language. A letter is, also when
     // escaped: `\e5 ` is å.
-    const texts = strings.map(unescapeCss).filter((s) => /\p{L}/u.test(s))
+    const texts = stringsIn(value).filter(isText)
     if (texts.length === 0) continue
     // The whole value has to be one variable with the text as the fallback,
     // or a symbol with the variable as its alternative text. Text next to the
     // variable cannot be replaced, and a letter in the symbol is text.
-    const symbol = /^(["'])((?:(?!\1).)*)\1\s*\/\s*(var\(.*\))$/.exec(value)
-    const variable =
-      symbol && !/\p{L}/u.test(unescapeCss(symbol[2])) ? symbol[3] : value
-    if (
-      !/^var\(--lt-[a-z0-9-]+\s*,\s*(["'])(?:(?!\1).)*\1\s*\)$/.test(variable)
-    ) {
+    if (replaceableText(value) === undefined) {
       problems.push(
         `${relative(process.cwd(), file)}:${lineOf(source, match.index ?? 0)}: ` +
           `content: ${value} has text that cannot be replaced. ` +

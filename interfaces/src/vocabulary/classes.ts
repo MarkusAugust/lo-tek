@@ -777,7 +777,7 @@ export const classes: Classes = {
         "text": "Completed ",
         "attribute": "aria-current",
         "value": "step",
-        "within": true
+        "siblingsBefore": true
       }
     ],
     "attributes": {}
@@ -1357,6 +1357,12 @@ export const classes: Classes = {
         "content": "free"
       }
     },
+    "texts": [
+      {
+        "variable": "--lt-term-label-text",
+        "text": "Glossary"
+      }
+    ],
     "attributes": {}
   },
   "lt-connection-status": {
