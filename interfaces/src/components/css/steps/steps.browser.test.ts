@@ -110,17 +110,19 @@ describe("lt-steps", () => {
     expect(name.right).toBeLessThanOrEqual(step.right)
   })
 
-  it("lines up the steps in a row, and in a column below 36rem", async () => {
+  it("lines up the steps in a row, and in a column below 28rem", async () => {
     mount(`<div id="box">${ORDER}</div>`)
     const box = document.getElementById("box") as HTMLElement
     const top = (id: string) =>
       (document.getElementById(id) as Element).getBoundingClientRect().top
 
-    box.style.inlineSize = "40rem"
+    // 30rem is the content column of the documentation, and of many forms.
+    box.style.inlineSize = "30rem"
     await waitForPaint()
     expect(top("payment")).toBe(top("site"))
 
-    box.style.inlineSize = "20rem"
+    // A phone at 375 pixels is 23.4rem.
+    box.style.inlineSize = "27rem"
     await waitForPaint()
     expect(top("survey")).toBeGreaterThan(top("site"))
     expect(top("payment")).toBeGreaterThan(top("walls"))

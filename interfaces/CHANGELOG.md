@@ -53,7 +53,7 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   pages.** The class goes on an `<ol>` with one `<li>` per step, and
   `aria-current="step"` on the step the user is on. The steps before it are
   drawn as done, with a check the screen reader reads as "Completed", as part
-  of the step's link when it has one. Below `36rem` of the list's own width
+  of the step's link when it has one. Below `28rem` of the list's own width
   the steps stand in a column. `Lt.steps()` in Kotlin. New entry points
   `./steps` and `./steps.css`, new component variables
   `--lt-steps-marker-size` and `--lt-steps-done-text`, and the default text

@@ -12,7 +12,7 @@
    * border: a background is removed in high contrast mode, and the line with
    * it.
    *
-   * The list is a size container. Below 36rem the steps stand in a column,
+   * The list is a size container. Below 28rem the steps stand in a column,
    * with the marker at the start of the line: a row of five steps on a phone
    * gives each label less room than one word.
    */
@@ -161,7 +161,7 @@
     border-color: var(--lt-color-accent-fill);
   }
 
-  @container (width < 36rem) {
+  @container (width < 28rem) {
     .lt-steps > li {
       flex-basis: 100%;
       min-block-size: calc(
