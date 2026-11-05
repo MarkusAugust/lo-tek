@@ -10,10 +10,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 import { mount } from "../../../testing/a11y"
 import { htmlBlocks, tabItems } from "../../../testing/recipes"
-import {
-  defineLtConnectionStatus,
-  LtConnectionStatus,
-} from "./lt-connection-status"
+import { defineLtConnectionStatus } from "./lt-connection-status"
 
 import "../../../testing/datastar/datastar-v1.0.4.js"
 
@@ -22,14 +19,19 @@ const PAGE = import.meta.glob<string>(
   { query: "?raw", import: "default", eager: true },
 )
 
-/** The `<lt-connection-status>` in the Datastar tab, as the reader pastes it. */
-function recipe(): string {
+/** The HTML in the Datastar tab, as the reader pastes it. */
+function datastarTab(): string {
   const text = Object.values(PAGE)[0]
   if (!text) throw new Error("found no connection-status page")
   const tab = tabItems(text).find((t) => t.name === "Datastar")
-  const element = htmlBlocks(tab?.code ?? "")
-    .join("\n")
-    .match(/<lt-connection-status\b[\s\S]*?<\/lt-connection-status>/)?.[0]
+  return htmlBlocks(tab?.code ?? "").join("\n")
+}
+
+/** The `<lt-connection-status>` in the Datastar tab. */
+function recipe(): string {
+  const element = datastarTab().match(
+    /<lt-connection-status\b[\s\S]*?<\/lt-connection-status>/,
+  )?.[0]
   if (!element?.includes("data-on:datastar-fetch__document"))
     throw new Error(
       "the Datastar tab has no <lt-connection-status> with data-on:datastar-fetch__document",
@@ -50,8 +52,10 @@ async function page(): Promise<() => void> {
     `${recipe()}<button data-on:click="@post('/api/routes')">Save route</button>`,
   )
   await customElements.whenDefined("lt-connection-status")
-  // Datastar applies `data-on` from its own MutationObserver.
-  await new Promise((resolve) => setTimeout(resolve, 50))
+  // Datastar applies `data-on` from a MutationObserver, whose callback runs as
+  // a microtask, so it has run once the next task starts. A click before that
+  // sends no request, and `save` fails on the count of requests.
+  await new Promise((resolve) => setTimeout(resolve))
   return () => (document.querySelector("button") as HTMLButtonElement).click()
 }
 
@@ -63,16 +67,22 @@ function bar(): string | null {
   )
 }
 
-/** Clicks, and waits until Datastar has had every answer the stub gives. */
-async function save(click: () => void, answers: number): Promise<void> {
-  const calls = vi.mocked(window.fetch).mock.calls.length
+/**
+ * Clicks, and waits for Datastar's `finished`, which comes after the `error`
+ * or the patch the expression reports from.
+ */
+async function save(click: () => void): Promise<void> {
+  const finished = new Promise<void>((resolve) => {
+    const done = (event: Event) => {
+      if ((event as CustomEvent).detail?.type !== "finished") return
+      document.removeEventListener("datastar-fetch", done)
+      resolve()
+    }
+    document.addEventListener("datastar-fetch", done)
+  })
   click()
-  await vi.waitFor(
-    () =>
-      expect(vi.mocked(window.fetch).mock.calls.length).toBe(calls + answers),
-    { timeout: 4000 },
-  )
-  await new Promise((resolve) => setTimeout(resolve, 50))
+  await finished
+  expect(vi.mocked(window.fetch)).toHaveBeenCalled()
 }
 
 describe("the connection status in the Datastar recipe", () => {
@@ -88,7 +98,7 @@ describe("the connection status in the Datastar recipe", () => {
     it(`shows the bar when a gateway answers ${status}`, async () => {
       vi.spyOn(window, "fetch").mockResolvedValueOnce(answer(status))
       const click = await page()
-      await save(click, 1)
+      await save(click)
       expect(bar()).toBe("offline")
     })
   }
@@ -96,7 +106,7 @@ describe("the connection status in the Datastar recipe", () => {
   it("says nothing when a server that is there refuses with 422", async () => {
     vi.spyOn(window, "fetch").mockResolvedValueOnce(answer(422))
     const click = await page()
-    await save(click, 1)
+    await save(click)
     expect(bar()).toBeNull()
   })
 
@@ -105,35 +115,21 @@ describe("the connection status in the Datastar recipe", () => {
       .mockResolvedValueOnce(answer(503))
       .mockResolvedValueOnce(answer(500))
     const click = await page()
-    await save(click, 1)
+    await save(click)
     expect(bar()).toBe("offline")
-    await save(click, 1)
+    await save(click)
     expect(bar()).toBe("online")
   })
 
-  it("holds a report that comes before the web component is registered", async () => {
-    // The answer to a request at load can come before the registration, which
-    // the page loads after Datastar. A constructor can be registered once, so
-    // the late one is a subclass under a name of its own.
-    vi.spyOn(window, "fetch").mockResolvedValueOnce(answer(503))
-    const tag = "lt-connection-status-late"
-    mount(
-      `${recipe().replaceAll("lt-connection-status>", `${tag}>`).replace("<lt-connection-status", `<${tag}`)}<button data-on:click="@post('/api/routes')">Save route</button>`,
-    )
-    const errors: string[] = []
-    const listen = (event: ErrorEvent) => errors.push(event.message)
-    window.addEventListener("error", listen)
-    const logged = vi.spyOn(console, "error")
-    await new Promise((resolve) => setTimeout(resolve, 50))
-    await save(
-      () => (document.querySelector("button") as HTMLButtonElement).click(),
-      1,
-    )
-    expect(bar()).toBeNull()
-    customElements.define(tag, class extends LtConnectionStatus {})
-    await vi.waitFor(() => expect(bar()).toBe("offline"))
-    window.removeEventListener("error", listen)
-    expect([...errors, ...logged.mock.calls.map(String)]).toEqual([])
+  it("registers the web component before it loads Datastar", () => {
+    // Module scripts run in the order they stand. With Datastar first, the
+    // answer to a request at load reached an element without its methods, in
+    // all three engines, and the outage was never shown.
+    const tab = datastarTab()
+    const registration = tab.indexOf("defineLtConnectionStatus()")
+    const datastar = tab.indexOf("datastar.js")
+    expect(registration).toBeGreaterThan(0)
+    expect(datastar).toBeGreaterThan(registration)
   })
 
   it("shows the bar when a request gets no answer, and clears it when the retry is answered", async () => {

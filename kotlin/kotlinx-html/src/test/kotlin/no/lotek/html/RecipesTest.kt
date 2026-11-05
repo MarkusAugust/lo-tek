@@ -630,10 +630,20 @@ class RecipesTest {
         val own = Jsoup.parse(recipe).getElementsByTag("script").map { it.outerHtml() }.toMutableList()
         val problems = mutableListOf<String>()
         val registered = mutableSetOf<String>()
+        val libraries = mutableSetOf<String>()
+        val early = mutableListOf<String>()
         for (script in Jsoup.parse(template).getElementsByTag("script")) {
             if (own.remove(script.outerHtml())) continue
-            // A library the HTML recipe loads, at exactly its address, and nothing else.
-            if (script.attr("src") in sources && script.data().isBlank()) continue
+            // A library the HTML recipe loads, with exactly its type and address,
+            // once, and after the registration: module scripts run in the order
+            // they stand, and a request the library sends before the web
+            // components exist reaches an element without its methods.
+            val library = "${script.attr("type")} ${script.attr("src")}"
+            if (library in sources && script.data().isBlank()) {
+                if (!libraries.add(library)) problems.add("the page template loads ${script.attr("src")} twice")
+                if (registered.isEmpty()) early.add(script.attr("src"))
+                continue
+            }
             if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
                 problems.add("the page template has a script that does more than register: ${script.outerHtml().take(120)}")
                 continue
@@ -644,6 +654,8 @@ class RecipesTest {
             }
             registered += Regex("""\b(defineLt\w*)\s*\(""").findAll(code).map { it.groupValues[1] }
         }
+        // A page with nothing to register, like the switch, may load the library anywhere.
+        if (registered.isNotEmpty()) early.forEach { problems.add("the page template loads $it before the registration") }
         return problems to registered
     }
 
@@ -654,10 +666,10 @@ class RecipesTest {
             "defineLt" !in registered && own !in registered
         }
 
-    /** The addresses the page's HTML recipe loads scripts from. */
+    /** The scripts the page's HTML recipe loads from an address, as their type and address. */
     private fun htmlSources(recipe: Recipe): Set<String> =
         Jsoup.parseBodyFragment(javaClass.getResource("/recipes/${recipe.page}.html")?.readText().orEmpty())
-            .getElementsByTag("script").map { it.attr("src") }.filter { it.isNotEmpty() }.toSet()
+            .getElementsByTag("script").filter { it.attr("src").isNotEmpty() }.map { "${it.attr("type")} ${it.attr("src")}" }.toSet()
 
     /**
      * The addresses of the HTML recipe that every page template of the Kotlin
@@ -668,7 +680,7 @@ class RecipesTest {
         val allowed = htmlSources(recipe)
         return recipe.templates.map { template ->
             Jsoup.parse(createHTML().html { template() }).getElementsByTag("script")
-                .filter { it.data().isBlank() }.map { it.attr("src") }.filter { it in allowed }.toSet()
+                .filter { it.data().isBlank() }.map { "${it.attr("type")} ${it.attr("src")}" }.filter { it in allowed }.toSet()
         }.reduceOrNull { a, b -> a intersect b }.orEmpty()
     }
 
@@ -751,11 +763,17 @@ class RecipesTest {
         assertEquals(listOf("lt-popover"), unregistered("<lt-popover></lt-popover>", setOf("defineLtTabs")))
         assertTrue(templateProblems(template("""<script type="module">more()</script>"""), recipe).first.single().contains("more than register"), "a script of its own")
         assertTrue(templateProblems(template("""<script type="module" src="/app.js"></script>"""), recipe).first.single().contains("more than register"), "a script loaded from elsewhere")
-        // A library the HTML recipe loads may stand in the template, at exactly its address.
+        // A library the HTML recipe loads may stand in the template, with exactly
+        // its type and address, once, after the registration.
         val datastar = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"
-        assertEquals(emptyList<String>(), templateProblems(template("""<script type="module" src="$datastar"></script>"""), recipe, setOf(datastar)).first)
-        assertTrue(templateProblems(template("""<script type="module" src="${datastar.replace("1.0.4", "1.0.3")}"></script>"""), recipe, setOf(datastar)).first.single().contains("more than register"), "another version of the library")
-        assertTrue(templateProblems(template("""<script type="module" src="$datastar">more()</script>"""), recipe, setOf(datastar)).first.single().contains("more than register"), "code next to the library's address")
+        val library = setOf("module $datastar")
+        val loaded = { extra: String -> "<html><head></head><body><p>x</p><script type=\"module\">go()</script>$registration$extra</body></html>" }
+        assertEquals(emptyList<String>(), templateProblems(loaded("""<script type="module" src="$datastar"></script>"""), recipe, library).first)
+        assertTrue(templateProblems(loaded("""<script type="module" src="${datastar.replace("1.0.4", "1.0.3")}"></script>"""), recipe, library).first.single().contains("more than register"), "another version of the library")
+        assertTrue(templateProblems(loaded("""<script type="module" src="$datastar">more()</script>"""), recipe, library).first.single().contains("more than register"), "code next to the library's address")
+        assertTrue(templateProblems(loaded("""<script src="$datastar"></script>"""), recipe, library).first.single().contains("more than register"), "the library as a classic script")
+        assertTrue(templateProblems(loaded("""<script type="module" src="$datastar"></script>""".repeat(2)), recipe, library).first.single().contains("twice"), "the library loaded twice")
+        assertTrue(templateProblems(template("""<script type="module" src="$datastar"></script>"""), recipe, library).first.single().contains("before the registration"), "the library before the registration")
         assertTrue(templateProblems(template("""<script type="module">go()</script>"""), recipe).first.single().contains("more than register"), "the recipe's script run twice")
         assertEquals(emptyList<String>() to emptySet<String>(), templateProblems("<html><body><p>x</p><script type=\"module\">go()</script></body></html>", recipe), "a template that registers nothing")
         // A failed answer that shows no error is a problem in itself.
@@ -891,7 +909,7 @@ class RecipesTest {
         // A script the HTML recipe loads from an address, like Datastar's bundle,
         // stands once in the page template of the Kotlin tab rather than in the
         // recipe, when every template loads exactly that address.
-        val compared = htmlScripts - exempted.toSet() - htmlScripts.filter { it.src in loaded && it.text.isEmpty() }.toSet()
+        val compared = htmlScripts - exempted.toSet() - htmlScripts.filter { "${it.type} ${it.src}" in loaded && it.text.isEmpty() }.toSet()
         if (compared != kotlinScripts) {
             val copied = exemptions.filter { e -> kotlinScripts.any { e.marker in it.code } }
             val why = copied.joinToString("") { "\n  The HTML script \"${it.marker}\" is left out because ${it.reason}." }

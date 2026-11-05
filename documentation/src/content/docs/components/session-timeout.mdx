@@ -212,15 +212,14 @@ defineLtSessionTimeout()
 
     ```kotlin
     // Once for the whole app, in the page template. Not once per component.
-    head {
-        link(rel = "stylesheet", href = LotekWebJar.CSS)
-        // Datastar itself, once for the whole app. Without it the `data-`
-        // attributes in the recipe do nothing.
-        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
-    }
+    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
     body {
         sessionWarning()
         script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+        // Datastar itself, once for the whole app, after the registration:
+        // module scripts run in the order they stand, so no request goes out
+        // before the web components exist.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
     }
     ```
   </TabItem>
