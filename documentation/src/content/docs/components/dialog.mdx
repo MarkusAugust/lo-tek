@@ -216,8 +216,6 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
     import no.lotek.html.ltDialog
 
     fun FlowContent.cancelJob(open: Boolean = true) {
-        // Datastar itself. Without it the `data-` attributes below do nothing.
-        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
         val box = Lt.dialog(titleId = "confirm-title", open = open)
         ltDialog {
             lt(box.host)
@@ -252,7 +250,12 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
 
     ```kotlin
     // Once for the whole app, in the page template. Not once per component.
-    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    head {
+        link(rel = "stylesheet", href = LotekWebJar.CSS)
+        // Datastar itself, once for the whole app. Without it the `data-`
+        // attributes in the recipe do nothing.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
+    }
     body {
         // The page that asks the user to confirm, so the dialog is sent open. On
         // a page where it waits for a request, call cancelJob(open = false).

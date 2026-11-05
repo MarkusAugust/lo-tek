@@ -224,8 +224,6 @@ The switch promises that the change applies. So it also has to say when saving f
     import no.lotek.html.lt
 
     fun FlowContent.autoRenew(on: Boolean = false) {
-        // Datastar itself. Without it the `data-` attributes below do nothing.
-        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
         // autocomplete="off" stands on the form, since HTML does not allow it on
         // a checkbox. Without it Firefox keeps the state from before a reload
         // over the one the server rendered, until Datastar has loaded.
@@ -258,7 +256,12 @@ The switch promises that the change applies. So it also has to say when saving f
     ```kotlin
     // Once for the whole app, in the page template. The switch is CSS alone,
     // so there is no web component to register.
-    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    head {
+        link(rel = "stylesheet", href = LotekWebJar.CSS)
+        // Datastar itself, once for the whole app. Without it the `data-`
+        // attributes in the recipe do nothing.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
+    }
     body { autoRenew() }
     ```
   </TabItem>

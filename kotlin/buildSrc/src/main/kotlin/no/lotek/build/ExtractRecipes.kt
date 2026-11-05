@@ -148,11 +148,12 @@ abstract class ExtractRecipes : DefaultTask() {
             }
             val group = text.substring(groupStart, groupEnd)
             val kotlin = tabAt(text, start)
-            // A Kotlin recipe that loads Datastar is the Datastar recipe rendered
-            // by the server, so it is compared with that tab: a Kotlin server
-            // saves through Datastar, not with a script of its own. The script is
-            // compared too, so a recipe that loads it and should not fails there.
-            val label = if (DATASTAR.containsMatchIn(kotlin)) "Datastar" else "Plain HTML"
+            // A Kotlin tab whose code loads Datastar, in the recipe or in its page
+            // template, is the Datastar recipe rendered by the server, so it is
+            // compared with that tab: a Kotlin server saves through Datastar, not
+            // with a script of its own. Only the code is read, not the prose. The
+            // script is compared too, so a tab that loads it and should not fails.
+            val label = if (blocks(kotlin, "kotlin").any { DATASTAR.containsMatchIn(it) }) "Datastar" else "Plain HTML"
             val html = tabStarts(group, label).singleOrNull()
                 ?: error("$page: the <Tabs> with the kotlinx.html tab must have one $label tab to compare it with.")
             return Triple(kotlin, blocks(tabAt(group, html), "html"), where)

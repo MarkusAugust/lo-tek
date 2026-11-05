@@ -10,7 +10,10 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 import { mount } from "../../../testing/a11y"
 import { htmlBlocks, tabItems } from "../../../testing/recipes"
-import { defineLtConnectionStatus } from "./lt-connection-status"
+import {
+  defineLtConnectionStatus,
+  LtConnectionStatus,
+} from "./lt-connection-status"
 
 import "../../../testing/datastar/datastar-v1.0.4.js"
 
@@ -106,6 +109,31 @@ describe("the connection status in the Datastar recipe", () => {
     expect(bar()).toBe("offline")
     await save(click, 1)
     expect(bar()).toBe("online")
+  })
+
+  it("holds a report that comes before the web component is registered", async () => {
+    // The answer to a request at load can come before the registration, which
+    // the page loads after Datastar. A constructor can be registered once, so
+    // the late one is a subclass under a name of its own.
+    vi.spyOn(window, "fetch").mockResolvedValueOnce(answer(503))
+    const tag = "lt-connection-status-late"
+    mount(
+      `${recipe().replaceAll("lt-connection-status>", `${tag}>`).replace("<lt-connection-status", `<${tag}`)}<button data-on:click="@post('/api/routes')">Save route</button>`,
+    )
+    const errors: string[] = []
+    const listen = (event: ErrorEvent) => errors.push(event.message)
+    window.addEventListener("error", listen)
+    const logged = vi.spyOn(console, "error")
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await save(
+      () => (document.querySelector("button") as HTMLButtonElement).click(),
+      1,
+    )
+    expect(bar()).toBeNull()
+    customElements.define(tag, class extends LtConnectionStatus {})
+    await vi.waitFor(() => expect(bar()).toBe("offline"))
+    window.removeEventListener("error", listen)
+    expect([...errors, ...logged.mock.calls.map(String)]).toEqual([])
   })
 
   it("shows the bar when a request gets no answer, and clears it when the retry is answered", async () => {

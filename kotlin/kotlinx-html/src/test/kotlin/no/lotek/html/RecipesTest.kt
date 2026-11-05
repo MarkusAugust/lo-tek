@@ -21,6 +21,7 @@ import no.lotek.assertLotek
 import no.lotek.html.recipes.errorsummary.faultsIn as errorSummaryFaults
 import no.lotek.html.recipes.errorsummary.orderForm as errorSummaryForm
 import no.lotek.html.recipes.field.orderForm as fieldForm
+import no.lotek.html.recipes.Recipe
 import no.lotek.html.recipes.recipes
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Comment
@@ -474,7 +475,7 @@ class RecipesTest {
                 head { title(recipe.page) }
                 body { recipe.render(this) }
             }
-            val problems = differences(expected, page, SERVER_DOES_IT.filter { it.page == recipe.page })
+            val problems = differences(expected, page, SERVER_DOES_IT.filter { it.page == recipe.page }, templateSources(recipe))
             if (problems.isNotEmpty()) {
                 // Every page is compared before the test fails, so one run shows them all.
                 failures.add("${recipe.page}.mdx, ${recipe.function}() does not render the HTML recipe:\n  ${problems.joinToString("\n  ")}")
@@ -625,12 +626,14 @@ class RecipesTest {
      * be a registration written inline, from the package's WebJar. Returns
      * the problems and the `defineLt…` functions the template calls.
      */
-    internal fun templateProblems(template: String, recipe: String): Pair<List<String>, Set<String>> {
+    internal fun templateProblems(template: String, recipe: String, sources: Set<String> = emptySet()): Pair<List<String>, Set<String>> {
         val own = Jsoup.parse(recipe).getElementsByTag("script").map { it.outerHtml() }.toMutableList()
         val problems = mutableListOf<String>()
         val registered = mutableSetOf<String>()
         for (script in Jsoup.parse(template).getElementsByTag("script")) {
             if (own.remove(script.outerHtml())) continue
+            // A library the HTML recipe loads, at exactly its address, and nothing else.
+            if (script.attr("src") in sources && script.data().isBlank()) continue
             if (script.attr("src").isNotEmpty() || !isRegistration(script.data())) {
                 problems.add("the page template has a script that does more than register: ${script.outerHtml().take(120)}")
                 continue
@@ -650,6 +653,24 @@ class RecipesTest {
             val own = "defineLt" + tag.removePrefix("lt-").split('-').joinToString("") { it.replaceFirstChar(Char::uppercase) }
             "defineLt" !in registered && own !in registered
         }
+
+    /** The addresses the page's HTML recipe loads scripts from. */
+    private fun htmlSources(recipe: Recipe): Set<String> =
+        Jsoup.parseBodyFragment(javaClass.getResource("/recipes/${recipe.page}.html")?.readText().orEmpty())
+            .getElementsByTag("script").map { it.attr("src") }.filter { it.isNotEmpty() }.toSet()
+
+    /**
+     * The addresses of the HTML recipe that every page template of the Kotlin
+     * tab loads. Empty when the tab has no template, so a recipe without one
+     * must load them itself.
+     */
+    private fun templateSources(recipe: Recipe): Set<String> {
+        val allowed = htmlSources(recipe)
+        return recipe.templates.map { template ->
+            Jsoup.parse(createHTML().html { template() }).getElementsByTag("script")
+                .filter { it.data().isBlank() }.map { it.attr("src") }.filter { it in allowed }.toSet()
+        }.reduceOrNull { a, b -> a intersect b }.orEmpty()
+    }
 
     /** Markup without the spacing kotlinx.html indents it with, to find the recipe inside a page. */
     private fun squashed(html: String): String = Jsoup.parse(html).body().html().replace(Regex(""">\s+<"""), "><").replace(WHITESPACE, " ")
@@ -730,6 +751,11 @@ class RecipesTest {
         assertEquals(listOf("lt-popover"), unregistered("<lt-popover></lt-popover>", setOf("defineLtTabs")))
         assertTrue(templateProblems(template("""<script type="module">more()</script>"""), recipe).first.single().contains("more than register"), "a script of its own")
         assertTrue(templateProblems(template("""<script type="module" src="/app.js"></script>"""), recipe).first.single().contains("more than register"), "a script loaded from elsewhere")
+        // A library the HTML recipe loads may stand in the template, at exactly its address.
+        val datastar = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"
+        assertEquals(emptyList<String>(), templateProblems(template("""<script type="module" src="$datastar"></script>"""), recipe, setOf(datastar)).first)
+        assertTrue(templateProblems(template("""<script type="module" src="${datastar.replace("1.0.4", "1.0.3")}"></script>"""), recipe, setOf(datastar)).first.single().contains("more than register"), "another version of the library")
+        assertTrue(templateProblems(template("""<script type="module" src="$datastar">more()</script>"""), recipe, setOf(datastar)).first.single().contains("more than register"), "code next to the library's address")
         assertTrue(templateProblems(template("""<script type="module">go()</script>"""), recipe).first.single().contains("more than register"), "the recipe's script run twice")
         assertEquals(emptyList<String>() to emptySet<String>(), templateProblems("<html><body><p>x</p><script type=\"module\">go()</script></body></html>", recipe), "a template that registers nothing")
         // A failed answer that shows no error is a problem in itself.
@@ -753,7 +779,7 @@ class RecipesTest {
             var rendersRecipe = false
             for (template in recipe.templates) {
                 val page = createHTML().html { template() }
-                val (problems, registered) = templateProblems(page, alone)
+                val (problems, registered) = templateProblems(page, alone, htmlSources(recipe))
                 failures += problems.map { "${recipe.page}: $it" }
                 // Every web component on the page the template renders is registered there.
                 unregistered(page, registered).takeIf { it.isNotEmpty() }?.let {
@@ -792,7 +818,7 @@ class RecipesTest {
      * time, so a rule that stops working, or is deleted in a rewrite, fails
      * there.
      */
-    internal fun differences(expected: String, page: String, exemptions: List<Exemption> = emptyList()): List<String> {
+    internal fun differences(expected: String, page: String, exemptions: List<Exemption> = emptyList(), loaded: Set<String> = emptySet()): List<String> {
         val problems = mutableListOf<String>()
         val ids = mutableMapOf<String, String>()
         val pointers = mutableListOf<Pointer>()
@@ -862,7 +888,10 @@ class RecipesTest {
             }
             for (why in serversJob(script.code)) problems.add("a script in the Kotlin recipe $why: ${script.text.take(80)}")
         }
-        val compared = htmlScripts - exempted.toSet()
+        // A script the HTML recipe loads from an address, like Datastar's bundle,
+        // stands once in the page template of the Kotlin tab rather than in the
+        // recipe, when every template loads exactly that address.
+        val compared = htmlScripts - exempted.toSet() - htmlScripts.filter { it.src in loaded && it.text.isEmpty() }.toSet()
         if (compared != kotlinScripts) {
             val copied = exemptions.filter { e -> kotlinScripts.any { e.marker in it.code } }
             val why = copied.joinToString("") { "\n  The HTML script \"${it.marker}\" is left out because ${it.reason}." }

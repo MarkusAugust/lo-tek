@@ -31,7 +31,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   choices go with `@post`, the session timeout sends its events on with `data-on`, the
   toast's button posts and the server answers with the call to `show()`,
   and the connection status hears of a lost server through
-  `data-on:datastar-fetch__document`. Each loads Datastar.
+  `data-on:datastar-fetch__document`. The page needs Datastar, loaded once
+  in its template, and the server answers with a 200: the signals as
+  `application/json`, or the toast's call as `text/javascript`.
 
 ## 0.41.0 (2026-11-05)
 

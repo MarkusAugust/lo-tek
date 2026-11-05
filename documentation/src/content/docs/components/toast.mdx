@@ -219,8 +219,6 @@ The container is added once, and the messages come from your code. That is the d
     import no.lotek.html.ltToast
 
     fun FlowContent.relay() {
-        // Datastar itself. Without it the `data-` attributes below do nothing.
-        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
         ltToast { lt(Lt.toast(label = "Messages").host); id = "messages" }
         button {
             lt(Lt.button())
@@ -233,7 +231,12 @@ The container is added once, and the messages come from your code. That is the d
 
     ```kotlin
     // Once for the whole app, in the page template. Not once per component.
-    head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
+    head {
+        link(rel = "stylesheet", href = LotekWebJar.CSS)
+        // Datastar itself, once for the whole app. Without it the `data-`
+        // attributes in the recipe do nothing.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
+    }
     body {
         relay()
         script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
