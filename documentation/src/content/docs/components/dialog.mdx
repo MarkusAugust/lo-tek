@@ -207,47 +207,44 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
 
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The dialog opens with `showModal()` in the browser, as in the HTML tab, for the reason at the top of the page. The choice goes to the server: "Cancel the job" posts to `/jobs/222-0481/cancel`, and "Keep the job" only closes the dialog.
+    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`, and render the Datastar recipe: the server decides that the dialog is open by sending it with `open = true`, as the answer to the request that asks for it, and `<lt-dialog>` calls `showModal()`. The page has no script of its own. Each choice goes to the server with `@post`, and the dialog closes with its `<form method="dialog">`.
 
     ```kotlin
     import kotlinx.html.*
     import no.lotek.*
     import no.lotek.html.lt
+    import no.lotek.html.ltDialog
 
-    fun FlowContent.cancelJob() {
-        val box = Lt.dialog(titleId = "confirm-title")
-        button { lt(Lt.button(variant = ButtonVariant.DANGER)); id = "open-confirm"; type = ButtonType.button; +"Cancel the job" }
-        dialog {
-            lt(box.dialog)
+    fun FlowContent.cancelJob(open: Boolean = true) {
+        // Datastar itself. Without it the `data-` attributes below do nothing.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
+        val box = Lt.dialog(titleId = "confirm-title", open = open)
+        ltDialog {
+            lt(box.host)
             id = "confirm"
-            h2 { lt(box.title); +"Cancel job 222-0481?" }
-            div {
-                lt(box.body)
-                p { +"The crew keeps the advance. This cannot be undone." }
-            }
-            form {
-                lt(box.footer)
-                attributes["method"] = "dialog"
-                button { lt(Lt.button(variant = ButtonVariant.SECONDARY)); value = "keep"; +"Keep the job" }
-                button {
-                    lt(Lt.button(variant = ButtonVariant.DANGER))
-                    formMethod = ButtonFormMethod.post
-                    formAction = "/jobs/222-0481/cancel"
-                    +"Cancel the job"
+            dialog {
+                lt(box.dialog)
+                h2 { lt(box.title); +"Cancel job 222-0481?" }
+                div {
+                    lt(box.body)
+                    p { +"The crew keeps the advance. This cannot be undone." }
                 }
-            }
-        }
-        script(type = "module") {
-            unsafe {
-                +"""
-                const dialog = document.getElementById("confirm")
-
-                // showModal() and not commandfor, which does nothing in a browser from
-                // before December 2025. This is the one script the recipe needs.
-                document.getElementById("open-confirm").addEventListener("click", () => {
-                  dialog.showModal()
-                })
-                """
+                form {
+                    lt(box.footer)
+                    attributes["method"] = "dialog"
+                    button {
+                        lt(Lt.button(variant = ButtonVariant.SECONDARY))
+                        value = "keep"
+                        attributes["data-on:click"] = "@post('/jobs/222-0481/keep')"
+                        +"Keep the job"
+                    }
+                    button {
+                        lt(Lt.button(variant = ButtonVariant.DANGER))
+                        value = "cancel"
+                        attributes["data-on:click"] = "@post('/jobs/222-0481/cancel')"
+                        +"Cancel the job"
+                    }
+                }
             }
         }
     }
@@ -261,8 +258,6 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
         script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
     }
     ```
-
-    If the server should open the dialog itself, put it in `ltDialog { lt(box.host) }` and pass `open = true`, as in the Datastar tab.
   </TabItem>
 </Tabs>
 
@@ -272,7 +267,7 @@ The button in "Try it" does what a server would otherwise do: it sets `open` on 
 
 ## What the recipes have in common
 
-Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. Plain HTML, React, Astro and kotlinx.html make the call on a click; the Datastar recipe lets the server decide that the dialog is open, and `<lt-dialog>` makes the call. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
+Opening the dialog **must** be a call. `showModal()` moves focus inside, keeps it there, closes on Escape and makes the rest of the page inert. `<dialog open>` alone does none of this, and is just a box on the page. Plain HTML, React and Astro make the call on a click; the Datastar and kotlinx.html recipes let the server decide that the dialog is open, and `<lt-dialog>` makes the call. Pick one of the two: inside `<lt-dialog>` it is `open` on the host that opens the dialog. A `showModal()` call of your own there is not seen by the component: it does not warn about it, and it closes the dialog the next time `open` or `server-controlled` on the host changes, since the host does not say `open`. A patch that only touches the content leaves it open.
 
 `<form method="dialog">` closes the dialog when a button is pressed, and puts the button's `value` in `dialog.returnValue`. Then you need no listeners on the buttons, and Enter works as expected. A button with `formmethod="post"` submits the form to its `formaction` instead, and the dialog stays open until the next page arrives, as "Cancel the job" does in the Plain HTML, Astro and kotlinx.html recipes. In the React and Datastar recipes it closes the dialog with `value="cancel"`, and the app or the server cancels the job.
 

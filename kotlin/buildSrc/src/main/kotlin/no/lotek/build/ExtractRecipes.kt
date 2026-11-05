@@ -20,7 +20,8 @@ import org.gradle.api.tasks.TaskAction
  * one `fun FlowContent.<name>()`, whose parameters all have a default, so the
  * test can call it without arguments. It is written as a source file in a package
  * of its own, `no.lotek.html.recipes.<page>`, and the blocks in the page's
- * "Plain HTML" tab as a resource next to it. `Recipes.kt` lists them, so a
+ * "Plain HTML" tab as a resource next to it, or in its "Datastar" tab when
+ * the Kotlin recipe writes Datastar's attributes. `Recipes.kt` lists them, so a
  * kotlinx.html tab on a new page is tested without anything else to write.
  *
  * Run by the tests in `kotlinx-html`, not by the build of the package.
@@ -144,9 +145,14 @@ abstract class ExtractRecipes : DefaultTask() {
                 error("$where is not inside a <Tabs> with a Plain HTML tab.")
             }
             val group = text.substring(groupStart, groupEnd)
-            val plain = tabStarts(group, "Plain HTML").singleOrNull()
-                ?: error("$page: the <Tabs> with the kotlinx.html tab must have one Plain HTML tab to compare it with.")
-            return Triple(tabAt(text, start), blocks(tabAt(group, plain), "html"), where)
+            val kotlin = tabAt(text, start)
+            // A Kotlin recipe that writes Datastar's attributes is the Datastar
+            // recipe rendered by the server, so it is compared with that tab: a
+            // Kotlin server saves through Datastar, not with a script of its own.
+            val label = if (DATASTAR.containsMatchIn(kotlin)) "Datastar" else "Plain HTML"
+            val html = tabStarts(group, label).singleOrNull()
+                ?: error("$page: the <Tabs> with the kotlinx.html tab must have one $label tab to compare it with.")
+            return Triple(kotlin, blocks(tabAt(group, html), "html"), where)
         }
         slots.singleOrNull()?.let { start ->
             val where = "$page, the kotlinx.html slot"
@@ -165,6 +171,9 @@ abstract class ExtractRecipes : DefaultTask() {
         }
         return null
     }
+
+    /** An attribute only Datastar reads, written as a string in the Kotlin recipe. */
+    private val DATASTAR = Regex(""""data-(on:|bind|signals|text)""")
 
     /**
      * Where each `<TabItem label="…">` with this label starts. The pattern
