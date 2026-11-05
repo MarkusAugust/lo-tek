@@ -34,10 +34,20 @@ describe("lt-steps", () => {
 
     for (const id of ["site", "survey"]) {
       if (ALTERNATIVE) {
-        expect(marker(id).content).toBe('"✓" / "Completed "')
+        expect(marker(id).content).toBe('"" / "Completed "')
       } else {
-        expect(marker(id).content).toBe('"✓"')
+        expect(marker(id).content).toBe('""')
       }
+    }
+    // The check is the checkbox's token, an image, and not a character.
+    for (const id of ["site", "survey"]) {
+      expect(marker(id).backgroundImage, id).toBe(
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--lt-icon-check")
+          .trim()
+          .replace(/^url\("?/, 'url("')
+          .replace(/"?\)$/, '")'),
+      )
     }
     // Both, not only the one right before the current step.
     for (const id of ["site", "survey"]) {
@@ -69,8 +79,18 @@ describe("lt-steps", () => {
     mount(ORDER.replace(' aria-current="step"', ""))
 
     for (const id of ["site", "survey", "walls", "payment"]) {
-      expect(marker(id).content).not.toContain("✓")
+      expect(marker(id).content).not.toContain("Completed")
+      expect(marker(id).backgroundImage).toBe("none")
     }
+  })
+
+  it("takes the image from --lt-steps-done-icon", () => {
+    mount(ORDER)
+    const list = document.querySelector(".lt-steps") as HTMLElement
+    list.style.setProperty("--lt-steps-done-icon", "linear-gradient(red, red)")
+
+    expect(marker("survey").backgroundImage).toContain("linear-gradient")
+    expect(marker("payment").backgroundImage).toBe("none")
   })
 
   it("takes the text from --lt-steps-done-text", () => {
@@ -81,7 +101,7 @@ describe("lt-steps", () => {
     // Without the alternative text the variable is not read, and the check
     // stays as it is.
     expect(marker("survey").content).toBe(
-      ALTERNATIVE ? '"✓" / "Fullført "' : '"✓"',
+      ALTERNATIVE ? '"" / "Fullført "' : '""',
     )
   })
 

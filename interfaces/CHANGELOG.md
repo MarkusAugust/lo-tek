@@ -56,7 +56,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   of the step's link when it has one. Below `28rem` of the list's own width
   the steps stand in a column. `Lt.steps()` in Kotlin. New entry points
   `./steps` and `./steps.css`, new component variables
-  `--lt-steps-marker-size` and `--lt-steps-done-text`, and the default text
+  `--lt-steps-marker-size`, `--lt-steps-done-icon` and
+  `--lt-steps-done-text`, and the default text
   "Completed ".
 - **The check reports `untranslated-text` for the step indicator's
   "Completed "** on a page in another language, as for the other texts in

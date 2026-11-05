@@ -138,22 +138,27 @@
     color: var(--lt-color-neutral-text);
   }
 
+  /* The check is the same token as the checkbox's, painted in the colour
+     that stands on the accent fill in each theme, and the marker's number
+     gives way to it. `--lt-steps-done-icon` takes any image. */
   .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
   .lt-steps > li:has(~ [aria-current="step"]) > a::before {
-    content: "\2713";
+    content: "";
     border-color: var(--lt-color-accent-fill);
-    background: var(--lt-color-accent-fill);
+    background:
+      var(--lt-steps-done-icon, var(--lt-icon-check)) center / 60% no-repeat
+      var(--lt-color-accent-fill);
     color: var(--lt-color-accent-content);
   }
 
-  /* The check is read out as the text, so the screen reader says that the
-     step is done. `::before` is put in front of the name without a space
-     (AccName 2F.ii), so the space is in the text. Behind `@supports` for the
-     reason above: without it the check stays, and is read as a symbol. */
-  @supports (content: "\2713" / "") {
+  /* The empty content is read out as the text, so the screen reader says
+     that the step is done. `::before` is put in front of the name without a
+     space (AccName 2F.ii), so the space is in the text. Behind `@supports`
+     for the reason above: without it the step has no text. */
+  @supports (content: "" / "") {
     .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
     .lt-steps > li:has(~ [aria-current="step"]) > a::before {
-      content: "\2713" / var(--lt-steps-done-text, "Completed ");
+      content: "" / var(--lt-steps-done-text, "Completed ");
     }
   }
 
@@ -222,7 +227,7 @@
     .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
     .lt-steps > li:has(~ [aria-current="step"]) > a::before {
       border-color: Highlight;
-      background: Highlight;
+      background-color: Highlight;
       color: HighlightText;
     }
 

@@ -132,6 +132,7 @@ The width that counts is the list's own, not the window's, so the indicator also
 | Variable | Default |
 | --- | --- |
 | `--lt-steps-marker-size` | `var(--lt-spacing-7)`, the circle with the number or the check |
+| `--lt-steps-done-icon` | `var(--lt-icon-check)`, the check on a done step, the same as in the [Checkbox](../checkbox/). Any image will do: a `url()` or a gradient |
 | `--lt-steps-done-text` | `"Completed "`, what the screen reader reads for the check, with the space before the step's name |
 
 The marker is `::before` on the step's link, or on the step itself when it has no link, and the line to the next step is `::after` on the step. [Translation](../../translation/) shows how to set `--lt-steps-done-text` by the language of the page.

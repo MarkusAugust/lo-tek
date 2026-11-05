@@ -5490,6 +5490,7 @@
       },
       "steps": {
         "--lt-steps-marker-size": "var(--lt-spacing-7)",
+        "--lt-steps-done-icon": "var(--lt-icon-check)",
         "--lt-steps-done-text": "\"Completed \""
       },
       "suggestion": {
