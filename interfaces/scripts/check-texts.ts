@@ -30,7 +30,7 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { DEFAULT_TEXTS } from "../src/components/default-texts.js"
-import { isText, replaceableText, stringsIn } from "./css-text.js"
+import { compoundsOf, isText, replaceableText, stringsIn } from "./css-text.js"
 
 const COMPONENTS = new URL("../src/components", import.meta.url).pathname
 const TEXT_FILE = join(COMPONENTS, "default-texts.ts")
@@ -180,6 +180,48 @@ for (const text of expected) {
     continue
   }
   documented++
+}
+
+/*
+ * The reader the generator shares, on the forms that went wrong once: a
+ * symbol escaped with a letter in its hex, a symbol that is text, and a
+ * combinator character inside brackets or a string. The generator places
+ * the texts in the manifest with it, so a wrong answer here is a text
+ * `untranslated-text` reports in the wrong place, or never.
+ */
+const READER: [string, unknown, unknown][] = [
+  [
+    '"\\25B6" / var(--lt-x-text, "Open")',
+    replaceableText('"\\25B6" / var(--lt-x-text, "Open")'),
+    { variable: "--lt-x-text", text: "Open" },
+  ],
+  [
+    '"Done" / var(--lt-x-text, "Open")',
+    replaceableText('"Done" / var(--lt-x-text, "Open")'),
+    undefined,
+  ],
+  [
+    '.lt-steps > li:has(~ [aria-current="step"]) > a::before',
+    compoundsOf('.lt-steps > li:has(~ [aria-current="step"]) > a::before'),
+    [".lt-steps", ">", 'li:has(~ [aria-current="step"])', ">", "a::before"],
+  ],
+  [
+    '.lt-card .lt-x[class~="a"]>li[data-v="a > b"]',
+    compoundsOf('.lt-card .lt-x[class~="a"]>li[data-v="a > b"]'),
+    [".lt-card", " ", '.lt-x[class~="a"]', ">", 'li[data-v="a > b"]'],
+  ],
+  [
+    'li[data-v="a]>b"] a',
+    compoundsOf('li[data-v="a]>b"] a'),
+    ['li[data-v="a]>b"]', " ", "a"],
+  ],
+]
+for (const [input, got, expected] of READER) {
+  if (JSON.stringify(got) !== JSON.stringify(expected)) {
+    problems.push(
+      `css-text.ts reads ${input} as ${JSON.stringify(got)}, not ${JSON.stringify(expected)}.`,
+    )
+  }
 }
 
 /*

@@ -113,6 +113,20 @@ pub(crate) fn check_texts(nodes: &[Node], vocabulary: &Vocabulary) -> Vec<Findin
     out
 }
 
+/// The nodes inside node `n`. The nodes are in document order, so they
+/// follow it, and each has a parent at `n` or after it, up to the first that
+/// does not.
+fn subtree(nodes: &[Node], n: usize) -> &[Node] {
+    let mut end = n + 1;
+    while nodes
+        .get(end)
+        .is_some_and(|m| m.parent.is_some_and(|p| p >= n && p < end))
+    {
+        end += 1;
+    }
+    &nodes[n + 1..end]
+}
+
 pub(crate) fn check_css_texts(
     nodes: &[Node],
     vocabulary: &Vocabulary,
@@ -128,20 +142,20 @@ pub(crate) fn check_css_texts(
                 if styles.variables.contains(&text.variable) {
                     continue;
                 }
-                let carries = |node: &Node| match &text.attribute {
-                    None => true,
-                    Some(attribute) => value(node, attribute).is_some_and(|a| match &text.value {
+                let carries = |node: &Node| {
+                    value(node, &text.attribute).is_some_and(|a| match &text.value {
                         None => true,
                         Some(wanted) => a
                             .value
                             .as_deref()
                             .is_some_and(|v| lossy(trimmed(v)) == *wanted),
-                    }),
+                    })
                 };
+                let inside = subtree(nodes, n);
                 // On the children before the one with the attribute: shown
                 // when a child other than the first carries it.
                 let shown = if text.siblings_before {
-                    nodes[n + 1..]
+                    inside
                         .iter()
                         .filter(|m| m.parent == Some(n))
                         .skip(1)
@@ -149,11 +163,16 @@ pub(crate) fn check_css_texts(
                 } else {
                     carries(node)
                 };
-                let set_inline = std::iter::successors(Some(n), |&i| nodes[i].parent).any(|i| {
-                    value(&nodes[i], "style")
+                let sets = |m: &Node| {
+                    value(m, "style")
                         .and_then(|a| a.value.as_deref())
                         .is_some_and(|v| lossy(v).contains(&text.variable))
-                });
+                };
+                // On the element or above it, and for a text on the children
+                // also inside it, where the children are.
+                let set_inline = std::iter::successors(Some(n), |&i| nodes[i].parent)
+                    .any(|i| sets(&nodes[i]))
+                    || text.siblings_before && inside.iter().any(sets);
                 if !shown || set_inline || text.unless.iter().any(|u| value(node, u).is_some()) {
                     continue;
                 }
@@ -316,29 +335,22 @@ mod tests {
             let found = check(&page(quiet), ".lt-steps { color: red }");
             assert!(found.is_empty(), "{quiet}: {found:?}");
         }
+        // The variable set on a step, where the text is shown.
+        let on_step = page(
+            r#"<li style="--lt-steps-done-text: 'Fullført '"><a href="/a">Sted</a></li><li aria-current="step">Vegger</li>"#,
+        );
+        assert!(check(&on_step, ".lt-steps { color: red }").is_empty());
+        // But not on an element after the list.
+        let after = format!(
+            r#"{}<p style="--lt-steps-done-text: 'Fullført '">Ute</p>"#,
+            second.trim_end_matches("</html>")
+        );
+        assert_eq!(
+            check(&format!("{after}</html>"), ".lt-steps { color: red }").len(),
+            1
+        );
         let on_list =
             r#"<html lang="nb"><ol class="lt-steps" aria-current="step"><li>Sted</li></ol></html>"#;
         assert!(check(on_list, ".lt-steps { color: red }").is_empty());
-    }
-
-    #[test]
-    fn warns_about_a_text_shown_without_an_attribute() {
-        // The label over the term in the card, "Glossary", is shown whenever
-        // the card is.
-        let vocabulary = manifest::for_tests();
-        let html = utf16(
-            r##"<html lang="nb"><p><lt-term><a href="#t">ord</a></lt-term></p><dl><div class="lt-term__entry" id="t"><dt>Ord</dt><dd>Et ord.</dd></div></dl></html>"##,
-        );
-        let check = |css: &str| {
-            rules(crate::diagnose::check_styles(
-                &html,
-                &vocabulary,
-                &read_styles(css),
-            ))
-        };
-        let found = check(".lt-term__entry { color: red }");
-        assert_eq!(found.len(), 1, "{found:?}");
-        assert!(found[0].contains("\"Glossary\""), "{found:?}");
-        assert!(check(r#":root { --lt-term-label-text: "Ordliste"; }"#).is_empty());
     }
 }

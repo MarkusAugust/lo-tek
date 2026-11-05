@@ -132,7 +132,7 @@ fn default_texts(value: &Json, path: &str) -> Result<Vec<DefaultText>, String> {
         .collect()
 }
 
-/// `texts` on a class: `[{variable, text, attribute?, value?, unless?, siblingsBefore?}]`.
+/// `texts` on a class: `[{variable, text, attribute, value?, unless?, siblingsBefore?}]`.
 fn css_texts(value: &Json, path: &str) -> Result<Vec<CssText>, String> {
     let Some(list) = value.get("texts") else {
         return Ok(Vec::new());
@@ -148,10 +148,7 @@ fn css_texts(value: &Json, path: &str) -> Result<Vec<CssText>, String> {
             Ok(CssText {
                 variable: get("variable")?,
                 text: get("text")?,
-                attribute: t
-                    .get("attribute")
-                    .map(|v| text(v, &format!("{at}.attribute")))
-                    .transpose()?,
+                attribute: get("attribute")?,
                 value: t
                     .get("value")
                     .map(|v| text(v, &format!("{at}.value")))

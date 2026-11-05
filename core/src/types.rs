@@ -70,13 +70,13 @@ pub struct DefaultText {
     pub replaced_by: Vec<String>,
 }
 
-/// A text a stylesheet shows on an element with the class, and with the
-/// attribute when there is one, and the CSS variable that replaces it.
+/// A text a stylesheet shows on an element with the class and the
+/// attribute, and the CSS variable that replaces it.
 #[derive(Clone, Debug, PartialEq)]
 pub struct CssText {
     pub variable: String,
     pub text: String,
-    pub attribute: Option<String>,
+    pub attribute: String,
     pub value: Option<String>,
     /// Attributes that keep the text from showing.
     pub unless: Vec<String>,

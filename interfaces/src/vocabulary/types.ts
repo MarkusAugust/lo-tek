@@ -90,9 +90,9 @@ export type Element = {
 export type DefaultText = { text: string; replacedBy: readonly string[] }
 
 /**
- * A text the stylesheet shows on an element with the class, and with
- * `attribute` when the selector requires one (with `value` when it requires
- * that too), and none of the attributes in `unless`. With `siblingsBefore`,
+ * A text the stylesheet shows on an element with the class and `attribute`,
+ * with `value` when the selector requires one, and none of the attributes in
+ * `unless`. With `siblingsBefore`,
  * the attribute is on a child of the element with the class, and the text
  * is shown on the children before it, as "Completed " is on the steps before
  * the one with `aria-current="step"` in `lt-steps`. `variable` is the CSS
@@ -101,7 +101,7 @@ export type DefaultText = { text: string; replacedBy: readonly string[] }
 export type CssText = {
   variable: string
   text: string
-  attribute?: string
+  attribute: string
   value?: string
   unless?: readonly string[]
   siblingsBefore?: true

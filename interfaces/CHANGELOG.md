@@ -59,13 +59,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `--lt-steps-marker-size` and `--lt-steps-done-text`, and the default text
   "Completed ".
 - **The check reports `untranslated-text` for the step indicator's
-  "Completed " and for the term's "Glossary"** on a page in another
-  language, as for the other texts in the stylesheets. "Glossary" was in the
-  table on the translation page without the check knowing it. In the
-  manifest's `texts` on a class, `attribute` is optional, for a text shown
-  whenever the class is, and `siblingsBefore: true` is a text shown on the
-  children before the one with the attribute. In Kotlin,
-  `CssText.attribute` is a `String?`, and `CssText` has `siblingsBefore`.
+  "Completed "** on a page in another language, as for the other texts in
+  the stylesheets. In the manifest's `texts` on a class,
+  `siblingsBefore: true` is a text shown on the children before the one with
+  the attribute, and the Kotlin `CssText` has `siblingsBefore`. The term's
+  "Glossary" is not checked, since the card shows it only while it is open.
 - **The check reports `term-without-entry`** on a whole page, when a word
   in `<lt-term>` points at an id the page does not have, or at something
   that is not a glossary entry.

@@ -62,3 +62,41 @@ export function replaceableText(
     )
   return match ? { variable: match[1], text: unescapeCss(match[3]) } : undefined
 }
+
+/**
+ * A selector as its compounds and the combinators between them, read
+ * outside parentheses, brackets and strings: `.lt-steps > li:has(~ [x])`
+ * is `[".lt-steps", ">", "li:has(~ [x])"]`, and `[class~="a"]` stays whole.
+ * A descendant combinator is `" "`.
+ */
+export function compoundsOf(selector: string): string[] {
+  const out: string[] = []
+  let current = ""
+  let depth = 0
+  let quote: string | undefined
+  let combinator: string | undefined
+  const end = () => {
+    if (current === "") return
+    if (combinator !== undefined && out.length > 0) out.push(combinator)
+    out.push(current)
+    current = ""
+    combinator = undefined
+  }
+  for (const char of selector.trim()) {
+    if (quote) {
+      if (char === quote) quote = undefined
+    } else if (char === '"' || char === "'") quote = char
+    else if (char === "(" || char === "[") depth++
+    else if (char === ")" || char === "]") depth--
+    else if (depth === 0 && /[\s>+~]/.test(char)) {
+      // The compound before it is done. A `>` wins over the spaces round it.
+      end()
+      if (/\s/.test(char)) combinator ??= " "
+      else combinator = char
+      continue
+    }
+    current += char
+  }
+  end()
+  return out
+}

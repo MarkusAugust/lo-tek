@@ -42,7 +42,12 @@ import type {
   Elements,
 } from "../src/vocabulary/types.js"
 import { flagsFor, readBuilderFunctions } from "./builder-functions.js"
-import { isText, replaceableText, splitOutside } from "./css-text.js"
+import {
+  compoundsOf,
+  isText,
+  replaceableText,
+  splitOutside,
+} from "./css-text.js"
 import {
   type AttributeDoc,
   type ClassDoc,
@@ -558,21 +563,31 @@ const TOKEN_PAGE = {
 }
 
 /**
+ * The pseudo-classes for a state the browser or a web component sets, which
+ * the markup never shows. A text shown only in such a state cannot be placed
+ * by reading the markup: "Glossary" is over the term's card while
+ * `<lt-term>` has it open, and a page with a glossary may never open one.
+ */
+const SHOWN_IN_A_STATE = [":popover-open"]
+
+/**
  * The texts a stylesheet shows that a variable replaces: `content:
  * var(--lt-…, "…")`, or a symbol with the variable as its alternative text,
- * read by `replaceableText()` as `check-texts.ts` reads them. A text without
- * a letter, like " *", is in no language, and is left out. Where the text is
- * shown is read from the rule's selector, in one of two forms:
+ * read by `replaceableText()` as `check-texts.ts` reads them. The last
+ * `content` in a rule is the one that applies. A text without a letter,
+ * like " *", is in no language, and is left out. Where the text is shown is
+ * read from the rule's selector, in one of two forms:
  *
- *   - the last compound has the class, and the attribute if the text needs
- *     one: `.lt-label[data-required="text"]::after`. A `:not()` there gives
+ *   - the last compound has the class and the attribute:
+ *     `.lt-label[data-required="text"]::after`. A `:not()` there gives
  *     `unless`;
  *   - the class is on the list, and the text on the children before the one
  *     with the attribute: `.lt-steps > li:has(~ [aria-current="step"])`,
  *     with anything after it. That is `siblingsBefore`.
  *
- * Any other selector stops the generator. The text would otherwise be left
- * out of the manifest, and `untranslated-text` could never report it.
+ * Any other selector stops the generator, as a text the check could
+ * otherwise never report. A text in `SHOWN_IN_A_STATE` is left out, since
+ * no markup says where it is.
  */
 function textsInCss(
   css: string,
@@ -583,57 +598,61 @@ function textsInCss(
   const rule = /([^{}]+)\{([^{}]*)\}/g
   const attributeIn = /\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'))?\]/
   const notIn = /:not\(((?:[^()]|\([^()]*\))*)\)/g
-  const before = /:has\(\s*~\s*\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'))?\]\s*\)/
+  const before =
+    /^[\w-]*:has\(\s*~\s*\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'))?\]\s*\)/
   for (const [, selectors, body] of clean.matchAll(rule)) {
-    const value = /(?<![(\w-])content\s*:\s*([^;}]+)/.exec(body)?.[1].trim()
+    const values = [...body.matchAll(/(?<![(\w-])content\s*:\s*([^;}]+)/g)]
+    const value = values[values.length - 1]?.[1].trim()
     const found = value === undefined ? undefined : replaceableText(value)
     if (!found || !isText(found.text)) continue
     for (const selector of splitOutside(selectors, /,/)) {
-      const compounds = splitOutside(
-        selector.replace(/\s*([>+~])\s*/g, " $1 "),
-        /\s/,
-      )
+      if (SHOWN_IN_A_STATE.some((state) => selector.includes(state))) continue
+      const compounds = compoundsOf(selector)
+      const own = (compound: string) => compound.replace(notIn, "")
       const classIn = (compound: string) =>
-        compound.replace(notIn, "").match(/\.(lt-[\w-]+)/)?.[1]
+        own(compound).match(/\.(lt-[\w-]+)/)?.[1]
       const unlessIn = (compound: string) =>
         [...compound.matchAll(notIn)].flatMap(([, inside]) =>
           [...inside.matchAll(/\[([\w-]+)/g)].map((m) => m[1]),
         )
+      const valueIn = (match: RegExpMatchArray) =>
+        (match[2] ?? match[3]) !== undefined
+          ? { value: match[2] ?? match[3] }
+          : {}
       const subject = compounds[compounds.length - 1] ?? ""
-      let text: CssText | undefined
       let name = classIn(subject)
+      let text: CssText | undefined
       if (name) {
-        const attribute = subject.replace(notIn, "").match(attributeIn)
+        // An attribute inside `:has()` is on another element.
+        const attribute = own(subject).match(attributeIn)
         const unless = unlessIn(subject)
-        text = {
-          variable: found.variable,
-          text: found.text,
-          ...(attribute ? { attribute: attribute[1] } : {}),
-          ...((attribute?.[2] ?? attribute?.[3]) !== undefined
-            ? { value: attribute?.[2] ?? attribute?.[3] }
-            : {}),
-          ...(unless.length > 0 ? { unless } : {}),
-        }
-      } else {
-        const at = compounds.findIndex((compound) => classIn(compound))
-        const child = compounds[at + 2] ?? ""
-        const attribute = before.exec(child)
-        const rest = compounds.slice(at + 1)
-        name = at < 0 ? undefined : classIn(compounds[at])
-        if (
-          name &&
-          compounds[at + 1] === ">" &&
-          attribute &&
-          rest.every((compound) => unlessIn(compound).length === 0)
-        ) {
-          const unless = unlessIn(compounds[at])
+        if (attribute && !own(subject).includes(":has(")) {
           text = {
             variable: found.variable,
             text: found.text,
             attribute: attribute[1],
-            ...((attribute[2] ?? attribute[3]) !== undefined
-              ? { value: attribute[2] ?? attribute[3] }
-              : {}),
+            ...valueIn(attribute),
+            ...(unless.length > 0 ? { unless } : {}),
+          }
+        }
+      } else {
+        // The nearest compound with a class before the subject.
+        let at = compounds.length - 1
+        while (at >= 0 && !classIn(compounds[at])) at--
+        const attribute = before.exec(compounds[at + 2] ?? "")
+        name = at < 0 ? undefined : classIn(compounds[at])
+        const unless = at < 0 ? [] : unlessIn(compounds[at])
+        if (
+          name &&
+          compounds[at + 1] === ">" &&
+          attribute &&
+          compounds.slice(at + 1).every((c) => unlessIn(c).length === 0)
+        ) {
+          text = {
+            variable: found.variable,
+            text: found.text,
+            attribute: attribute[1],
+            ...valueIn(attribute),
             ...(unless.length > 0 ? { unless } : {}),
             siblingsBefore: true,
           }
@@ -641,7 +660,7 @@ function textsInCss(
       }
       if (!name || !text) {
         throw new Error(
-          `${file}: the text "${found.text}" in \`${selector}\` is shown where the generator cannot tell. Put it on the element with the class, or on the children of a list before the one with an attribute, as in lt-steps.`,
+          `${file}: the text "${found.text}" in \`${selector}\` is shown where the generator cannot tell. Put it on the element with the class and an attribute, or on the children of a list before the one with an attribute, as in lt-steps.`,
         )
       }
       // The same text from two selectors in one rule, as the step's link and

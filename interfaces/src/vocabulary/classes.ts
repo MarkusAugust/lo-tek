@@ -1357,12 +1357,6 @@ export const classes: Classes = {
         "content": "free"
       }
     },
-    "texts": [
-      {
-        "variable": "--lt-term-label-text",
-        "text": "Glossary"
-      }
-    ],
     "attributes": {}
   },
   "lt-connection-status": {

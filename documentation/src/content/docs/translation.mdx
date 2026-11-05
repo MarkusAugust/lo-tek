@@ -86,7 +86,7 @@ These are all the texts LO-TEK writes into the page itself. A guard in the build
 
 [Session Timeout](/components/session-timeout/) is not in the table. It has no text: you write the dialog yourself.
 
-`lotek check` and the editors warn about a text from the table on a page whose nearest `lang` is not English, when nothing replaces it (`untranslated-text`). The texts in the stylesheets are checked when `lotek check` is given the page's stylesheets: a stylesheet that sets the variable replaces the text.
+`lotek check` and the editors warn about a text from the table on a page whose nearest `lang` is not English, when nothing replaces it (`untranslated-text`). The texts in the stylesheets are checked when `lotek check` is given the page's stylesheets: a stylesheet that sets the variable replaces the text. "Glossary" is not checked: the card shows it only while `<lt-term>` has it open, and the markup does not say whether that happens.
 
 The texts in the stylesheets are replaced with a variable, for example by the language of the page. This example translates them into Norwegian on purpose, to show a language other than the defaults:
 
