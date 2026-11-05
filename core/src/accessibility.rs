@@ -1230,14 +1230,15 @@ fn browser_generated(dom: &Dom, n: usize, fact: &str) -> Result<String, String> 
 }
 
 /// One or more plain strings next to each other, joined: `"a" "b"` is "ab".
-/// `None` for anything else, or a string with a quote or an escape in it.
+/// `None` for anything else, or a string with an escape in it. The other
+/// quote may stand in a string: `"L'étape "`.
 fn plain_strings(mut text: &str) -> Option<String> {
     let mut out = String::new();
     loop {
         let q = text.chars().next().filter(|c| matches!(c, '"' | '\''))?;
         let end = text[1..].find(q)? + 1;
         let inner = &text[1..end];
-        if inner.contains(['"', '\'', '\\']) {
+        if inner.contains('\\') {
             return None;
         }
         out.push_str(inner);
@@ -2073,7 +2074,8 @@ mod tests {
                 .unwrap()
                 .replacen(
                     "data-lt-ax-before=\"none\"",
-                    &format!("data-lt-ax-before='{before}'"),
+                    // As the host writes it: an attribute, with `'` escaped.
+                    &format!("data-lt-ax-before='{}'", before.replace('\'', "&#39;")),
                     1,
                 );
             accessibility_tree(&utf16(&html)).map(|tree| node(&tree, "link").name.clone())
@@ -2087,6 +2089,10 @@ mod tests {
         assert_eq!(name(r#""/" / "Step " "2 ""#).unwrap(), "Step 2 Site");
         // An escaped quote before the slash does not end the string.
         assert_eq!(name(r#""\"" / "Quoted ""#).unwrap(), "Quoted Site");
+        assert_eq!(
+            name(r#""" / "L'étape terminée ""#).unwrap(),
+            "L'étape terminée Site"
+        );
         for refused in [r#"counter(lt-steps)"#, r#""✓" / attr(title)"#, r#""a\"b""#] {
             assert!(name(refused).is_err(), "{refused}");
         }

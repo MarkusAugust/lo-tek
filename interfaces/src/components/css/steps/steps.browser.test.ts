@@ -39,15 +39,16 @@ describe("lt-steps", () => {
         expect(marker(id).content).toBe('""')
       }
     }
-    // The check is the checkbox's token, an image, and not a character.
+    // The check is the checkbox's token, cut out of the marker as a mask,
+    // and not a character.
+    const check = getComputedStyle(document.documentElement)
+      .getPropertyValue("--lt-icon-check")
+      .trim()
+      .replace(/^url\("?/, 'url("')
+      .replace(/"?\)$/, '")')
     for (const id of ["site", "survey"]) {
-      expect(marker(id).backgroundImage, id).toBe(
-        getComputedStyle(document.documentElement)
-          .getPropertyValue("--lt-icon-check")
-          .trim()
-          .replace(/^url\("?/, 'url("')
-          .replace(/"?\)$/, '")'),
-      )
+      expect(marker(id).maskImage, id).toContain(check)
+      expect(marker(id).maskComposite, id).toMatch(/^exclude(, exclude)*$/)
     }
     // Both, not only the one right before the current step.
     for (const id of ["site", "survey"]) {
@@ -80,7 +81,7 @@ describe("lt-steps", () => {
 
     for (const id of ["site", "survey", "walls", "payment"]) {
       expect(marker(id).content).not.toContain("Completed")
-      expect(marker(id).backgroundImage).toBe("none")
+      expect(marker(id).maskImage).toBe("none")
     }
   })
 
@@ -89,8 +90,8 @@ describe("lt-steps", () => {
     const list = document.querySelector(".lt-steps") as HTMLElement
     list.style.setProperty("--lt-steps-done-icon", "linear-gradient(red, red)")
 
-    expect(marker("survey").backgroundImage).toContain("linear-gradient")
-    expect(marker("payment").backgroundImage).toBe("none")
+    expect(marker("survey").maskImage).toMatch(/^linear-gradient/)
+    expect(marker("payment").maskImage).toBe("none")
   })
 
   it("takes the text from --lt-steps-done-text", () => {
@@ -165,6 +166,17 @@ describe("lt-steps", () => {
     for (const id of ["site", "survey"]) {
       expect(line(id)[colour], id).not.toBe(line("walls")[colour])
     }
+  })
+
+  it("draws no line after the last step when something else follows it", () => {
+    // A framework can leave a template or a script last in the list, and
+    // then the last step is no longer `:last-child`.
+    mount(ORDER.replace("</ol>", "<template></template></ol>"))
+
+    expect(
+      getComputedStyle(document.getElementById("payment") as Element, "::after")
+        .content,
+    ).toBe("none")
   })
 
   it("sets the attributes from the builder function", () => {

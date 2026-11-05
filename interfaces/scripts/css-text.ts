@@ -20,7 +20,14 @@ export function splitOutside(text: string, separator: RegExp): string[] {
   const out = [""]
   let depth = 0
   let quote: string | undefined
+  let escaped = false
   for (const char of text) {
+    // A backslash takes the character after it as it is.
+    if (escaped || char === "\\") {
+      escaped = !escaped
+      out[out.length - 1] += char
+      continue
+    }
     if (quote) {
       if (char === quote) quote = undefined
     } else if (char === '"' || char === "'") quote = char

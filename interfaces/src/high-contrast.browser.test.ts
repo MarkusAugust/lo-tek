@@ -172,6 +172,11 @@ describe.skipIf(server.browser !== "chromium")("in high contrast mode", () => {
     expect(marker("step-done").backgroundColor).not.toBe(
       marker("step-coming").backgroundColor,
     )
+    // The check is a hole in the marker, so it shows the surface behind in
+    // the system's colours. An image kept its own stroke, and a white check
+    // on a light Highlight could not be seen.
+    expect(marker("step-done").maskImage).toContain("url(")
+    expect(marker("step-done").maskComposite).toMatch(/^exclude(, exclude)*$/)
     expect(marker("step-current").borderTopColor).not.toBe(
       marker("step-coming").borderTopColor,
     )

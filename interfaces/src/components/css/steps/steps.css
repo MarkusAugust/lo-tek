@@ -84,7 +84,7 @@
     }
   }
 
-  .lt-steps > li:not(:last-child)::after {
+  .lt-steps > li:has(~ li)::after {
     content: "";
     position: absolute;
     inset-block-start: calc(
@@ -138,17 +138,20 @@
     color: var(--lt-color-neutral-text);
   }
 
-  /* The check is the same token as the checkbox's, painted in the colour
-     that stands on the accent fill in each theme, and the marker's number
-     gives way to it. `--lt-steps-done-icon` takes any image. */
+  /* The check is the checkbox's token, cut out of the filled marker as a
+     mask, so the surface behind shows through it. Painted as an image, its
+     stroke had a fixed colour, and in high contrast mode a white check on a
+     light `Highlight` could not be seen. `--lt-steps-done-icon` takes any
+     image; its shape is what counts. */
   .lt-steps > li:has(~ [aria-current="step"]):not(:has(> a))::before,
   .lt-steps > li:has(~ [aria-current="step"]) > a::before {
     content: "";
     border-color: var(--lt-color-accent-fill);
-    background:
-      var(--lt-steps-done-icon, var(--lt-icon-check)) center / 60% no-repeat
-      var(--lt-color-accent-fill);
-    color: var(--lt-color-accent-content);
+    background: var(--lt-color-accent-fill);
+    mask:
+      var(--lt-steps-done-icon, var(--lt-icon-check)) center / 60% no-repeat,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
   }
 
   /* The empty content is read out as the text, so the screen reader says
@@ -192,7 +195,7 @@
       inset-inline-start: 0;
     }
 
-    .lt-steps > li:not(:last-child)::after {
+    .lt-steps > li:has(~ li)::after {
       inset-block: calc(
           var(--lt-steps-marker-size, var(--lt-spacing-7)) +
           var(--lt-spacing-1)
@@ -228,7 +231,6 @@
     .lt-steps > li:has(~ [aria-current="step"]) > a::before {
       border-color: Highlight;
       background-color: Highlight;
-      color: HighlightText;
     }
 
     .lt-steps > li:has(~ [aria-current="step"])::after {

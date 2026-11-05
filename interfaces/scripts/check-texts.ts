@@ -30,7 +30,13 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join, relative } from "node:path"
 import { DEFAULT_TEXTS } from "../src/components/default-texts.js"
-import { compoundsOf, isText, replaceableText, stringsIn } from "./css-text.js"
+import {
+  compoundsOf,
+  isText,
+  replaceableText,
+  splitOutside,
+  stringsIn,
+} from "./css-text.js"
 
 const COMPONENTS = new URL("../src/components", import.meta.url).pathname
 const TEXT_FILE = join(COMPONENTS, "default-texts.ts")
@@ -214,6 +220,11 @@ const READER: [string, unknown, unknown][] = [
     'li[data-v="a\\"> b"] > .lt-a\\>b',
     compoundsOf('li[data-v="a\\"> b"] > .lt-a\\>b'),
     ['li[data-v="a\\"> b"]', ">", ".lt-a\\>b"],
+  ],
+  [
+    '.lt-x[data-v="a\\",b"], .lt-y',
+    splitOutside('.lt-x[data-v="a\\",b"], .lt-y', /,/),
+    ['.lt-x[data-v="a\\",b"]', ".lt-y"],
   ],
   [
     'li[data-v="a]>b"] a',
