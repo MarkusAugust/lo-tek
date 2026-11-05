@@ -1095,6 +1095,18 @@ export const classDocs: Record<string, ClassDoc> = {
   "lt-skip-link": { content: "text" },
   "lt-spinner": { content: "none" },
   "lt-sr-only": { content: "text" },
+  "lt-steps": {
+    content: "parts",
+    parts: {
+      step: {
+        selector: "li",
+        description:
+          'One step, with its name as text, or a link back to it. The step the user is on has `aria-current="step"`, and the steps before it are drawn as done.',
+        content: "free",
+        multiple: true,
+      },
+    },
+  },
   "lt-switch": { content: "none" },
   "lt-switch-row": row("input[role='switch']", "The switch"),
   "lt-table": {

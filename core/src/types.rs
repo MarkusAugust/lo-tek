@@ -80,6 +80,9 @@ pub struct CssText {
     pub value: Option<String>,
     /// Attributes that keep the text from showing.
     pub unless: Vec<String>,
+    /// The attribute is on an element inside the one with the class, as
+    /// `aria-current="step"` is on a step in `lt-steps`.
+    pub within: bool,
 }
 
 /// An attribute a class takes, like `data-variant` on `lt-button`, or a

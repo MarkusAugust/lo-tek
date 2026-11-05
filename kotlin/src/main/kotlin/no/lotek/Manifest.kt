@@ -215,6 +215,7 @@ data class Manifest(
                             attribute = text["attribute"].str("$path.attribute"),
                             value = text["value"]?.str("$path.value"),
                             unless = text["unless"]?.strings("$path.unless") ?: emptyList(),
+                            within = text["within"] == true,
                         )
                     },
                 attributes =
@@ -294,7 +295,9 @@ data class DefaultText(
 /**
  * A text a stylesheet shows on an element with the class and [attribute],
  * with [value] when the selector requires one and none of [unless], and the
- * CSS [variable] that replaces it.
+ * CSS [variable] that replaces it. With [within], the attribute is on an
+ * element inside the one with the class, as `aria-current="step"` is on a
+ * step in `lt-steps`.
  */
 data class CssText(
     val variable: String,
@@ -302,6 +305,7 @@ data class CssText(
     val attribute: String,
     val value: String?,
     val unless: List<String>,
+    val within: Boolean = false,
 )
 
 /** An attribute on an element, like `server-controlled`. [values] is empty except for [AttributeType.VALUES]. */

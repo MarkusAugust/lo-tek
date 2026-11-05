@@ -757,6 +757,31 @@ export const classes: Classes = {
     "content": "text",
     "attributes": {}
   },
+  "lt-steps": {
+    "component": "steps",
+    "title": "Steps",
+    "description": "A step indicator that shows where the user is in a task over several pages. A CSS component with one class and no JavaScript.",
+    "link": "https://lo-tek.sobernetics.no/components/steps/",
+    "content": "parts",
+    "parts": {
+      "step": {
+        "selector": "li",
+        "description": "One step, with its name as text, or a link back to it. The step the user is on has `aria-current=\"step\"`, and the steps before it are drawn as done.",
+        "content": "free",
+        "multiple": true
+      }
+    },
+    "texts": [
+      {
+        "variable": "--lt-steps-done-text",
+        "text": "Completed ",
+        "attribute": "aria-current",
+        "value": "step",
+        "within": true
+      }
+    ],
+    "attributes": {}
+  },
   "lt-switch": {
     "component": "switch",
     "title": "Switch",

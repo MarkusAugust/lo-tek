@@ -100,7 +100,7 @@ $content
 """
 ```
 
-`lotek.css` is 107 kB, 14 kB compressed, has every component, and is nearly
+`lotek.css` is 112 kB, 14 kB compressed, has every component, and is nearly
 always the right choice. If you want only the stylesheets the pages use,
 `tokens.css` defines all the variables, and all the other stylesheets build on
 it. It must be loaded, and comes first out of habit: the order between it and
@@ -109,7 +109,7 @@ tables below, each under `LotekWebJar.ROOT`.
 
 ## 2. What exists
 
-35 CSS components and 10 web components, and this is the whole list. The
+36 CSS components and 10 web components, and this is the whole list. The
 classes are `lt-` + kebab-case. Variants are always `data-*` attributes, never
 classes of their own: `data-variant="secondary"`, not `lt-button--secondary`.
 The default variant has no attribute.
@@ -147,6 +147,7 @@ The default variant has no attribute.
 | `lt-skip-link` | `${LotekWebJar.ROOT}/src/components/css/skip-link/skip-link.css` | none |
 | `lt-spinner` | `${LotekWebJar.ROOT}/src/components/css/spinner/spinner.css` | `data-size`: small, large |
 | `lt-sr-only` | `${LotekWebJar.ROOT}/src/components/css/sr-only/sr-only.css` | none |
+| `lt-steps` | `${LotekWebJar.ROOT}/src/components/css/steps/steps.css` | none |
 | `lt-switch`<br>`lt-switch-row` | `${LotekWebJar.ROOT}/src/components/css/switch/switch.css` | none |
 | `lt-table`<br>`lt-table__sort`<br>`lt-table-scroll` | `${LotekWebJar.ROOT}/src/components/css/table/table.css` | `data-variant`: striped<br>`data-hoverable` (flag) |
 | `lt-tag` | `${LotekWebJar.ROOT}/src/components/css/tag/tag.css` | `data-variant`: filled<br>`data-selectable` (flag) |
@@ -372,7 +373,7 @@ Both give
 kotlinx.html several sets are applied in order, a later one wins, and the
 classes are added to those the tag already has.
 
-The 47 builder functions:
+The 48 builder functions:
 
 `Lt.accordion()`, `Lt.alert()`, `Lt.avatar()`, `Lt.badge()`,
 `Lt.breadcrumbs()`, `Lt.button()`, `Lt.card()`, `Lt.checkbox()`,
@@ -382,7 +383,7 @@ The 47 builder functions:
 `Lt.legend()`, `Lt.link()`, `Lt.list()`, `Lt.pagination()`, `Lt.paragraph()`,
 `Lt.popover()`, `Lt.progress()`, `Lt.radio()`, `Lt.search()`, `Lt.select()`,
 `Lt.sessionTimeout()`, `Lt.skeleton()`, `Lt.skipLink()`, `Lt.spinner()`,
-`Lt.srOnly()`, `Lt.suggestion()`, `Lt.switch()`, `Lt.table()`,
+`Lt.srOnly()`, `Lt.steps()`, `Lt.suggestion()`, `Lt.switch()`, `Lt.table()`,
 `Lt.tableSort()`, `Lt.tabs()`, `Lt.tag()`, `Lt.term()`, `Lt.textarea()`,
 `Lt.toast()`, `Lt.toggleGroup()`, `Lt.tooltip()`
 

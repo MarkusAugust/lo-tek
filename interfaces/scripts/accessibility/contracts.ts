@@ -929,6 +929,44 @@ const iconWithTitle: Contract = {
   ],
 }
 
+/**
+ * The steps before the current one are done, and their marker is `::before`
+ * on the step's link, with "Completed " as the alternative text of the
+ * check. AccName 2F.ii puts it in front of the link's text. The number on
+ * the current step and the ones after has an empty alternative text.
+ */
+const steps: Contract = {
+  component: "steps",
+  example: 0,
+  steps: [
+    {
+      name: "focus-done-step",
+      do: [{ focus: "li:nth-child(1) > a" }],
+      focus: { role: "link", name: "Completed Site" },
+    },
+    {
+      name: "focus-step-before-current",
+      do: [{ focus: "li:nth-child(2) > a" }],
+      focus: { role: "link", name: "Completed Survey" },
+    },
+  ],
+  mutations: [
+    {
+      name: "no step is current",
+      replace: [' aria-current="step"', ""],
+      failsAt: "focus-done-step",
+    },
+    {
+      name: "the current step moved to the second",
+      replace: [
+        '<li><a href="#">Survey</a></li>\n  <li aria-current="step">Walls</li>',
+        '<li aria-current="step"><a href="#">Survey</a></li>\n  <li>Walls</li>',
+      ],
+      failsAt: "focus-step-before-current",
+    },
+  ],
+}
+
 export const CONTRACTS: Contract[] = [
   dialog,
   field,
@@ -951,4 +989,5 @@ export const CONTRACTS: Contract[] = [
   switchControl,
   icon,
   iconWithTitle,
+  steps,
 ]

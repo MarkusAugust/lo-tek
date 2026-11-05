@@ -49,6 +49,20 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `--lt-term-accent-color`, `--lt-term-underline-color`,
   `--lt-term-label-text`, `--lt-term-label-font` and
   `--lt-term-sheet-height`, and the default text "Glossary".
+- **`lt-steps` and `lt.steps()`: a step indicator for a task over several
+  pages.** The class goes on an `<ol>` with one `<li>` per step, and
+  `aria-current="step"` on the step the user is on. The steps before it are
+  drawn as done, with a check the screen reader reads as "Completed", as part
+  of the step's link when it has one. Below `36rem` of the list's own width
+  the steps stand in a column. `Lt.steps()` in Kotlin. New entry points
+  `./steps` and `./steps.css`, new component variables
+  `--lt-steps-marker-size` and `--lt-steps-done-text`, and the default text
+  "Completed ".
+- **The check reports `untranslated-text` for the step indicator's
+  "Completed "** on a page in another language, as for the other texts in
+  the stylesheets. The manifest's `texts` on a class can have
+  `within: true`, for a text shown when the attribute is on an element inside
+  the one with the class; the Kotlin `CssText` has `within`.
 - **The check reports `term-without-entry`** on a whole page, when a word
   in `<lt-term>` points at an id the page does not have, or at something
   that is not a glossary entry.

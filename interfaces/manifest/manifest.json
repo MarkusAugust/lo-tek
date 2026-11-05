@@ -1288,6 +1288,31 @@
       "content": "text",
       "attributes": {}
     },
+    "lt-steps": {
+      "component": "steps",
+      "title": "Steps",
+      "description": "A step indicator that shows where the user is in a task over several pages. A CSS component with one class and no JavaScript.",
+      "link": "https://lo-tek.sobernetics.no/components/steps/",
+      "content": "parts",
+      "parts": {
+        "step": {
+          "selector": "li",
+          "description": "One step, with its name as text, or a link back to it. The step the user is on has `aria-current=\"step\"`, and the steps before it are drawn as done.",
+          "content": "free",
+          "multiple": true
+        }
+      },
+      "texts": [
+        {
+          "variable": "--lt-steps-done-text",
+          "text": "Completed ",
+          "attribute": "aria-current",
+          "value": "step",
+          "within": true
+        }
+      ],
+      "attributes": {}
+    },
     "lt-switch": {
       "component": "switch",
       "title": "Switch",
@@ -4439,6 +4464,25 @@
       "docs": "https://lo-tek.sobernetics.no/components/sr-only/"
     },
     {
+      "name": "steps",
+      "description": "The attributes for a step indicator, which shows where the user is in a task over several pages, like an order.\n\nThe class goes on an `<ol>` with one `<li>` per step, and the step the user is on has `aria-current=\"step\"`. The steps before it are drawn as done, with a check the screen reader reads as \"Completed\", so the markup only says where the user is. A done step can be a link back to it.",
+      "example": "<ol {...steps()} aria-label=\"Order\">\n  <li><a href=\"/order/site\">Site</a></li>\n  <li aria-current=\"step\">Walls</li>\n  <li>Payment</li>\n</ol>",
+      "options": [],
+      "returns": {
+        "kind": "attributes"
+      },
+      "table": {
+        "kind": "attributes",
+        "table": {
+          "base": {
+            "class": "lt-steps"
+          },
+          "options": {}
+        }
+      },
+      "docs": "https://lo-tek.sobernetics.no/components/steps/"
+    },
+    {
       "name": "suggestion",
       "description": "The attributes for a field with a suggestion list.\n\nThe server writes both the field and the list. The web component filters, handles the arrow keys and keeps `aria-activedescendant` in sync. It renders nothing: it used to create the whole field itself, and then there was nothing to fill in before the script had run.\n\nNo preserve list. The attributes that change while the user types are set by the web component, and it sets them back when a patch strips them. If something else has already filtered, set `prefiltered` on `<lt-suggestion>`, and the web component leaves both the options and the empty message alone. If the server should also decide whether the list is expanded and which option is highlighted, set `server-controlled` as well.",
       "options": [
@@ -5443,6 +5487,10 @@
       "spinner": {
         "--lt-spinner-size": "var(--lt-spacing-6)",
         "--lt-spinner-thickness": "2px"
+      },
+      "steps": {
+        "--lt-steps-marker-size": "var(--lt-spacing-7)",
+        "--lt-steps-done-text": "\"Completed \""
       },
       "suggestion": {
         "--lt-suggestion-max-height": "calc(var(--lt-spacing-10) * 4)",

@@ -1,0 +1,130 @@
+/// <reference path="../../../types/css.d.ts" />
+
+import { describe, expect, it } from "vitest"
+import {
+  expectNoAccessibilityViolations,
+  mount,
+  waitForPaint,
+} from "../../../testing/a11y"
+import { steps } from "./steps"
+
+import "../../../tokens/tokens.css"
+import "./steps.css"
+
+const ORDER = `
+  <ol class="lt-steps" aria-label="Order">
+    <li id="site"><a href="#site">Site</a></li>
+    <li id="survey">Survey</li>
+    <li id="walls" aria-current="step">Walls</li>
+    <li id="payment">Payment</li>
+  </ol>
+`
+
+/** The marker of a step: on its link when it has one, otherwise on itself. */
+const marker = (id: string) => {
+  const step = document.getElementById(id) as Element
+  return getComputedStyle(step.querySelector(":scope > a") ?? step, "::before")
+}
+
+const ALTERNATIVE = CSS.supports("content", '"x" / "y"')
+
+describe("lt-steps", () => {
+  it("draws the steps before the current one as done, and reads them as completed", () => {
+    mount(ORDER)
+
+    for (const id of ["site", "survey"]) {
+      if (ALTERNATIVE) {
+        expect(marker(id).content).toBe('"✓" / "Completed "')
+      } else {
+        expect(marker(id).content).toBe('"✓"')
+      }
+    }
+    // Both, not only the one right before the current step.
+    for (const id of ["site", "survey"]) {
+      expect(marker(id).backgroundColor, id).not.toBe(
+        marker("payment").backgroundColor,
+      )
+    }
+  })
+
+  it("numbers the current step and the ones after it, without reading the number", () => {
+    mount(ORDER)
+
+    const number = ALTERNATIVE ? 'counter(lt-steps) / ""' : "counter(lt-steps)"
+    expect(marker("walls").content).toBe(number)
+    expect(marker("payment").content).toBe(number)
+    // The current step stands apart from the ones after it.
+    expect(marker("walls").borderTopColor).not.toBe(
+      marker("payment").borderTopColor,
+    )
+    expect(
+      getComputedStyle(document.getElementById("walls") as Element).fontWeight,
+    ).not.toBe(
+      getComputedStyle(document.getElementById("payment") as Element)
+        .fontWeight,
+    )
+  })
+
+  it("draws no step as done when no step is current", () => {
+    mount(ORDER.replace(' aria-current="step"', ""))
+
+    for (const id of ["site", "survey", "walls", "payment"]) {
+      expect(marker(id).content).not.toContain("✓")
+    }
+  })
+
+  it("takes the text from --lt-steps-done-text", () => {
+    mount(ORDER)
+    const list = document.querySelector(".lt-steps") as HTMLElement
+    list.style.setProperty("--lt-steps-done-text", '"Fullført "')
+
+    if (ALTERNATIVE) {
+      expect(marker("survey").content).toBe('"✓" / "Fullført "')
+    }
+  })
+
+  it("lines up the steps in a row, and in a column below 36rem", async () => {
+    mount(`<div id="box">${ORDER}</div>`)
+    const box = document.getElementById("box") as HTMLElement
+    const top = (id: string) =>
+      (document.getElementById(id) as Element).getBoundingClientRect().top
+
+    box.style.inlineSize = "40rem"
+    await waitForPaint()
+    expect(top("payment")).toBe(top("site"))
+
+    box.style.inlineSize = "20rem"
+    await waitForPaint()
+    expect(top("survey")).toBeGreaterThan(top("site"))
+    expect(top("payment")).toBeGreaterThan(top("walls"))
+  })
+
+  it.each([
+    ["row", "40rem", "borderTopWidth", "borderTopColor"],
+    ["column", "20rem", "borderInlineStartWidth", "borderInlineStartColor"],
+  ] as const)("draws a line to the next step in a %s, and none after the last", async (_layout, width, side, colour) => {
+    mount(`<div id="box" style="inline-size: ${width}">${ORDER}</div>`)
+    await waitForPaint()
+
+    const line = (id: string) =>
+      getComputedStyle(document.getElementById(id) as Element, "::after")
+    expect(line("site").content).toBe('""')
+    expect(line("site")[side]).toBe("2px")
+    expect(line("payment").content).toBe("none")
+    // The lines out of the done steps are done, the one out of the current
+    // step is not.
+    for (const id of ["site", "survey"]) {
+      expect(line(id)[colour], id).not.toBe(line("walls")[colour])
+    }
+  })
+
+  it("sets the attributes from the builder function", () => {
+    expect(steps()).toEqual({ class: "lt-steps" })
+  })
+
+  it("has no accessibility violations", async () => {
+    mount(ORDER)
+    await waitForPaint()
+    await expectNoAccessibilityViolations()
+  })
+})

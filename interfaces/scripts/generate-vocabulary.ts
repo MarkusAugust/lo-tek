@@ -557,46 +557,84 @@ const TOKEN_PAGE = {
 }
 
 /**
- * The texts a stylesheet shows: `content: var(--lt-…, "…")`, with the class
- * and the attribute in the rule's selector. A text without a letter, like
- * " *", is in no language, and is left out.
+ * Splits a selector, or a list of them, where `separator` stands outside
+ * parentheses, so `li:has(~ [x]) > a` keeps the `:has()` whole.
+ */
+function splitOutside(selector: string, separator: RegExp): string[] {
+  const out = [""]
+  let depth = 0
+  for (const char of selector) {
+    if (char === "(") depth++
+    if (char === ")") depth--
+    if (depth === 0 && separator.test(char)) out.push("")
+    else out[out.length - 1] += char
+  }
+  return out.map((part) => part.trim()).filter((part) => part !== "")
+}
+
+/**
+ * The texts a stylesheet shows: `content: var(--lt-…, "…")`, or a symbol
+ * with the variable as its alternative text, `content: "✓" / var(--lt-…,
+ * "…")`. The class and the attribute are read from the rule's selector. A
+ * text without a letter, like " *", is in no language, and is left out.
+ *
+ * The text is on the last compound selector. When that has a class, the
+ * attribute is on it too. When it has none, the class is the nearest one
+ * before it, and the attribute is on an element inside that one: the done
+ * step in `.lt-steps > li:has(~ [aria-current="step"])::before`.
  */
 function textsInCss(css: string): { name: string; text: CssText }[] {
   const clean = css.replace(/\/\*[\s\S]*?\*\//g, "")
   const out: { name: string; text: CssText }[] = []
   const rule = /([^{}]+)\{([^{}]*)\}/g
   const attributeIn = /\[([\w-]+)(?:=(?:"([^"]*)"|'([^']*)'))?\]/
+  const notIn = /:not\(((?:[^()]|\([^()]*\))*)\)/g
   for (const [, selectors, body] of clean.matchAll(rule)) {
     const content = body.match(
-      /content:\s*var\((--lt-[\w-]+),\s*(?:"([^"]*)"|'([^']*)')\)/,
+      /content:\s*(?:(?:"[^"\p{L}]*"|'[^'\p{L}]*')\s*\/\s*)?var\((--lt-[\w-]+),\s*(?:"([^"]*)"|'([^']*)')\)/u,
     )
     const text = content?.[2] ?? content?.[3]
     if (!content || text === undefined || !/\p{L}/u.test(text)) continue
-    for (const selector of selectors.split(",")) {
-      // The element the text is on: the last compound selector.
-      const subject =
-        selector
-          .trim()
-          .split(/\s*[>+~]\s*|\s+/)
-          .pop() ?? ""
-      const unless = [...subject.matchAll(/:not\(([^)]*)\)/g)].flatMap(
-        ([, inside]) => [...inside.matchAll(/\[([\w-]+)/g)].map((m) => m[1]),
+    for (const selector of splitOutside(selectors, /,/)) {
+      const compounds = splitOutside(selector, /[\s>+~]/)
+      const classIn = (compound: string) =>
+        compound.replace(notIn, "").match(/\.(lt-[\w-]+)/)?.[1]
+      const subject = compounds.length - 1
+      let at = subject
+      while (at >= 0 && !classIn(compounds[at])) at--
+      if (at < 0) continue
+      const name = classIn(compounds[at]) as string
+      const within = at < subject
+      // On the element with the class, or anywhere after it when the text
+      // is on an element inside it.
+      const after = within ? compounds.slice(at + 1) : [compounds[at]]
+      const unless = after.flatMap((compound) =>
+        [...compound.matchAll(notIn)].flatMap(([, inside]) =>
+          [...inside.matchAll(/\[([\w-]+)/g)].map((m) => m[1]),
+        ),
       )
-      const own = subject.replace(/:not\([^)]*\)/g, "")
-      const name = own.match(/\.(lt-[\w-]+)/)?.[1]
-      const attribute = own.match(attributeIn)
-      if (!name || !attribute) continue
+      const attribute = after
+        .map((compound) => compound.replace(notIn, "").match(attributeIn))
+        .find((match) => match !== null)
+      if (!attribute) continue
       const value = attribute[2] ?? attribute[3]
-      out.push({
-        name,
-        text: {
-          variable: content[1],
-          text,
-          attribute: attribute[1],
-          ...(value !== undefined ? { value } : {}),
-          ...(unless.length > 0 ? { unless } : {}),
-        },
-      })
+      const found: CssText = {
+        variable: content[1],
+        text,
+        attribute: attribute[1],
+        ...(value !== undefined ? { value } : {}),
+        ...(unless.length > 0 ? { unless } : {}),
+        ...(within ? { within: true as const } : {}),
+      }
+      // The same text from two selectors in one rule, as the step's link and
+      // the step itself, is one text.
+      if (
+        !out.some(
+          (o) =>
+            o.name === name && JSON.stringify(o.text) === JSON.stringify(found),
+        )
+      )
+        out.push({ name, text: found })
     }
   }
   return out

@@ -55,7 +55,7 @@ The name of each stylesheet is in the tables below.
 
 ## 2. What exists
 
-35 CSS components and 10 web components, and this is the whole list. The
+36 CSS components and 10 web components, and this is the whole list. The
 classes are `lt-` + kebab-case. Variants are always `data-*` attributes, never
 classes of their own: `data-variant="secondary"`, not `lt-button--secondary`.
 The default variant has no attribute.
@@ -93,6 +93,7 @@ The default variant has no attribute.
 | `lt-skip-link` | `@lo-tek/interfaces/skip-link.css` | none |
 | `lt-spinner` | `@lo-tek/interfaces/spinner.css` | `data-size`: small, large |
 | `lt-sr-only` | `@lo-tek/interfaces/sr-only.css` | none |
+| `lt-steps` | `@lo-tek/interfaces/steps.css` | none |
 | `lt-switch`<br>`lt-switch-row` | `@lo-tek/interfaces/switch.css` | none |
 | `lt-table`<br>`lt-table__sort`<br>`lt-table-scroll` | `@lo-tek/interfaces/table.css` | `data-variant`: striped<br>`data-hoverable` (flag) |
 | `lt-tag` | `@lo-tek/interfaces/tag.css` | `data-variant`: filled<br>`data-selectable` (flag) |
@@ -361,7 +362,7 @@ one.
 
 `lt` is imported from `@lo-tek/interfaces/react`, never from the main entry:
 the React entry gives `className` and `htmlFor`, the main entry gives `class`
-and `for`. The 47 builder functions are in both:
+and `for`. The 48 builder functions are in both:
 
 `lt.accordion()`, `lt.alert()`, `lt.avatar()`, `lt.badge()`,
 `lt.breadcrumbs()`, `lt.button()`, `lt.card()`, `lt.checkbox()`,
@@ -371,7 +372,7 @@ and `for`. The 47 builder functions are in both:
 `lt.legend()`, `lt.link()`, `lt.list()`, `lt.pagination()`, `lt.paragraph()`,
 `lt.popover()`, `lt.progress()`, `lt.radio()`, `lt.search()`, `lt.select()`,
 `lt.sessionTimeout()`, `lt.skeleton()`, `lt.skipLink()`, `lt.spinner()`,
-`lt.srOnly()`, `lt.suggestion()`, `lt.switch()`, `lt.table()`,
+`lt.srOnly()`, `lt.steps()`, `lt.suggestion()`, `lt.switch()`, `lt.table()`,
 `lt.tableSort()`, `lt.tabs()`, `lt.tag()`, `lt.term()`, `lt.textarea()`,
 `lt.toast()`, `lt.toggleGroup()`, `lt.tooltip()`
 

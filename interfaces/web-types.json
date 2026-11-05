@@ -611,6 +611,11 @@
           "doc-url": "https://lo-tek.sobernetics.no/components/sr-only/"
         },
         {
+          "name": "lt-steps",
+          "description": "**Steps**\n\nA step indicator that shows where the user is in a task over several pages. A CSS component with one class and no JavaScript.",
+          "doc-url": "https://lo-tek.sobernetics.no/components/steps/"
+        },
+        {
           "name": "lt-switch",
           "description": "**Switch**\n\nA switch for a setting that takes effect immediately. CSS component with two classes and no JavaScript.",
           "doc-url": "https://lo-tek.sobernetics.no/components/switch/"

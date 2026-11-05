@@ -155,6 +155,8 @@ export type {
 export { spinner } from "./components/css/spinner/spinner.js"
 export type { SrOnlyAttributes } from "./components/css/sr-only/sr-only.js"
 export { srOnly } from "./components/css/sr-only/sr-only.js"
+export type { StepsAttributes } from "./components/css/steps/steps.js"
+export { steps } from "./components/css/steps/steps.js"
 export type {
   SwitchAttributes,
   SwitchOptions,

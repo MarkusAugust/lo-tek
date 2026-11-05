@@ -231,6 +231,17 @@ const COMPONENTS: Record<string, Case[]> = {
       markup: `<span class="lt-spinner" role="status" aria-label="Loading the sector"></span>`,
     },
   ],
+  steps: [
+    {
+      markup: `<ol class="lt-steps" aria-label="Order">
+        <li><a href="#">Site</a></li>
+        <li><a href="#">Survey</a></li>
+        <li aria-current="step">Walls and the small print from the next of kin</li>
+        <li>Payment</li>
+        <li>Confirmation</li>
+      </ol>`,
+    },
+  ],
   "sr-only": [
     {
       markup: `<span class="lt-sr-only">${LONG}, and a long help text only screen readers hear</span>`,

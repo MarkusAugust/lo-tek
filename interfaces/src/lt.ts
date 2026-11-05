@@ -33,6 +33,7 @@ import { skeleton } from "./components/css/skeleton/skeleton.js"
 import { skipLink } from "./components/css/skip-link/skip-link.js"
 import { spinner } from "./components/css/spinner/spinner.js"
 import { srOnly } from "./components/css/sr-only/sr-only.js"
+import { steps } from "./components/css/steps/steps.js"
 import { switchControl } from "./components/css/switch/switch.js"
 import { table, tableSort } from "./components/css/table/table.js"
 import { tag } from "./components/css/tag/tag.js"
@@ -142,6 +143,7 @@ export const lt = {
   skipLink,
   progress,
   spinner,
+  steps,
   /** Text only screen readers get. Requires `sr-only.css`. */
   srOnly,
   /**

@@ -128,13 +128,27 @@ pub(crate) fn check_css_texts(
                 if styles.variables.contains(&text.variable) {
                     continue;
                 }
-                let shown = value(node, &text.attribute).is_some_and(|a| match &text.value {
-                    None => true,
-                    Some(wanted) => a
-                        .value
-                        .as_deref()
-                        .is_some_and(|v| lossy(trimmed(v)) == *wanted),
-                });
+                let carries = |node: &Node| {
+                    value(node, &text.attribute).is_some_and(|a| match &text.value {
+                        None => true,
+                        Some(wanted) => a
+                            .value
+                            .as_deref()
+                            .is_some_and(|v| lossy(trimmed(v)) == *wanted),
+                    })
+                };
+                // The nodes are in document order, so what is inside the
+                // node follows it, up to the first node that is not.
+                let shown = if text.within {
+                    nodes[n + 1..]
+                        .iter()
+                        .take_while(|m| {
+                            std::iter::successors(m.parent, |&i| nodes[i].parent).any(|i| i == n)
+                        })
+                        .any(carries)
+                } else {
+                    carries(node)
+                };
                 let set_inline = std::iter::successors(Some(n), |&i| nodes[i].parent).any(|i| {
                     value(&nodes[i], "style")
                         .and_then(|a| a.value.as_deref())
@@ -267,5 +281,31 @@ mod tests {
         );
         // Without the style sheets the rule cannot tell.
         assert!(rules(diagnose_markup(&html, &vocabulary)).is_empty());
+    }
+
+    #[test]
+    fn warns_about_a_text_shown_for_an_attribute_inside_the_class() {
+        // The done steps say "Completed", and they are the steps before the
+        // one with `aria-current="step"`, which is inside `lt-steps`.
+        let vocabulary = manifest::for_tests();
+        let check = |html: &str, css: &str| -> Vec<String> {
+            rules(crate::diagnose::check_styles(
+                &utf16(html),
+                &vocabulary,
+                &read_styles(css),
+            ))
+        };
+        let current = r#"<html lang="nb"><ol class="lt-steps"><li><a href="/a">Sted</a></li><li aria-current="step">Vegger</li></ol><p aria-current="step">Ute</p></html>"#;
+        let found = check(current, ".lt-steps { color: red }");
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(found[0].contains("--lt-steps-done-text"), "{found:?}");
+        assert!(check(current, r#":root { --lt-steps-done-text: "Fullført "; }"#).is_empty());
+        // No step is current, and the attribute after the list is not in it.
+        let none = r#"<html lang="nb"><ol class="lt-steps"><li>Sted</li><li>Vegger</li></ol><p aria-current="step">Ute</p></html>"#;
+        assert!(check(none, ".lt-steps { color: red }").is_empty());
+        // The attribute on the list itself is not a step.
+        let on_list =
+            r#"<html lang="nb"><ol class="lt-steps" aria-current="step"><li>Sted</li></ol></html>"#;
+        assert!(check(on_list, ".lt-steps { color: red }").is_empty());
     }
 }

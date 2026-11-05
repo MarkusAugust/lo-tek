@@ -158,6 +158,7 @@ fn css_texts(value: &Json, path: &str) -> Result<Vec<CssText>, String> {
                     .map(|u| texts(u, &format!("{at}.unless")))
                     .transpose()?
                     .unwrap_or_default(),
+                within: matches!(t.get("within"), Some(Json::Bool(true))),
             })
         })
         .collect()

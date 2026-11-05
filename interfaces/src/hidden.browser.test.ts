@@ -173,6 +173,9 @@ describe("hidden", () => {
               .split(/\s*[\s>+~]\s*/)
               .pop() ?? ""
           if (/(^|[.:(])lt-|^lt-/.test(last) || last.includes(".lt-")) continue
+          // A pseudo-element is not a child `hidden` can be on, and goes
+          // with the element it belongs to: the marker in `lt-steps`.
+          if (/::(before|after)$/.test(last)) continue
           found.add(selector.trim().replace(/\s+/g, " "))
         }
       }

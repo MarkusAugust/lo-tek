@@ -243,6 +243,14 @@
     },
     {
       "category": "css",
+      "name": "steps",
+      "files": [
+        "steps.css",
+        "steps.ts"
+      ]
+    },
+    {
+      "category": "css",
       "name": "switch",
       "files": [
         "switch.css",

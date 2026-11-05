@@ -20,6 +20,7 @@ import "./components/css/tag/tag.css"
 import "./components/css/toggle-group/toggle-group.css"
 import "./components/css/pagination/pagination.css"
 import "./components/css/progress/progress.css"
+import "./components/css/steps/steps.css"
 import "./components/css/tooltip/tooltip.css"
 import "./components/css/table/table.css"
 import "./components/frame/suggestion/suggestion.css"
@@ -146,6 +147,37 @@ describe.skipIf(server.browser !== "chromium")("in high contrast mode", () => {
       expect(style(on).backgroundColor, on).not.toBe(style(off).backgroundColor)
       expect(style(on).color, on).not.toBe(style(off).color)
     }
+  })
+
+  it("tells the done, the current and the coming steps apart", async () => {
+    // The mode forces our colours, so every marker had the same border and
+    // background, and only the check was left to say which steps were done.
+    mount(`
+      <ol class="lt-steps" aria-label="Order">
+        <li id="step-done"><a href="#">Site</a></li>
+        <li id="step-current" aria-current="step">Walls</li>
+        <li id="step-coming">Payment</li>
+      </ol>
+    `)
+    await setHighContrast(true)
+
+    const marker = (id: string) =>
+      getComputedStyle(
+        document.querySelector(`#${id} > a`) ??
+          (document.getElementById(id) as Element),
+        "::before",
+      )
+    const line = (id: string) =>
+      getComputedStyle(document.getElementById(id) as Element, "::after")
+    expect(marker("step-done").backgroundColor).not.toBe(
+      marker("step-coming").backgroundColor,
+    )
+    expect(marker("step-current").borderTopColor).not.toBe(
+      marker("step-coming").borderTopColor,
+    )
+    expect(line("step-done").borderTopColor).not.toBe(
+      line("step-current").borderTopColor,
+    )
   })
 
   it("keeps the current page readable under the mouse", async () => {

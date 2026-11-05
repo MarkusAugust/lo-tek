@@ -287,7 +287,7 @@ describe("lt.field together with the field functions", () => {
  * swap: if you add a builder function and a helper at the same time, the
  * number stays put, and a renamed name does not change it at all.
  */
-const BUILDER_FUNCTION_COUNT = 47
+const BUILDER_FUNCTION_COUNT = 48
 
 /** Those that give attributes per part rather than one flat set. */
 const COMPOSITE_NAMES = [

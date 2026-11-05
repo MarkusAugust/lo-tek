@@ -90,9 +90,11 @@ export type Element = {
 export type DefaultText = { text: string; replacedBy: readonly string[] }
 
 /**
- * A text the stylesheet shows in `::after` on an element with the class and
- * `attribute`, with `value` when the selector requires one, and none of the
- * attributes in `unless`. `variable` is the CSS variable that replaces it.
+ * A text the stylesheet shows on an element with the class and `attribute`,
+ * with `value` when the selector requires one, and none of the attributes in
+ * `unless`. With `within`, the attribute is on an element inside the one with
+ * the class, as `aria-current="step"` is on a step in `lt-steps`. `variable`
+ * is the CSS variable that replaces it.
  */
 export type CssText = {
   variable: string
@@ -100,6 +102,7 @@ export type CssText = {
   attribute: string
   value?: string
   unless?: readonly string[]
+  within?: true
 }
 
 /** The content of `elements.ts`: tag to element. */

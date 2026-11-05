@@ -193,6 +193,7 @@ export default defineConfig({
                 { label: "Skeleton", slug: "components/skeleton" },
                 { label: "Skip Link", slug: "components/skip-link" },
                 { label: "Spinner", slug: "components/spinner" },
+                { label: "Steps", slug: "components/steps" },
                 { label: "Sr Only", slug: "components/sr-only" },
                 { label: "Switch", slug: "components/switch" },
                 { label: "Table", slug: "components/table" },

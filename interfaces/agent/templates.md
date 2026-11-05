@@ -58,7 +58,7 @@ One link in the page template, with all the components:
 ```
 
 Or from your own server, if you copy the file into your static assets.
-`lotek.css` is 107 kB, 14 kB compressed, has everything flattened without
+`lotek.css` is 112 kB, 14 kB compressed, has everything flattened without
 `@import`, and is the fastest option when you link.
 
 If you want only the stylesheets the pages actually use, `tokens.css` defines
@@ -71,7 +71,7 @@ always the right choice.
 
 ## 2. What exists
 
-35 CSS components and 10 web components, and this is the whole list. The
+36 CSS components and 10 web components, and this is the whole list. The
 classes are `lt-` + kebab-case. Variants are always `data-*` attributes, never
 classes of their own: `data-variant="secondary"`, not `lt-button--secondary`.
 The default variant has no attribute.
@@ -109,6 +109,7 @@ The default variant has no attribute.
 | `lt-skip-link` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/skip-link/skip-link.css` | none |
 | `lt-spinner` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/spinner/spinner.css` | `data-size`: small, large |
 | `lt-sr-only` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/sr-only/sr-only.css` | none |
+| `lt-steps` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/steps/steps.css` | none |
 | `lt-switch`<br>`lt-switch-row` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/switch/switch.css` | none |
 | `lt-table`<br>`lt-table__sort`<br>`lt-table-scroll` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/table/table.css` | `data-variant`: striped<br>`data-hoverable` (flag) |
 | `lt-tag` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.40.0/src/components/css/tag/tag.css` | `data-variant`: filled<br>`data-selectable` (flag) |

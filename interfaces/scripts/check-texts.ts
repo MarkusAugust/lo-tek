@@ -13,7 +13,9 @@
  *     string in the component. That covers `setText`, `textContent`,
  *     `append`, `aria-label` and constants named `DEFAULT_…`;
  *   - a text in `content:` in CSS is read from an `--lt-` variable, with the
- *     text as the fallback, since a stylesheet cannot import anything;
+ *     text as the fallback, since a stylesheet cannot import anything. The
+ *     variable may be the alternative text after a symbol, as in
+ *     `"\2713" / var(--lt-steps-done-text, "Completed")`;
  *   - each of the texts is in the table on the documentation page about
  *     translation, so the page cannot promise that everything can be
  *     translated without saying how.
@@ -127,7 +129,8 @@ const fallbacks: string[] = []
 let cssRead = 0
 for (const file of files(COMPONENTS, ".css")) {
   const source = withoutComments(readFileSync(file, "utf8"))
-  for (const match of source.matchAll(/content\s*:\s*([^;}]+)/g)) {
+  // Not the condition of an `@supports (content: …)`, which is no text.
+  for (const match of source.matchAll(/(?<![(\w-])content\s*:\s*([^;}]+)/g)) {
     const value = match[1].trim()
     const strings = [...value.matchAll(/(["'])((?:(?!\1).)*)\1/g)].map(
       (s) => s[2],
@@ -136,9 +139,15 @@ for (const file of files(COMPONENTS, ".css")) {
     // escaped: `\e5 ` is å.
     const texts = strings.map(unescapeCss).filter((s) => /\p{L}/u.test(s))
     if (texts.length === 0) continue
-    // The whole value has to be one variable with the text as the fallback.
-    // Text next to the variable cannot be replaced.
-    if (!/^var\(--lt-[a-z0-9-]+\s*,\s*(["'])(?:(?!\1).)*\1\s*\)$/.test(value)) {
+    // The whole value has to be one variable with the text as the fallback,
+    // or a symbol with the variable as its alternative text. Text next to the
+    // variable cannot be replaced, and a letter in the symbol is text.
+    const symbol = /^(["'])((?:(?!\1).)*)\1\s*\/\s*(var\(.*\))$/.exec(value)
+    const variable =
+      symbol && !/\p{L}/u.test(unescapeCss(symbol[2])) ? symbol[3] : value
+    if (
+      !/^var\(--lt-[a-z0-9-]+\s*,\s*(["'])(?:(?!\1).)*\1\s*\)$/.test(variable)
+    ) {
       problems.push(
         `${relative(process.cwd(), file)}:${lineOf(source, match.index ?? 0)}: ` +
           `content: ${value} has text that cannot be replaced. ` +
