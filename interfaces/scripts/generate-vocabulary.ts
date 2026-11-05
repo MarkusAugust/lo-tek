@@ -622,7 +622,7 @@ function textsInCss(
       const unknown = classes.find((c) => !STRUCTURAL.includes(c))
       if (unknown) {
         throw new Error(
-          `${file}: the text "${found.text}" in \`${selector}\` is shown under ${unknown}, which the markup does not say. Add it to SHOWN_IN_A_STATE when it is a state the browser sets, or place the text without it.`,
+          `${file}: the text "${found.text}" in \`${selector}\` is shown under ${unknown}, which the generator does not know. Add it to STRUCTURAL when it says where the text is, to SHOWN_IN_A_STATE when it is a state the browser sets, or place the text without it.`,
         )
       }
       const compounds = compoundsOf(selector)

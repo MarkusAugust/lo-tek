@@ -156,20 +156,23 @@ pub(crate) fn check_css_texts(
                         .and_then(|a| a.value.as_deref())
                         .is_some_and(|v| lossy(v).contains(&text.variable))
                 };
-                // On the children before the last one with the attribute,
-                // which `li:has(~ [x])` matches. The variable replaces the
-                // text there when every such child, or something inside it,
-                // sets it.
+                // On the `<li>` children before the last one with the
+                // attribute, which `.lt-steps > li:has(~ [x])` matches. The
+                // text is `::before` on the step or on its link, so the
+                // variable replaces it when every such step, or the link
+                // right inside it, sets it.
                 let (shown, set_on_children) = if text.siblings_before {
                     let end = n + 1 + subtree(nodes, n).len();
-                    let children: Vec<usize> = (n + 1..end)
-                        .filter(|&m| nodes[m].parent == Some(n))
-                        .collect();
-                    let last = children.iter().rposition(|&c| carries(&nodes[c]));
-                    let done = &children[..last.unwrap_or(0)];
-                    let set = done
-                        .iter()
-                        .all(|&c| sets(&nodes[c]) || subtree(nodes, c).iter().any(sets));
+                    let child_of =
+                        |p: usize| (n + 1..end).filter(move |&m| nodes[m].parent == Some(p));
+                    let steps: Vec<usize> =
+                        child_of(n).filter(|&m| nodes[m].name == "li").collect();
+                    let last = steps.iter().rposition(|&c| carries(&nodes[c]));
+                    let done = &steps[..last.unwrap_or(0)];
+                    let set = done.iter().all(|&c| {
+                        sets(&nodes[c])
+                            || child_of(c).any(|a| nodes[a].name == "a" && sets(&nodes[a]))
+                    });
                     (!done.is_empty(), set)
                 } else {
                     (carries(node), false)
@@ -344,6 +347,14 @@ mod tests {
             r#"<li style="--lt-steps-done-text: 'Fullført '"><a href="/a">Sted</a></li><li aria-current="step">Vegger</li>"#,
         );
         assert!(check(&on_step, ".lt-steps { color: red }").is_empty());
+        // Not deeper than the link, where no `::before` reads it, and not on
+        // a child of the list that is not a step.
+        let deep = page(
+            r#"<li><span style="--lt-steps-done-text: 'Fullført '">Sted</span></li><li aria-current="step">Vegger</li>"#,
+        );
+        assert_eq!(check(&deep, ".lt-steps { color: red }").len(), 1);
+        let template = page(r#"<template></template><li aria-current="step">Vegger</li>"#);
+        assert!(check(&template, ".lt-steps { color: red }").is_empty());
         // Not on one of two done steps.
         let one_of_two = page(
             r#"<li style="--lt-steps-done-text: 'Fullført '">Sted</li><li>Befaring</li><li aria-current="step">Vegger</li>"#,
