@@ -138,10 +138,6 @@ defineLtTerm()
   </TabItem>
   <TabItem label="Datastar">
     ```html
-    <!-- Datastar itself. -->
-    <script type="module"
-            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/frame/term/term.css">
 
@@ -167,6 +163,12 @@ defineLtTerm()
 
       defineLtTerm()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
     ```
 
     The server can send the article again with `datastar-patch-elements` while a card is open. The morph removes `popover` and `aria-expanded`, which the server did not send, and the web component puts them back, so the card stays open with the new text.

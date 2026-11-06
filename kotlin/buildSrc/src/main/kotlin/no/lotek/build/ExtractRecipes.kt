@@ -20,7 +20,8 @@ import org.gradle.api.tasks.TaskAction
  * one `fun FlowContent.<name>()`, whose parameters all have a default, so the
  * test can call it without arguments. It is written as a source file in a package
  * of its own, `no.lotek.html.recipes.<page>`, and the blocks in the page's
- * "Plain HTML" tab as a resource next to it. `Recipes.kt` lists them, so a
+ * "Plain HTML" tab as a resource next to it, or in its "Datastar" tab when
+ * the Kotlin recipe loads Datastar. `Recipes.kt` lists them, so a
  * kotlinx.html tab on a new page is tested without anything else to write.
  *
  * Run by the tests in `kotlinx-html`, not by the build of the package.
@@ -119,7 +120,9 @@ abstract class ExtractRecipes : DefaultTask() {
      * `null` when the page has none. There are two forms:
      *
      *   - a `<TabItem label="kotlinx.html">` in the same `<Tabs>` as a
-     *     `<TabItem label="Plain HTML">`, on the pages with a web component;
+     *     `<TabItem label="Plain HTML">`, on the pages with a web component,
+     *     or as a `<TabItem label="Datastar">` when the Kotlin recipe loads
+     *     Datastar, since it is then that recipe rendered by the server;
      *   - a `<Fragment slot="kotlin">` in an `<Example code={…}>`, on the
      *     pages of the CSS components, where `code` is what the Plain HTML
      *     tab shows.
@@ -141,12 +144,19 @@ abstract class ExtractRecipes : DefaultTask() {
             val groupStart = text.lastIndexOf("<Tabs>", start)
             val groupEnd = text.indexOf("</Tabs>", start)
             if (groupStart < 0 || groupEnd < 0 || text.indexOf("</Tabs>", groupStart) < start) {
-                error("$where is not inside a <Tabs> with a Plain HTML tab.")
+                error("$where is not inside a <Tabs>.")
             }
             val group = text.substring(groupStart, groupEnd)
-            val plain = tabStarts(group, "Plain HTML").singleOrNull()
-                ?: error("$page: the <Tabs> with the kotlinx.html tab must have one Plain HTML tab to compare it with.")
-            return Triple(tabAt(text, start), blocks(tabAt(group, plain), "html"), where)
+            val kotlin = tabAt(text, start)
+            // A Kotlin tab whose code loads Datastar, in the recipe or in its page
+            // template, is the Datastar recipe rendered by the server, so it is
+            // compared with that tab: a Kotlin server saves through Datastar, not
+            // with a script of its own. Only the code is read, not the prose. The
+            // script is compared too, so a tab that loads it and should not fails.
+            val label = if (blocks(kotlin, "kotlin").any { DATASTAR.containsMatchIn(it) }) "Datastar" else "Plain HTML"
+            val html = tabStarts(group, label).singleOrNull()
+                ?: error("$page: the <Tabs> with the kotlinx.html tab must have one $label tab to compare it with.")
+            return Triple(kotlin, blocks(tabAt(group, html), "html"), where)
         }
         slots.singleOrNull()?.let { start ->
             val where = "$page, the kotlinx.html slot"
@@ -165,6 +175,9 @@ abstract class ExtractRecipes : DefaultTask() {
         }
         return null
     }
+
+    /** The script that loads Datastar, as the Datastar tabs and the Kotlin recipes write it. */
+    private val DATASTAR = Regex("""src\s*=\s*"https://cdn\.jsdelivr\.net/gh/starfederation/datastar@[^"]+/datastar\.js"""")
 
     /**
      * Where each `<TabItem label="…">` with this label starts. The pattern

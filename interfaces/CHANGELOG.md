@@ -24,6 +24,24 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Changed
+
+- **The Kotlin live templates have no script of their own.** They are the
+  Datastar recipe rendered by the server: the dialog is sent open and its
+  choices go with `@post`, the session timeout sends its events on with `data-on`, the
+  toast's button posts and the server answers with the call to `show()`,
+  and the connection status hears of a lost server through
+  `data-on:datastar-fetch__document`. The page needs Datastar, loaded once
+  in its template after the registration, and the server answers with a 200: the signals as
+  `application/json`, or the toast's call as `text/javascript`.
+
+### Fixed
+
+- **The rulebook for Datastar, `agent/datastar.md`, loads Datastar after
+  the registration.** Module scripts run in the order they stand, and with
+  Datastar first the answer to a request at load could reach a web component
+  before it was registered.
+
 ## 0.41.0 (2026-11-05)
 
 ### Added

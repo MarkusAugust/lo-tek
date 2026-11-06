@@ -129,10 +129,6 @@ defineLtSessionTimeout()
   </TabItem>
   <TabItem label="Datastar">
     ```html
-    <!-- Datastar itself. Without it the `data-` attributes below do nothing. -->
-    <script type="module"
-            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
-
     <!-- The stylesheets the page needs. Without a build step it is `<link>`,
          not `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
@@ -146,6 +142,12 @@ defineLtSessionTimeout()
 
       defineLtSessionTimeout()
     </script>
+
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the `data-` attributes below do nothing. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
 
     <lt-session-timeout class="lt-session-timeout" warn-at="1500" expires-at="1800"
                         data-ignore-morph
@@ -169,7 +171,7 @@ defineLtSessionTimeout()
     `data-ignore-morph` tells the morph to leave the warning alone. Without it the morph removes `open` and the number while the dialog is in the top layer. The component puts `open` back, and the number returns on the next tick, but with the attribute the number is there all the time.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.sessionTimeout()`, here with kotlinx.html and `lo-tek-kotlinx-html`. The server writes the dialog and every text in it, in its own language.
+    On a Kotlin server you call `Lt.sessionTimeout()`, here with kotlinx.html and `lo-tek-kotlinx-html`, and render the Datastar recipe. The server writes the dialog and every text in it, in its own language, and Datastar sends the two events from the web component on: "Stay connected" to the server with `@post`, and an expired session to the log-in page. The page has no script of its own.
 
     ```kotlin
     import kotlinx.html.*
@@ -181,6 +183,8 @@ defineLtSessionTimeout()
         val session = Lt.sessionTimeout(titleId = "session-title", warnAt = 1500, expiresAt = 1800)
         ltSessionTimeout {
             lt(session.host)
+            attributes["data-on:session-extend"] = "@post('/api/extend-session')"
+            attributes["data-on:session-expired"] = "window.location = '/log-in?reason=expired'"
             dialog {
                 lt(session.dialog)
                 h2 { lt(session.title); +"Your session is ending" }
@@ -205,21 +209,6 @@ defineLtSessionTimeout()
                 }
             }
         }
-        script(type = "module") {
-            unsafe {
-                +"""
-                const session = document.querySelector("lt-session-timeout")
-
-                session.addEventListener("session-extend", async () => {
-                  await fetch("/api/extend-session", { method: "POST" })
-                })
-
-                session.addEventListener("session-expired", () => {
-                  location.href = "/log-in?reason=expired"
-                })
-                """
-            }
-        }
     }
     ```
 
@@ -229,6 +218,10 @@ defineLtSessionTimeout()
     body {
         sessionWarning()
         script(type = "module") { unsafe { +"import { defineLt } from \"${LotekWebJar.REGISTER}\"; defineLt()" } }
+        // Datastar itself, once for the whole app, after the registration:
+        // module scripts run in the order they stand, so no request goes out
+        // before the web components exist.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
     }
     ```
   </TabItem>

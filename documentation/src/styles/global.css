@@ -352,6 +352,18 @@
     font-weight: 700;
   }
 
+  /* Starlight sizes the anchor link from the wrapper's font size, and the
+     room for it at the end of the heading from the heading's. With the link
+     at Starlight's size it lay over the last letter. The wrapper keeps its
+     size, since the space above the heading is 1.5em on it. */
+  .sl-markdown-content .sl-heading-wrapper.level-h2 > .sl-anchor-link {
+    font-size: var(--lt-font-size-xl);
+  }
+
+  .sl-markdown-content .sl-heading-wrapper.level-h3 > .sl-anchor-link {
+    font-size: var(--lt-font-size-l);
+  }
+
   .sl-markdown-content p:not(.not-content, .not-content *),
   .sl-markdown-content li:not(.not-content, .not-content *) {
     font-size: 1.02rem;

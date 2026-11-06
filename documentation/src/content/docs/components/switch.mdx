@@ -84,7 +84,7 @@ import { switchControl } from "@lo-tek/interfaces"
 
 ## Saving immediately
 
-The switch promises that the change applies. So it also has to say when saving fails, and go back. `fetch` only rejects when the network fails, so a response with an error status has to be checked by you, otherwise a refusal from the server ends up in the branch that reports success. A redirect, as to the log-in page when the session has run out, is followed to a page that is ok, so it is checked too. In "Plain HTML", React and kotlinx.html, another press is blocked while the save is in progress without `disabled`, which would take focus from the switch; in Datastar another press sends another `@put`, and the server decides. React uses the builder functions, Datastar its own attributes, and kotlinx.html the same script as "Plain HTML".
+The switch promises that the change applies. So it also has to say when saving fails, and go back. `fetch` only rejects when the network fails, so a response with an error status has to be checked by you, otherwise a refusal from the server ends up in the branch that reports success. A redirect, as to the log-in page when the session has run out, is followed to a page that is ok, so it is checked too. In "Plain HTML" and React, another press is blocked while the save is in progress without `disabled`, which would take focus from the switch; in Datastar and kotlinx.html another press sends another `@put`, and the server decides. React uses the builder functions, Datastar its own attributes, and kotlinx.html the Datastar recipe rendered by the server, with no script of its own.
 
 <Tabs>
   <TabItem label="Plain HTML">
@@ -198,20 +198,25 @@ The switch promises that the change applies. So it also has to say when saving f
     <script type="module"
             src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
 
-    <div class="lt-switch-row"
-         data-signals="{renew: false, status: ''}">
-      <input class="lt-switch" type="checkbox" role="switch" id="auto-renew"
-             data-bind:renew
-             data-on:change="@put('/api/subscription')" />
-      <label class="lt-label" for="auto-renew">Auto-renew</label>
-    </div>
+    <!-- autocomplete="off" stands on the form, since HTML does not allow it on
+         a checkbox. Without it Firefox keeps the state from before a reload
+         until Datastar has loaded. -->
+    <form autocomplete="off">
+      <div class="lt-switch-row"
+           data-signals="{renew: false, status: ''}">
+        <input class="lt-switch" type="checkbox" role="switch" id="auto-renew"
+               data-bind:renew
+               data-on:change="@put('/api/subscription')" />
+        <label class="lt-label" for="auto-renew">Auto-renew</label>
+      </div>
+    </form>
     <p class="lt-help-text" role="status" data-text="$status"></p>
     ```
 
     The server decides the outcome here. `@put` sends the signals, and the response sets `status` and, when the save failed, `renew` back to where it was. The rollback is therefore in the server and not in the page, as for all other state the server decides. Another press while the save is in progress sends another `@put`, and the server decides that one too; a `disabled` guard in the page would take focus from the switch.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`. The server renders the saved choice with `on`, and `autocomplete="off"` on the form around it makes that choice stand after a reload: [Firefox otherwise keeps the checked state from before](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input/checkbox#checked). The attribute goes on the form because [HTML does not allow it on a checkbox](https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)). A switch takes effect the moment it is pressed, with no button to submit, so saving it is the one thing that needs a script: it sends the choice to the server with `fetch`, as in the HTML tab.
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`, the switch is saved through Datastar, as in the Datastar tab, and the page has no script of its own. The server renders the saved choice into the signal and the `checked` attribute, so the switch stands right before Datastar has loaded, and `autocomplete="off"` on the form around it keeps Firefox from putting back the state from before a reload: [HTML does not allow the attribute on a checkbox](https://html.spec.whatwg.org/multipage/input.html#checkbox-state-(type=checkbox)).
 
     ```kotlin
     import kotlinx.html.*
@@ -221,61 +226,43 @@ The switch promises that the change applies. So it also has to say when saving f
     fun FlowContent.autoRenew(on: Boolean = false) {
         // autocomplete="off" stands on the form, since HTML does not allow it on
         // a checkbox. Without it Firefox keeps the state from before a reload
-        // over the one the server rendered.
+        // over the one the server rendered, until Datastar has loaded.
         form {
             autoComplete = false
             div {
                 lt(Lt.switch.row)
-                input { lt(Lt.`switch`()); id = "auto-renew"; checked = on }
+                attributes["data-signals"] = "{renew: $on, status: ''}"
+                input {
+                    lt(Lt.`switch`())
+                    id = "auto-renew"
+                    checked = on
+                    attributes["data-bind:renew"] = ""
+                    attributes["data-on:change"] = "@put('/api/subscription')"
+                }
                 label { lt(Lt.label()); htmlFor = "auto-renew"; +"Auto-renew" }
             }
         }
-        p { lt(Lt.helpText()); id = "auto-renew-status"; attributes["role"] = "status" }
-        script(type = "module") {
-            unsafe {
-                +"""
-                const toggle = document.getElementById("auto-renew")
-                const status = document.getElementById("auto-renew-status")
-                let saving = false
-
-                // Another press while saving should not flip the switch. `disabled`
-                // would block it the same way, but take focus from it.
-                toggle.addEventListener("click", (event) => {
-                  if (saving) event.preventDefault()
-                })
-
-                toggle.addEventListener("change", async () => {
-                  const on = toggle.checked
-                  saving = true
-
-                  try {
-                    const response = await fetch("/api/subscription", {
-                      method: "PUT",
-                      headers: { "content-type": "application/json" },
-                      body: JSON.stringify({ autoRenew: on }),
-                    })
-                    // A redirect, as to the log-in page when the session has run out, is
-                    // followed to a page that is ok, but nothing was saved.
-                    if (!response.ok || response.redirected) throw new Error(response.statusText)
-                    status.textContent = on ? "Auto-renew is on." : "Auto-renew is off. Your walls expire with the subscription."
-                  } catch {
-                    toggle.checked = !on
-                    status.textContent = "Could not save. Try again."
-                  } finally {
-                    saving = false
-                  }
-                })
-                """
-            }
-        }
+        // `\$status` is Datastar's signal, not a Kotlin template.
+        p { lt(Lt.helpText()); attributes["role"] = "status"; attributes["data-text"] = "\$status" }
     }
+    ```
+
+    The answer to `@put` is the outcome. `@put` sends the signals as JSON, `{"renew": true, "status": ""}`, and an answer with `content-type: application/json` sets the signals it names. Datastar reads it only from a 200: an answer with an error status sets nothing, and the switch would stand where the user left it. A save that went through answers with the status, and a refusal is a 200 that puts `renew` back and says why. So is a session that has run out: Datastar follows a redirect and morphs the log-in page it lands on into this one, with the switch still where the user left it, so a request with the `Datastar-Request` header is answered, not redirected:
+
+    ```json
+    {"renew": false, "status": "Could not save. Try again."}
     ```
 
     ```kotlin
     // Once for the whole app, in the page template. The switch is CSS alone,
     // so there is no web component to register.
     head { link(rel = "stylesheet", href = LotekWebJar.CSS) }
-    body { autoRenew() }
+    body {
+        autoRenew()
+        // Datastar itself, once for the whole app. Without it the `data-`
+        // attributes in the recipe do nothing.
+        script(type = "module", src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js") {}
+    }
     ```
   </TabItem>
 </Tabs>
