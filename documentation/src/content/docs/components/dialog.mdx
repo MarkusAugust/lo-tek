@@ -192,7 +192,10 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
          `open` is on the host, the component calls showModal(). No client code
          opens anything. -->
     <lt-dialog id="confirm" open>
-      <dialog class="lt-dialog" open>
+      <!-- Escape is a close request, reported with `cancel`, and it keeps
+           the job. A close the server makes gives no `cancel`. -->
+      <dialog class="lt-dialog" open
+              data-on:cancel="@post('/jobs/222-0481/keep')">
         <h2>Cancel job 222-0481?</h2>
         <div class="lt-dialog__body">
           <p>The crew keeps the advance. This cannot be undone.</p>
@@ -207,9 +210,11 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
     </lt-dialog>
     ```
 
+    Each choice goes to the server, Escape included. The buttons post their own, and Escape posts "keep" from the `cancel` event, which the browser sends for a close request from the user and never for a close the server makes. Without it the server would go on believing the dialog was open. `dialog-toggle` cannot tell the two apart: Escape and a close from the server both report an empty `returnValue`.
+
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`, and render the Datastar recipe: the server decides that the dialog is open by sending it with `open = true`, as the answer to the request that asks for it, and `<lt-dialog>` calls `showModal()`. The page has no script of its own. Each choice goes to the server with `@post`, and the dialog closes with its `<form method="dialog">`.
+    On a Kotlin server you call `Lt.dialog()`, here with kotlinx.html and `lo-tek-kotlinx-html`, and render the Datastar recipe: the server decides that the dialog is open by sending it with `open = true`, as the answer to the request that asks for it, and `<lt-dialog>` calls `showModal()`. The page has no script of its own. Each choice goes to the server with `@post`, Escape included through `cancel`, and the dialog closes with its `<form method="dialog">`.
 
     ```kotlin
     import kotlinx.html.*
@@ -224,6 +229,9 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
             id = "confirm"
             dialog {
                 lt(box.dialog)
+                // Escape is a close request, reported with `cancel`, and it
+                // keeps the job. A close the server makes gives no `cancel`.
+                attributes["data-on:cancel"] = "@post('/jobs/222-0481/keep')"
                 h2 { lt(box.title); +"Cancel job 222-0481?" }
                 div {
                     lt(box.body)

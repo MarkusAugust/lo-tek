@@ -180,6 +180,12 @@ defineLtErrorSummary()
       defineLtErrorSummary()
     </script>
 
+    <!-- Datastar itself, after the registration: module scripts run in the
+         order they stand, so no request goes out before the web components
+         exist. Without it the box the server sends is never patched in. -->
+    <script type="module"
+            src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"></script>
+
     <lt-error-summary id="errors" aria-labelledby="errors-title" hidden>
       <h2 id="errors-title"></h2>
       <ul class="lt-list"></ul>

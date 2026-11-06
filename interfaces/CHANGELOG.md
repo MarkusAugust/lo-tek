@@ -28,12 +28,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 - **The Kotlin live templates have no script of their own.** They are the
   Datastar recipe rendered by the server: the dialog is sent open and its
-  choices go with `@post`, the session timeout sends its events on with `data-on`, the
-  toast's button posts and the server answers with the call to `show()`,
-  and the connection status hears of a lost server through
+  choices go with `@post`, Escape included through `data-on:cancel`, the
+  session timeout sends its events on with `data-on`, the toast's button
+  posts and the server answers with the call to `show()`, and the
+  connection status hears of a lost server through
   `data-on:datastar-fetch__document`. The page needs Datastar, loaded once
-  in its template after the registration, and the server answers with a 200: the signals as
-  `application/json`, or the toast's call as `text/javascript`.
+  in its template after the registration, and the server answers with a
+  200: the signals as `application/json`, or as `text/javascript` the
+  toast's call and, for a session that is already gone, the way to log in.
 
 ### Fixed
 
@@ -41,6 +43,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the registration.** Module scripts run in the order they stand, and with
   Datastar first the answer to a request at load could reach a web component
   before it was registered.
+- **`agent/datastar.md` says how Escape reaches the server from a dialog.**
+  Escape is a close request, reported with `cancel` on the `<dialog>`, and
+  `dialog-toggle` cannot tell it from a close the server makes.
 
 ## 0.41.0 (2026-11-05)
 

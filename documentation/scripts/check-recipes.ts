@@ -788,7 +788,14 @@ for (const file of readdirSync(PAGES).filter(
       const code = tab.code
       const datastar = code.search(/<script\b[^>]*datastar[^>]*\.js/)
       const registration = code.search(/\bdefineLt\w*\s*\(\s*\)/)
-      if (datastar !== -1) {
+      // A Datastar tab without Datastar is markup whose patches never come:
+      // the error summary's tab had the registration and nothing more.
+      if (datastar === -1)
+        report(
+          page,
+          `${where} does not load Datastar, so nothing in it is patched or sent when it is pasted in`,
+        )
+      else {
         datastarTabs += 1
         if (registration !== -1 && datastar < registration)
           report(
