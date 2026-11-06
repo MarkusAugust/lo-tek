@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.42.0 (2026-11-06)
+
 ### Changed
 
 - **The Kotlin live templates have no script of their own.** They are the

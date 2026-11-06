@@ -78,6 +78,12 @@ intellijPlatform {
         // Shown on the Marketplace and in the IDE on update, and must be in
         // English like the description. Write a new line for each version.
         changeNotes = """
+            <b>0.8.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
+            0.42.0. The Kotlin live templates have no script of their own: they are the
+            Datastar recipe rendered by the server, so the page loads Datastar once in its
+            template, after the registration. The dialog tells the server about every
+            choice, Escape included through <code>data-on:cancel</code>.
+            <br><br>
             <b>0.7.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
             0.41.0. Completion for <code>&lt;lt-term&gt;</code>, the classes
             <code>lt-term</code>, <code>lt-term__entry</code> and <code>lt-steps</code>, and
