@@ -16,7 +16,15 @@
  * button the reader presses.
  */
 import { describe, expect, it } from "vitest"
-import { CDN, htmlBlocks, tabItems } from "./testing/recipes"
+import {
+  type Frame,
+  mount,
+  STAY,
+  type Staying,
+  unregistered,
+  wentTo,
+} from "./testing/recipe-frame"
+import { htmlBlocks, tabItems } from "./testing/recipes"
 
 const PAGES = import.meta.glob<string>(
   "../../documentation/src/content/docs/components/*.mdx",
@@ -69,59 +77,6 @@ if (!DIALOG)
     'the dialog page has no Plain HTML recipe with id="confirm" to put next to the others',
   )
 
-/** The package on the CDN, as the source the dev server builds. */
-function local(block: string): string {
-  const cdn = CDN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  return (
-    block
-      // The stylesheets do nothing for the scripts, and are left out.
-      .replace(/<link\b[^>]*>/g, "")
-      .replace(new RegExp(`${cdn}dist/([^"']+)\\.js`, "g"), "/src/$1.ts")
-  )
-}
-
-/** Writes down everything that goes wrong in the frame, before any recipe runs. */
-const WATCH = `<script>
-  window.problems = []
-  for (const level of ["error", "warn"]) {
-    const original = console[level]
-    console[level] = (...args) => {
-      problems.push(level + ": " + args.map(String).join(" "))
-      original.apply(console, args)
-    }
-  }
-  addEventListener("error", (event) => {
-    const target = event.target
-    problems.push(
-      target instanceof HTMLScriptElement || target instanceof HTMLLinkElement
-        ? "failed to load " + (target.src || target.href || "an inline script")
-        : "error: " + event.message,
-    )
-  }, true)
-  addEventListener("unhandledrejection", (event) => {
-    problems.push("rejection: " + event.reason)
-  })
-</script>`
-
-type Frame = Window & { problems: string[] }
-
-/** The recipe in a frame of its own, once its scripts have run and the page has settled. */
-async function mount(blocks: string[]): Promise<HTMLIFrameElement> {
-  const frame = document.createElement("iframe")
-  frame.srcdoc = `<!doctype html><html lang="en"><head>${WATCH}</head><body>${blocks.map(local).join("\n")}</body></html>`
-  const loaded = new Promise((resolve) =>
-    frame.addEventListener("load", resolve, { once: true }),
-  )
-  document.body.append(frame)
-  await loaded
-  // The module scripts have run by `load`. The components report broken markup
-  // two frames after `DOMContentLoaded` (`whenSettled`), so four frames here.
-  const view = frame.contentWindow as Window
-  for (let i = 0; i < 4; i++)
-    await new Promise((resolve) => view.requestAnimationFrame(resolve))
-  return frame
-}
-
 describe("the scripts in the Plain HTML recipes", () => {
   it("finds every page with a script", () => {
     const counted = withScripts.map(
@@ -162,13 +117,10 @@ describe("the scripts in the Plain HTML recipes", () => {
         expect(dialog.returnValue).toBe("keep")
         expect(view.problems).toEqual([])
         // The rewritten imports ran: every web component on the page is registered.
-        const unregistered = [...doc.querySelectorAll("*")]
-          .filter((el) => el.localName.startsWith("lt-"))
-          .filter((el) => !view.customElements.get(el.localName))
-          .map((el) => el.localName)
-        expect(unregistered, "web components without a registration").toEqual(
-          [],
-        )
+        expect(
+          unregistered(frame),
+          "web components without a registration",
+        ).toEqual([])
       } finally {
         frame.remove()
       }
@@ -243,14 +195,16 @@ describe("saveRoute in the connection status recipe", () => {
 
   it("returns the answer before the component is registered", async () => {
     // The recipe without the script that registers the component.
-    const unregistered = page.blocks.map((b) =>
+    const withoutRegistration = page.blocks.map((b) =>
       b.replace(
         /<script\b[^>]*>(?:(?!<\/script>)[\s\S])*defineLtConnectionStatus\(\)[\s\S]*?<\/script>/,
         "",
       ),
     )
-    expect(unregistered.join("")).not.toContain("defineLtConnectionStatus()")
-    const frame = await mount(unregistered)
+    expect(withoutRegistration.join("")).not.toContain(
+      "defineLtConnectionStatus()",
+    )
+    const frame = await mount(withoutRegistration)
     const view = frame.contentWindow as Saving
     let timer: ReturnType<typeof setTimeout> | undefined
     try {
@@ -394,4 +348,55 @@ describe("the restart in the toast recipe", () => {
       frame.remove()
     }
   })
+})
+
+/**
+ * The session timeout recipe's extension, with `fetch` answered by the test.
+ * A session the server says is gone sends the user to log in, as an expired
+ * one does; a server that does not answer leaves the user on the page, with
+ * what is not saved, since the session may well still be there.
+ */
+describe("the extension in the session timeout recipe", () => {
+  const page = pages.find((p) => p.name === "session-timeout")
+  if (!page) throw new Error("found no session timeout page")
+  type Extending = Omit<Staying, "fetch"> & { fetch: () => Promise<Response> }
+  const status =
+    (code: number, redirected = false) =>
+    () => {
+      const answer = new Response(null, { status: code })
+      if (redirected)
+        Object.defineProperty(answer, "redirected", { value: true })
+      return Promise.resolve(answer)
+    }
+  const answers: [string, () => Promise<Response>][] = [
+    ["none", () => Promise.reject(new TypeError("Failed to fetch"))],
+    ["204", status(204)],
+    ["200 after a redirect", status(200, true)],
+    ["401", status(401)],
+    ["403", status(403)],
+    ["503", status(503)],
+  ]
+
+  for (const [name, answer] of answers)
+    it(`${name}: ${/none|204|503/.test(name) ? "stays on the page" : "goes to the log-in page"}`, async () => {
+      const frame = await mount(page.blocks, STAY)
+      try {
+        const view = frame.contentWindow as Extending
+        const session = frame.contentDocument?.querySelector(
+          "lt-session-timeout",
+        ) as (HTMLElement & { extend(): void }) | null
+        if (!session)
+          throw new Error("the session timeout recipe has no element")
+        view.fetch = answer
+        // What "Stay connected" and Escape do: the component sends
+        // `session-extend`, and the recipe asks the server.
+        session.extend()
+        expect(await wentTo(view, 500)).toBe(
+          /none|204|503/.test(name) ? "stayed" : "/log-in",
+        )
+        expect(view.problems).toEqual([])
+      } finally {
+        frame.remove()
+      }
+    })
 })
