@@ -29,6 +29,7 @@ import { elements } from "../src/vocabulary/elements.js"
 import { PACKAGE, packageJson } from "./agent-parts.js"
 import { FAMILIES, ROLES, roleToCss } from "./color-contract.js"
 import { files, NAMES } from "./generate-agent.js"
+import { checkSetup } from "./page-setup.js"
 
 const problems: string[] = []
 
@@ -82,6 +83,8 @@ const KINDS = [
 ]
 const kindsRead = new Map<string, Set<string>>()
 let checkedBlocks = 0
+/** The html blocks whose setup `checkSetup` has held, counted where it holds them. */
+let checkedSetups = 0
 const blocksPerFile = new Map<string, number>()
 
 function demand(condition: boolean, description: string): void {
@@ -344,6 +347,18 @@ for (const [path, content] of Object.entries(expected)) {
       !bare,
       `${path}, markup block ${index + 1} imports a package name in the browser. Use the full URL.`,
     )
+
+    /*
+     * The setup in the block, held to `pageSetup` like every tab on the
+     * pages. A rulebook spreads the setup over its sections, so each block is
+     * an illustration: it need not repeat what another section gave, but
+     * what it writes must be right. The rulebook said Datastar before the
+     * registration while the pages said the opposite (0bfbb64).
+     */
+    const target = path === "agent/datastar.md" ? "datastar" : "html"
+    for (const finding of checkSetup(target, block[1], { part: true }))
+      demand(false, `${path}, markup block ${index + 1} ${finding}`)
+    checkedSetups += 1
   }
 }
 
@@ -399,6 +414,7 @@ for (const kind of KINDS) {
     )
 }
 if (checkedBlocks === 0) shortfalls.push("no markup blocks")
+if (checkedSetups === 0) shortfalls.push("no setup held to pageSetup")
 
 /*
  * Every rulebook must have at least one markup block that was read, with one
@@ -435,5 +451,5 @@ if (shortfalls.length > 0) {
 }
 
 console.log(
-  `The rulebooks match: ${checkedFiles} files, ${checkedClasses} class claims, ${checkedElements} element claims, ${checkedTokens} token names, ${checkedAxes} axes and ${checkedBlocks} markup blocks.`,
+  `The rulebooks match: ${checkedFiles} files, ${checkedClasses} class claims, ${checkedElements} element claims, ${checkedTokens} token names, ${checkedAxes} axes and ${checkedBlocks} markup blocks, and the setup in ${checkedSetups} html blocks.`,
 )

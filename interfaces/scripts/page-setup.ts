@@ -242,10 +242,14 @@ export function checkSetup(
   const wanted = pageSetup(target, clean)
   const given = written(clean)
   const out: string[] = []
+  // An illustration that shows only the setup, with no markup of its own,
+  // cannot give too much: what it shows is for the markup elsewhere.
+  const onlySetup =
+    part && wanted.stylesheets.length === 1 && wanted.register.length === 0
   // `lotek.css` is every stylesheet in one file, so alone it is exactly right.
   const whole =
     given.stylesheets.size === 1 && given.stylesheets.has("lotek.css")
-  if (!whole) {
+  if (!whole && !onlySetup) {
     if (!part)
       for (const sheet of wanted.stylesheets)
         if (!given.stylesheets.has(sheet)) out.push(`does not give ${sheet}`)
@@ -255,7 +259,7 @@ export function checkSetup(
   }
   // `defineLt()` registers every web component, so alone it is exactly right.
   const all = given.register.length === 1 && given.register[0] === "defineLt"
-  if (!all) {
+  if (!all && !onlySetup) {
     if (!part)
       for (const definer of wanted.register)
         if (!given.register.includes(definer))
@@ -460,6 +464,18 @@ export function selfTest(): string[] {
       part: true,
     }),
     ["gives button.css, which the markup does not need"],
+  )
+  findings(
+    "an illustration with only the setup in it and no markup of its own gives nothing too much",
+    checkSetup(
+      "html",
+      [
+        `<link rel="stylesheet" href="${CDN}/src/components/css/button/button.css">`,
+        `<script type="module">\nimport { defineLtField } from "${CDN}/dist/components/frame/field/lt-field.js"\ndefineLtField()\n</script>`,
+      ].join("\n"),
+      { part: true },
+    ),
+    [],
   )
   findings(
     "the one file stands for every stylesheet",

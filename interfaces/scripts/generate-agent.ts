@@ -36,6 +36,7 @@ import {
   VERSION,
   webTable,
 } from "./agent-parts.js"
+import { DATASTAR_SRC } from "./page-setup.js"
 import { kotlinTab, recipePage } from "./recipes.js"
 
 /** The package name, which bundlers resolve. */
@@ -1263,7 +1264,7 @@ expect.`,
 <!-- The registration, defineLt*(), stands here, before Datastar. -->
 <script
   type="module"
-  src="https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"
+  src="${DATASTAR_SRC}"
 ></script>
 \`\`\`
 
