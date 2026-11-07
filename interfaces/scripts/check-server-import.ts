@@ -15,7 +15,6 @@
  */
 
 const packageRoot = new URL("../", import.meta.url)
-const manifest = await Bun.file(new URL("package.json", packageRoot)).json()
 
 if (typeof globalThis.HTMLElement !== "undefined") {
   console.error(
@@ -24,17 +23,8 @@ if (typeof globalThis.HTMLElement !== "undefined") {
   process.exit(1)
 }
 
-type ExportEntry = string | { import?: string }
-
-const entryPoints = Object.entries(
-  manifest.exports as Record<string, ExportEntry>,
-)
-  .filter(([name]) => !name.endsWith(".css") && name !== "./package.json")
-  .map(([name, value]) => [
-    name,
-    typeof value === "string" ? value : value.import,
-  ])
-  .filter((pair): pair is [string, string] => typeof pair[1] === "string")
+const { javascriptExports } = await import("./exports")
+const entryPoints = javascriptExports()
 
 if (entryPoints.length < 20) {
   console.error(
@@ -100,6 +90,126 @@ if (registrationFailures.length > 0) {
   process.exit(1)
 }
 
+/*
+ * And every builder function runs here, with options, and touches nothing.
+ *
+ * A builder function gives attributes and never sets an event listener: the
+ * behaviour belongs to the web components. Without a DOM, `document` and
+ * `HTMLElement` do not exist, so a builder that reaches for them throws. Bun
+ * has `addEventListener`, `EventTarget`, timers, `queueMicrotask`,
+ * `setImmediate`, `process.nextTick` and `fetch` all the same, so they are made to throw while the functions run. Each function is
+ * called once, with the options in `builder-sample.ts`, so a branch those
+ * options do not take is not run here. The functions called are the builder
+ * functions the manifest names, in both entry points, so `setAttributes`,
+ * which writes to an element on purpose, and guards such as `lt.isState` are
+ * not among them, and a builder missing from either entry point fails.
+ */
+const { SAMPLE } = await import("./builder-sample")
+const named = (
+  (await Bun.file(new URL("manifest/manifest.json", packageRoot)).json()) as {
+    builders: Array<{ name: string }>
+  }
+).builders.map((b) => b.name)
+const builderFailures: string[] = []
+let builders = 0
+/** Thrown by what is made to throw while the builder functions run. */
+class BrowserWork extends Error {}
+const refuse = (what: string) => () => {
+  throw new BrowserWork(what)
+}
+const TRAPS: Array<[Record<string, unknown>, string, string]> = [
+  [
+    EventTarget.prototype as unknown as Record<string, unknown>,
+    "addEventListener",
+    "set an event listener",
+  ],
+  [
+    globalThis as unknown as Record<string, unknown>,
+    "addEventListener",
+    "set an event listener",
+  ],
+  [
+    globalThis as unknown as Record<string, unknown>,
+    "setTimeout",
+    "started a timer",
+  ],
+  [
+    globalThis as unknown as Record<string, unknown>,
+    "setInterval",
+    "started a timer",
+  ],
+  [
+    globalThis as unknown as Record<string, unknown>,
+    "queueMicrotask",
+    "queued a microtask",
+  ],
+  [
+    globalThis as unknown as Record<string, unknown>,
+    "setImmediate",
+    "queued work",
+  ],
+  [process as unknown as Record<string, unknown>, "nextTick", "queued work"],
+  [globalThis as unknown as Record<string, unknown>, "fetch", "made a request"],
+]
+const originals = TRAPS.map(([on, key]) => on[key])
+const browserFailures: string[] = []
+TRAPS.forEach(([on, key, what]) => {
+  on[key] = refuse(what)
+})
+try {
+  for (const entry of ["dist/index.js", "dist/react.js"]) {
+    const { lt } = (await import(new URL(entry, packageRoot).href)) as {
+      lt: Record<string, unknown>
+    }
+    for (const name of named) {
+      const builder = lt[name]
+      if (typeof builder !== "function") {
+        builderFailures.push(`  lt.${name} is not a function in ${entry}`)
+        continue
+      }
+      try {
+        ;(builder as (options: unknown) => unknown)(SAMPLE)
+      } catch (error) {
+        // What the browser has and a server does not, or what was made to
+        // throw, is behaviour. Anything else is the builder refusing the
+        // options, which says SAMPLE lacks one, not that it reached for the
+        // browser.
+        const browser =
+          error instanceof BrowserWork ||
+          (error instanceof ReferenceError &&
+            /\b(?:document|window|HTMLElement|customElements|navigator|location|requestAnimationFrame|MutationObserver)\b/.test(
+              error.message,
+            ))
+        ;(browser ? browserFailures : builderFailures).push(
+          `  lt.${name}() from ${entry}: ${String(error).split("\n")[0]}`,
+        )
+      }
+      builders += 1
+    }
+  }
+} finally {
+  TRAPS.forEach(([on, key], i) => {
+    on[key] = originals[i]
+  })
+}
+
+if (named.length === 0 || builders !== 2 * named.length) {
+  console.error(
+    `Called ${builders} builder functions in the two entry points, where the manifest names ${named.length} for each.`,
+  )
+  process.exit(1)
+}
+
+if (browserFailures.length > 0)
+  console.error(
+    `These builder functions do what belongs to the browser:\n\n${browserFailures.join("\n")}\n\nA builder function gives attributes. Behaviour belongs in a web component.\n`,
+  )
+if (builderFailures.length > 0)
+  console.error(
+    `These builder functions could not be called with the options in builder-sample.ts:\n\n${builderFailures.join("\n")}\n\nGive SAMPLE the option they require, or export them under the name the manifest has.\n`,
+  )
+if (browserFailures.length > 0 || builderFailures.length > 0) process.exit(1)
+
 console.log(
-  `All ${entryPoints.length} entry points can be imported without a DOM, and all ${registrations.length} registrations are silent there.`,
+  `All ${entryPoints.length} entry points can be imported without a DOM, all ${registrations.length} registrations are silent there, and all ${builders} builder functions run there without touching the browser.`,
 )
