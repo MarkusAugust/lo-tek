@@ -24,6 +24,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **`derivedParts()` in `@lo-tek/interfaces/host-element` takes the
+  `ownership()` the roles were written through**, in place of the `WeakSet`
+  of parts it took before. Write the roles with `own.write(part, "role", …)`
+  and pass `own`.
+
 ### Added
 
 - **`ownership()` in `@lo-tek/interfaces/host-element`** remembers, per
@@ -36,7 +43,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`ownership()` also has `forget()`**, for an attribute the server has
   taken over, and **`lost()`**, which says that a morph from the server has
   removed the mark since the component wrote a value that differed from the
-  server's. `<lt-error-summary>`, `<lt-term>`, `<lt-suggestion>` and
+  server's. **`release()`** removes an attribute the component wrote and
+  forgets it in the same step, so the memory cannot outlive the attribute.
+  `<lt-error-summary>`, `<lt-term>`, `<lt-suggestion>` and
   `<lt-tabs>` keep what they wrote through `ownership()` now, and behave as
   before.
 - **`watcher()` in the same module** starts a `MutationObserver` on a node
@@ -45,11 +54,27 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`restoreModalOpen()`** puts `open` back on a `<dialog>` still in the top
   layer when a morph took it, and says whether it did. `<lt-dialog>` and
   `<lt-session-timeout>` repair through it.
-- **`derivedParts()` takes an `ownership()`** the roles were written
-  through, as well as the `WeakSet` it took before.
 - **`warnAboutMarkup()` takes `{ silentWhenEmpty: true }`**, which keeps it
   silent about an element with no children, a region the server has not
   filled yet.
+
+### Fixed
+
+- **`<lt-dialog>` and `<lt-session-timeout>` keep the dialog's name when the
+  server replaces the heading.** The component took the `aria-labelledby` it
+  had written itself for the server's word, so a patch that sent the heading
+  with another id left the name pointing at an id that was gone, and a
+  screen reader announced the dialog without a name. The name the component
+  wrote now follows the heading, gives way when the server names the
+  dialog with `aria-label`, and is taken away when no heading is left, so
+  the warning about a dialog without a name comes then. An
+  `aria-labelledby` with another value than the component's is the
+  server's, and stays.
+- **`<lt-field>` leaves a `data-state="invalid"` the server sent itself.**
+  When the component had written the value first and a morph then brought
+  the same value from the server, the component removed it once the error
+  text was hidden. It now writes the value with `data-lt-written`, as it
+  does `aria-invalid`, and removes only its own.
 
 ## 0.42.0 (2026-11-06)
 

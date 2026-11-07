@@ -326,6 +326,13 @@ export interface Ownership {
    */
   forget(element: Element, name: string): void
   /**
+   * Removes `name` from `element` and forgets it in the same step, for an
+   * attribute the component wrote and no longer wants. Removing without
+   * forgetting left the component believing the attribute was its own, and
+   * it could later remove one the server had written.
+   */
+  release(element: Element, name: string, options?: { flag?: boolean }): void
+  /**
    * Whether a morph from the server has been there since the component
    * wrote `name` on `element`: it marked a value that differed from the
    * server's word, and the mark is gone. A value that did not differ had no
@@ -407,6 +414,13 @@ export function ownership(): Ownership {
     },
     written: (element, name) => memory.get(element)?.get(name)?.written,
     forget(element, name) {
+      memory.get(element)?.delete(name)
+    },
+    release(element, name, { flag } = {}) {
+      if (flag) setFlag(element, name, false)
+      else setAttr(element, name, null)
+      if (memory.get(element)?.get(name)?.marked)
+        markWritten(element, name, false)
       memory.get(element)?.delete(name)
     },
     lost(element, name) {
@@ -588,16 +602,10 @@ export function derivedParts<T extends Element>(
   host: Element,
   selector: string,
   role: string,
-  /**
-   * The roles the component set: an `ownership()` it wrote them through, or,
-   * as before it existed, a `WeakSet` of the parts it set them on.
-   */
-  roledByHost: Pick<Ownership, "written"> | WeakSet<Element>,
+  /** The `ownership()` the component wrote the roles through. */
+  roledByHost: Pick<Ownership, "written">,
 ): T[] {
-  const mine = (part: Element) =>
-    roledByHost instanceof WeakSet
-      ? roledByHost.has(part)
-      : roledByHost.written(part, "role") === role
+  const mine = (part: Element) => roledByHost.written(part, "role") === role
   const own = [...host.querySelectorAll<T>(selector)].filter(
     (part) => part.closest(host.localName) === host,
   )

@@ -587,6 +587,53 @@ describe("lt-session-timeout handles Escape, wrong numbers and an expiry", () =>
     expect(title?.textContent).toBe("Du blir snart logget ut")
   })
 
+  it("follows a heading the renderer replaced with one of another id", async () => {
+    await mountShort(`
+      <lt-session-timeout warn-at="3" expires-at="13">
+        <dialog>
+          <h2 id="warning-1">Du blir snart logget ut</h2>
+          <p class="lt-session-timeout__text">Vi logger deg ut om
+            <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
+          <span class="lt-sr-only" role="status"></span>
+          <form method="dialog"><button value="extend">Fortsett</button></form>
+        </dialog>
+      </lt-session-timeout>`)
+    await advance(4)
+    expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
+
+    dialog()
+      .querySelector("h2")
+      ?.replaceWith(
+        Object.assign(document.createElement("h2"), {
+          id: "warning-2",
+          textContent: "Økten går snart ut",
+        }),
+      )
+    await waitForPaint()
+
+    expect(dialog().getAttribute("aria-labelledby")).toBe("warning-2")
+  })
+
+  it("lets go of the name it wrote when the renderer names the dialog with aria-label", async () => {
+    await mountShort(`
+      <lt-session-timeout warn-at="3" expires-at="13">
+        <dialog>
+          <h2>Du blir snart logget ut</h2>
+          <p class="lt-session-timeout__text">Vi logger deg ut om
+            <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
+          <span class="lt-sr-only" role="status"></span>
+          <form method="dialog"><button value="extend">Fortsett</button></form>
+        </dialog>
+      </lt-session-timeout>`)
+    await advance(4)
+    expect(dialog().hasAttribute("aria-labelledby")).toBe(true)
+
+    dialog().setAttribute("aria-label", "Økten går ut")
+    await waitForPaint()
+
+    expect(dialog().hasAttribute("aria-labelledby")).toBe(false)
+  })
+
   it("leaves a name the renderer has written in place", async () => {
     await mountShort(
       warning().replace(

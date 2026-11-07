@@ -3,6 +3,7 @@ import {
   defineElement,
   HostElement,
   languageOf,
+  ownership,
   restoreModalOpen,
   setAttr,
   setText,
@@ -221,6 +222,13 @@ export class LtSessionTimeout extends HostElement {
   /** The id the component gave the heading, so the same one comes back. */
   private titleId?: string
   /**
+   * The `aria-labelledby` the component wrote on the dialog. Another value
+   * there is the renderer's, and stays; the component's own follows the
+   * heading, so a patch that replaces the heading does not leave the name
+   * pointing at an id that is gone.
+   */
+  private readonly own = ownership()
+  /**
    * The dialog the component opened, until `close` has arrived.
    *
    * `close` arrives in a later task than the click that closed the dialog.
@@ -235,7 +243,7 @@ export class LtSessionTimeout extends HostElement {
    * (see `repairOpen()`), and the role and the name the component wrote.
    */
   private readonly watch = watcher(
-    () => {
+    (records) => {
       this.repairOpen()
       /*
        * A morph of the open warning takes the role and the name the component
@@ -245,11 +253,23 @@ export class LtSessionTimeout extends HostElement {
        * is enough to get here; the wiring's own attributes are watched for a
        * morph that leaves `open` alone.
        */
+      // A heading the renderer replaced, too. The number is text, and a tick
+      // that writes it is no reason to look.
+      const replaced = records.some((record) =>
+        [...record.addedNodes, ...record.removedNodes].some(
+          (node) => node instanceof Element,
+        ),
+      )
       const dialog = this.dialog
-      if (dialog?.matches(":modal")) this.wire(dialog)
+      if (
+        dialog?.matches(":modal") &&
+        (replaced || records.some((record) => record.type === "attributes"))
+      )
+        this.wire(dialog)
     },
     {
       subtree: true,
+      childList: true,
       attributes: true,
       attributeFilter: [
         "open",
@@ -425,19 +445,29 @@ export class LtSessionTimeout extends HostElement {
   private wire(dialog: HTMLDialogElement): void {
     addClass(dialog, SESSION_TIMEOUT_DIALOG_CLASS)
     if (!dialog.hasAttribute("role")) setAttr(dialog, "role", "alertdialog")
-    if (
-      dialog.hasAttribute("aria-labelledby") ||
-      dialog.hasAttribute("aria-label")
-    ) {
+    const named = dialog.getAttribute("aria-labelledby")
+    const ours =
+      named !== null && named === this.own.written(dialog, "aria-labelledby")
+    if (named !== null && !ours) {
+      this.own.forget(dialog, "aria-labelledby")
+      return
+    }
+    // A name the renderer gave with `aria-label`, which `aria-labelledby`
+    // would otherwise win over.
+    if (dialog.hasAttribute("aria-label")) {
+      if (ours) this.own.release(dialog, "aria-labelledby")
       return
     }
     const title = dialog.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
-    if (!title) return
+    if (!title) {
+      if (ours) this.own.release(dialog, "aria-labelledby")
+      return
+    }
     if (!title.id) {
       this.titleId ??= uniqueId("lt-session-timeout-title")
       setAttr(title, "id", this.titleId)
     }
-    setAttr(dialog, "aria-labelledby", title.id)
+    this.own.write(dialog, "aria-labelledby", title.id)
   }
 
   /**

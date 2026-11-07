@@ -1334,6 +1334,32 @@ describe("lt-dialog wires from bare structure", () => {
     expect(d.getAttribute("aria-labelledby")).toBe(title.id)
   })
 
+  it("follows a heading the server replaced with one of another id", async () => {
+    // Only the heading is patched; the <dialog> and the name the component
+    // wrote on it stay. The name pointed at the id that was gone, and a
+    // screen reader announced the dialog without a name.
+    const { d } = await mountBare(BARE.replace("<h2>", '<h2 id="cancel-222">'))
+    expect(d.getAttribute("aria-labelledby")).toBe("cancel-222")
+
+    d.querySelector("h2")?.replaceWith(
+      Object.assign(document.createElement("h2"), {
+        id: "cancel-223",
+        textContent: "Cancel job 222-0482?",
+      }),
+    )
+    await waitForPaint()
+
+    expect(d.getAttribute("aria-labelledby")).toBe("cancel-223")
+  })
+
+  it("lets go of the name it wrote when the server names the dialog with aria-label", async () => {
+    const { d } = await mountBare()
+    d.setAttribute("aria-label", "Cancel the job")
+    await waitForPaint()
+
+    expect(d.hasAttribute("aria-labelledby")).toBe(false)
+  })
+
   it("leaves a name from aria-label, and does not touch the heading", async () => {
     // The heading is then not the title, and should get neither an id nor the
     // class that styles it as one.

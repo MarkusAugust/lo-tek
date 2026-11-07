@@ -383,12 +383,10 @@ export class LtSuggestion extends HostElement {
         )
           text += node.textContent ?? ""
       text = text.replace(/\s+/g, " ").trim()
-      if (labelledby !== null) setAttr(list, "aria-labelledby", null)
-      // One name at a time is the component's: writing one forgets the other.
-      this.own.forget(list, "aria-labelledby")
+      // One name at a time is the component's: writing one releases the other.
+      this.own.release(list, "aria-labelledby")
       if (text === "") {
-        if (label !== null) setAttr(list, "aria-label", null)
-        this.own.forget(list, "aria-label")
+        this.own.release(list, "aria-label")
         return
       }
       this.own.write(list, "aria-label", text)
@@ -402,8 +400,7 @@ export class LtSuggestion extends HostElement {
         rememberedId(this.ids, labelElement, "lt-suggestion-label"),
       )
     }
-    if (label !== null) setAttr(list, "aria-label", null)
-    this.own.forget(list, "aria-label")
+    this.own.release(list, "aria-label")
     this.own.write(list, "aria-labelledby", labelElement.id)
   }
 

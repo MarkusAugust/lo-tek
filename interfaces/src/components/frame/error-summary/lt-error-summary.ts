@@ -228,8 +228,7 @@ export class LtErrorSummary extends HostElement {
     } else if (ours) {
       // The heading is gone or lost its id, or the server named the box
       // with `aria-label`, which `aria-labelledby` would otherwise win over.
-      this.own.write(this, "aria-labelledby", null)
-      this.own.forget(this, "aria-labelledby")
+      this.own.release(this, "aria-labelledby")
     }
     if (title && !title.id && label === null && labelledBy === null)
       warnAboutMarkup(

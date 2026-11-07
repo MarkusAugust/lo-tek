@@ -7,7 +7,7 @@ import {
   waitForPaint,
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
-import { replace } from "../../../testing/update"
+import { REPLACEMENTS, replace } from "../../../testing/update"
 import { computeFieldAttributes } from "./field-core"
 import { defineLtField, type LtField } from "./lt-field"
 import "../../../tokens/tokens.css"
@@ -979,6 +979,29 @@ describe("lt-field does not read its own echo from the label", () => {
 
     expect(control.hasAttribute("data-state")).toBe(false)
   })
+
+  for (const way of REPLACEMENTS)
+    it(`leaves a data-state="invalid" the server sent itself, by ${way}, when the error text goes`, async () => {
+      // The component wrote it first, and then the server sent the same
+      // value. The server's word stays, also once the error text is hidden.
+      const field = (state: string, hidden: string) =>
+        `<lt-field id="claimant"><label for="name">Name</label><input id="name" class="lt-input"${state} /><p class="lt-error-text"${hidden}>Error</p></lt-field>`
+      mount(field("", ""))
+      await customElements.whenDefined("lt-field")
+      await waitForPaint()
+      expect(document.querySelector("input")?.getAttribute("data-state")).toBe(
+        "invalid",
+      )
+
+      replace(way, "claimant", field(' data-state="invalid"', ""))
+      await waitForPaint()
+      replace(way, "claimant", field(' data-state="invalid"', " hidden"))
+      await waitForPaint()
+
+      expect(document.querySelector("input")?.getAttribute("data-state")).toBe(
+        "invalid",
+      )
+    })
 
   it("connects only its own parts when a field is inside another", async () => {
     /*

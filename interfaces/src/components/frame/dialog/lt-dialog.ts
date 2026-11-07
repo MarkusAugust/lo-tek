@@ -3,6 +3,7 @@ import {
   defineElement,
   HostElement,
   isServerControlled,
+  ownership,
   restoreModalOpen,
   SERVER_CONTROLLED,
   setAttr,
@@ -196,6 +197,13 @@ export class LtDialog extends HostElement {
 
   /** The id the component gave the heading, so a patch gets the same one back. */
   private titleId?: string
+  /**
+   * The `aria-labelledby` the component wrote on the `<dialog>`. Another
+   * value there is the server's, and stays; the component's own follows the
+   * title, so a patch that replaces the title does not leave the name
+   * pointing at an id that is gone.
+   */
+  private readonly own = ownership()
 
   /** The wiring alone, for an attribute record. See the observer. */
   private rewire(): void {
@@ -254,7 +262,10 @@ export class LtDialog extends HostElement {
     addClass(dialog, DIALOG_CLASS)
 
     const named = dialog.getAttribute("aria-labelledby")
-    if (named) {
+    const ours =
+      named !== null && named === this.own.written(dialog, "aria-labelledby")
+    if (named && !ours) {
+      this.own.forget(dialog, "aria-labelledby")
       // The attribute can list several ids. The title is the first one that
       // is inside the dialog.
       const root = this.getRootNode() as Document | ShadowRoot
@@ -265,10 +276,16 @@ export class LtDialog extends HostElement {
       if (title) addClass(title, DIALOG_TITLE_CLASS)
       return
     }
-    if (dialog.hasAttribute("aria-label")) return
+    // A name the server gave with `aria-label`, which `aria-labelledby`
+    // would otherwise win over.
+    if (dialog.hasAttribute("aria-label")) {
+      if (ours) this.own.release(dialog, "aria-labelledby")
+      return
+    }
 
     const title = this.headingOf(dialog)
     if (!title) {
+      if (ours) this.own.release(dialog, "aria-labelledby")
       warnAboutMarkup(
         this,
         "the dialog has no name: it has no aria-labelledby, no " +
@@ -287,7 +304,7 @@ export class LtDialog extends HostElement {
       this.titleId ??= uniqueId("lt-dialog-title")
       setAttr(title, "id", this.titleId)
     }
-    setAttr(dialog, "aria-labelledby", title.id)
+    this.own.write(dialog, "aria-labelledby", title.id)
   }
 
   private notify(open: boolean, returnValue = ""): void {

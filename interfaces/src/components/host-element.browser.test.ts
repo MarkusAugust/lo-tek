@@ -156,6 +156,31 @@ describe("ownership", () => {
     expect(own.knows(box, "aria-labelledby")).toBe(false)
   })
 
+  it("removes an attribute and forgets it in one step with release()", () => {
+    const own = ownership()
+    const panel = node(`<div></div>`)
+    own.write(panel, "aria-label", "Claims")
+    own.release(panel, "aria-label")
+    const control = node(`<input>`)
+    own.write(control, "disabled", "", { flag: true })
+    own.release(control, "disabled", { flag: true })
+    expect([
+      panel.hasAttribute("aria-label"),
+      own.knows(panel, "aria-label"),
+      own.written(panel, "aria-label"),
+      control.hasAttribute("disabled"),
+      own.knows(control, "disabled"),
+    ]).toEqual([false, false, undefined, false, false])
+  })
+
+  it("takes its mark away too when it releases a marked attribute", () => {
+    const own = ownership()
+    const tab = node(`<a></a>`)
+    own.write(tab, "aria-selected", "true", { server: "false", mark: true })
+    own.release(tab, "aria-selected")
+    expect(tab.hasAttribute(WRITTEN)).toBe(false)
+  })
+
   it("says a mark is lost only for a value it marked against the server's word", () => {
     const own = ownership()
     const tab = node(`<a></a>`)
@@ -274,19 +299,16 @@ describe("restoreModalOpen", () => {
 })
 
 describe("derivedParts", () => {
-  it("takes the roles the component set from an ownership, and still from a WeakSet", () => {
+  it("counts every part when the roles there are the component's, and only the roled ones when one is the server's", () => {
     const host = document.createElement("lt-example-list")
     host.innerHTML = `<li class="x">a</li><li class="x" role="option">b</li>`
     document.body.append(host)
-    const [first, second] = host.querySelectorAll("li")
+    const second = host.querySelectorAll("li")[1]
     const own = ownership()
     own.write(second, "role", "option")
-    const set = new WeakSet<Element>([second])
-    const fromOwn = derivedParts(host, ".x", "option", own).length
-    const fromSet = derivedParts(host, ".x", "option", set).length
+    const ours = derivedParts(host, ".x", "option", own).length
+    const theServers = derivedParts(host, ".x", "option", ownership()).length
     host.remove()
-    void first
-    // The one role there is the component's, so every part counts.
-    expect([fromOwn, fromSet]).toEqual([2, 2])
+    expect([ours, theServers]).toEqual([2, 1])
   })
 })

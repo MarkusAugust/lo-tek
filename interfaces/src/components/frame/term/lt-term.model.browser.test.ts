@@ -777,12 +777,18 @@ function violations(
       )
   }
 
-  // The same version sent again by a morph changes nothing.
+  // The same version sent again by a morph changes nothing. Not while the
+  // mouse is unknown: a word or a card replaced under a resting mouse gets
+  // `pointerenter` from the browser when it pleases, in Chromium, Firefox
+  // and WebKit alike, and the card the mouse then opens is the mouse's, not
+  // the morph's. Under load the event came after the step that replaced
+  // the word had settled, and the card opened in the next one.
   if (
     "send" in step &&
     (step.way === "Datastar" || step.way === "idiomorph") &&
     was.version === step.send &&
-    was.fresh
+    was.fresh &&
+    was.pointer !== "unknown"
   ) {
     seen.stable++
     if (withoutPosition(after.markup) !== withoutPosition(before.markup))
