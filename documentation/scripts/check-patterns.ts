@@ -13,16 +13,13 @@
 
 import { site } from "./site"
 
-const s = await site()
+// The five pages below, each opened by its own steps.
+const s = await site({ pages: 5 })
 const page = s.page
 
 const code = await s.run(async () => {
   function expect(claim: boolean, description: string): void {
     if (!claim) s.fail(description)
-  }
-
-  async function open(path: string) {
-    await s.open(path)
   }
 
   /** Types into a field in the form demo, and leaves it afterwards. */
@@ -54,7 +51,7 @@ const code = await s.run(async () => {
 
   // The form: an empty form should give errors in every field and in the summary
   {
-    await open("/patterns/form/")
+    await s.open("/patterns/form/")
 
     await page.evaluate(() => {
       const root = document.getElementById("demo-form")?.shadowRoot
@@ -124,7 +121,7 @@ const code = await s.run(async () => {
   // The form: an error should appear when the field is left, without a
   // submission first
   {
-    await open("/patterns/form/")
+    await s.open("/patterns/form/")
 
     await typeInField("demo-fixer", "fixer")
     await page.waitForTimeout(200)
@@ -144,7 +141,7 @@ const code = await s.run(async () => {
   // The form: a date outside the year the field allows should say so, not
   // that the date does not exist
   {
-    await open("/patterns/form/")
+    await s.open("/patterns/form/")
 
     await typeInField("demo-deliver-by", "2081-04-25")
     await page.waitForTimeout(200)
@@ -165,7 +162,7 @@ const code = await s.run(async () => {
 
   // The list: four states, and here matches and empty are checked
   {
-    await open("/patterns/list/")
+    await s.open("/patterns/list/")
     await page.waitForTimeout(700)
 
     const initial = await page.evaluate(() => {
@@ -244,7 +241,7 @@ const code = await s.run(async () => {
 
   // The confirmation: the dialog takes focus, and the message comes afterwards
   {
-    await open("/patterns/confirmation/")
+    await s.open("/patterns/confirmation/")
 
     await page.evaluate(() => {
       const root = document.getElementById("demo-confirm")?.shadowRoot
@@ -284,7 +281,7 @@ const code = await s.run(async () => {
 
   // The theme picker: switches theme without JavaScript, and sets color-scheme
   {
-    await open("/demo/theme/")
+    await s.open("/demo/theme/")
 
     /*
      * The click must go to the label and not to the input.
@@ -347,7 +344,7 @@ const code = await s.run(async () => {
 
   // The page skeleton: the landmarks and the skip link
   {
-    await open("/demo/page-skeleton/")
+    await s.open("/demo/page-skeleton/")
 
     const structure = await page.evaluate(() => ({
       skipLink: document.body.firstElementChild?.className ?? "",

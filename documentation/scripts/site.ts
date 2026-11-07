@@ -14,7 +14,15 @@
  * of its own.
  */
 
-import { readFileSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium, type Page } from "playwright"
@@ -96,30 +104,49 @@ function listen(page: Page, findings: string[], where: () => string) {
 export interface Site {
   /** The one page `open` navigates, for helpers that work on it. */
   page: Page
-  /** Opens a path of the site, and records a finding if it does not answer 200. */
+  /** Opens a path of the site. A page that does not answer 200 makes the run incomplete. */
   open(path: string): Promise<Page>
   /** Records a finding of the script's own. */
   fail(message: string): void
   /** Writes the report, closes everything, and gives the exit code. */
   close(): Promise<number>
   /**
-   * Runs the script's own steps, takes an error in them as a finding, and
-   * closes: the exit code is the one `close` gives.
+   * Runs the script's own steps and closes. An error in them stopped the
+   * check before its end, so it makes the run incomplete: the exit code is
+   * the one `close` gives.
    */
   run(body: () => Promise<void>): Promise<number>
 }
 
 export async function site({
   dist = DIST,
+  pages,
 }: {
   dist?: string
-} = {}): Promise<Site> {
+  /**
+   * How many different pages the script opens. Written by the script, apart
+   * from the opens themselves, so a step left out or returned from early is
+   * a run that did not see everything.
+   */
+  pages: number
+}): Promise<Site> {
   const server = serve(dist)
-  const browser = await chromium.launch()
-  const page = await (await browser.newContext()).newPage()
+  // A browser that does not start still stops the server, and the error
+  // goes on to the script, which has nothing to check without it.
+  const started = await chromium
+    .launch()
+    .then(async (b) => ({
+      browser: b,
+      page: await (await b.newContext()).newPage(),
+    }))
+    .catch((error) => {
+      server.stop(true)
+      throw error
+    })
+  const { browser, page } = started
   const findings: string[] = []
   const unanswered: string[] = []
-  let opened = 0
+  const opened = new Set<string>()
   let current = "(no page yet)"
   listen(page, findings, () => current)
   const self: Site = {
@@ -132,7 +159,7 @@ export async function site({
       )
       if (response?.status() !== 200)
         unanswered.push(`${path} answered ${response?.status() ?? "nothing"}`)
-      else opened += 1
+      else opened.add(path)
       return page
     },
     fail(message) {
@@ -142,9 +169,9 @@ export async function site({
       try {
         await body()
       } catch (error) {
-        // A step that throws, often on a page that did not answer, is a
-        // finding, and the code still says whether the run saw everything.
-        findings.push(`${current}: the check stopped: ${error}`)
+        // A step that throws, often on a page that did not answer, stopped
+        // the check before its end: the run did not see everything.
+        unanswered.push(`${current}: the check stopped: ${error}`)
       }
       return self.close()
     },
@@ -153,10 +180,13 @@ export async function site({
       server.stop(true)
       for (const f of findings) console.error(`  - ${f}`)
       for (const u of unanswered) console.error(`  - ${u}`)
-      console.log(`Opened ${opened} pages of the site.`)
+      console.log(
+        `Opened ${opened.size} pages of the site, where the check says ${pages}.`,
+      )
       // An incomplete run is told apart from findings: it says the check did
       // not see what it was meant to.
-      if (unanswered.length > 0 || opened === 0) return 2
+      if (unanswered.length > 0 || opened.size === 0 || opened.size !== pages)
+        return 2
       return findings.length > 0 ? 1 : 0
     },
   }
@@ -169,8 +199,10 @@ export async function site({
  * from somewhere other than the glob that fills the queue: a guard that
  * compares the queue with itself only checks itself.
  */
-function expectedPages(dist: string): string[] {
-  const sitemap = readFileSync(join(dist, "sitemap-0.xml"), "utf8")
+function expectedPages(dist: string): string[] | undefined {
+  const file = join(dist, "sitemap-0.xml")
+  if (!existsSync(file)) return undefined
+  const sitemap = readFileSync(file, "utf8")
   return [
     ...[...sitemap.matchAll(/<loc>https?:\/\/[^/]+(\/[^<]*)<\/loc>/g)]
       .map((m) => m[1])
@@ -217,93 +249,119 @@ export async function everyPage({
     theme?: "light" | "dark",
   ) => Promise<string[]>
 }): Promise<number> {
-  const queue = pagesIn(dist)
+  // The sitemap first: without it there is nothing to hold the run to, and a
+  // dist folder that is not there at all is the usual case of a site not
+  // built.
   const expected = expectedPages(dist)
+  if (!expected) {
+    console.error(
+      `  - ${dist} has no sitemap-0.xml. Has the documentation been built? The check has not looked at anything.`,
+    )
+    return 2
+  }
+  const queue = pagesIn(dist)
   const missing = expected.filter((p) => !queue.includes(p))
+  // A page the sitemap does not list is named too, not only counted.
+  const extra = queue.filter((p) => !expected.includes(p))
   const server = serve(dist)
-  const browser = await chromium.launch()
   const findings: string[] = []
   const unanswered: string[] = []
   let checked = 0
   const runs = themes ?? [undefined]
-  await Promise.all(
-    runs.map(async (theme) => {
-      const work = [...queue]
-      /*
-       * One context per theme, shared by its pages, not one per page. A
-       * context has its own cache, and with one each the CSS and the scripts
-       * were parsed again for every page: CPU time went from 64 to 202
-       * seconds in check-accessibility. Starlight writes the theme to
-       * `localStorage`, which a context shares, so a context never sees more
-       * than one theme.
-       */
-      const context = await browser.newContext({ viewport, colorScheme: theme })
-      await Promise.all(
-        Array.from({ length: parallel }, async () => {
-          const page = await context.newPage()
-          let current = "(no page yet)"
-          listen(page, findings, () => current)
-          for (let path = work.shift(); path; path = work.shift()) {
-            current = theme ? `${path} (${theme})` : path
-            /*
-             * The scheme is set BEFORE the navigation, so the page itself
-             * works its way to the theme.
-             *
-             * Starlight sets `data-theme` itself, from `localStorage` and
-             * otherwise from `prefers-color-scheme`, while the page loads.
-             * Set only afterwards, the two raced: the link colour on
-             * `/tailwind/` landed on the light value in half the loads, and
-             * the accessibility check failed at random on contrast.
-             */
-            if (theme) await page.emulateMedia({ colorScheme: theme })
-            /*
-             * The status code must be read. `goto` does not throw on 404, and
-             * a page that was not served would have counted as visited: axe
-             * finds nothing on a line of plain text. The 404 page answers 404
-             * by its nature.
-             */
-            const response = await page.goto(
-              `http://127.0.0.1:${server.port}${path}`,
-              { waitUntil: "networkidle" },
-            )
-            const wanted = path === "/404.html" ? [200, 404] : [200]
-            if (!wanted.includes(response?.status() ?? 0)) {
-              unanswered.push(
-                `${current} answered ${response?.status() ?? "nothing"}`,
-              )
-              continue
-            }
-            if (theme) {
+  let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined
+  try {
+    // Launched inside the try, so a browser that does not start still stops
+    // the server.
+    browser = await chromium.launch()
+    const launched = browser
+    await Promise.all(
+      runs.map(async (theme) => {
+        const work = [...queue]
+        /*
+         * One context per theme, shared by its pages, not one per page. A
+         * context has its own cache, and with one each the CSS and the scripts
+         * were parsed again for every page: CPU time went from 64 to 202
+         * seconds in check-accessibility. Starlight writes the theme to
+         * `localStorage`, which a context shares, so a context never sees more
+         * than one theme.
+         *
+         * The context's `colorScheme` sets the scheme BEFORE every navigation,
+         * so the page itself works its way to the theme. Starlight sets
+         * `data-theme` from `localStorage` and otherwise from
+         * `prefers-color-scheme` while the page loads; set only afterwards,
+         * the two raced, and the link colour on `/tailwind/` landed on the
+         * light value in half the loads.
+         */
+        const context = await launched.newContext({
+          viewport,
+          colorScheme: theme,
+        })
+        await Promise.all(
+          Array.from({ length: parallel }, async () => {
+            const page = await context.newPage()
+            let current = "(no page yet)"
+            listen(page, findings, () => current)
+            for (let path = work.shift(); path; path = work.shift()) {
+              current = theme ? `${path} (${theme})` : path
               /*
-               * Transitions are switched off BEFORE the theme is set, not
-               * after. A transition already running does not stop because
-               * `transition` is set to `none`, it stays where it was, and axe
-               * read the link colour on `/tailwind/` at nine different values
-               * in forty loads. With the rule first, no transition starts.
-               * Then `data-theme` is set as a safeguard.
+               * The status code must be read. `goto` does not throw on 404, and
+               * a page that was not served would have counted as visited: axe
+               * finds nothing on a line of plain text. The 404 page answers 404
+               * by its nature.
                */
-              await page.addStyleTag({
-                content: `*, *::before, *::after {
+              try {
+                const response = await page.goto(
+                  `http://127.0.0.1:${server.port}${path}`,
+                  { waitUntil: "networkidle" },
+                )
+                const wanted = path === "/404.html" ? [200, 404] : [200]
+                if (!wanted.includes(response?.status() ?? 0)) {
+                  unanswered.push(
+                    `${current} answered ${response?.status() ?? "nothing"}`,
+                  )
+                  continue
+                }
+                if (theme) {
+                  /*
+                   * Transitions are switched off BEFORE the theme is set, not
+                   * after. A transition already running does not stop because
+                   * `transition` is set to `none`, it stays where it was, and axe
+                   * read the link colour on `/tailwind/` at nine different values
+                   * in forty loads. With the rule first, no transition starts.
+                   * Then `data-theme` is set as a safeguard.
+                   */
+                  await page.addStyleTag({
+                    content: `*, *::before, *::after {
                   transition: none !important;
                   animation: none !important;
                 }`,
-              })
-              await page.evaluate(
-                (t) => document.documentElement.setAttribute("data-theme", t),
-                theme,
-              )
+                  })
+                  await page.evaluate(
+                    (t) =>
+                      document.documentElement.setAttribute("data-theme", t),
+                    theme,
+                  )
+                }
+                for (const f of await check(page, path, theme))
+                  findings.push(`${current}: ${f}`)
+              } catch (error) {
+                // A navigation that timed out or a check that threw: this page
+                // was not checked, which makes the run incomplete, and the
+                // other pages go on.
+                unanswered.push(`${current} could not be checked: ${error}`)
+                continue
+              }
+              // Counted last, from what was checked.
+              checked += 1
             }
-            for (const f of await check(page, path, theme))
-              findings.push(`${current}: ${f}`)
-            // Counted last, from what was checked.
-            checked += 1
-          }
-        }),
-      )
-    }),
-  )
-  await browser.close()
-  server.stop(true)
+          }),
+        )
+      }),
+    )
+  } finally {
+    await browser?.close()
+    server.stop(true)
+  }
 
   // Sorted, since the pages finish in no fixed order, so two runs of the
   // same failure read the same.
@@ -311,6 +369,8 @@ export async function everyPage({
   for (const u of unanswered.sort()) console.error(`  - ${u}`)
   for (const m of missing)
     console.error(`  - ${m} is in the sitemap, but not in the site`)
+  for (const e of extra)
+    console.error(`  - ${e} is in the site, but not in the sitemap`)
   const views = expected.length * runs.length
   console.log(
     `Checked ${checked} page views, where the sitemap and the 404 page make ${expected.length} pages${themes ? ` in ${themes.length} themes` : ""}.`,
@@ -319,6 +379,7 @@ export async function everyPage({
     checked === 0 ||
     checked !== views ||
     missing.length > 0 ||
+    extra.length > 0 ||
     unanswered.length > 0
   )
     return 2
@@ -348,9 +409,12 @@ export function readCount(
  * answers are written out.
  */
 export async function selfTest(): Promise<string[]> {
-  const { mkdirSync, mkdtempSync, writeFileSync } = await import("node:fs")
-  const { tmpdir } = await import("node:os")
-  const { join } = await import("node:path")
+  const made: string[] = []
+  const temporary = (prefix: string) => {
+    const root = mkdtempSync(join(tmpdir(), prefix))
+    made.push(root)
+    return root
+  }
   const broken: string[] = []
   const expect = (name: string, actual: unknown, wanted: unknown) => {
     if (JSON.stringify(actual) !== JSON.stringify(wanted))
@@ -358,166 +422,236 @@ export async function selfTest(): Promise<string[]> {
         `${name}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(wanted)}`,
       )
   }
-  const dist = mkdtempSync(join(tmpdir(), "lotek-site-"))
-  writeFileSync(join(dist, "index.html"), "<!doctype html><title>a</title>")
-  const page = (name: string, body: string) => {
-    mkdirSync(join(dist, name), { recursive: true })
-    writeFileSync(
-      join(dist, name, "index.html"),
-      `<!doctype html><title>${name}</title>${body}`,
-    )
-  }
-  page("warns", "<script>console.warn('the markup is broken')</script>")
-  page("throws", "<script>throw new Error('the script is broken')</script>")
-
-  {
-    const s = await site({ dist })
-    await s.open("/missing/")
-    expect(
-      "a page that does not answer 200 makes the run incomplete",
-      await s.close(),
-      2,
-    )
-  }
-
-  {
-    const s = await site({ dist })
-    await s.open("/warns/")
-    expect("a page that warns in the console is a finding", await s.close(), 1)
-  }
-
-  {
-    const s = await site({ dist })
-    await s.open("/throws/")
-    expect("an uncaught error on a page is a finding", await s.close(), 1)
-  }
-
-  const refused = (value: string) => {
-    try {
-      readCount("LOTEK_SITE_TEST", 2, { LOTEK_SITE_TEST: value })
-      return "read"
-    } catch (error) {
-      return String(error)
+  try {
+    const dist = temporary("lotek-site-")
+    writeFileSync(join(dist, "index.html"), "<!doctype html><title>a</title>")
+    const page = (name: string, body: string) => {
+      mkdirSync(join(dist, name), { recursive: true })
+      writeFileSync(
+        join(dist, name, "index.html"),
+        `<!doctype html><title>${name}</title>${body}`,
+      )
     }
-  }
-  expect(
-    "a count from the environment is a whole number above zero, or the run stops",
-    [
-      readCount("LOTEK_SITE_TEST", 2, {}),
-      readCount("LOTEK_SITE_TEST", 2, { LOTEK_SITE_TEST: "5" }),
-      refused("0"),
-      refused("-1"),
-      refused("abc"),
-      refused("2.5"),
-    ],
-    [
-      2,
-      5,
-      'Error: LOTEK_SITE_TEST is "0": write a whole number above zero',
-      'Error: LOTEK_SITE_TEST is "-1": write a whole number above zero',
-      'Error: LOTEK_SITE_TEST is "abc": write a whole number above zero',
-      'Error: LOTEK_SITE_TEST is "2.5": write a whole number above zero',
-    ],
-  )
+    page("warns", "<script>console.warn('the markup is broken')</script>")
+    page("throws", "<script>throw new Error('the script is broken')</script>")
 
-  {
-    const s = await site({ dist })
+    {
+      const s = await site({ dist, pages: 1 })
+      await s.open("/missing/")
+      expect(
+        "a page that does not answer 200 makes the run incomplete",
+        await s.close(),
+        2,
+      )
+    }
+
+    {
+      const s = await site({ dist, pages: 1 })
+      await s.open("/warns/")
+      expect(
+        "a page that warns in the console is a finding",
+        await s.close(),
+        1,
+      )
+    }
+
+    {
+      const s = await site({ dist, pages: 1 })
+      await s.open("/throws/")
+      expect("an uncaught error on a page is a finding", await s.close(), 1)
+    }
+
+    const refused = (value: string) => {
+      try {
+        readCount("LOTEK_SITE_TEST", 2, { LOTEK_SITE_TEST: value })
+        return "read"
+      } catch (error) {
+        return String(error)
+      }
+    }
     expect(
-      "a check that stops on a page that did not answer is still an incomplete run, not a crash",
-      await s.run(async () => {
-        await s.open("/missing/")
-        throw new TypeError(
-          "Cannot read properties of undefined (reading 'click')",
+      "a count from the environment is a whole number above zero, or the run stops",
+      [
+        readCount("LOTEK_SITE_TEST", 2, {}),
+        readCount("LOTEK_SITE_TEST", 2, { LOTEK_SITE_TEST: "5" }),
+        refused("0"),
+        refused("-1"),
+        refused("abc"),
+        refused("2.5"),
+      ],
+      [
+        2,
+        5,
+        'Error: LOTEK_SITE_TEST is "0": write a whole number above zero',
+        'Error: LOTEK_SITE_TEST is "-1": write a whole number above zero',
+        'Error: LOTEK_SITE_TEST is "abc": write a whole number above zero',
+        'Error: LOTEK_SITE_TEST is "2.5": write a whole number above zero',
+      ],
+    )
+
+    {
+      const s = await site({ dist, pages: 1 })
+      expect(
+        "a check that stops on a page that did not answer is still an incomplete run, not a crash",
+        await s.run(async () => {
+          await s.open("/missing/")
+          throw new TypeError(
+            "Cannot read properties of undefined (reading 'click')",
+          )
+        }),
+        2,
+      )
+    }
+
+    // A small site with a sitemap, as Astro writes it, and a 404 page.
+    const small = (sitemap: string[], pages: Record<string, string>) => {
+      const root = temporary("lotek-every-")
+      for (const [path, body] of Object.entries(pages)) {
+        mkdirSync(join(root, path), { recursive: true })
+        writeFileSync(
+          join(root, path, path.endsWith(".html") ? "" : "index.html"),
+          `<!doctype html><title>${path}</title>${body}`,
         )
+      }
+      writeFileSync(join(root, "404.html"), "<!doctype html><title>404</title>")
+      writeFileSync(
+        join(root, "sitemap-0.xml"),
+        `<urlset>${sitemap.map((p) => `<url><loc>https://lo-tek.sobernetics.no${p}</loc></url>`).join("")}</urlset>`,
+      )
+      return root
+    }
+    const quiet = small(["/", "/a/"], { "": "", a: "" })
+    expect(
+      "a site where every page is checked and nothing is found",
+      await everyPage({ dist: quiet, parallel: 1, check: async () => [] }),
+      0,
+    )
+    expect(
+      "a finding from the script's check",
+      await everyPage({
+        dist: quiet,
+        parallel: 1,
+        check: async (_page, path) => (path === "/a/" ? ["too wide"] : []),
+      }),
+      1,
+    )
+    expect(
+      "a page the sitemap has and the site does not makes the run incomplete",
+      await everyPage({
+        dist: small(["/", "/a/", "/gone/"], { "": "", a: "" }),
+        parallel: 1,
+        check: async () => [],
       }),
       2,
     )
-  }
 
-  // A small site with a sitemap, as Astro writes it, and a 404 page.
-  const small = (sitemap: string[], pages: Record<string, string>) => {
-    const root = mkdtempSync(join(tmpdir(), "lotek-every-"))
-    for (const [path, body] of Object.entries(pages)) {
-      mkdirSync(join(root, path), { recursive: true })
-      writeFileSync(
-        join(root, path, path.endsWith(".html") ? "" : "index.html"),
-        `<!doctype html><title>${path}</title>${body}`,
+    let after = 0
+    expect(
+      "a check that throws on one page makes the run incomplete, and the other pages are still checked",
+      await everyPage({
+        dist: quiet,
+        parallel: 1,
+        check: async (_page, path) => {
+          if (path === "/") throw new Error("the page crashed")
+          after += 1
+          return []
+        },
+      }),
+      2,
+    )
+    expect("the pages after the one that threw", after, 2)
+    expect(
+      "a page the site has and the sitemap does not makes the run incomplete",
+      await everyPage({
+        dist: small(["/"], { "": "", stray: "" }),
+        parallel: 1,
+        check: async () => [],
+      }),
+      2,
+    )
+    expect(
+      "a dist folder that does not exist is an incomplete run, not a crash",
+      await everyPage({
+        dist: join(tmpdir(), "lotek-no-such-site"),
+        parallel: 1,
+        check: async () => [],
+      }),
+      2,
+    )
+    expect(
+      "a site that has not been built is an incomplete run, not a crash",
+      await everyPage({
+        dist: temporary("lotek-empty-"),
+        parallel: 1,
+        check: async () => [],
+      }),
+      2,
+    )
+    {
+      const s = await site({ dist, pages: 1 })
+      expect(
+        "a step that throws without a page failing still makes the run incomplete",
+        await s.run(async () => {
+          await s.open("/")
+          throw new Error("a step failed")
+        }),
+        2,
       )
     }
-    writeFileSync(join(root, "404.html"), "<!doctype html><title>404</title>")
-    writeFileSync(
-      join(root, "sitemap-0.xml"),
-      `<urlset>${sitemap.map((p) => `<url><loc>https://lo-tek.sobernetics.no${p}</loc></url>`).join("")}</urlset>`,
-    )
-    return root
-  }
-  const quiet = small(["/", "/a/"], { "": "", a: "" })
-  expect(
-    "a site where every page is checked and nothing is found",
-    await everyPage({ dist: quiet, parallel: 1, check: async () => [] }),
-    0,
-  )
-  expect(
-    "a finding from the script's check",
-    await everyPage({
-      dist: quiet,
-      parallel: 1,
-      check: async (_page, path) => (path === "/a/" ? ["too wide"] : []),
-    }),
-    1,
-  )
-  expect(
-    "a page the sitemap has and the site does not makes the run incomplete",
-    await everyPage({
-      dist: small(["/", "/a/", "/gone/"], { "": "", a: "" }),
-      parallel: 1,
-      check: async () => [],
-    }),
-    2,
-  )
+    {
+      const s = await site({ dist, pages: 2 })
+      await s.open("/")
+      expect(
+        "a script that opens fewer pages than it says makes the run incomplete",
+        await s.close(),
+        2,
+      )
+    }
 
-  // The page notes the scheme it had while it loaded, as Starlight does when
-  // it picks the theme.
-  const themed = small(["/"], {
-    "": "<script>document.title = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'</script>",
-  })
-  const seen: string[] = []
-  expect(
-    "each theme is set before the navigation, and the page is checked once per theme",
+    // The page notes the scheme it had while it loaded, as Starlight does when
+    // it picks the theme.
+    const themed = small(["/"], {
+      "": "<script>document.title = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'</script>",
+    })
+    const seen: string[] = []
+    expect(
+      "each theme is set before the navigation, and the page is checked once per theme",
+      await everyPage({
+        dist: themed,
+        parallel: 1,
+        themes: ["light", "dark"],
+        check: async (page, path) => {
+          if (path === "/")
+            seen.push(
+              `${await page.title()} ${await page.evaluate(() => document.documentElement.dataset.theme)}`,
+            )
+          return []
+        },
+      }),
+      0,
+    )
+    const contexts = new Set<unknown>()
     await everyPage({
-      dist: themed,
-      parallel: 1,
+      dist: small(["/", "/a/", "/b/"], { "": "", a: "", b: "" }),
+      parallel: 3,
       themes: ["light", "dark"],
-      check: async (page, path) => {
-        if (path === "/")
-          seen.push(
-            `${await page.title()} ${await page.evaluate(() => document.documentElement.dataset.theme)}`,
-          )
+      check: async (page) => {
+        contexts.add(page.context())
         return []
       },
-    }),
-    0,
-  )
-  const contexts = new Set<unknown>()
-  await everyPage({
-    dist: small(["/", "/a/", "/b/"], { "": "", a: "", b: "" }),
-    parallel: 3,
-    themes: ["light", "dark"],
-    check: async (page) => {
-      contexts.add(page.context())
-      return []
-    },
-  })
-  expect(
-    "the pages of one theme share a context, and its cache: one context per page parsed the CSS again for every page",
-    contexts.size,
-    2,
-  )
-  expect("what each theme's check saw", seen.sort(), [
-    "dark dark",
-    "light light",
-  ])
-
+    })
+    expect(
+      "the pages of one theme share a context, and its cache: one context per page parsed the CSS again for every page",
+      contexts.size,
+      2,
+    )
+    expect("what each theme's check saw", seen.sort(), [
+      "dark dark",
+      "light light",
+    ])
+  } finally {
+    for (const root of made) rmSync(root, { recursive: true, force: true })
+  }
   return broken
 }
 

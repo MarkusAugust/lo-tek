@@ -24,7 +24,8 @@ import { site } from "./site"
  * either that an example is wrong or that the warning fires on markup that
  * is fine, and both must be caught.
  */
-const s = await site()
+// The ten components with a demo below, and the select.
+const s = await site({ pages: 11 })
 const page = s.page
 let current = ""
 
