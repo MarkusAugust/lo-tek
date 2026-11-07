@@ -102,6 +102,11 @@ export interface Site {
   fail(message: string): void
   /** Writes the report, closes everything, and gives the exit code. */
   close(): Promise<number>
+  /**
+   * Runs the script's own steps, takes an error in them as a finding, and
+   * closes: the exit code is the one `close` gives.
+   */
+  run(body: () => Promise<void>): Promise<number>
 }
 
 export async function site({
@@ -117,7 +122,7 @@ export async function site({
   let opened = 0
   let current = "(no page yet)"
   listen(page, findings, () => current)
-  return {
+  const self: Site = {
     page,
     async open(path) {
       current = path
@@ -133,6 +138,16 @@ export async function site({
     fail(message) {
       findings.push(message)
     },
+    async run(body) {
+      try {
+        await body()
+      } catch (error) {
+        // A step that throws, often on a page that did not answer, is a
+        // finding, and the code still says whether the run saw everything.
+        findings.push(`${current}: the check stopped: ${error}`)
+      }
+      return self.close()
+    },
     async close() {
       await browser.close()
       server.stop(true)
@@ -145,6 +160,7 @@ export async function site({
       return findings.length > 0 ? 1 : 0
     },
   }
+  return self
 }
 
 /**
@@ -403,6 +419,20 @@ export async function selfTest(): Promise<string[]> {
       'Error: LOTEK_SITE_TEST is "2.5": write a whole number above zero',
     ],
   )
+
+  {
+    const s = await site({ dist })
+    expect(
+      "a check that stops on a page that did not answer is still an incomplete run, not a crash",
+      await s.run(async () => {
+        await s.open("/missing/")
+        throw new TypeError(
+          "Cannot read properties of undefined (reading 'click')",
+        )
+      }),
+      2,
+    )
+  }
 
   // A small site with a sitemap, as Astro writes it, and a 404 page.
   const small = (sitemap: string[], pages: Record<string, string>) => {
