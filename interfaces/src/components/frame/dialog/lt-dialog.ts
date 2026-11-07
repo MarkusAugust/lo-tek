@@ -3,11 +3,13 @@ import {
   defineElement,
   HostElement,
   isServerControlled,
+  restoreModalOpen,
   SERVER_CONTROLLED,
   setAttr,
   setFlag,
   uniqueId,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 import {
   DIALOG_BODY_CLASS,
@@ -89,7 +91,23 @@ const upgradeChecked = new WeakSet<HTMLDialogElement>()
 export class LtDialog extends HostElement {
   static observedAttributes = ["open", SERVER_CONTROLLED] as const
 
-  private observer?: MutationObserver
+  private readonly watch = watcher(
+    (records) => {
+      const swapped = records.some(
+        (record) => record.type === "childList" && record.target === this,
+      )
+      if (swapped) this.sync()
+      else this.rewire()
+    },
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      // `aria-label` too: removed, the dialog is named after its title
+      // again, and without it here the dialog was left without a name.
+      attributeFilter: ["class", "id", "aria-labelledby", "aria-label"],
+    },
+  )
   /**
    * A separate observer for `open` on the `<dialog>` itself.
    *
@@ -100,7 +118,10 @@ export class LtDialog extends HostElement {
    * `close` was handled. This one does only one thing: it puts the attribute
    * back on a dialog that is still in the top layer.
    */
-  private openObserver?: MutationObserver
+  /** The `<dialog>`'s `open` alone, started again on a dialog the server replaced. */
+  private readonly openWatch = watcher(() => this.repairOpen(), {
+    attributeFilter: ["open"],
+  })
   private dialogElement?: HTMLDialogElement
   /**
    * What the component last reported, so it reports only when the state
@@ -148,29 +169,13 @@ export class LtDialog extends HostElement {
      * and opened it again before the close was handled. Every write compares
      * first, or the observer would trigger itself.
      */
-    this.observer = new MutationObserver((records) => {
-      const swapped = records.some(
-        (record) => record.type === "childList" && record.target === this,
-      )
-      if (swapped) this.sync()
-      else this.rewire()
-    })
-    this.observer.observe(this, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      // `aria-label` too: removed, the dialog is named after its title
-      // again, and without it here the dialog was left without a name.
-      attributeFilter: ["class", "id", "aria-labelledby", "aria-label"],
-    })
+    this.watch.start(this)
     this.sync()
   }
 
   disconnectedCallback(): void {
-    this.observer?.disconnect()
-    this.observer = undefined
-    this.openObserver?.disconnect()
-    this.openObserver = undefined
+    this.watch.stop()
+    this.openWatch.stop()
     this.dialogElement?.removeEventListener("close", this.handleClose)
     this.dialogElement = undefined
   }
@@ -316,14 +321,10 @@ export class LtDialog extends HostElement {
    */
   private repairOpen(): void {
     const dialog = this.dialogElement
-    if (!dialog?.isConnected || !dialog.matches(":modal") || dialog.open) {
-      return
-    }
-
     // The attribute must come back either way: without it `close()` does
     // nothing, and the dialog stayed in the top layer, invisible, with the
     // rest of the page inert.
-    setAttr(dialog, "open", "")
+    if (!dialog || !restoreModalOpen(dialog)) return
     if (!isServerControlled(this)) return
 
     /*
@@ -370,8 +371,7 @@ export class LtDialog extends HostElement {
       // listener stayed attached to a detached node for as long as the host
       // lived.
       if (!dialog) {
-        this.openObserver?.disconnect()
-        this.openObserver = undefined
+        this.openWatch.stop()
         this.dialogElement?.removeEventListener("close", this.handleClose)
         this.dialogElement = undefined
       }
@@ -384,7 +384,8 @@ export class LtDialog extends HostElement {
         // If the component is detached, a morph is building the server's
         // version in a separate tree, and there is nothing to report. An
         // empty element is a region the server has not filled yet.
-        () => this.childElementCount > 0 && this.dialog === null,
+        () => this.dialog === null,
+        { silentWhenEmpty: true },
       )
       return
     }
@@ -397,9 +398,7 @@ export class LtDialog extends HostElement {
       this.dialogElement = dialog
       dialog.addEventListener("close", this.handleClose)
 
-      this.openObserver?.disconnect()
-      this.openObserver = new MutationObserver(() => this.repairOpen())
-      this.openObserver.observe(dialog, { attributeFilter: ["open"] })
+      this.openWatch.start(dialog)
     }
 
     this.repairOpen()

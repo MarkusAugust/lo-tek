@@ -3,10 +3,12 @@ import {
   defineElement,
   HostElement,
   languageOf,
+  restoreModalOpen,
   setAttr,
   setText,
   uniqueId,
   warnAboutMarkup,
+  watcher,
   whenUpgraded,
 } from "../../host-element.js"
 import {
@@ -229,7 +231,33 @@ export class LtSessionTimeout extends HostElement {
    */
   private shownDialog?: HTMLDialogElement
   /** Watches for `open` disappearing from a dialog in the top layer. See `repairOpen()`. */
-  private openObserver?: MutationObserver
+  private readonly openWatch = watcher(
+    () => {
+      this.repairOpen()
+      /*
+       * A morph of the open warning takes the role and the name the component
+       * wrote, since the renderer did not send them, and the screen reader had
+       * a modal dialog without a name until the warning closed. They are
+       * written again while it shows. Such a morph also removes `open`, which
+       * is enough to get here; the wiring's own attributes are watched for a
+       * morph that leaves `open` alone.
+       */
+      const dialog = this.dialog
+      if (dialog?.matches(":modal")) this.wire(dialog)
+    },
+    {
+      subtree: true,
+      attributes: true,
+      attributeFilter: [
+        "open",
+        "role",
+        "class",
+        "id",
+        "aria-labelledby",
+        "aria-label",
+      ],
+    },
+  )
 
   /** Seconds without activity before the warning appears. */
   get warnAt(): number {
@@ -270,31 +298,7 @@ export class LtSessionTimeout extends HostElement {
      * dialog, without the component having to hold on to a particular node.
      */
     this.addEventListener("close", this.handleClose, true)
-    this.openObserver = new MutationObserver(() => {
-      this.repairOpen()
-      /*
-       * A morph of the open warning takes the role and the name the component
-       * wrote, since the renderer did not send them, and the screen reader had
-       * a modal dialog without a name until the warning closed. They are
-       * written again while it shows. Such a morph also removes `open`, which
-       * is enough to get here; the wiring's own attributes are watched for a
-       * morph that leaves `open` alone.
-       */
-      const dialog = this.dialog
-      if (dialog?.matches(":modal")) this.wire(dialog)
-    })
-    this.openObserver.observe(this, {
-      subtree: true,
-      attributes: true,
-      attributeFilter: [
-        "open",
-        "role",
-        "class",
-        "id",
-        "aria-labelledby",
-        "aria-label",
-      ],
-    })
+    this.openWatch.start(this)
     this.ticker = window.setInterval(() => this.tick(), 1000)
     this.validate()
 
@@ -321,8 +325,7 @@ export class LtSessionTimeout extends HostElement {
       )
     }
     this.removeEventListener("close", this.handleClose, true)
-    this.openObserver?.disconnect()
-    this.openObserver = undefined
+    this.openWatch.stop()
     if (this.ticker) window.clearInterval(this.ticker)
     this.ticker = undefined
   }
@@ -380,7 +383,8 @@ export class LtSessionTimeout extends HostElement {
       this,
       "found no <dialog>. The warning cannot be shown, and the " +
         "session expires without warning.",
-      () => this.childElementCount > 0 && this.dialog === null,
+      () => this.dialog === null,
+      { silentWhenEmpty: true },
     )
     this.validateParts()
   }
@@ -446,9 +450,7 @@ export class LtSessionTimeout extends HostElement {
    * The same rule as in `<lt-dialog>`.
    */
   private repairOpen(): void {
-    const dialog = this.dialog
-    if (!dialog?.matches(":modal") || dialog.open) return
-    setAttr(dialog, "open", "")
+    restoreModalOpen(this.dialog)
   }
 
   private registerActivity = (): void => {
