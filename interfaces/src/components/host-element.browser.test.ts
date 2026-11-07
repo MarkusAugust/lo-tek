@@ -19,7 +19,7 @@ describe("ownership", () => {
   it("takes what stands on a node it never wrote as the server's word", () => {
     const own = ownership()
     const control = node(`<input aria-invalid="true">`)
-    expect(own.knows(control)).toBe(false)
+    expect(own.knows(control, "aria-invalid")).toBe(false)
     expect(own.serverWord(control, "aria-invalid")).toBe("true")
   })
 
@@ -28,7 +28,7 @@ describe("ownership", () => {
     const control = node(`<input>`)
     own.write(control, "aria-invalid", "true", { server: null, mark: true })
     expect(control.getAttribute("aria-invalid")).toBe("true")
-    expect(own.knows(control)).toBe(true)
+    expect(own.knows(control, "aria-invalid")).toBe(true)
     expect(own.serverWord(control, "aria-invalid")).toBe(null)
   })
 
@@ -114,6 +114,30 @@ describe("ownership", () => {
     })
     expect(control.hasAttribute(WRITTEN)).toBe(false)
     expect(own.serverWord(control, "disabled", { flag: true })).toBe("")
+  })
+
+  it("knows an attribute only once it has written that attribute", () => {
+    const own = ownership()
+    const control = node(`<input>`)
+    own.write(control, "data-state", "invalid")
+    expect(own.knows(control, "aria-invalid")).toBe(false)
+    expect(own.knows(control, "data-state")).toBe(true)
+  })
+
+  it("keeps no server's word for a write that gave none, so a later read sees what stands there", () => {
+    const own = ownership()
+    const label = node(`<label></label>`)
+    own.write(label, "for", "codename")
+    label.setAttribute("for", "codename")
+    expect(own.written(label, "for")).toBe("codename")
+    expect(own.serverWord(label, "for")).toBe("codename")
+  })
+
+  it("marks only against a server's word, since the mark says the value differs from it", () => {
+    const own = ownership()
+    const control = node(`<input>`)
+    own.write(control, "aria-invalid", "true", { mark: true })
+    expect(control.hasAttribute(WRITTEN)).toBe(false)
   })
 })
 

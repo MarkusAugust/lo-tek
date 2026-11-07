@@ -278,8 +278,8 @@ export function stillMarked(element: Element, name: string): boolean {
  * gone for good takes its memory with it.
  */
 export interface Ownership {
-  /** Whether the component has written on `element` before. */
-  knows(element: Element): boolean
+  /** Whether the component has written `name` on `element` before. */
+  knows(element: Element, name: string): boolean
   /**
    * The server's word for `name` on `element`: what stands there when the
    * component has never written it, or when it differs from what the
@@ -305,8 +305,14 @@ export interface Ownership {
     element: Element,
     name: string,
     value: string | null,
-    options: {
-      server: string | null
+    options?: {
+      /**
+       * The server's word the value was written against. Left out for an
+       * attribute the component never reads back as the server's, such as
+       * `for` written from the control's id: then nothing is remembered as
+       * the server's, and a later read sees what stands there.
+       */
+      server?: string | null
       mark?: boolean
       flag?: boolean
       presence?: boolean
@@ -323,7 +329,8 @@ export function ownership(): Ownership {
       string,
       {
         written: string | null
-        server: string | null
+        /** `undefined` when the write gave no server's word. */
+        server: string | null | undefined
         marked: boolean
         /** Compared by whether it is there, as the write said. */
         presence: boolean
@@ -337,7 +344,7 @@ export function ownership(): Ownership {
       ? byPresence(element.getAttribute(name))
       : element.getAttribute(name)
   return {
-    knows: (element) => memory.has(element),
+    knows: (element, name) => Boolean(memory.get(element)?.has(name)),
     serverWord(element, name, { flag, presence } = {}) {
       const known = memory.get(element)?.get(name)
       // The comparison the write used, so a read that forgets the option
@@ -347,7 +354,7 @@ export function ownership(): Ownership {
         name,
         known?.presence ?? Boolean(flag || presence),
       )
-      if (!known) return now
+      if (!known || known.server === undefined) return now
       // The server's when the value is another, or, for an attribute written
       // with the mark, when a morph from the server has been there since
       // (`WRITTEN`). Without the mark, only a value that differs from the
@@ -357,15 +364,23 @@ export function ownership(): Ownership {
         ? now
         : known.server
     },
-    write(element, name, value, { server, mark, flag, presence }) {
+    write(element, name, value, { server, mark, flag, presence } = {}) {
       if (flag) setFlag(element, name, value !== null)
       else setAttr(element, name, value)
       const compared = Boolean(flag || presence)
       // Both sides in the same form, so `disabled="disabled"` from the
       // server and the component's `disabled` are the same word.
       const written = compared ? byPresence(value) : value
-      const said = compared ? byPresence(server) : server
-      if (mark) markWritten(element, name, written !== said)
+      const said =
+        server === undefined
+          ? undefined
+          : compared
+            ? byPresence(server)
+            : server
+      // The mark says the value differs from the server's word, so without
+      // one there is nothing to mark against.
+      if (mark && said !== undefined)
+        markWritten(element, name, written !== said)
       let attributes = memory.get(element)
       if (!attributes) {
         attributes = new Map()

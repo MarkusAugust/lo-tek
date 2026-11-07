@@ -511,7 +511,8 @@ export class LtField extends HostElement {
     // markup depending on what the host had been through.
     // A control the component has never written on holds only the server's
     // word, and a mark found there was copied into the template.
-    if (!this.own.knows(control)) warnAboutCopiedMark(this, control)
+    if (!this.own.knows(control, "aria-invalid"))
+      warnAboutCopiedMark(this, control)
     const server = {
       invalid: this.own.serverWord(control, "aria-invalid"),
       describedBy: this.own.serverWord(control, "aria-describedby"),
@@ -597,7 +598,7 @@ export class LtField extends HostElement {
       // the wiring is implicit.
       if (control.id && !label.contains(control)) {
         this.noteFor(label, control.id)
-        this.own.write(label, "for", control.id, { server: null })
+        this.own.write(label, "for", control.id)
       }
       this.own.write(
         label,
@@ -663,13 +664,13 @@ export class LtField extends HostElement {
 
     const state = computed.control["data-state"]
     if (state && isSystemField && !control.hasAttribute("data-state")) {
-      this.own.write(control, "data-state", state, { server: null })
+      this.own.write(control, "data-state", state)
     } else if (
       !state &&
       this.own.written(control, "data-state") != null &&
       control.getAttribute("data-state") === "invalid"
     ) {
-      this.own.write(control, "data-state", null, { server: null })
+      this.own.write(control, "data-state", null)
     }
   }
 }
