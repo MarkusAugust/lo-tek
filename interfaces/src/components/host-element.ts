@@ -415,9 +415,17 @@ export function ownership(): Ownership {
 export function watcher(
   callback: (records: MutationRecord[]) => void,
   init: MutationObserverInit,
-): { start(target: Node): void; stop(): void } {
+): {
+  start(target: Node): void
+  stop(): void
+  /** Whether it was started and not stopped since. */
+  readonly watching: boolean
+} {
   let observer: MutationObserver | undefined
   return {
+    get watching() {
+      return observer !== undefined
+    },
     start(target) {
       observer?.disconnect()
       observer = new MutationObserver(callback)
@@ -564,14 +572,14 @@ export function derivedParts<T extends Element>(
   host: Element,
   selector: string,
   role: string,
-  roledByHost: WeakSet<Element>,
+  roledByHost: Pick<Ownership, "written">,
 ): T[] {
   const own = [...host.querySelectorAll<T>(selector)].filter(
     (part) => part.closest(host.localName) === host,
   )
   const bare = own
     .filter((part) => part.getAttribute("role") === role)
-    .every((part) => roledByHost.has(part))
+    .every((part) => roledByHost.written(part, "role") === role)
   return bare ? own : own.filter((part) => part.getAttribute("role") === role)
 }
 

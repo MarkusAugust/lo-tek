@@ -4,6 +4,7 @@ import {
   HostElement,
   isServerControlled,
   markWritten,
+  ownership,
   SERVER_CONTROLLED,
   setAttr,
   setFlag,
@@ -288,7 +289,7 @@ export class LtTabs extends HostElement {
    * link is a tab, from one where the server wrote the roles, where a link
    * without a role is something else, such as a help link.
    */
-  private readonly roledByMe = new WeakSet<Element>()
+  private readonly roledByMe = ownership()
   private selectedMemory = new WeakMap<Element, Word>()
   private hiddenMemory = new WeakMap<Element, Word>()
   /**
@@ -810,16 +811,14 @@ export class LtTabs extends HostElement {
     const named = new Set<HTMLElement>()
     for (const tab of this.tabs) {
       if (!tab.hasAttribute("role")) {
-        setAttr(tab, "role", "tab")
-        this.roledByMe.add(tab)
+        this.roledByMe.write(tab, "role", "tab")
       }
       const panel = this.panelFor(tab)
       setAttr(tab, "aria-controls", panel?.id ?? linkTarget(tab))
       if (!panel) continue
 
       if (!panel.hasAttribute("role")) {
-        setAttr(panel, "role", "tabpanel")
-        this.roledByMe.add(panel)
+        this.roledByMe.write(panel, "role", "tabpanel")
       }
       if (named.has(panel)) continue
       named.add(panel)

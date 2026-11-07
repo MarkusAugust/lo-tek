@@ -7,12 +7,14 @@ import {
   HostElement,
   isServerControlled,
   languageOf,
+  ownership,
   rememberedId,
   SERVER_CONTROLLED,
   setAttr,
   setFlag,
   setText,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 import {
   SUGGESTION_EMPTY_CLASS,
@@ -119,7 +121,40 @@ export class LtSuggestion extends HostElement {
     ...COUNT_ATTRIBUTES,
   ] as const
 
-  private observer?: MutationObserver
+  private readonly watch = watcher(() => this.sync(), {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: [
+      "hidden",
+      "aria-expanded",
+      "aria-selected",
+      "aria-activedescendant",
+      // The wiring the web component fills in when the markup arrived without it.
+      "role",
+      "id",
+      "for",
+      "aria-controls",
+      "autocomplete",
+      "aria-autocomplete",
+      "class",
+      // The value field's `value` is an attribute, and a morph can write
+      // the server's empty value over the code the user chose.
+      "value",
+      // `form` on the field picks which form the reset belongs to.
+      "form",
+      // A field that becomes `readonly` or `disabled` must close the list.
+      "readonly",
+      "disabled",
+      "aria-disabled",
+      // The list sits in the top layer. A morph that removes `popover`
+      // closes the popover, and the web component sets it back.
+      "popover",
+      // The list's name, from the label.
+      "aria-labelledby",
+      "aria-label",
+    ],
+  })
   private control?: HTMLInputElement
   private list?: HTMLElement
   private empty?: HTMLElement
@@ -128,7 +163,7 @@ export class LtSuggestion extends HostElement {
   /** The ids the web component created, per node, so a patch gets the same ones back. */
   private readonly ids = new WeakMap<Element, string>()
   /** The roles the web component set. See `derivedParts`. */
-  private readonly roledByMe = new WeakSet<Element>()
+  private readonly roledByMe = ownership()
   /** True while the web component dispatches events, so it does not answer itself. */
   private choosing = false
   /**
@@ -155,17 +190,12 @@ export class LtSuggestion extends HostElement {
   private writtenCode?: string
   /** The form listened to for `reset`. Follows the field, which a patch can move. */
   private boundForm?: HTMLFormElement | null
-  /** The `for` the web component wrote on the label. */
-  private readonly forByMe = new WeakMap<Element, string>()
   /**
-   * The name the web component gave the list, per list: `aria-labelledby`
-   * pointing to the label, or `aria-label` with its text. If something else
-   * is there, the server wrote it, and it stays.
+   * What the web component wrote on the label (`for`) and the list (its
+   * name: `aria-labelledby` pointing to the label, or `aria-label` with its
+   * text). Something else there is the server's, and stays.
    */
-  private readonly listNameByMe = new WeakMap<
-    Element,
-    { name: "aria-labelledby" | "aria-label"; value: string }
-  >()
+  private readonly own = ownership()
   /**
    * Labels where the server wrote a `for` pointing to another id. Reported
    * once; the memory is not reset, since the rewritten `for` cannot be told
@@ -214,41 +244,7 @@ export class LtSuggestion extends HostElement {
      * The attributes are included, not just the children. Every write below
      * compares first, or the observer would trigger itself forever.
      */
-    this.observer = new MutationObserver(() => this.sync())
-    this.observer.observe(this, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: [
-        "hidden",
-        "aria-expanded",
-        "aria-selected",
-        "aria-activedescendant",
-        // The wiring the web component fills in when the markup arrived without it.
-        "role",
-        "id",
-        "for",
-        "aria-controls",
-        "autocomplete",
-        "aria-autocomplete",
-        "class",
-        // The value field's `value` is an attribute, and a morph can write
-        // the server's empty value over the code the user chose.
-        "value",
-        // `form` on the field picks which form the reset belongs to.
-        "form",
-        // A field that becomes `readonly` or `disabled` must close the list.
-        "readonly",
-        "disabled",
-        "aria-disabled",
-        // The list sits in the top layer. A morph that removes `popover`
-        // closes the popover, and the web component sets it back.
-        "popover",
-        // The list's name, from the label.
-        "aria-labelledby",
-        "aria-label",
-      ],
-    })
+    this.watch.start(this)
     this.sync()
     window.addEventListener("resize", this.reposition)
     window.addEventListener("scroll", this.reposition, true)
@@ -269,10 +265,10 @@ export class LtSuggestion extends HostElement {
     /*
      * The attribute can come and go while the page is alive, and then the
      * list must be corrected at once rather than on the next keystroke.
-     * `this.observer` signals that the web component is in the document: the
+     * `this.watch.watching` signals that the web component is in the document: the
      * callback also fires during the upgrade, before the children exist.
      */
-    if (name === "prefiltered" && this.observer) {
+    if (name === "prefiltered" && this.watch.watching) {
       /*
        * After the whole update, as the other repairs: a morph sets the
        * attribute before it has replaced the options, and the count was
@@ -281,7 +277,7 @@ export class LtSuggestion extends HostElement {
        * match" to nobody's search.
        */
       queueMicrotask(() => {
-        if (!this.observer) return
+        if (!this.watch.watching) return
         // The count present when the attribute is set is the starting point,
         // and nothing to announce. Without this the first change afterwards
         // was taken as the starting point, and was lost.
@@ -366,13 +362,12 @@ export class LtSuggestion extends HostElement {
    * gets the label's text as `aria-label`, without the field's value.
    */
   private nameList(list: HTMLElement, control: HTMLInputElement): void {
-    const mine = this.listNameByMe.get(list)
     const labelledby = list.getAttribute("aria-labelledby")
     const label = list.getAttribute("aria-label")
     const fromServer =
       (labelledby !== null &&
-        !(mine?.name === "aria-labelledby" && mine.value === labelledby)) ||
-      (label !== null && !(mine?.name === "aria-label" && mine.value === label))
+        this.own.written(list, "aria-labelledby") !== labelledby) ||
+      (label !== null && this.own.written(list, "aria-label") !== label)
     if (fromServer) return
 
     const labelElement =
@@ -389,13 +384,14 @@ export class LtSuggestion extends HostElement {
           text += node.textContent ?? ""
       text = text.replace(/\s+/g, " ").trim()
       if (labelledby !== null) setAttr(list, "aria-labelledby", null)
+      // One name at a time is the component's: writing one forgets the other.
+      this.own.forget(list, "aria-labelledby")
       if (text === "") {
         if (label !== null) setAttr(list, "aria-label", null)
-        this.listNameByMe.delete(list)
+        this.own.forget(list, "aria-label")
         return
       }
-      setAttr(list, "aria-label", text)
-      this.listNameByMe.set(list, { name: "aria-label", value: text })
+      this.own.write(list, "aria-label", text)
       return
     }
 
@@ -407,11 +403,8 @@ export class LtSuggestion extends HostElement {
       )
     }
     if (label !== null) setAttr(list, "aria-label", null)
-    setAttr(list, "aria-labelledby", labelElement.id)
-    this.listNameByMe.set(list, {
-      name: "aria-labelledby",
-      value: labelElement.id,
-    })
+    this.own.forget(list, "aria-label")
+    this.own.write(list, "aria-labelledby", labelElement.id)
   }
 
   /**
@@ -448,12 +441,11 @@ export class LtSuggestion extends HostElement {
         if (
           current !== null &&
           current !== control.id &&
-          current !== this.forByMe.get(label)
+          current !== this.own.written(label, "for")
         ) {
           this.wrongFor.add(label)
         }
-        setAttr(label, "for", control.id)
-        this.forByMe.set(label, control.id)
+        this.own.write(label, "for", control.id)
       }
       warnAboutMarkup(
         this,
@@ -567,8 +559,7 @@ export class LtSuggestion extends HostElement {
     for (const option of this.options) {
       addClass(option, SUGGESTION_OPTION_CLASS)
       if (!option.hasAttribute("role")) {
-        setAttr(option, "role", "option")
-        this.roledByMe.add(option)
+        this.roledByMe.write(option, "role", "option")
       }
       if (!option.id) {
         setAttr(
@@ -697,8 +688,7 @@ export class LtSuggestion extends HostElement {
     window.removeEventListener("resize", this.reposition)
     window.removeEventListener("scroll", this.reposition, true)
     this.removeEventListener("focusout", this.handleFocusOut)
-    this.observer?.disconnect()
-    this.observer = undefined
+    this.watch.stop()
     this.unbind()
   }
 
@@ -859,9 +849,8 @@ export class LtSuggestion extends HostElement {
           "to, and neither filtering nor the arrow keys work.",
         // An empty element is a region the server has not filled yet, and not
         // an error in the markup.
-        () =>
-          this.childElementCount > 0 &&
-          this.querySelector(CONTROL_SELECTOR) === null,
+        () => this.querySelector(CONTROL_SELECTOR) === null,
+        { silentWhenEmpty: true },
       )
       // The field is gone. Firefox sends no `focusout` when the focused node is
       // removed, so the list would otherwise stay open without a field.

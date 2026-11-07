@@ -191,6 +191,16 @@ describe("watcher", () => {
     watch.stop()
     expect(seen).toEqual(["second"])
   })
+
+  it("says whether it is watching, as a component that is connected asks", () => {
+    const watch = watcher(() => {}, { attributes: true })
+    const states = [watch.watching]
+    watch.start(node(`<div></div>`))
+    states.push(watch.watching)
+    watch.stop()
+    states.push(watch.watching)
+    expect(states).toEqual([false, true, false])
+  })
 })
 
 describe("warnAboutMarkup", () => {
