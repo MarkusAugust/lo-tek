@@ -38,7 +38,11 @@ import {
 const pkg = fileURLToPath(new URL("..", import.meta.url))
 const lotekCss = readFileSync(join(pkg, "dist/lotek.css"), "utf8")
 
+// Both bind 127.0.0.1, as the page checks do: without a hostname the URL is
+// localhost, which macOS resolves to IPv6 first, where another process may
+// answer on the same port.
 const cdn = Bun.serve({
+  hostname: "127.0.0.1",
   port: 0,
   fetch: () =>
     new Response(lotekCss, {
@@ -74,6 +78,7 @@ const pages: Record<string, string> = {
 }
 
 const server = Bun.serve({
+  hostname: "127.0.0.1",
   port: 0,
   fetch(request) {
     const path = new URL(request.url).pathname

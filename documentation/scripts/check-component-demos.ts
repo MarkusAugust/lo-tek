@@ -13,98 +13,24 @@
  * Run with: bun run test:docs (build first)
  */
 
-import { join } from "node:path"
-import { fileURLToPath } from "node:url"
-import { chromium, type Page } from "playwright"
-
-const DIST = fileURLToPath(new URL("../dist/", import.meta.url))
-const PORT = 4184
-
-const MEDIA_TYPES: Record<string, string> = {
-  html: "text/html; charset=utf-8",
-  css: "text/css; charset=utf-8",
-  js: "text/javascript; charset=utf-8",
-  json: "application/json",
-  svg: "image/svg+xml",
-  webp: "image/webp",
-  png: "image/png",
-  woff2: "font/woff2",
-}
+import type { Page } from "playwright"
+import { site } from "./site"
 
 /*
- * The server binds 127.0.0.1, and the check connects to the same address.
- *
- * `Bun.serve` without a hostname binds the IPv4 wildcard, and a foreign
- * process on IPv6 loopback then takes the port without anything throwing: two
- * servers, same port number, no error message. `localhost` resolves IPv6
- * first on macOS, so the check talked to the other process. It happened: a
- * completely different website was on 4173, and the check read accessibility
- * violations on it. It could just as well have reported green without having
- * seen a single one of our pages.
- *
- * With the hostname set, a second binding to the same address throws, and
- * that is what we want: a port that is taken should stop the run, not
- * silently send it somewhere else. So never change this back to `localhost`.
+ * The site, served and opened by `site.ts`, which reads the status of every
+ * page and takes a warning, an error or an uncaught error in the console as
+ * a finding. The components speak up with `console.warn` when the markup
+ * they got does not hang together, so a warning on a component page means
+ * either that an example is wrong or that the warning fires on markup that
+ * is fine, and both must be caught.
  */
-const server = Bun.serve({
-  hostname: "127.0.0.1",
-  port: PORT,
-  fetch(request) {
-    const path = decodeURIComponent(new URL(request.url).pathname)
-    const filePath = path.endsWith("/")
-      ? join(DIST, path, "index.html")
-      : join(DIST, path)
-    const file = Bun.file(filePath)
-    const extension = filePath.split(".").pop() ?? ""
-    return file.exists().then((exists) =>
-      exists
-        ? new Response(file, {
-            headers: {
-              "content-type":
-                MEDIA_TYPES[extension] ?? "application/octet-stream",
-            },
-          })
-        : new Response("Not found", { status: 404 }),
-    )
-  },
-})
-
-const errors: string[] = []
+const s = await site()
+const page = s.page
 let current = ""
 
 function expect(claim: boolean, description: string): void {
-  if (!claim) errors.push(`${current}: ${description}`)
+  if (!claim) s.fail(`${current}: ${description}`)
 }
-
-const browser = await chromium.launch()
-const context = await browser.newContext()
-const page = await context.newPage()
-
-page.on("pageerror", (e) => {
-  errors.push(`${current}: script error "${e.message}"`)
-})
-page.on("console", (message) => {
-  if (message.type() === "error") {
-    errors.push(`${current}: console error "${message.text()}"`)
-  }
-  /*
-   * Warnings count too.
-   *
-   * The components speak up with `console.warn` when the markup they got
-   * does not hang together. If such a warning appeared on one of the
-   * component pages, it would mean either that an example is wrong, or that
-   * the warning fires on markup that is fine. Both must be caught, because a
-   * warning that also appears on correct markup gets switched off, and then
-   * it is worthless.
-   *
-   * This script only goes through the component pages. The rest of the
-   * site, the pattern pages and the front page included, is covered by
-   * `check-accessibility.ts`, which visits every single built page.
-   */
-  if (message.type() === "warning") {
-    errors.push(`${current}: console warning "${message.text()}"`)
-  }
-})
 
 /**
  * Opens a component page and checks what applies to every demo.
@@ -120,9 +46,7 @@ async function on(
   test: (page: Page, id: string) => Promise<void>,
 ) {
   current = component
-  await page.goto(`http://127.0.0.1:${PORT}/components/${component}/`, {
-    waitUntil: "networkidle",
-  })
+  await s.open(`/components/${component}/`)
 
   const general = await page.evaluate(
     ([id, tag]) => ({
@@ -504,9 +428,7 @@ await on(
  * test, a demo that opens without colours would have reported green.
  */
 current = "select"
-await page.goto(`http://127.0.0.1:${PORT}/components/select/`, {
-  waitUntil: "networkidle",
-})
+await s.open("/components/select/")
 
 const styled = await page.evaluate(async () => {
   const host = [...document.querySelectorAll("*")].find((element) =>
@@ -562,16 +484,11 @@ if (styled.exists) {
   )
 }
 
-await browser.close()
-server.stop()
-
-if (errors.length > 0) {
+const code = await s.close()
+if (code === 0)
+  console.log("The previews on the component pages do what they say.")
+else
   console.error(
-    `The previews on the component pages do not work as they should:\n\n${errors
-      .map((line) => `  ${line}`)
-      .join("\n")}\n`,
+    "\nThe previews on the component pages do not work as they should.",
   )
-  process.exit(1)
-}
-
-console.log("The previews on the component pages do what they say.")
+process.exit(code)

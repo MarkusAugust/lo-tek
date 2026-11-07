@@ -11,74 +11,17 @@
  * Run with: bun run test:docs (build first)
  */
 
-import { join } from "node:path"
-import { fileURLToPath } from "node:url"
-import { chromium } from "playwright"
+import { site } from "./site"
 
-const DIST = fileURLToPath(new URL("../dist/", import.meta.url))
-const PORT = 4183
-
-const MEDIA_TYPES: Record<string, string> = {
-  html: "text/html; charset=utf-8",
-  css: "text/css; charset=utf-8",
-  js: "text/javascript; charset=utf-8",
-  json: "application/json",
-  svg: "image/svg+xml",
-  webp: "image/webp",
-  png: "image/png",
-  woff2: "font/woff2",
-}
-
-/*
- * The server binds 127.0.0.1, and the check connects to the same address.
- *
- * `Bun.serve` without a hostname binds the IPv4 wildcard, and a foreign
- * process on IPv6 loopback then takes the port without anything throwing: two
- * servers, same port number, no error message. `localhost` resolves IPv6
- * first on macOS, so the check talked to the other process. It happened: a
- * completely different website was on 4173, and the check read accessibility
- * violations on it. It could just as well have reported green without having
- * seen a single one of our pages.
- *
- * With the hostname set, a second binding to the same address throws, and
- * that is what we want: a port that is taken should stop the run, not
- * silently send it somewhere else. So never change this back to `localhost`.
- */
-const server = Bun.serve({
-  hostname: "127.0.0.1",
-  port: PORT,
-  fetch(request) {
-    const path = decodeURIComponent(new URL(request.url).pathname)
-    const filePath = path.endsWith("/")
-      ? join(DIST, path, "index.html")
-      : join(DIST, path)
-    const file = Bun.file(filePath)
-    const extension = filePath.split(".").pop() ?? ""
-    return file.exists().then((exists) =>
-      exists
-        ? new Response(file, {
-            headers: {
-              "content-type":
-                MEDIA_TYPES[extension] ?? "application/octet-stream",
-            },
-          })
-        : new Response("Not found", { status: 404 }),
-    )
-  },
-})
-
-const browser = await chromium.launch()
-const page = await (await browser.newContext()).newPage()
-const errors: string[] = []
+const s = await site()
+const page = s.page
 
 function expect(claim: boolean, description: string): void {
-  if (!claim) errors.push(description)
+  if (!claim) s.fail(description)
 }
 
 async function open(path: string) {
-  await page.goto(`http://127.0.0.1:${PORT}${path}`, {
-    waitUntil: "networkidle",
-  })
+  await s.open(path)
 }
 
 /** Types into a field in the form demo, and leaves it afterwards. */
@@ -420,16 +363,7 @@ function readForm() {
   expect(structure.landmarks === 3, "the page lacks a landmark")
 }
 
-await browser.close()
-server.stop()
-
-if (errors.length > 0) {
-  console.error(
-    `The pattern demos do not work as they should:\n\n${errors
-      .map((line) => `  ${line}`)
-      .join("\n")}\n`,
-  )
-  process.exit(1)
-}
-
-console.log("The demos on the pattern pages do what they say.")
+const code = await s.close()
+if (code === 0) console.log("The demos on the pattern pages do what they say.")
+else console.error("\nThe pattern demos do not work as they should.")
+process.exit(code)

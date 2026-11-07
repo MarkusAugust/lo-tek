@@ -19,7 +19,8 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { chromium, type Page } from "playwright"
 
-const DIST = fileURLToPath(new URL("../dist/", import.meta.url))
+/** The built site. */
+export const DIST = fileURLToPath(new URL("../dist/", import.meta.url))
 
 const MEDIA_TYPES: Record<string, string> = {
   html: "text/html; charset=utf-8",
@@ -93,6 +94,8 @@ function listen(page: Page, findings: string[], where: () => string) {
 }
 
 export interface Site {
+  /** The one page `open` navigates, for helpers that work on it. */
+  page: Page
   /** Opens a path of the site, and records a finding if it does not answer 200. */
   open(path: string): Promise<Page>
   /** Records a finding of the script's own. */
@@ -115,6 +118,7 @@ export async function site({
   let current = "(no page yet)"
   listen(page, findings, () => current)
   return {
+    page,
     async open(path) {
       current = path
       const response = await page.goto(
@@ -209,11 +213,18 @@ export async function everyPage({
   await Promise.all(
     runs.map(async (theme) => {
       const work = [...queue]
+      /*
+       * One context per theme, shared by its pages, not one per page. A
+       * context has its own cache, and with one each the CSS and the scripts
+       * were parsed again for every page: CPU time went from 64 to 202
+       * seconds in check-accessibility. Starlight writes the theme to
+       * `localStorage`, which a context shares, so a context never sees more
+       * than one theme.
+       */
+      const context = await browser.newContext({ viewport, colorScheme: theme })
       await Promise.all(
         Array.from({ length: parallel }, async () => {
-          const page = await (
-            await browser.newContext({ viewport, colorScheme: theme })
-          ).newPage()
+          const page = await context.newPage()
           let current = "(no page yet)"
           listen(page, findings, () => current)
           for (let path = work.shift(); path; path = work.shift()) {
@@ -278,8 +289,10 @@ export async function everyPage({
   await browser.close()
   server.stop(true)
 
-  for (const f of findings) console.error(`  - ${f}`)
-  for (const u of unanswered) console.error(`  - ${u}`)
+  // Sorted, since the pages finish in no fixed order, so two runs of the
+  // same failure read the same.
+  for (const f of findings.sort()) console.error(`  - ${f}`)
+  for (const u of unanswered.sort()) console.error(`  - ${u}`)
   for (const m of missing)
     console.error(`  - ${m} is in the sitemap, but not in the site`)
   const views = expected.length * runs.length
@@ -454,6 +467,21 @@ export async function selfTest(): Promise<string[]> {
       },
     }),
     0,
+  )
+  const contexts = new Set<unknown>()
+  await everyPage({
+    dist: small(["/", "/a/", "/b/"], { "": "", a: "", b: "" }),
+    parallel: 3,
+    themes: ["light", "dark"],
+    check: async (page) => {
+      contexts.add(page.context())
+      return []
+    },
+  })
+  expect(
+    "the pages of one theme share a context, and its cache: one context per page parsed the CSS again for every page",
+    contexts.size,
+    2,
   )
   expect("what each theme's check saw", seen.sort(), [
     "dark dark",
