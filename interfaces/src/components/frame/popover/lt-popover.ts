@@ -8,6 +8,7 @@ import {
   setAttr,
   setFlag,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 import {
   isPopoverPlacement,
@@ -80,7 +81,35 @@ export class LtPopover extends HostElement {
 
   private panel?: HTMLElement
   private triggerElement?: HTMLElement
-  private observer?: MutationObserver
+  private readonly watch = watcher(
+    (records) => {
+      // `type` concerns only the button. A password field in the panel that
+      // switches between `password` and `text` must not run all of `sync()`.
+      const onlyOtherTypes = records.every(
+        (record) =>
+          record.attributeName === "type" &&
+          record.target !== this.triggerElement,
+      )
+      if (!onlyOtherTypes) this.sync()
+    },
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: [
+        "aria-expanded",
+        "style",
+        // The wiring the component fills in when the markup came without it.
+        "popover",
+        "id",
+        "aria-controls",
+        "class",
+        // A patch from a template without `type` removes it, and then the
+        // button submits the form again.
+        "type",
+      ],
+    },
+  )
   /**
    * What the component was last asked for, through the `open` property.
    *
@@ -133,33 +162,7 @@ export class LtPopover extends HostElement {
      * out, so if a patch removes them, they must come back. Every write in
      * `sync()` compares first, or the observer would trigger itself.
      */
-    this.observer = new MutationObserver((records) => {
-      // `type` concerns only the button. A password field in the panel that
-      // switches between `password` and `text` must not run all of `sync()`.
-      const onlyOtherTypes = records.every(
-        (record) =>
-          record.attributeName === "type" &&
-          record.target !== this.triggerElement,
-      )
-      if (!onlyOtherTypes) this.sync()
-    })
-    this.observer.observe(this, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: [
-        "aria-expanded",
-        "style",
-        // The wiring the component fills in when the markup came without it.
-        "popover",
-        "id",
-        "aria-controls",
-        "class",
-        // A patch from a template without `type` removes it, and then the
-        // button submits the form again.
-        "type",
-      ],
-    })
+    this.watch.start(this)
     this.sync()
   }
 
@@ -168,8 +171,7 @@ export class LtPopover extends HostElement {
     window.removeEventListener("scroll", this.reposition, true)
     document.removeEventListener("click", this.handleOutsideClick, true)
     document.removeEventListener("keydown", this.handleKeydown)
-    this.observer?.disconnect()
-    this.observer = undefined
+    this.watch.stop()
     this.triggerElement?.removeEventListener("click", this.handleTriggerClick)
     this.panel?.removeEventListener("toggle", this.handlePanelToggle)
     // The reference must be reset, or `sync()` sees that the button is the
@@ -269,16 +271,15 @@ export class LtPopover extends HostElement {
       /*
        * Two different faults, and a message for each, so the developer looks in
        * the right place. An empty element is a region the server has not filled
-       * yet, and that is not a fault in the markup.
+       * yet, and that is not a fault in the markup: `silentWhenEmpty`.
        */
-      const isEmpty = () => this.childElementCount === 0
-
       if (!panel) {
         warnAboutMarkup(
           this,
           "found no panel: an element with popover or the class " +
             "lt-popover. Without one there is nothing to open or position.",
-          () => !isEmpty() && this.findPanel() === null,
+          () => this.findPanel() === null,
+          { silentWhenEmpty: true },
         )
       } else {
         warnAboutMarkup(
@@ -288,8 +289,9 @@ export class LtPopover extends HostElement {
             "component does not know what opens the popover.",
           () => {
             const found = this.findPanel()
-            return !isEmpty() && found !== null && !this.findTrigger(found)
+            return found !== null && !this.findTrigger(found)
           },
+          { silentWhenEmpty: true },
         )
       }
 
