@@ -31,7 +31,6 @@
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import { server, userEvent } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/tabs.mdx?raw"
 import coreUrl from "../../../../core/lotek-core.wasm?url"
 import {
   type AccessibilityCore,
@@ -47,7 +46,8 @@ import {
   type Model,
   unchecked,
 } from "../../../testing/model"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 import { renderedMarkup } from "../../../testing/rendered"
 import { type Replacement, replace } from "../../../testing/update"
 import { defineLtTabs } from "./lt-tabs"
@@ -58,10 +58,10 @@ import "./tabs.css"
 
 /** The tab list in the "Plain HTML" recipe, without its scripts. */
 const RECIPE = (() => {
-  const block = tabItems(page)
-    .filter((t) => t.name === "Plain HTML")
-    .flatMap((t) => htmlBlocks(t.code))
-    .find((b) => b.includes("<lt-tabs"))
+  const block = blocks(recipePage("tabs"), {
+    tab: "Plain HTML",
+    lang: "html",
+  }).find((b) => b.includes("<lt-tabs"))
   if (!block) throw new Error("no recipe with <lt-tabs> on the page")
   return block.replace(/<script[\s\S]*?<\/script>/g, "")
 })()

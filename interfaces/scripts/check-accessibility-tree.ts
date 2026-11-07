@@ -62,11 +62,10 @@ import {
   type Role,
   type State,
 } from "./accessibility/platform"
-import { CDN, dedent, htmlBlocks, stylesheetPath, tabItems } from "./recipes"
+import { blocks, CDN, recipePage, stylesheetPath } from "./recipes"
 
 const PACKAGE = resolve(import.meta.dir, "..")
 const ROOT = resolve(PACKAGE, "..")
-const PAGES = join(ROOT, "documentation/src/content/docs/components")
 
 /* Where this runs */
 
@@ -137,44 +136,39 @@ if (!existsSync(join(PACKAGE, "dist/register.js"))) {
 
 /** The "Plain HTML" tab of a component page, as one page, from this package. */
 function recipe(page: string): string {
-  const mdx = readFileSync(join(PAGES, `${page}.mdx`), "utf8")
-  const tabs = tabItems(mdx).filter((t) => t.name === "Plain HTML")
+  const entry = recipePage(page)
+  const tabs = entry.tabs.filter((t) => t.label === "Plain HTML")
   if (tabs.length !== 1)
     throw new Error(`${page}.mdx has ${tabs.length} "Plain HTML" tabs, not one`)
-  const blocks = htmlBlocks(tabs[0].code).map(dedent)
-  if (blocks.length === 0)
+  const html = blocks({ ...entry, tabs }, { tab: "Plain HTML", lang: "html" })
+  if (html.length === 0)
     throw new Error(`${page}.mdx has no HTML in its "Plain HTML" tab`)
-  const html = blocks.join("\n").replaceAll(CDN, "/pkg/")
-  const external = html.match(
+  const joined = html.join("\n").replaceAll(CDN, "/pkg/")
+  const external = joined.match(
     /(?:src|href)="(https?:[^"]+)"|from\s+"(https?:[^"]+)"/,
   )
   if (external)
     throw new Error(
       `${page}.mdx: the recipe loads ${external[1] ?? external[2]}, which a check must not fetch`,
     )
-  return html
+  return joined
 }
 
-/** An `<Example code={…}>` on a component page, with the stylesheets it lists. */
+/** An `<Example>` on a component page, with the stylesheets its recipe needs. */
 function example(page: string, index: number): string {
-  const mdx = readFileSync(join(PAGES, `${page}.mdx`), "utf8")
-  const examples = [...mdx.matchAll(/<Example([^>]*?)code=\{`([\s\S]*?)`\}/g)]
+  const examples = recipePage(page).examples
   const chosen = examples[index]
   if (!chosen)
     throw new Error(
       `${page}.mdx has ${examples.length} examples, not one at ${index}`,
     )
-  const styles = [
-    ...(chosen[1].match(/styles=\{\[([^\]]*)\]\}/)?.[1] ?? "").matchAll(
-      /"([^"]+)"/g,
-    ),
-  ].map((m) => m[1])
-  const links = ["tokens", ...styles]
+  const links = chosen.setup.stylesheets
     .map(
-      (name) => `<link rel="stylesheet" href="/pkg/${stylesheetPath(name)}">`,
+      (name) =>
+        `<link rel="stylesheet" href="/pkg/${stylesheetPath(name.replace(/\.css$/, ""))}">`,
     )
     .join("\n")
-  return `${links}\n${chosen[2].trim()}`
+  return `${links}\n${chosen.code.trim()}`
 }
 
 function fixture(contract: Contract, mutation: number | undefined): string {

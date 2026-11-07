@@ -30,9 +30,6 @@
  */
 
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import fieldPage from "../../documentation/src/content/docs/components/field.mdx?raw"
-import popoverPage from "../../documentation/src/content/docs/components/popover.mdx?raw"
-import suggestionPage from "../../documentation/src/content/docs/components/suggestion.mdx?raw"
 import checkboxCss from "./components/css/checkbox/checkbox.css?inline"
 import errorTextCss from "./components/css/error-text/error-text.css?inline"
 import helpTextCss from "./components/css/help-text/help-text.css?inline"
@@ -45,7 +42,8 @@ import { defineLtSuggestion } from "./components/frame/suggestion/lt-suggestion"
 import suggestionCss from "./components/frame/suggestion/suggestion.css?inline"
 import { waitForPaint } from "./testing/a11y"
 import { Idiomorph } from "./testing/idiomorph/idiomorph-v0.8.0.js"
-import { htmlBlocks } from "./testing/recipes"
+import { recipePage } from "./testing/recipe-pages"
+import { blocks } from "./testing/recipes"
 import { datastarPatch, morph, WAYS, type Way } from "./testing/update"
 import tokensCss from "./tokens/tokens.css?inline"
 
@@ -53,21 +51,22 @@ import tokensCss from "./tokens/tokens.css?inline"
  * The recipe in the "Plain HTML" tab on a component page: the first html
  * block containing the element, without the scripts.
  */
-function recipe(page: string, tag: string): string {
-  // Every block from the first "Plain HTML" tab on: the "Text and code"
-  // recipe on the suggestion page stands below the tabs, not in one.
-  const blocks = htmlBlocks(
-    page.slice(page.indexOf('<TabItem label="Plain HTML">')),
-  )
-  const block = blocks.find((b) => b.includes(`<${tag}`))
+function recipe(name: string, tag: string): string {
+  // The "Plain HTML" tabs, then the blocks outside every tab: the "Text and
+  // code" recipe on the suggestion page stands below the tabs, not in one.
+  const page = recipePage(name)
+  const block = [
+    ...blocks(page, { tab: "Plain HTML", lang: "html" }),
+    ...blocks(page, { tab: "rest", lang: "html" }),
+  ].find((b) => b.includes(`<${tag}`))
   if (!block) throw new Error(`found no recipe with <${tag}> on the page`)
   return block.replace(/<script[\s\S]*?<\/script>/g, "")
 }
 
-const FIELD = recipe(fieldPage, "lt-field")
-const SUGGESTION = recipe(suggestionPage, "lt-suggestion")
+const FIELD = recipe("field", "lt-field")
+const SUGGESTION = recipe("suggestion", "lt-suggestion")
 /** The "Text and code" recipe, with the hidden field for the code. */
-const CODE = recipe(suggestionPage, 'input class="lt-suggestion__value"')
+const CODE = recipe("suggestion", 'input class="lt-suggestion__value"')
 
 /** The recipe with the label wrapping the field, and no id. */
 const FIELD_WRAPPED = `
@@ -440,7 +439,7 @@ describe("the recipes without JavaScript", () => {
  * When the component wrote an id itself, the panel was replaced.
  * `innerHTML` replaces everything, the host included.
  */
-const POPOVER = recipe(popoverPage, "lt-popover")
+const POPOVER = recipe("popover", "lt-popover")
 const POPOVER_BARE = POPOVER.replace(' id="actions"', "")
 
 describe("the popover through a server update", () => {

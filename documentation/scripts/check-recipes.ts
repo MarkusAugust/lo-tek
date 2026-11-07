@@ -26,17 +26,34 @@
 import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { tabItems } from "../../interfaces/scripts/recipes"
+import {
+  BUILDER_CLASSES,
+  checkSetup,
+  DEFINERS,
+  selfTest as setupSelfTest,
+  type Target,
+  withoutComments,
+} from "../../interfaces/scripts/page-setup"
+import recipes from "../generated/recipes.json"
+
+/**
+ * The target each tab name with a setup is a recipe for. The kotlinx.html
+ * tabs write their setup in Kotlin, in the page template, so `RecipesTest`
+ * renders them and holds the HTML to the same answer.
+ */
+const SETUP_TARGETS: Record<string, Target> = {
+  "Plain HTML": "html",
+  Datastar: "datastar",
+  React: "react",
+  Astro: "astro",
+}
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
-const PAGES = join(ROOT, "documentation/src/content/docs/components")
 const PACKAGE = JSON.parse(
   readFileSync(join(ROOT, "interfaces/package.json"), "utf8"),
 )
 
 const findings: string[] = []
-/** The Datastar tabs the rule on the load order has looked at, counted where it looks. */
-let datastarTabs = 0
 const report = (page: string, message: string) =>
   findings.push(`${page}: ${message}`)
 
@@ -78,160 +95,6 @@ for (const entry of entryPoints) {
   } catch {
     // An entry point that cannot be loaded is `check-server-import`'s job.
   }
-}
-
-/**
- * Every `<Example>` on the page, with everything that belongs to it.
- *
- * This has to be parsed, not matched. A regex on `/>` stops at the first
- * self-closing tag *inside* the example, and on nine pages there is an
- * `<input … />` in the markup. Everything past that point was never read,
- * which is exactly the gap this function exists to close. The first attempt
- * moved the bug from one tag form to the other.
- *
- * So: scan up to the `>` that actually ends the opening tag, that is one that
- * stands outside `{…}` and outside a template string. If the character before
- * it is a slash, the tag closes itself. Otherwise everything up to
- * `</Example>` belongs to it.
- */
-function examples(text: string): string[] {
-  const out: string[] = []
-  for (let i = text.indexOf("<Example"); i !== -1; ) {
-    let depth = 0
-    let inTemplate = false
-    let j = i + "<Example".length
-    for (; j < text.length; j++) {
-      const c = text[j]
-      if (c === "`") inTemplate = !inTemplate
-      else if (inTemplate) continue
-      else if (c === "{") depth++
-      else if (c === "}") depth--
-      else if (c === ">" && depth === 0) break
-    }
-    if (text[j - 1] === "/") {
-      out.push(text.slice(i, j + 1))
-    } else {
-      const end = text.indexOf("</Example>", j)
-      out.push(
-        end === -1
-          ? text.slice(i, j + 1)
-          : text.slice(i, end + "</Example>".length),
-      )
-    }
-    i = text.indexOf("<Example", j)
-  }
-  return out
-}
-
-/**
- * Which stylesheets an `lt-` class requires, with the `@import` closure
- * counted in.
- *
- * `search.css` pulls in `input.css` itself, so a recipe that uses `.lt-input`
- * together with `.lt-search` does not need both. Without the closure the rule
- * would require stylesheets that already come along.
- */
-const FROM_STYLESHEET = new Map<string, string>()
-
-/** The stylesheet each `lt-` element is styled by. */
-const FROM_ELEMENT = new Map<string, string>()
-const IMPORTS = new Map<string, Set<string>>()
-{
-  const readSheets = (folder: string) => {
-    // Sorted: unsorted `readdirSync` on Linux would have let `search.css` win
-    // over `input.css` for `.lt-input`, and the check failed at random in CI.
-    for (const entry of readdirSync(folder, { withFileTypes: true }).sort(
-      (a, b) => a.name.localeCompare(b.name),
-    )) {
-      const p = join(folder, entry.name)
-      if (entry.isDirectory()) readSheets(p)
-      else if (entry.name.endsWith(".css")) {
-        const text = readFileSync(p, "utf8")
-        for (const m of text.matchAll(/\.(lt-[a-z0-9-]+(?:__[a-z0-9-]+)?)/g))
-          if (!FROM_STYLESHEET.has(m[1])) FROM_STYLESHEET.set(m[1], entry.name)
-        /*
-         * And the element selectors.
-         *
-         * Nine stylesheets style an `lt-` element and no class: toast, field,
-         * dialog, popover, tabs, suggestion, error-summary,
-         * connection-status and session-timeout. A rule that only knows
-         * classes can never require them, and then `toast.css` disappeared
-         * from the toast recipe without anything saying so.
-         */
-        for (const m of text.matchAll(/^\s*(lt-[a-z0-9-]+)[\s,{[:.]/gm))
-          if (!FROM_ELEMENT.has(m[1])) FROM_ELEMENT.set(m[1], entry.name)
-        IMPORTS.set(
-          entry.name,
-          new Set(
-            [...text.matchAll(/@import "[^"]*\/([a-z-]+\.css)"/g)].map(
-              (m) => m[1],
-            ),
-          ),
-        )
-      }
-    }
-  }
-  readSheets(join(ROOT, "interfaces/src"))
-}
-
-/** The class each builder function gives, looked up by function name. */
-const FROM_BUILDER_REVERSED = new Map<string, string>()
-
-/** The stylesheets a set of given sheets brings along, all the way down. */
-function closure(start: string[]): Set<string> {
-  const out = new Set<string>()
-  const queue = [...start]
-  while (queue.length) {
-    const n = queue.pop()
-    if (!n || out.has(n)) continue
-    out.add(n)
-    for (const h of IMPORTS.get(n) ?? []) queue.push(h)
-  }
-  return out
-}
-
-/**
- * Only the code in a tab, without the prose around it.
- *
- * Two of the rules ask about something that only makes sense in code: that an
- * `<lt-…>` is registered, and that `lt.` is imported. If they read the whole
- * tab, a sentence that *mentions* `<lt-dialog>` would fail CI for a reason
- * that is not a bug, and the obvious fix would have been to weaken the rule
- * again.
- */
-/** Each code fence on its own, without comments. */
-function fences(text: string): string[] {
-  return [...text.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((m) =>
-    m[1].replace(/<!--[\s\S]*?-->/g, "").replace(/^\s*\/\/.*$/gm, ""),
-  )
-}
-
-/**
- * The markup in `<Example code={`…`}>`, which is not in a code fence.
- *
- * Three rules read only fences, and on the 32 CSS pages `<Example>` is the
- * only markup there is. The registration, the host attributes and
- * element-to-stylesheet could therefore structurally never fire there. Same
- * shape as the six previous gaps: the rule was bound to one way of writing the
- * code.
- */
-function exampleMarkup(text: string): string {
-  return [...text.matchAll(/(?:code|customCss)=\{`([\s\S]*?)`\}/g)]
-    .map((m) => m[1])
-    .join("\n")
-}
-
-function codeOnly(text: string): string {
-  const codeFences = [...text.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map(
-    (m) => m[1],
-  )
-  // Without the comments: a comment that *mentions* `<lt-dialog>` is not
-  // markup, and a rule that reads it requires a registration that is not
-  // needed.
-  return [...codeFences, exampleMarkup(text)]
-    .join("\n")
-    .replace(/<!--[\s\S]*?-->/g, "")
-    .replace(/^\s*\/\/.*$/gm, "")
 }
 
 /**
@@ -292,62 +155,19 @@ const HOSTS: Array<[string, string]> = [
 ]
 
 /**
- * Classes a builder function actually emits, and which function it is.
+ * Classes a builder function actually emits, and which function it is, from
+ * the table `pageSetup` computes the stylesheets with, so the two cannot
+ * disagree. The first function that gives a class names it.
  *
  * Without this the rule would fail every `lt-` class in a React or Astro tab,
  * including those that have no function to call. One class is like that
  * today, and the component creates it itself: `lt-connection-status__bar`.
+ * `lt.switch.row` and the other classes hung on a function count too.
  */
 const FROM_BUILDER = new Map<string, string>()
-for (const [name, f] of Object.entries(lt)) {
-  if (typeof f !== "function") continue
-  let result: unknown
-  try {
-    // `keys` because `lt.tabs()` and `lt.suggestion()` throw without it. Then
-    // `catch` swallowed the error, the tabs' classes never got into the
-    // table, and the rule about classes written by hand was silent for them.
-    result = (f as (o?: unknown) => unknown)({
-      id: "x",
-      titleId: "t",
-      count: 1,
-      keys: ["a"],
-      label: "L",
-    })
-  } catch {
-    continue
-  }
-  const collect = (value: unknown) => {
-    if (Array.isArray(value)) return value.forEach(collect)
-    if (!value || typeof value !== "object") return
-    const o = value as Record<string, unknown>
-    if (typeof o.class === "string")
-      for (const k of o.class.split(/\s+/))
-        if (k && !FROM_BUILDER.has(k)) FROM_BUILDER.set(k, name)
-    for (const v of Object.values(o)) if (typeof v === "object") collect(v)
-  }
-  collect(result)
-
-  /*
-   * And the class names that hang on the function itself.
-   *
-   * `lt.switch.row`, `lt.alert.title` and a dozen others are classes without
-   * attributes, so they are not returned by a call, but hung on the function
-   * with `Object.assign`. Looking only at the return value, it looks like a
-   * gap in the API where there is none. Nineteen classes were like that, and
-   * `.lt-switch-row` was one of them.
-   */
-  for (const [key, value] of Object.entries(f))
-    if (
-      typeof value === "string" &&
-      value.startsWith("lt-") &&
-      !FROM_BUILDER.has(value)
-    )
-      FROM_BUILDER.set(value, `${name}.${key}`)
-
-  for (const [className, builder] of FROM_BUILDER)
-    if (!FROM_BUILDER_REVERSED.has(builder.replace(/[.(].*$/, "")))
-      FROM_BUILDER_REVERSED.set(builder.replace(/[.(].*$/, ""), className)
-}
+for (const classes of BUILDER_CLASSES.values())
+  for (const [k, from] of classes)
+    if (!FROM_BUILDER.has(k)) FROM_BUILDER.set(k, from)
 
 /** The attribute names a builder function actually emits for its host. */
 function required(builder: string): string[] {
@@ -366,76 +186,76 @@ function required(builder: string): string[] {
  * that file is checked as before. A rule that turned the check off for a whole
  * class of pages would be more dangerous than no rule.
  */
-for (const file of readdirSync(PAGES).filter(
-  (f) => f.endsWith(".mdx") && f !== "index.mdx",
+/*
+ * Every component page, read from `recipes.json`, which `extract-recipes.ts`
+ * writes from the tree of the page. The check used to read the MDX itself,
+ * with a pattern per form, and missed a tab whose attributes stood in another
+ * order.
+ *
+ * `index.mdx` is the overview of the components, not a component page. The
+ * exception is named and not a condition: everything other than exactly
+ * that file is checked as before.
+ */
+const RECIPE = "How to use it"
+let pages = 0
+for (const entry of recipes.pages.filter(
+  (p) => p.path.startsWith("components/") && p.path !== "components/index.mdx",
 )) {
-  const page = file.replace(/\.mdx$/, "")
-  const text = readFileSync(join(PAGES, file), "utf8")
-
-  const start = text.indexOf("## How to use it")
-  if (start === -1) {
-    report(page, 'is missing the section "How to use it"')
+  const page = entry.path.replace(/^components\/|\.mdx$/g, "")
+  if (![...entry.tabs, ...entry.examples].some((r) => r.section === RECIPE)) {
+    report(page, `has no recipe under the heading "${RECIPE}"`)
     continue
   }
-  const next = text.indexOf("\n## ", start + 5)
-  const section = text.slice(start, next === -1 ? undefined : next)
 
   /*
    * Every tab on the whole page, with its name, not just those in the recipe.
    *
-   * Sections about behaviour have tabs too now, such as "Saving
-   * immediately" on the switch. If the check read only the recipe, a React tab
-   * further down went free, and it is the same code a reader pastes in.
+   * Sections about behaviour have tabs too, such as "Saving immediately" on
+   * the switch. If the check read only the recipe, a React tab further down
+   * went free, and it is the same code a reader pastes in.
    */
-  const tabs: Array<{ name: string; code: string; inRecipe?: boolean }> = []
-  for (const tab of tabItems(text))
-    tabs.push({ ...tab, inRecipe: section.includes(tab.code) })
+  const tabs: Array<{
+    name: string
+    blocks: string[]
+    /** Whether `checkSetup` holds its setup, at the bottom of the file. */
+    setup?: boolean
+  }> = entry.tabs.map((t) => ({
+    name: t.label,
+    blocks: t.blocks.map((b) => b.code),
+    setup: Boolean(t.setup && SETUP_TARGETS[t.label]),
+  }))
 
   /*
-   * And every `<Example>`, whether or not the page also has tabs.
-   *
-   * This stood as a fallback that only kicked in when the page had zero
-   * `<TabItem>`. Then the whole `<Example>` part dropped out of the check on
-   * the ten pages that have a `<Tabs>` block somewhere, and with it the
-   * hand-written TypeScript blocks. Worst of all, it was silent and
-   * asymmetric: if someone put a `<Tabs>` on one of the CSS pages, it turned
-   * off the checking of that page's own recipe.
+   * And every `<Example>`, whether or not the page also has tabs: the markup
+   * is "Plain HTML", `slot="ts"` is TypeScript and `slot="kotlin"` the
+   * kotlinx.html tab. Merged, the package-name-versus-URL requirement would
+   * be impossible to state, since the two have a rule each.
    */
-  for (const m of examples(text)) {
-    // The two halves separately: the markup belongs to "Plain HTML", and
-    // `slot="ts"` to TypeScript. Merged, the package-name-versus-URL
-    // requirement would be impossible to state, since the two have a rule
-    // each.
-    const ts = m.match(/<Fragment slot="ts">([\s\S]*?)<\/Fragment>/)
-    // `slot="kotlin"` is the kotlinx.html tab, which `RecipesTest` compiles
-    // and compares with the markup; it is neither half here.
-    const kotlin = m.match(/<Fragment slot="kotlin">([\s\S]*?)<\/Fragment>/)
-    let markup = ts ? m.replace(ts[0], "") : m
-    if (kotlin) markup = markup.replace(kotlin[0], "")
-    tabs.push({
-      name: "Plain HTML",
-      code: markup,
-      inRecipe: section.includes(m),
-    })
-    if (kotlin)
+  for (const e of entry.examples) {
+    const inRecipe = e.section === RECIPE
+    // An example in the recipe shows its setup only with `recipe`, and
+    // without it the reader pastes markup with no stylesheet.
+    if (inRecipe && !e.recipe)
+      report(
+        page,
+        `has an <Example> under "${RECIPE}" without recipe, so its code tabs show no stylesheets`,
+      )
+    tabs.push({ name: "Plain HTML", blocks: [e.code] })
+    if (e.kotlin.length > 0)
       tabs.push({
         name: "kotlinx.html",
-        code: kotlin[1],
-        inRecipe: section.includes(m),
+        blocks: e.kotlin.map((b) => b.code),
       })
-    // `imports` belongs to both halves: it says which stylesheets the example
-    // needs, whichever tab they are shown in.
-    const declaration = m.match(/imports=\{\[[^\]]*\]\}/)?.[0] ?? ""
-    if (ts)
+    if (e.ts.length > 0)
       tabs.push({
         name: "TypeScript",
-        code: declaration + ts[1],
-        inRecipe: section.includes(m),
+        blocks: e.ts.map((b) => b.code),
       })
   }
 
   /*
-   * And the rest of the page.
+   * And the rest of the page: the blocks outside every tab and example, and
+   * the inline code in the prose.
    *
    * The check read only `<TabItem>` and `<Example>`, so a code block that
    * stood outside both went free. The toast page had one: it repeated the
@@ -448,12 +268,16 @@ for (const file of readdirSync(PAGES).filter(
    * name. What applies is that classes, builder functions and addresses
    * exist.
    */
-  let rest = text
-  for (const t of tabs) rest = rest.replace(t.code, "")
-  tabs.push({ name: "rest", code: rest })
+  tabs.push({
+    name: "rest",
+    blocks: [...entry.rest.map((b) => b.code), ...entry.inline],
+  })
+  pages += 1
 
   for (const tab of tabs) {
     const where = `"${tab.name}"`
+    const code = tab.blocks.join("\n")
+    const bare = withoutComments(code)
 
     if (tab.name !== "rest" && !TAB_NAMES.has(tab.name))
       report(
@@ -461,7 +285,7 @@ for (const file of readdirSync(PAGES).filter(
         `the tab is called "${tab.name}", which is not one of the names the documentation uses. The rules are selected on the name, so a typo turns them off silently.`,
       )
 
-    for (const m of tab.code.matchAll(
+    for (const m of code.matchAll(
       /@lo-tek\/interfaces(?:\/([a-z0-9/.-]+))?/g,
     )) {
       const entry = m[1] ?? ""
@@ -472,7 +296,7 @@ for (const file of readdirSync(PAGES).filter(
         )
     }
 
-    for (const m of tab.code.matchAll(/\b(defineLt[A-Za-z]+)\b/g)) {
+    for (const m of code.matchAll(/\b(defineLt[A-Za-z]+)\b/g)) {
       const name = m[1]
       const exists = [...definers.values()].some((set) => set.has(name))
       if (!exists)
@@ -487,7 +311,7 @@ for (const file of readdirSync(PAGES).filter(
      * `className={undefined}`, an element without a class, and nothing said
      * so. The guards, such as `lt.button.isVariant`, fell between both rules.
      */
-    for (const m of tab.code.matchAll(/\blt\.([a-zA-Z]+)\.([a-zA-Z]+)/g)) {
+    for (const m of code.matchAll(/\blt\.([a-zA-Z]+)\.([a-zA-Z]+)/g)) {
       const builder = (lt as Record<string, unknown>)[m[1]]
       if (typeof builder !== "function") {
         report(page, `${where} uses lt.${m[1]}, which does not exist in lt`)
@@ -497,12 +321,12 @@ for (const file of readdirSync(PAGES).filter(
         report(page, `${where} uses lt.${m[1]}.${m[2]}, which does not exist`)
     }
 
-    for (const m of tab.code.matchAll(/\blt\.([a-zA-Z]+)\s*\(/g)) {
+    for (const m of code.matchAll(/\blt\.([a-zA-Z]+)\s*\(/g)) {
       if (!builderFunctions.has(m[1]))
         report(page, `${where} calls lt.${m[1]}(), which does not exist in lt`)
     }
 
-    for (const m of tab.code.matchAll(/class(?:Name)?="([^"]*)"/g)) {
+    for (const m of code.matchAll(/class(?:Name)?="([^"]*)"/g)) {
       for (const k of m[1].split(/\s+/).filter((k) => k.startsWith("lt-")))
         if (!classes.has(k))
           report(
@@ -523,9 +347,7 @@ for (const file of readdirSync(PAGES).filter(
      * torn the messages away.
      */
     for (const [tag, builder] of HOSTS) {
-      const hosts = [
-        ...codeOnly(tab.code).matchAll(new RegExp(`<${tag}\\b[^>]*>`, "g")),
-      ]
+      const hosts = [...bare.matchAll(new RegExp(`<${tag}\\b[^>]*>`, "g"))]
       /*
        * Every host actually written out, not just the first, and only in code:
        * a bare `<lt-toast>` in a comment before the real host made the rule
@@ -573,128 +395,13 @@ for (const file of readdirSync(PAGES).filter(
       // server-written markup on purpose, and there `class` is right.
       const attribute =
         tab.name === "Astro" ? /class="(lt-[^"]*)"/g : /className="(lt-[^"]*)"/g
-      for (const m of tab.code.matchAll(attribute))
+      for (const m of code.matchAll(attribute))
         for (const k of m[1].split(/\s+/))
           if (FROM_BUILDER.has(k))
             report(
               page,
               `${where} writes class="${k}" by hand, but lt.${FROM_BUILDER.get(k)} exists. Where there is a build step, use it.`,
             )
-    }
-
-    /*
-     * The stylesheets must cover the classes the tab uses, however they are
-     * given.
-     *
-     * This is the same bug three rounds in a row, and each time because the
-     * rule was bound to one way of giving the stylesheets. First it saw only
-     * `imports` on `<Example>`, and then the nine behaviour pages went free.
-     * Then they got hand-written `<link>` blocks, and the rule did not see
-     * those either: two of them lacked `button.css` while the markup used
-     * `.lt-button`.
-     *
-     * So the rule is now one, and it asks about what matters: which sheets has
-     * the reader been told about, and which do the classes in this tab
-     * require. The sheets can come from `imports`, from a `<link>` or from an
-     * `import "@lo-tek/interfaces/x.css"`. Where they stand does not matter.
-     */
-    const given = new Set<string>()
-    const fromImports = tab.code.match(/imports=\{\[([^\]]*)\]\}/)
-    if (fromImports)
-      for (const m of fromImports[1].matchAll(/"([^"]+)"/g)) given.add(m[1])
-    for (const m of tab.code.matchAll(/href="[^"]*\/([a-z-]+\.css)"/g))
-      given.add(m[1])
-    for (const m of tab.code.matchAll(/@lo-tek\/interfaces\/([a-z-]+\.css)/g))
-      given.add(m[1])
-
-    const usedClasses = new Set<string>()
-    for (const m of tab.code.matchAll(/class(?:Name)?="([^"]*)"/g))
-      for (const k of m[1].split(/\s+/))
-        if (k.startsWith("lt-")) usedClasses.add(k)
-    /*
-     * The builder function counts, also when it goes through a variable.
-     *
-     * The rule read `class="…"` and `{...lt.x(` literally. The dominant form in
-     * React and Astro tabs is `const box = lt.dialog(...)` and then
-     * `{...box.dialog}`, and that gave zero classes. Then `dialog.css` could be
-     * removed from the dialog's React tab without anything saying so, which is
-     * the same blindness four rounds in a row.
-     */
-    for (const m of tab.code.matchAll(/\{\.\.\.lt\.([a-zA-Z]+)[.(]/g)) {
-      const className = FROM_BUILDER_REVERSED.get(m[1])
-      if (className) usedClasses.add(className)
-    }
-    const variables = new Map<string, string>()
-    for (const m of tab.code.matchAll(
-      /(?:const|let)\s+(?:\{[^}]*\}|(\w+))\s*=\s*lt\.([a-zA-Z]+)\(/g,
-    ))
-      if (m[1]) variables.set(m[1], m[2])
-    for (const m of tab.code.matchAll(/\{\.\.\.(\w+)[.}\s]/g)) {
-      const builder = variables.get(m[1])
-      const className = builder && FROM_BUILDER_REVERSED.get(builder)
-      if (className) usedClasses.add(className)
-    }
-
-    // "rest" is prose around the recipe, not a recipe in itself, and should
-    // not have to repeat the stylesheets the section above has already given.
-    /*
-     * `given.size > 0` stood here, and was the same silent pass once more: a
-     * tab that gave no stylesheets at all went free, while one that gave too
-     * few was failed. The tabs page tabs for React and Astro were like that.
-     */
-    /*
-     * Only the recipe.
-     *
-     * Later examples on the page are illustrations, not whole recipes, and
-     * should not repeat the imports the section at the top has already given.
-     * There it is `styles` on `<Example>` that controls what the preview
-     * loads.
-     */
-    /*
-     * And that the sheets the recipe advertises exist.
-     *
-     * Only the direction "required, so given" was checked, never "given, so
-     * exists". `imports={["buton.css"]}` gave a 404 link and a build error at
-     * the reader, without a word. `exports` has the answer.
-     */
-    for (const sheet of given)
-      if (!entryPoints.has(sheet))
-        report(page, `${where} gives ${sheet}, which does not exist in exports`)
-
-    const usedElements = new Set(
-      [...codeOnly(tab.code).matchAll(/<(lt-[a-z0-9-]+)[\s/>]/g)].map(
-        (m) => m[1],
-      ),
-    )
-
-    if (tab.inRecipe && (usedClasses.size > 0 || usedElements.size > 0)) {
-      const has = closure([...given])
-      for (const el of usedElements) {
-        const sheet = FROM_ELEMENT.get(el)
-        if (sheet && !has.has(sheet))
-          report(page, `${where} shows <${el}>, but ${sheet} is not given`)
-      }
-      const missing = new Set<string>()
-      for (const k of usedClasses) {
-        const sheet = FROM_STYLESHEET.get(k)
-        if (sheet && !has.has(sheet)) missing.add(sheet)
-      }
-      for (const sheet of missing)
-        report(page, `${where} uses a class from ${sheet}, which is not given`)
-
-      /*
-       * And `tokens.css`, which no class can require.
-       *
-       * It defines no `lt-` classes, only the variables everything else reads.
-       * A class-driven rule can therefore structurally never ask for it, and
-       * without it every `var(--lt-spacing-…)` is left unresolved: padding,
-       * font size and weight fall away.
-       */
-      if (!has.has("tokens.css"))
-        report(
-          page,
-          `${where} does not give tokens.css, which everything else reads`,
-        )
     }
 
     /*
@@ -708,10 +415,9 @@ for (const file of readdirSync(PAGES).filter(
      * "Try it" is exempt: there Astro has registered it, and "rest" because
      * prose is not a recipe.
      */
-    if (tab.name !== "Try it" && tab.name !== "rest") {
-      const code = codeOnly(tab.code)
+    if (tab.name !== "Try it" && tab.name !== "rest" && !tab.setup) {
       const hosts = new Set(
-        [...code.matchAll(/<(lt-[a-z-]+)[\s>]/g)].map((m) => m[1]),
+        [...bare.matchAll(/<(lt-[a-z-]+)[\s>]/g)].map((m) => m[1]),
       )
       /*
        * `defineLt()` from `/register` registers all of them, and then covers
@@ -719,14 +425,19 @@ for (const file of readdirSync(PAGES).filter(
        * `defineLtField(` does not match, and an import without a call does
        * not match either.
        */
-      const all = /\bdefineLt\s*\(/.test(code)
+      const all = /\bdefineLt\s*\(/.test(bare)
       for (const tag of all ? [] : hosts) {
-        const fn = `defineLt${tag
-          .slice(3)
-          .replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase())}`
+        const fn = DEFINERS.get(tag)
+        if (!fn) {
+          report(
+            page,
+            `${where} shows <${tag}>, which the package does not register`,
+          )
+          continue
+        }
         // The call, not the import: `includes` matched `import { defineLtX }`,
         // so a recipe that imported and forgot the call went green.
-        if (!new RegExp(`\\b${fn}\\s*\\(`).test(code))
+        if (!new RegExp(`\\b${fn}\\s*\\(`).test(bare))
           report(page, `${where} shows <${tag}> without calling ${fn}()`)
       }
     }
@@ -740,9 +451,9 @@ for (const file of readdirSync(PAGES).filter(
      * hand-written classes being swapped for builder functions without the
      * import following along.
      */
-    if (tab.name !== "rest" && !/<Example\b/.test(tab.code)) {
+    if (tab.name !== "rest") {
       let imported = false
-      for (const fence of fences(tab.code)) {
+      for (const fence of tab.blocks.map(withoutComments)) {
         if (/import \{[^}]*\blt\b[^}]*\} from "@lo-tek\/interfaces/.test(fence))
           imported = true
         if (!imported && /\blt\.[a-zA-Z]/.test(fence)) {
@@ -753,7 +464,7 @@ for (const file of readdirSync(PAGES).filter(
     }
 
     // The whole CDN address: the version and the path, not just the file name.
-    for (const m of tab.code.matchAll(
+    for (const m of code.matchAll(
       /cdn\.jsdelivr\.net\/npm\/@lo-tek\/interfaces@([^/]+)\/([^"'\s]+)/g,
     )) {
       /*
@@ -775,49 +486,8 @@ for (const file of readdirSync(PAGES).filter(
         )
     }
 
-    /*
-     * Datastar after the registration, and never `async`.
-     *
-     * Module scripts run in the order they stand. With Datastar first, the
-     * answer to a request at load reached `<lt-connection-status>` before it
-     * was upgraded, in all three engines, and `el.reportFailure` was not a
-     * function. The order was fixed on that page alone first, while four other
-     * Datastar tabs and the Kotlin templates said the opposite.
-     */
-    if (tab.name === "Datastar") {
-      const code = tab.code
-      const datastar = code.search(/<script\b[^>]*datastar[^>]*\.js/)
-      const registration = code.search(/\bdefineLt\w*\s*\(\s*\)/)
-      // A Datastar tab without Datastar is markup whose patches never come:
-      // the error summary's tab had the registration and nothing more.
-      if (datastar === -1)
-        report(
-          page,
-          `${where} does not load Datastar, so nothing in it is patched or sent when it is pasted in`,
-        )
-      else {
-        datastarTabs += 1
-        if (registration !== -1 && datastar < registration)
-          report(
-            page,
-            `${where} loads Datastar before the registration. Module scripts run in order, so a request at load reaches the web component before it is upgraded.`,
-          )
-        // Every script tag that loads Datastar, `async` anywhere in it.
-        const tags = code.match(/<script\b[^>]*>/g) ?? []
-        if (
-          tags.some((t) => /datastar[^"']*\.js/.test(t) && /\basync\b/.test(t))
-        )
-          report(
-            page,
-            `${where} loads Datastar with async, which takes it out of the order`,
-          )
-      }
-    }
-
-    const packageNameInImport = /from\s+\n?\s*"@lo-tek\/interfaces/.test(
-      tab.code,
-    )
-    const urlInImport = /from\s+\n?\s*"https:\/\/cdn\./.test(tab.code)
+    const packageNameInImport = /from\s+\n?\s*"@lo-tek\/interfaces/.test(code)
+    const urlInImport = /from\s+\n?\s*"https:\/\/cdn\./.test(code)
     if (
       !WITH_BUILD_STEP.has(tab.name) &&
       tab.name !== "rest" &&
@@ -832,10 +502,48 @@ for (const file of readdirSync(PAGES).filter(
   }
 }
 
-// Counted from what the rule read, so a change that finds no Datastar tab
-// cannot pass for one that found them all in order.
-if (datastarTabs === 0)
-  report("all pages", "the rule on Datastar's load order found no Datastar tab")
+/*
+ * The setup every tab writes: the stylesheets, the registration and Datastar,
+ * held to what `pageSetup` computes from its markup. The rules are fed their
+ * cases first, so a rule that went quiet stops the check rather than passing
+ * every page.
+ */
+for (const broken of setupSelfTest()) report("the rules for the setup", broken)
+let setupTabs = 0
+for (const page of recipes.pages)
+  for (const tab of page.tabs) {
+    const target = SETUP_TARGETS[tab.label]
+    if (!tab.setup || !target) continue
+    const code = tab.blocks.map((b) => b.code).join("\n")
+    for (const finding of checkSetup(target, code, {
+      part: tab.section === RECIPE ? undefined : "illustration",
+    }))
+      report(page.path, `"${tab.label}" ${finding}`)
+    setupTabs += 1
+  }
+// Every component page on disk must have been read from the file, counted
+// from the folder and not from the file, or a page the file lacks would go
+// free.
+const onDisk = readdirSync(
+  join(ROOT, "documentation/src/content/docs/components"),
+).filter((f) => f.endsWith(".mdx") && f !== "index.mdx").length
+if (pages === 0 || pages !== onDisk)
+  report(
+    "all pages",
+    `read ${pages} component pages from recipes.json, where the folder has ${onDisk}`,
+  )
+
+// Counted last, from what was checked, against what the file says has a
+// setup, so a change that checks no tab cannot pass for one that checked all.
+const withSetup = recipes.pages.reduce(
+  (n, p) => n + p.tabs.filter((t) => t.setup && SETUP_TARGETS[t.label]).length,
+  0,
+)
+if (setupTabs === 0 || setupTabs !== withSetup)
+  report(
+    "all pages",
+    `the setup was checked in ${setupTabs} tabs, where recipes.json has ${withSetup}`,
+  )
 
 if (findings.length > 0) {
   console.error(
@@ -844,5 +552,5 @@ if (findings.length > 0) {
   process.exit(1)
 }
 console.log(
-  `The recipes point at things that exist. Datastar loads after the registration in ${datastarTabs} Datastar tabs.`,
+  `The recipes on ${pages} component pages point at things that exist. The setup is right in ${setupTabs} tabs.`,
 )

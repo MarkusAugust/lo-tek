@@ -21,7 +21,6 @@
 
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { server } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/field.mdx?raw"
 import coreUrl from "../../../../core/lotek-core.wasm?url"
 import {
   type AccessibilityCore,
@@ -35,7 +34,8 @@ import {
   type Model,
   unchecked,
 } from "../../../testing/model"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 import { renderedMarkup } from "../../../testing/rendered"
 import {
   REPLACEMENTS,
@@ -51,10 +51,10 @@ import "./field.css"
 
 /** The form in the "Plain HTML" recipe, without its scripts. */
 const RECIPE = (() => {
-  const block = tabItems(page)
-    .filter((t) => t.name === "Plain HTML")
-    .flatMap((t) => htmlBlocks(t.code))
-    .find((b) => b.includes("<lt-field"))
+  const block = blocks(recipePage("field"), {
+    tab: "Plain HTML",
+    lang: "html",
+  }).find((b) => b.includes("<lt-field"))
   if (!block) throw new Error("no recipe with <lt-field> on the page")
   return block.replace(/<script[\s\S]*?<\/script>/g, "")
 })()

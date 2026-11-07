@@ -1,7 +1,6 @@
 /// <reference path="../../../types/css.d.ts" />
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import page from "../../../../../documentation/src/content/docs/components/switch.mdx?raw"
 import {
   expectNoAccessibilityViolations,
   mount,
@@ -12,6 +11,7 @@ import { switchControl } from "./switch"
 import "../../../tokens/tokens.css"
 import "./switch.css"
 import "../label/label.css"
+import { recipePage } from "../../../testing/recipe-pages"
 
 /**
  * The saving example on the page, run the way a reader pastes it.
@@ -27,9 +27,9 @@ import "../label/label.css"
 describe("the saving example on the page", () => {
   /** The markup and script in the "Plain HTML" tab, read from the page. */
   function readTab(): { markup: string; script: string } {
-    const tab = /<TabItem label="Plain HTML">\s*```html\n([\s\S]*?)```/.exec(
-      page,
-    )?.[1]
+    const tab = recipePage("switch")
+      .tabs.find((t) => t.label === "Plain HTML")
+      ?.blocks.find((b) => b.lang === "html")?.code
     if (tab === undefined) throw new Error('Found no "Plain HTML" tab')
     const script = /<script type="module">([\s\S]*?)<\/script>/.exec(tab)?.[1]
     if (script === undefined) throw new Error("Found no script in the tab")

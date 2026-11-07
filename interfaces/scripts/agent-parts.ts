@@ -22,6 +22,7 @@ import { elements } from "../src/vocabulary/elements.js"
 import { readBuilderFunctions } from "./builder-functions.js"
 import { FAMILIES, ROLES, roleToCss } from "./color-contract.js"
 import { buildBundledCss, bundledSize } from "./css-bundle.js"
+import { DEFINERS } from "./page-setup.js"
 
 export const PACKAGE = fileURLToPath(new URL("../", import.meta.url))
 
@@ -105,9 +106,15 @@ export function cdnUrl(entryName: string): string {
 
 const capitalise = (part: string) => part[0].toUpperCase() + part.slice(1)
 
-/** `defineLtSessionTimeout` from `session-timeout`, as the naming convention says. */
+/**
+ * `defineLtSessionTimeout` from `session-timeout`, read from the main entry
+ * point by `page-setup.ts`, so a name no module exports stops the generator.
+ */
 export function registration(component: string): string {
-  return `defineLt${component.split("-").map(capitalise).join("")}`
+  const definer = DEFINERS.get(`lt-${component}`)
+  if (!definer)
+    throw new Error(`the package does not register <lt-${component}>`)
+  return definer
 }
 
 type ClassRow = {

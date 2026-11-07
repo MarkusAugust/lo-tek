@@ -27,24 +27,30 @@ import {
   unregistered,
   wentTo,
 } from "./testing/recipe-frame"
-import { htmlBlocks, tabItems } from "./testing/recipes"
+import { recipePage } from "./testing/recipe-pages"
+import { blocks } from "./testing/recipes"
 
 const PAGES = import.meta.glob<string>(
   "../../documentation/src/content/docs/components/*.mdx",
   { query: "?raw", import: "default", eager: true },
 )
 
-const pages = Object.entries(PAGES).map(([path, text]) => ({
-  name: path.replace(/^.*\/(.+)\.mdx$/, "$1"),
-  text,
-  blocks: tabItems(text)
-    .filter((t) => t.name === "Datastar")
-    .flatMap((t) => htmlBlocks(t.code)),
-}))
+/*
+ * The blocks come from `recipes.json`. The page text is read here only for
+ * the count below, which must not go through the same reader.
+ */
+const pages = Object.entries(PAGES).map(([path, text]) => {
+  const name = path.replace(/^.*\/(.+)\.mdx$/, "$1")
+  return {
+    name,
+    text,
+    blocks: blocks(recipePage(name), { tab: "Datastar", lang: "html" }),
+  }
+})
 
 /**
  * The pages with a Datastar tab, counted by plain string search rather than
- * by `tabItems`, so a tab that reader missed is one the test reports.
+ * through `recipes.json`, so a tab the reading missed is one the test reports.
  */
 const expected = pages
   .filter((p) => p.text.includes('label="Datastar"'))
@@ -284,8 +290,9 @@ describe("the dialog in the Datastar recipe", () => {
  */
 describe("the extension in the session timeout's Datastar recipe", () => {
   const page = pages.find((p) => p.name === "session-timeout")
-  const tab = tabItems(page?.text ?? "").find((t) => t.name === "Datastar")
-  const gone = tab?.code.match(/```js\n([\s\S]*?)```/)?.[1].trim()
+  const gone = page
+    ? blocks(recipePage(page.name), { tab: "Datastar", lang: "js" })[0]?.trim()
+    : undefined
   if (!page || !gone)
     throw new Error("the session timeout's Datastar tab has no js answer")
 

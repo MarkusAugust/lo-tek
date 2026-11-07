@@ -1,18 +1,40 @@
 /**
- * The stylesheets the recipes link, read from the package's own `exports`,
- * and the reading of the pages from `src/testing/recipes.ts`, which the
- * browser tests use too.
+ * The recipes for the scripts, from `documentation/generated/recipes.json`,
+ * with the helpers in `src/testing/recipes.ts`, which the browser tests use
+ * too, and the stylesheets the recipes link, read from the package's own
+ * `exports`.
  */
 import { readFileSync } from "node:fs"
+import { join } from "node:path"
 import pkg from "../package.json"
+import { findPage, type RecipePage } from "../src/testing/recipes"
+
+/** The file `extract-recipes.ts` writes, and every reader reads. */
+export const RECIPES = join(
+  import.meta.dirname,
+  "../../documentation/generated/recipes.json",
+)
 
 export {
+  allBlocks,
+  blocks,
   CDN,
-  dedent,
-  htmlBlocks,
-  tabItems,
+  kotlinTab,
+  type RecipePage,
   VERSION_PLACEHOLDER,
 } from "../src/testing/recipes"
+
+/**
+ * The pages as the file has them, read at the first call and kept: the
+ * scripts ask for a page per contract and per element. Not when the module
+ * loads, since `generate` writes the file in its first step and the scripts
+ * after it read it.
+ */
+let pages: RecipePage[] | undefined
+export function recipePage(name: string): RecipePage {
+  pages ??= JSON.parse(readFileSync(RECIPES, "utf8")).pages as RecipePage[]
+  return findPage(pages, name)
+}
 
 /**
  * The file behind a stylesheet name such as "input" or "tokens", read from
@@ -23,29 +45,4 @@ export function stylesheetPath(name: string): string {
   if (typeof target !== "string")
     throw new Error(`"./${name}.css" is not in the package's exports`)
   return target.slice(2)
-}
-
-/**
- * The ```kotlin blocks in the kotlinx.html tab of a component page, without
- * the tab's indentation, or `undefined` when the page has none. The tab is a
- * `<TabItem>`, or a `<Fragment slot="kotlin">` in an `<Example>`: both forms
- * `ExtractRecipes` in `kotlin/buildSrc` reads, with the same pattern as its
- * `tabStarts`, spacing included. That task compiles the blocks, so what is
- * read here has been compiled and rendered by `RecipesTest`.
- */
-export function kotlinBlocks(page: string): string[] | undefined {
-  const text = readFileSync(page, "utf8")
-  const tabStart = text.search(/<TabItem\s+label\s*=\s*"kotlinx\.html"\s*>/)
-  const slotStart = text.indexOf('<Fragment slot="kotlin">')
-  const start = tabStart >= 0 ? tabStart : slotStart
-  if (start < 0) return undefined
-  const end = text.indexOf(tabStart >= 0 ? "</TabItem>" : "</Fragment>", start)
-  const tab = text.slice(start, end < 0 ? text.length : end)
-  return [...tab.matchAll(/^([ \t]*)```kotlin\n([\s\S]*?)\n[ \t]*```/gm)].map(
-    (m) =>
-      m[2]
-        .split("\n")
-        .map((line) => (line.startsWith(m[1]) ? line.slice(m[1].length) : line))
-        .join("\n"),
-  )
 }

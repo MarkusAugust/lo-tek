@@ -1,7 +1,6 @@
 /// <reference path="../../../types/css.d.ts" />
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import page from "../../../../../documentation/src/content/docs/components/breadcrumbs.mdx?raw"
 import {
   expectNoAccessibilityViolations,
   mount,
@@ -11,6 +10,8 @@ import { breadcrumbs } from "./breadcrumbs"
 
 import "../../../tokens/tokens.css"
 import "./breadcrumbs.css"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 
 describe("lt-breadcrumbs", () => {
   afterEach(() => {
@@ -48,7 +49,10 @@ describe("lt-breadcrumbs", () => {
     // "›" is back in the accessibility tree and the screen reader reads it
     // between every step again. The snippet is read from the page, so it
     // cannot drift from the code.
-    const snippet = /```css\n([\s\S]*?)```/.exec(page)?.[1]
+    const snippet = blocks(recipePage("breadcrumbs"), {
+      tab: "rest",
+      lang: "css",
+    })[0]
     if (snippet === undefined)
       throw new Error("Found no CSS snippet on the page")
     const style = document.createElement("style")

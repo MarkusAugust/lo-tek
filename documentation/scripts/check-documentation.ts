@@ -23,6 +23,7 @@ import {
   ROLES,
   roleToCss,
 } from "../../interfaces/scripts/color-contract.ts"
+import RECIPES from "../generated/recipes.json"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))
 const COMPONENTS = `${ROOT}interfaces/src/components/`
@@ -414,7 +415,9 @@ for (const { name, path } of componentFolders()) {
    * anywhere in the text. It went green on most pages for the wrong reason:
    * "TypeScript" at the bottom mentions `@lo-tek/interfaces/react`, and that
    * counted. Now "How to use it" itself must say what to import, either in a
-   * code tab or through `imports` on <Example>.
+   * code tab or with `recipe` on <Example>, which shows the stylesheets
+   * `pageSetup` computes from its markup. Whether an example has it is read
+   * from `recipes.json`, where the attribute counts wherever it stands.
    */
   const recipeStart = text.indexOf("## How to use it")
   const recipeEnd = text.indexOf("\n## ", recipeStart + 5)
@@ -425,7 +428,14 @@ for (const { name, path } of componentFolders()) {
 
   if (recipeStart === -1) {
     problems.push({ where, what: 'is missing the section "How to use it"' })
-  } else if (!/\.css/.test(recipe) && !/imports=\{/.test(recipe)) {
+  } else if (
+    !/\.css/.test(recipe) &&
+    !RECIPES.pages.some(
+      (p) =>
+        p.path === where &&
+        p.examples.some((e) => e.recipe && e.section === "How to use it"),
+    )
+  ) {
     /*
      * A stylesheet, not just the package name.
      *

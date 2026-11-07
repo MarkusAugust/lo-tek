@@ -33,7 +33,6 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { server, userEvent } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/session-timeout.mdx?raw"
 import coreUrl from "../../../../core/lotek-core.wasm?url"
 import {
   type AccessibilityCore,
@@ -48,7 +47,8 @@ import {
   settle,
   unchecked,
 } from "../../../testing/model"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 import { renderedMarkup } from "../../../testing/rendered"
 import {
   datastarPatch,
@@ -80,9 +80,7 @@ function swap(text: string, from: string | RegExp, to: string): string {
  */
 const HOST = swap(
   (
-    tabItems(page)
-      .filter((t) => t.name === "Plain HTML")
-      .flatMap((t) => htmlBlocks(t.code))
+    blocks(recipePage("session-timeout"), { tab: "Plain HTML", lang: "html" })
       .map((b) => b.match(/<lt-session-timeout[\s\S]*?<\/lt-session-timeout>/))
       .find((m) => m !== null)?.[0] ?? ""
   ).replace(/\n\s*/g, "\n"),

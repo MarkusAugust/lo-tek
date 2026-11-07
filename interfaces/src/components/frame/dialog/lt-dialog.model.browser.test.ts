@@ -32,7 +32,6 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { server, userEvent } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/dialog.mdx?raw"
 import coreUrl from "../../../../core/lotek-core.wasm?url"
 import {
   type AccessibilityCore,
@@ -48,7 +47,8 @@ import {
   settle,
   unchecked,
 } from "../../../testing/model"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks as tabBlocks } from "../../../testing/recipes"
 import { renderedMarkup } from "../../../testing/rendered"
 import {
   datastarPatch,
@@ -71,9 +71,7 @@ function swap(text: string, from: string | RegExp, to: string): string {
 }
 
 const blocks = (tab: string) =>
-  tabItems(page)
-    .filter((t) => t.name === tab)
-    .flatMap((t) => htmlBlocks(t.code))
+  tabBlocks(recipePage("dialog"), { tab: tab, lang: "html" })
 
 /*
  * The region the Datastar recipe sends, without the requests on its buttons:

@@ -910,8 +910,8 @@ const iconWithTitle: Contract = {
     name: "a title in the svg",
     replace: [
       [
-        ' aria-label="Delete ticket #0331">\n  <svg class="lt-icon" aria-hidden="true"',
-        '>\n  <svg class="lt-icon"',
+        ' aria-label="Delete ticket #0331">\n<svg class="lt-icon" aria-hidden="true"',
+        '>\n<svg class="lt-icon"',
       ],
       [
         '<path d="M4 7h16',
@@ -959,8 +959,8 @@ const steps: Contract = {
     {
       name: "the current step moved to the second",
       replace: [
-        '<li><a href="#">Survey</a></li>\n  <li aria-current="step">Walls</li>',
-        '<li aria-current="step"><a href="#">Survey</a></li>\n  <li>Walls</li>',
+        '<li><a href="#">Survey</a></li>\n<li aria-current="step">Walls</li>',
+        '<li aria-current="step"><a href="#">Survey</a></li>\n<li>Walls</li>',
       ],
       failsAt: "focus-step-before-current",
     },

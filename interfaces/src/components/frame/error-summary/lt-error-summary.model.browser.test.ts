@@ -21,7 +21,6 @@
 
 import { beforeAll, describe, expect, it } from "vitest"
 import { server } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/error-summary.mdx?raw"
 import coreUrl from "../../../../core/lotek-core.wasm?url"
 import { mount } from "../../../testing/a11y"
 import {
@@ -37,7 +36,8 @@ import {
   settle,
   unchecked,
 } from "../../../testing/model"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 import { renderedMarkup } from "../../../testing/rendered"
 import {
   REPLACEMENTS,
@@ -52,10 +52,10 @@ import "./error-summary.css"
 
 /** The form in the "Plain HTML" recipe, without its scripts. */
 const RECIPE = (() => {
-  const block = tabItems(page)
-    .filter((t) => t.name === "Plain HTML")
-    .flatMap((t) => htmlBlocks(t.code))
-    .find((b) => b.includes("<lt-error-summary"))
+  const block = blocks(recipePage("error-summary"), {
+    tab: "Plain HTML",
+    lang: "html",
+  }).find((b) => b.includes("<lt-error-summary"))
   if (!block) throw new Error("no recipe with <lt-error-summary> on the page")
   return block.replace(/<script[\s\S]*?<\/script>/g, "")
 })()
