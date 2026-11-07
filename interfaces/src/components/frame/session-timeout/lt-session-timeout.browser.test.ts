@@ -634,6 +634,27 @@ describe("lt-session-timeout handles Escape, wrong numbers and an expiry", () =>
     expect(dialog().hasAttribute("aria-labelledby")).toBe(false)
   })
 
+  it("leaves an aria-labelledby the renderer sent with the same id the component wrote", async () => {
+    const warning = (named: string) => `
+      <lt-session-timeout id="session" warn-at="3" expires-at="13">
+        <dialog${named}>
+          <h2 id="warning-1">Du blir snart logget ut</h2>
+          <p class="lt-session-timeout__text">Vi logger deg ut om
+            <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
+          <span class="lt-sr-only" role="status"></span>
+          <form method="dialog"><button value="extend">Fortsett</button></form>
+        </dialog>
+      </lt-session-timeout>`
+    await mountShort(warning(""))
+    await advance(4)
+    expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
+
+    morph(host(), warning(' aria-labelledby="warning-1" aria-label="Økten"'))
+    await waitForPaint()
+
+    expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
+  })
+
   it("leaves a name the renderer has written in place", async () => {
     await mountShort(
       warning().replace(

@@ -67,9 +67,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   screen reader announced the dialog without a name. The name the component
   wrote now follows the heading, gives way when the server names the
   dialog with `aria-label`, and is taken away when no heading is left, so
-  the warning about a dialog without a name comes then. An
-  `aria-labelledby` with another value than the component's is the
-  server's, and stays.
+  the warning about a dialog without a name comes then. The component
+  writes its own with `data-lt-written`, so an `aria-labelledby` the server
+  sent is the server's and stays, also with the same id.
+  `<lt-session-timeout>` now has that warning too.
 - **`<lt-field>` leaves a `data-state="invalid"` the server sent itself.**
   When the component had written the value first and a morph then brought
   the same value from the server, the component removed it once the error

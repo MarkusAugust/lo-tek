@@ -262,8 +262,13 @@ export class LtDialog extends HostElement {
     addClass(dialog, DIALOG_CLASS)
 
     const named = dialog.getAttribute("aria-labelledby")
+    // The component's own while it stands as written and still marked: a
+    // morph that sent the same id removes the mark, and the id is then the
+    // server's word.
     const ours =
-      named !== null && named === this.own.written(dialog, "aria-labelledby")
+      named !== null &&
+      this.own.knows(dialog, "aria-labelledby") &&
+      this.own.serverWord(dialog, "aria-labelledby") === null
     if (named && !ours) {
       this.own.forget(dialog, "aria-labelledby")
       // The attribute can list several ids. The title is the first one that
@@ -304,7 +309,10 @@ export class LtDialog extends HostElement {
       this.titleId ??= uniqueId("lt-dialog-title")
       setAttr(title, "id", this.titleId)
     }
-    this.own.write(dialog, "aria-labelledby", title.id)
+    this.own.write(dialog, "aria-labelledby", title.id, {
+      server: null,
+      mark: true,
+    })
   }
 
   private notify(open: boolean, returnValue = ""): void {
