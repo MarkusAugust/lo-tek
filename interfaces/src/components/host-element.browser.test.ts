@@ -290,4 +290,3 @@ describe("derivedParts", () => {
     expect([fromOwn, fromSet]).toEqual([2, 2])
   })
 })
-
