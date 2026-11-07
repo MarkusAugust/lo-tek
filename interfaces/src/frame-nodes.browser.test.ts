@@ -58,13 +58,28 @@ const elementsOf = (root: Element) => [root, ...root.querySelectorAll("*")]
 
 /** The components a recipe was actually mounted for, counted last. */
 const checked = new Set<string>()
+/** Each component and tab mounted, as `field/Datastar`. */
+const mounted = new Set<string>()
+const TABS = ["Plain HTML", "Datastar"]
+/**
+ * The tabs that must be mounted: every one with an `lt-` element in it. A tab
+ * where the element is misspelt, `<lt-feild>`, would otherwise be skipped as
+ * a tab without the component, while the other tab kept it counted.
+ */
+const EXPECTED = components.flatMap(({ name }) =>
+  TABS.filter((tab) => /<lt-[a-z]/.test(markupOf(name, tab))).map(
+    (tab) => `${name}/${tab}`,
+  ),
+)
 
 describe("no frame component adds or removes a node", () => {
   for (const { name, define } of components)
-    for (const tab of ["Plain HTML", "Datastar"])
-      it(`${name}, from the ${tab} recipe`, async () => {
+    for (const tab of TABS)
+      it(`${name}, from the ${tab} recipe`, async (context) => {
         const markup = markupOf(name, tab)
-        if (!markup.includes(`<lt-${name}`)) return
+        // The dialog's Plain HTML recipe opens it with showModal() and has no
+        // <lt-dialog>; such a tab is skipped where the report shows it.
+        if (!markup.includes(`<lt-${name}`)) return context.skip()
 
         const wrapper = document.createElement("div")
         wrapper.innerHTML = markup
@@ -104,11 +119,13 @@ describe("no frame component adds or removes a node", () => {
           repaired: [],
         })
         checked.add(name)
+        mounted.add(`${name}/${tab}`)
       })
 
   afterAll(() => {
     // Every folder under frame/ was mounted from a recipe at least once.
     expect(components.map((c) => c.name).sort()).toEqual([...FOLDERS].sort())
     expect([...checked].sort()).toEqual([...FOLDERS].sort())
+    expect([...mounted].sort()).toEqual([...EXPECTED].sort())
   })
 })

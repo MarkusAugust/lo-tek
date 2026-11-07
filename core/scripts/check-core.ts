@@ -469,13 +469,18 @@ if (existsSync(join(CORE, "build.rs")))
     "core/build.rs exists: the core is built from core/ alone, with no build script",
   )
 const rust = [...new Bun.Glob("src/**/*.rs").scanSync(CORE)]
+// Every macro that reads a file when the core is built, spaced as Rust
+// allows, and a module taken from a path of its own.
 for (const file of rust)
   for (const [i, line] of readFileSync(join(CORE, file), "utf8")
     .split("\n")
     .entries())
-    if (/\binclude_(?:str|bytes)!/.test(line))
+    if (
+      /\binclude(?:_str|_bytes)?\s*!/.test(line) ||
+      /#\s*\[\s*path\s*=/.test(line)
+    )
       failures.push(
-        `core/${file}:${i + 1}: ${line.trim()}\n  The core carries no data: the host gives it through load_manifest_raw and load_contract_raw.`,
+        `core/${file}:${i + 1}: ${line.trim()}\n  The core carries no data and reads no file when it is built: the host gives the data through load_manifest_raw and load_contract_raw.`,
       )
 if (rust.length === 0) failures.push("found no Rust files in core/src")
 const metadata = Bun.spawnSync(

@@ -21,7 +21,7 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { Glob } from "bun"
 import ts from "typescript"
-import pkg from "../package.json"
+import { exportedSources } from "./exports"
 
 export interface Finding {
   /** The file, relative to the package, as `src/components/…`. */
@@ -116,10 +116,38 @@ const ENTRY_POINTS = new Set([
   "src/register.ts",
 ])
 
-/** The component folder a file is in, `frame/field`, or `null`. */
-function componentOf(file: string): string | null {
+/** The modules the web components build on, below them in the direction. */
+const SHARED = new Set([
+  "src/components/host-element.ts",
+  "src/components/events.ts",
+  "src/components/default-texts.ts",
+])
+
+/** React and the packages that come with it, in any form. */
+const REACT =
+  /^(?:react(?:-[a-z-]+)?|scheduler|preact|@types\/react(?:-[a-z-]+)?)(?:\/|$)/
+
+/**
+ * Node's own built-in modules, asked of Node. Bun's `isBuiltin` also says yes
+ * to `ws`, `undici` and `bun:test`, which Node does not have.
+ */
+const NODE_BUILTINS = new Set<string>(
+  JSON.parse(
+    Bun.spawnSync([
+      "node",
+      "-p",
+      "JSON.stringify(require('node:module').builtinModules)",
+    ]).stdout.toString() || "[]",
+  ),
+)
+if (NODE_BUILTINS.size === 0)
+  throw new Error("node gave no built-in modules: is Node installed?")
+
+/** The component folder a file is in, `src/components/frame/field/`, or `null`. */
+function folderOf(file: string): string | null {
   return (
-    file.match(/^src\/components\/((?:frame|standalone)\/[^/]+)\//)?.[1] ?? null
+    file.match(/^src\/components\/(?:css|frame|standalone)\/[^/]+\//)?.[0] ??
+    null
   )
 }
 
@@ -131,37 +159,59 @@ export function checkLayers(
   files: Array<{ path: string; text: string }>,
   exported: Set<string>,
 ): Finding[] {
+  return readLayers(files, exported).findings
+}
+
+/** The findings, and how many imports were read to find them. */
+export function readLayers(
+  files: Array<{ path: string; text: string }>,
+  exported: Set<string>,
+): { findings: Finding[]; imports: number } {
   const known = new Set(files.map((f) => f.path))
   const out: Finding[] = []
+  let imports = 0
   for (const { path, text } of files)
     for (const i of importsOf(path, text, known)) {
+      imports += 1
       const report = (rule: string) =>
         out.push({ path, line: i.line, text: i.text, rule })
       // The package depends on nothing, so a package name is checked as it
       // is written, before the erased imports are let through.
-      if (
-        (i.from === "react" || i.from.startsWith("react/")) &&
-        !path.startsWith("src/jsx/")
-      )
+      if (REACT.test(i.from) && !path.startsWith("src/jsx/"))
         report("React is imported only in src/jsx/, also as a type")
       if (i.typeOnly) continue
-      if (i.from.startsWith("node:") && path !== "src/wasi-host.ts")
-        report("node: is imported only in src/wasi-host.ts")
+      // Node's own answer, so "fs" is caught as well as "node:fs".
+      if (
+        (i.from.startsWith("node:") || NODE_BUILTINS.has(i.from)) &&
+        path !== "src/wasi-host.ts"
+      )
+        report("a Node built-in is imported only in src/wasi-host.ts")
       if (!i.file) continue
-      const mine = componentOf(path)
-      const theirs = componentOf(i.file)
-      // The web component's own module is in exports too, for its
+      // `lotek takeover` copies a component folder and rewrites what it
+      // takes from outside the folder to the entry point in exports, so a
+      // file exports does not point at would be a path the consumer does not
+      // have. The web component's own module is in exports too, for its
       // defineLt*, but what another component may share is its contract,
       // such as field-core.ts, never the class.
-      const elementModule = /\/lt-[^/]+\.ts$/.test(i.file)
+      const webComponent =
+        /^src\/components\/(?:frame|standalone)\/.*\/lt-[^/]+\.ts$/.test(i.file)
+      const cssReachesUp =
+        path.startsWith("src/components/css/") &&
+        (/^src\/components\/(?:frame|standalone)\//.test(i.file) ||
+          SHARED.has(i.file))
+      // The rules below name testing/, the entry points and a CSS component
+      // reaching up more exactly.
+      const folder = folderOf(path)
       if (
-        mine &&
-        theirs &&
-        mine !== theirs &&
-        (elementModule || !exported.has(i.file))
+        folder &&
+        !i.file.startsWith(folder) &&
+        !i.file.startsWith("src/testing/") &&
+        !ENTRY_POINTS.has(i.file) &&
+        !cssReachesUp &&
+        (/\/lt-[^/]+\.ts$/.test(i.file) || !exported.has(i.file))
       )
         report(
-          "a component uses another only through a file exports points at, never its web component (lt-*.ts)",
+          "a component reaches outside its folder only to a file exports points at, never another web component (lt-*.ts)",
         )
       if (i.file.startsWith("src/testing/"))
         report("code that ships imports nothing from src/testing/")
@@ -169,15 +219,16 @@ export function checkLayers(
         report(
           "a component imports no entry point: lt.ts, react.ts, index.ts or register.ts",
         )
-      if (
-        path.startsWith("src/components/css/") &&
-        (componentOf(i.file) || i.file === "src/components/host-element.ts")
-      )
+      if (cssReachesUp)
         report(
-          "a CSS component imports nothing from frame/, standalone/ or host-element.ts",
+          "a CSS component imports nothing from frame/, standalone/, host-element.ts, events.ts or default-texts.ts",
+        )
+      if (SHARED.has(path) && webComponent)
+        report(
+          "host-element.ts, events.ts and default-texts.ts load no web component (lt-*.ts)",
         )
     }
-  return out
+  return { findings: out, imports }
 }
 
 /**
@@ -186,7 +237,7 @@ export function checkLayers(
  */
 export function selfTest(): string[] {
   const broken: string[] = []
-  const expect = (name: string, actual: Finding[], wanted: Finding[]) => {
+  const expect = (name: string, actual: unknown, wanted: unknown) => {
     if (JSON.stringify(actual) !== JSON.stringify(wanted))
       broken.push(
         `${name}: found ${JSON.stringify(actual)}, expected ${JSON.stringify(wanted)}`,
@@ -204,14 +255,14 @@ export function selfTest(): string[] {
         { path: "src/components/frame/field/lt-field.ts", text: "" },
         { path: "src/components/host-element.ts", text: "" },
       ],
-      new Set(),
+      new Set(["src/components/host-element.ts"]),
     ),
     [
       {
         path: "src/components/frame/suggestion/lt-suggestion.ts",
         line: 2,
         text: 'import { LtField } from "../field/lt-field.js"',
-        rule: "a component uses another only through a file exports points at, never its web component (lt-*.ts)",
+        rule: "a component reaches outside its folder only to a file exports points at, never another web component (lt-*.ts)",
       },
     ],
   )
@@ -233,7 +284,7 @@ export function selfTest(): string[] {
         path: "src/components/standalone/toast/lt-toast.ts",
         line: 1,
         text: 'void import("../../frame/dialog/lt-dialog.js")',
-        rule: "a component uses another only through a file exports points at, never its web component (lt-*.ts)",
+        rule: "a component reaches outside its folder only to a file exports points at, never another web component (lt-*.ts)",
       },
     ],
   )
@@ -308,7 +359,7 @@ export function selfTest(): string[] {
         path: "src/diagnostics/core.ts",
         line: 1,
         text: 'import { readFileSync } from "node:fs"',
-        rule: "node: is imported only in src/wasi-host.ts",
+        rule: "a Node built-in is imported only in src/wasi-host.ts",
       },
     ],
   )
@@ -345,22 +396,140 @@ export function selfTest(): string[] {
         { path: "src/components/host-element.ts", text: "" },
         { path: "src/components/frame/field/field-core.ts", text: "" },
       ],
-      new Set(["src/components/frame/field/field-core.ts"]),
+      new Set([
+        "src/components/frame/field/field-core.ts",
+        "src/components/host-element.ts",
+      ]),
     ),
     [
       {
         path: "src/components/css/input/input.ts",
         line: 1,
         text: 'import { setAttr } from "../../host-element.js"',
-        rule: "a CSS component imports nothing from frame/, standalone/ or host-element.ts",
+        rule: "a CSS component imports nothing from frame/, standalone/, host-element.ts, events.ts or default-texts.ts",
       },
       {
         path: "src/components/css/input/input.ts",
         line: 2,
         text: 'import { lt as field } from "../../frame/field/field-core.js"',
-        rule: "a CSS component imports nothing from frame/, standalone/ or host-element.ts",
+        rule: "a CSS component imports nothing from frame/, standalone/, host-element.ts, events.ts or default-texts.ts",
       },
     ],
+  )
+
+  const one = (
+    path: string,
+    text: string,
+    others: string[],
+    exported: string[] = [],
+  ) =>
+    checkLayers(
+      [{ path, text }, ...others.map((o) => ({ path: o, text: "" }))],
+      new Set(exported),
+    ).map((f) => f.rule)
+  expect(
+    "a component reaches outside its folder only to a file exports points at, a CSS component too",
+    ([] as Finding[]).concat(
+      checkLayers(
+        [
+          {
+            path: "src/components/frame/suggestion/suggestion.ts",
+            text: 'import { x } from "../../css/label/internal.js"\n',
+          },
+          { path: "src/components/css/label/internal.ts", text: "" },
+          {
+            path: "src/components/css/search/search.ts",
+            text: 'import { y } from "../input/helper.js"\n',
+          },
+          { path: "src/components/css/input/helper.ts", text: "" },
+        ],
+        new Set(),
+      ),
+    ),
+    [
+      {
+        path: "src/components/frame/suggestion/suggestion.ts",
+        line: 1,
+        text: 'import { x } from "../../css/label/internal.js"',
+        rule: "a component reaches outside its folder only to a file exports points at, never another web component (lt-*.ts)",
+      },
+      {
+        path: "src/components/css/search/search.ts",
+        line: 1,
+        text: 'import { y } from "../input/helper.js"',
+        rule: "a component reaches outside its folder only to a file exports points at, never another web component (lt-*.ts)",
+      },
+    ],
+  )
+  const BASE =
+    "host-element.ts, events.ts and default-texts.ts load no web component (lt-*.ts)"
+  expect(
+    "the shared modules load no web component, and a CSS component loads none of them but css",
+    [
+      ...one(
+        "src/components/host-element.ts",
+        'import { LtField } from "./frame/field/lt-field.js"\n',
+        ["src/components/frame/field/lt-field.ts"],
+      ),
+      ...one(
+        "src/components/css/input/input.ts",
+        'import { X } from "../../events.js"\n',
+        ["src/components/events.ts"],
+        ["src/components/events.ts"],
+      ),
+    ],
+    [
+      BASE,
+      "a CSS component imports nothing from frame/, standalone/, host-element.ts, events.ts or default-texts.ts",
+    ],
+  )
+  expect(
+    "a Node built-in without node: and React's relatives are caught too",
+    [
+      ...one(
+        "src/diagnostics/core.ts",
+        'import { readFileSync } from "fs"\n',
+        [],
+      ),
+      ...one("src/lt.ts", 'import { flushSync } from "react-dom"\n', []),
+      ...one("src/lt.ts", 'import type { FC } from "@types/react"\n', []),
+    ],
+    [
+      "a Node built-in is imported only in src/wasi-host.ts",
+      "React is imported only in src/jsx/, also as a type",
+      "React is imported only in src/jsx/, also as a type",
+    ],
+  )
+
+  expect(
+    "one import is one finding, under the rule that names it most exactly",
+    one(
+      "src/components/css/input/input.ts",
+      'import { LtField } from "../../frame/field/lt-field.js"\n',
+      ["src/components/frame/field/lt-field.ts"],
+      ["src/components/frame/field/lt-field.ts"],
+    ),
+    [
+      "a CSS component imports nothing from frame/, standalone/, host-element.ts, events.ts or default-texts.ts",
+    ],
+  )
+  expect(
+    "a shared module may use a component's contract, only not a web component",
+    one(
+      "src/components/events.ts",
+      'import { computeFieldAttributes } from "./frame/field/field-core.js"\n',
+      ["src/components/frame/field/field-core.ts"],
+      ["src/components/frame/field/field-core.ts"],
+    ),
+    [],
+  )
+  expect(
+    "a Node built-in is what Node calls one, not what Bun adds, and React's other packages count",
+    [
+      ...one("src/dom.ts", 'import "ws"\nimport "bun:test"\n', []),
+      ...one("src/lt.ts", 'import "react-is"\n', []),
+    ],
+    ["React is imported only in src/jsx/, also as a type"],
   )
 
   return broken
@@ -389,24 +558,12 @@ if (import.meta.main) {
     .map((path) => ({ path, text: readFileSync(join(PACKAGE, path), "utf8") }))
 
   // Every file `exports` points at, as the source it is built from.
-  const exported = new Set<string>()
-  for (const target of Object.values(pkg.exports as Record<string, unknown>)) {
-    const js =
-      typeof target === "string"
-        ? target
-        : (target as { import?: string } | null)?.import
-    if (js?.startsWith("./dist/") && js.endsWith(".js"))
-      exported.add(`src/${js.slice("./dist/".length, -".js".length)}.ts`)
-  }
+  const exported = exportedSources()
 
-  const findings = checkLayers(files, exported)
+  // The imports are counted where the rules read them, so a run that read
+  // no file or no import cannot pass for one that read them all.
+  const { findings, imports } = readLayers(files, exported)
   const known = new Set(files.map((f) => f.path))
-  // Counted from what was read, last: a run that read no file or no import
-  // cannot pass for one that read them all.
-  const imports = files.reduce(
-    (n, f) => n + importsOf(f.path, f.text, known).length,
-    0,
-  )
   const missing = [...exported].filter((e) => !known.has(e))
 
   for (const rule of new Set(findings.map((f) => f.rule))) {
