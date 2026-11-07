@@ -230,8 +230,11 @@ export class LtSessionTimeout extends HostElement {
    * `session-extend`.
    */
   private shownDialog?: HTMLDialogElement
-  /** Watches for `open` disappearing from a dialog in the top layer. See `repairOpen()`. */
-  private readonly openWatch = watcher(
+  /**
+   * Watches the subtree: `open` disappearing from a dialog in the top layer
+   * (see `repairOpen()`), and the role and the name the component wrote.
+   */
+  private readonly watch = watcher(
     () => {
       this.repairOpen()
       /*
@@ -298,7 +301,7 @@ export class LtSessionTimeout extends HostElement {
      * dialog, without the component having to hold on to a particular node.
      */
     this.addEventListener("close", this.handleClose, true)
-    this.openWatch.start(this)
+    this.watch.start(this)
     this.ticker = window.setInterval(() => this.tick(), 1000)
     this.validate()
 
@@ -325,7 +328,7 @@ export class LtSessionTimeout extends HostElement {
       )
     }
     this.removeEventListener("close", this.handleClose, true)
-    this.openWatch.stop()
+    this.watch.stop()
     if (this.ticker) window.clearInterval(this.ticker)
     this.ticker = undefined
   }

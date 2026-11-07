@@ -36,8 +36,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`ownership()` also has `forget()`**, for an attribute the server has
   taken over, and **`lost()`**, which says that a morph from the server has
   removed the mark since the component wrote a value that differed from the
-  server's. Every frame web component keeps what it wrote through
-  `ownership()` now, and behaves as before.
+  server's. `<lt-error-summary>`, `<lt-term>`, `<lt-suggestion>` and
+  `<lt-tabs>` keep what they wrote through `ownership()` now, and behave as
+  before.
 - **`watcher()` in the same module** starts a `MutationObserver` on a node
   and stops it, leaves the old node when it is started on a new one, and
   says with `watching` whether it runs.

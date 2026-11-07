@@ -121,7 +121,7 @@ export class LtTerm extends HostElement {
    * The link and the entry it points at. `class` too: the component sets
    * `lt-term` on a link without it, and a morph takes it again.
    */
-  private readonly watch = watcher(() => this.sync(), {
+  private readonly observe = watcher(() => this.sync(), {
     childList: true,
     subtree: true,
     attributes: true,
@@ -195,14 +195,14 @@ export class LtTerm extends HostElement {
   }
 
   connectedCallback(): void {
-    this.watch.start(this)
+    this.observe.start(this)
     LtTerm.watch(this)
     this.sync()
   }
 
   disconnectedCallback(): void {
     this.close()
-    this.watch.stop()
+    this.observe.stop()
     LtTerm.unwatch(this)
     this.detachWord()
   }

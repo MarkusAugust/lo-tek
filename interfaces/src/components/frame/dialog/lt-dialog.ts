@@ -116,9 +116,9 @@ export class LtDialog extends HostElement {
    * an observer running all of `sync()` there would have seen a host still
    * saying "open" and a dialog that was not modal, and opened it again before
    * `close` was handled. This one does only one thing: it puts the attribute
-   * back on a dialog that is still in the top layer.
+   * back on a dialog that is still in the top layer. It is started again on
+   * a dialog the server replaced.
    */
-  /** The `<dialog>`'s `open` alone, started again on a dialog the server replaced. */
   private readonly openWatch = watcher(() => this.repairOpen(), {
     attributeFilter: ["open"],
   })

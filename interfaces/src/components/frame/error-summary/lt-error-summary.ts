@@ -134,9 +134,6 @@ export class LtErrorSummary extends HostElement {
     // does not fire in plain DOM. The attributes are the ones the component
     // fills in itself, so a patch that removes them gets them back. Every
     // write compares first, or the observer would trigger itself.
-    // An id only matters on the heading, which the name points at, and a
-    // name only on the box. The same attributes on a link or a field inside
-    // the box are not ours to follow.
     this.watch.start(this)
     this.sync()
   }
