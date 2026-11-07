@@ -27,7 +27,9 @@ import { readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  BUILDER_CLASSES,
   checkSetup,
+  DEFINERS,
   selfTest as setupSelfTest,
   type Target,
   withoutComments,
@@ -153,58 +155,19 @@ const HOSTS: Array<[string, string]> = [
 ]
 
 /**
- * Classes a builder function actually emits, and which function it is.
+ * Classes a builder function actually emits, and which function it is, from
+ * the table `pageSetup` computes the stylesheets with, so the two cannot
+ * disagree. The first function that gives a class names it.
  *
  * Without this the rule would fail every `lt-` class in a React or Astro tab,
  * including those that have no function to call. One class is like that
  * today, and the component creates it itself: `lt-connection-status__bar`.
+ * `lt.switch.row` and the other classes hung on a function count too.
  */
 const FROM_BUILDER = new Map<string, string>()
-for (const [name, f] of Object.entries(lt)) {
-  if (typeof f !== "function") continue
-  let result: unknown
-  try {
-    // `keys` because `lt.tabs()` and `lt.suggestion()` throw without it. Then
-    // `catch` swallowed the error, the tabs' classes never got into the
-    // table, and the rule about classes written by hand was silent for them.
-    result = (f as (o?: unknown) => unknown)({
-      id: "x",
-      titleId: "t",
-      count: 1,
-      keys: ["a"],
-      label: "L",
-    })
-  } catch {
-    continue
-  }
-  const collect = (value: unknown) => {
-    if (Array.isArray(value)) return value.forEach(collect)
-    if (!value || typeof value !== "object") return
-    const o = value as Record<string, unknown>
-    if (typeof o.class === "string")
-      for (const k of o.class.split(/\s+/))
-        if (k && !FROM_BUILDER.has(k)) FROM_BUILDER.set(k, name)
-    for (const v of Object.values(o)) if (typeof v === "object") collect(v)
-  }
-  collect(result)
-
-  /*
-   * And the class names that hang on the function itself.
-   *
-   * `lt.switch.row`, `lt.alert.title` and a dozen others are classes without
-   * attributes, so they are not returned by a call, but hung on the function
-   * with `Object.assign`. Looking only at the return value, it looks like a
-   * gap in the API where there is none. Nineteen classes were like that, and
-   * `.lt-switch-row` was one of them.
-   */
-  for (const [key, value] of Object.entries(f))
-    if (
-      typeof value === "string" &&
-      value.startsWith("lt-") &&
-      !FROM_BUILDER.has(value)
-    )
-      FROM_BUILDER.set(value, `${name}.${key}`)
-}
+for (const classes of BUILDER_CLASSES.values())
+  for (const [k, from] of classes)
+    if (!FROM_BUILDER.has(k)) FROM_BUILDER.set(k, from)
 
 /** The attribute names a builder function actually emits for its host. */
 function required(builder: string): string[] {
@@ -254,13 +217,11 @@ for (const entry of recipes.pages.filter(
   const tabs: Array<{
     name: string
     blocks: string[]
-    inRecipe?: boolean
     /** Whether `checkSetup` holds its setup, at the bottom of the file. */
     setup?: boolean
   }> = entry.tabs.map((t) => ({
     name: t.label,
     blocks: t.blocks.map((b) => b.code),
-    inRecipe: t.section === RECIPE,
     setup: Boolean(t.setup && SETUP_TARGETS[t.label]),
   }))
 
@@ -272,18 +233,23 @@ for (const entry of recipes.pages.filter(
    */
   for (const e of entry.examples) {
     const inRecipe = e.section === RECIPE
-    tabs.push({ name: "Plain HTML", blocks: [e.code], inRecipe })
+    // An example in the recipe shows its setup only with `recipe`, and
+    // without it the reader pastes markup with no stylesheet.
+    if (inRecipe && !e.recipe)
+      report(
+        page,
+        `has an <Example> under "${RECIPE}" without recipe, so its code tabs show no stylesheets`,
+      )
+    tabs.push({ name: "Plain HTML", blocks: [e.code] })
     if (e.kotlin.length > 0)
       tabs.push({
         name: "kotlinx.html",
         blocks: e.kotlin.map((b) => b.code),
-        inRecipe,
       })
     if (e.ts.length > 0)
       tabs.push({
         name: "TypeScript",
         blocks: e.ts.map((b) => b.code),
-        inRecipe,
       })
   }
 
@@ -461,9 +427,14 @@ for (const entry of recipes.pages.filter(
        */
       const all = /\bdefineLt\s*\(/.test(bare)
       for (const tag of all ? [] : hosts) {
-        const fn = `defineLt${tag
-          .slice(3)
-          .replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase())}`
+        const fn = DEFINERS.get(tag)
+        if (!fn) {
+          report(
+            page,
+            `${where} shows <${tag}>, which the package does not register`,
+          )
+          continue
+        }
         // The call, not the import: `includes` matched `import { defineLtX }`,
         // so a recipe that imported and forgot the call went green.
         if (!new RegExp(`\\b${fn}\\s*\\(`).test(bare))
@@ -545,7 +516,7 @@ for (const page of recipes.pages)
     if (!tab.setup || !target) continue
     const code = tab.blocks.map((b) => b.code).join("\n")
     for (const finding of checkSetup(target, code, {
-      part: tab.section !== "How to use it",
+      part: tab.section === RECIPE ? undefined : "illustration",
     }))
       report(page.path, `"${tab.label}" ${finding}`)
     setupTabs += 1

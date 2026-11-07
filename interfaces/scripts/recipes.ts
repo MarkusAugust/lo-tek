@@ -25,11 +25,15 @@ export {
 } from "../src/testing/recipes"
 
 /**
- * The pages as the file has them. Read when asked for, since `generate`
- * writes the file in its first step and the scripts after it read it.
+ * The pages as the file has them, read at the first call and kept: the
+ * scripts ask for a page per contract and per element. Not when the module
+ * loads, since `generate` writes the file in its first step and the scripts
+ * after it read it.
  */
+let pages: RecipePage[] | undefined
 export function recipePage(name: string): RecipePage {
-  return findPage(JSON.parse(readFileSync(RECIPES, "utf8")).pages, name)
+  pages ??= JSON.parse(readFileSync(RECIPES, "utf8")).pages as RecipePage[]
+  return findPage(pages, name)
 }
 
 /**

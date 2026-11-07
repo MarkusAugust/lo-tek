@@ -35,6 +35,7 @@ export interface RecipePage {
   }>
   examples: Array<{
     section: string | null
+    recipe: boolean
     code: string
     ts: Block[]
     kotlin: Block[]

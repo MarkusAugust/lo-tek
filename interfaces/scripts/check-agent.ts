@@ -356,7 +356,7 @@ for (const [path, content] of Object.entries(expected)) {
      * registration while the pages said the opposite (0bfbb64).
      */
     const target = path === "agent/datastar.md" ? "datastar" : "html"
-    for (const finding of checkSetup(target, block[1], { part: true }))
+    for (const finding of checkSetup(target, block[1], { part: "fragment" }))
       demand(false, `${path}, markup block ${index + 1} ${finding}`)
     checkedSetups += 1
   }

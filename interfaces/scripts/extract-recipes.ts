@@ -42,6 +42,8 @@ export interface Tab {
 /** An `<Example>`: the markup in `code`, and the blocks in its slots. */
 export interface Example {
   section: string | null
+  /** `<Example recipe>`: the code tabs show the setup the markup needs. */
+  recipe: boolean
   code: string
   ts: Block[]
   kotlin: Block[]
@@ -125,11 +127,14 @@ interface Template {
   quasis: Array<{ value: { cooked: string } }>
 }
 
-/** The blocks in `<Fragment slot="…">` directly inside a node. */
+/**
+ * The blocks in `<Fragment slot="…">` anywhere inside a node: a slot wrapped
+ * in another element is still the slot Astro fills.
+ */
 function slot(node: Node, name: string): Block[] {
-  return (node.children ?? [])
-    .filter((c) => isElement(c, "Fragment") && attribute(c, "slot") === name)
-    .flatMap(blocksIn)
+  if (isElement(node, "Fragment") && attribute(node, "slot") === name)
+    return blocksIn(node)
+  return (node.children ?? []).flatMap((c) => slot(c, name))
 }
 
 /**
@@ -171,6 +176,10 @@ export function extractPage(mdx: string): Page {
         )
       examples.push({
         section,
+        recipe:
+          node.attributes?.some(
+            (a) => a.type === "mdxJsxAttribute" && a.name === "recipe",
+          ) ?? false,
         code,
         ts: slot(node, "ts"),
         kotlin: slot(node, "kotlin"),
@@ -200,13 +209,17 @@ export function extractPage(mdx: string): Page {
   return { tabs, examples, rest, inline }
 }
 
-/** The target each tab name is a recipe for. Other tabs have no setup. */
+/**
+ * The target each tab name is a recipe for. Other tabs have no setup, the
+ * kotlinx.html tabs among them: they write the setup in Kotlin, which
+ * `pageSetup` does not read, and `RecipesTest` holds their rendered page
+ * template to the HTML tab instead.
+ */
 const TARGETS: Record<string, Target> = {
   "Plain HTML": "html",
   Datastar: "datastar",
   React: "react",
   Astro: "astro",
-  "kotlinx.html": "kotlin",
 }
 
 export interface Recipes {
@@ -381,6 +394,7 @@ export function selfTest(): string[] {
     [
       {
         section: null,
+        recipe: false,
         code: '\n<p class="lt-paragraph">Run `lotek check`</p>\n',
         ts: [{ lang: "ts", meta: null, code: "lt.paragraph()" }],
         kotlin: [{ lang: "kotlin", meta: null, code: "p(Lt.paragraph()) {}" }],
@@ -485,6 +499,16 @@ export function selfTest(): string[] {
     ],
   )
   expect(
+    "a kotlinx.html tab has no setup, since pageSetup does not read Kotlin",
+    extractAll([
+      {
+        path: "components/button.mdx",
+        text: '<Tabs>\n  <TabItem label="kotlinx.html">\n    ```kotlin\n    button(classes = "lt-button") {}\n    ```\n  </TabItem>\n</Tabs>',
+      },
+    ]).pages[0].tabs.map((t) => t.setup),
+    [null],
+  )
+  expect(
     "a page with no pages to read stops the reading",
     stops(() => extractAll([])),
     "Error: read 0 pages, 0 tabs and 0 examples, where the pages have 0 <TabItem and 0 <Example",
@@ -500,6 +524,28 @@ export function selfTest(): string[] {
       ]),
     ),
     "Error: read 1 pages, 1 tabs and 0 examples, where the pages have 2 <TabItem and 0 <Example",
+  )
+  expect(
+    "an <Example> says whether it is the recipe, and finds a slot inside another element",
+    extractPage(
+      [
+        "<Example styles={['paragraph']} recipe code={`<p>a</p>`}>",
+        "  <div>",
+        '    <Fragment slot="ts">',
+        "      ```ts",
+        "      lt.paragraph()",
+        "      ```",
+        "    </Fragment>",
+        "  </div>",
+        "</Example>",
+        "",
+        "<Example code={`<p>b</p>`} />",
+      ].join("\n"),
+    ).examples.map((e) => [e.recipe, e.ts.length]),
+    [
+      [true, 1],
+      [false, 0],
+    ],
   )
   expect(
     "an interpolation in the markup of an <Example> stops the reading",
