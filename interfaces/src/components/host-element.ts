@@ -320,6 +320,11 @@ export interface Ownership {
   ): void
   /** What the component last wrote for `name` on `element`, or `undefined`. */
   written(element: Element, name: string): string | null | undefined
+  /**
+   * Forgets what the component wrote for `name` on `element`: the server has
+   * taken the attribute over, and the same value later is the server's.
+   */
+  forget(element: Element, name: string): void
 }
 
 export function ownership(): Ownership {
@@ -394,6 +399,9 @@ export function ownership(): Ownership {
       })
     },
     written: (element, name) => memory.get(element)?.get(name)?.written,
+    forget(element, name) {
+      memory.get(element)?.delete(name)
+    },
   }
 }
 
@@ -420,6 +428,23 @@ export function watcher(
       observer = undefined
     },
   }
+}
+
+/**
+ * Puts `open` back on a `<dialog>` that is still in the top layer, when a
+ * morph took the attribute the server never sent, and says whether it did.
+ *
+ * The condition is `:modal` and not `open`: a dialog the user has closed
+ * leaves the top layer, and one a morph took `open` from stays there,
+ * invisible, with the rest of the page inert, and `close()` does nothing on
+ * it until the attribute is back.
+ */
+export function restoreModalOpen(
+  dialog: HTMLDialogElement | null | undefined,
+): boolean {
+  if (!dialog?.matches(":modal") || dialog.open) return false
+  setAttr(dialog, "open", "")
+  return true
 }
 
 /**

@@ -7,7 +7,13 @@
  * itself; whether a component uses it right is in the component's tests.
  */
 import { describe, expect, it, vi } from "vitest"
-import { ownership, WRITTEN, warnAboutMarkup, watcher } from "./host-element"
+import {
+  ownership,
+  restoreModalOpen,
+  WRITTEN,
+  warnAboutMarkup,
+  watcher,
+} from "./host-element"
 
 const node = (html: string) => {
   const holder = document.createElement("div")
@@ -139,6 +145,15 @@ describe("ownership", () => {
     own.write(control, "aria-invalid", "true", { mark: true })
     expect(control.hasAttribute(WRITTEN)).toBe(false)
   })
+
+  it("forgets what it wrote when told, so the same value later is no longer its own", () => {
+    const own = ownership()
+    const box = node(`<div></div>`)
+    own.write(box, "aria-labelledby", "errors-title")
+    own.forget(box, "aria-labelledby")
+    expect(own.written(box, "aria-labelledby")).toBe(undefined)
+    expect(own.knows(box, "aria-labelledby")).toBe(false)
+  })
 })
 
 describe("watcher", () => {
@@ -202,5 +217,28 @@ describe("warnAboutMarkup", () => {
     empty.remove()
     filled.remove()
     expect(said).toEqual(["lt-example-filled: found no control"])
+  })
+})
+
+describe("restoreModalOpen", () => {
+  it("puts open back on a modal dialog a morph took it from, and says so", () => {
+    const dialog = document.createElement("dialog")
+    document.body.append(dialog)
+    dialog.showModal()
+    dialog.removeAttribute("open")
+    const restored = restoreModalOpen(dialog)
+    const open = dialog.hasAttribute("open")
+    dialog.close()
+    dialog.remove()
+    expect([restored, open]).toEqual([true, true])
+  })
+
+  it("leaves a dialog that is not modal as it is", () => {
+    const dialog = document.createElement("dialog")
+    document.body.append(dialog)
+    const restored = restoreModalOpen(dialog)
+    dialog.remove()
+    expect([restored, dialog.hasAttribute("open")]).toEqual([false, false])
+    expect(restoreModalOpen(null)).toBe(false)
   })
 })
