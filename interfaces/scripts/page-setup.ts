@@ -14,6 +14,7 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import pkg from "../package.json"
+import { SAMPLE } from "./builder-sample"
 
 const PACKAGE = join(import.meta.dirname, "..")
 
@@ -120,7 +121,6 @@ for (const tag of DEFINERS.keys()) {
 const { lt } = (await import("../src/lt")) as {
   lt: Record<string, unknown>
 }
-const SAMPLE = { id: "x", titleId: "t", count: 1, keys: ["a"], label: "L" }
 /**
  * The classes of each builder function, each with how the function gives
  * it: `dialog` for a class the call returns, `switch.row` for one hung on

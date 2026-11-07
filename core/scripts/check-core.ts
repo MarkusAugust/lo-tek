@@ -455,8 +455,69 @@ for (let n = 0; n < BROKEN; n++) {
   )
 }
 
+/*
+ * The core carries no data, and reads nothing outside `core/` when it is
+ * built. The vocabulary and the colour contract come in through the two
+ * ports, from the host. The first version carried them with `include_str!`,
+ * and the build then needed the package's generated files, which needed the
+ * core: a ring. Cargo answers for the dependencies, not the text of
+ * `Cargo.toml`, so a table or a renamed key cannot hide one.
+ */
+const CORE = join(ROOT, "core")
+if (existsSync(join(CORE, "build.rs")))
+  failures.push(
+    "core/build.rs exists: the core is built from core/ alone, with no build script",
+  )
+const rust = [...new Bun.Glob("src/**/*.rs").scanSync(CORE)]
+// Every macro that reads a file when the core is built, spaced as Rust
+// allows, and a module taken from a path of its own.
+for (const file of rust)
+  for (const [i, line] of readFileSync(join(CORE, file), "utf8")
+    .split("\n")
+    .entries())
+    if (
+      /\binclude(?:_str|_bytes)?\s*!/.test(line) ||
+      /#\s*\[\s*path\s*=/.test(line)
+    )
+      failures.push(
+        `core/${file}:${i + 1}: ${line.trim()}\n  The core carries no data and reads no file when it is built: the host gives the data through load_manifest_raw and load_contract_raw.`,
+      )
+if (rust.length === 0) failures.push("found no Rust files in core/src")
+const metadata = Bun.spawnSync(
+  [
+    "cargo",
+    "metadata",
+    "--format-version",
+    "1",
+    "--no-deps",
+    "--manifest-path",
+    join(CORE, "Cargo.toml"),
+  ],
+  { stderr: "pipe" },
+)
+if (metadata.exitCode !== 0)
+  failures.push(`cargo metadata failed: ${metadata.stderr.toString()}`)
+else {
+  const own = (
+    JSON.parse(metadata.stdout.toString()) as {
+      packages: Array<{
+        name: string
+        dependencies: Array<{ name: string; kind: string | null }>
+      }>
+    }
+  ).packages.find((p) => p.name === "lotek-core")
+  const normal = (own?.dependencies ?? [])
+    .filter((d) => d.kind === null)
+    .map((d) => d.name)
+    .sort()
+  if (JSON.stringify(normal) !== JSON.stringify(["cssparser"]))
+    failures.push(
+      `lotek-core depends on ${normal.join(", ") || "nothing"}, not on cssparser alone`,
+    )
+}
+
 console.log(
-  `${count} checks: ${fixtures.length} fixtures against the expected results with ${covered.size} of ${RULES.size} rules, ${readdirSync(TEMPLATES).length} templates, ${Object.keys(recipes).length + Object.keys(reports).length} themes and ${BROKEN_THEMES} broken ones, ${repoFiles} files from the repository and ${BROKEN} broken ones, with ${totalFindings} findings in total.`,
+  `${count} checks: ${fixtures.length} fixtures against the expected results with ${covered.size} of ${RULES.size} rules, ${readdirSync(TEMPLATES).length} templates, ${Object.keys(recipes).length + Object.keys(reports).length} themes and ${BROKEN_THEMES} broken ones, ${repoFiles} files from the repository and ${BROKEN} broken ones, with ${totalFindings} findings in total. The core read for data it carries: ${rust.length} Rust files, its build script and its dependencies.`,
 )
 if (failures.length > 0) {
   console.error(`\n${failures.length} failures:\n`)
