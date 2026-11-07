@@ -92,6 +92,29 @@ describe("ownership", () => {
     expect(label.getAttribute("data-optional")).toBe("")
     expect(label.hasAttribute(WRITTEN)).toBe(false)
   })
+
+  it("remembers how an attribute is compared, so a read without the option still knows its own echo", () => {
+    const own = ownership()
+    const label = node(`<label></label>`)
+    own.write(label, "data-optional", "true", {
+      server: null,
+      mark: true,
+      presence: true,
+    })
+    expect(own.serverWord(label, "data-optional")).toBe(null)
+  })
+
+  it('takes the server\'s word for a flag in any form, so disabled="disabled" marks nothing', () => {
+    const own = ownership()
+    const control = node(`<input disabled="disabled">`)
+    own.write(control, "disabled", "", {
+      server: control.getAttribute("disabled"),
+      mark: true,
+      flag: true,
+    })
+    expect(control.hasAttribute(WRITTEN)).toBe(false)
+    expect(own.serverWord(control, "disabled", { flag: true })).toBe("")
+  })
 })
 
 describe("watcher", () => {

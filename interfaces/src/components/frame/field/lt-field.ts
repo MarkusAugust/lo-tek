@@ -504,9 +504,11 @@ export class LtField extends HostElement {
     // The state is read from the markup, not just from an attribute on the
     // host. If the server wrote the field with `lt.field()`, the answer is
     // already on the control, and a component that computed its own would
-    // remove it again. The two halves of the API then fought each other. See
-    // `ControlMemory` for how the server's word is told apart from what the
-    // component wrote.
+    // remove it again. The two halves of the API then fought each other.
+    // `ownership()` in host-element.ts tells the server's word apart from
+    // what the component wrote: by the value and the node it wrote it on,
+    // never by what the host said last, which gave two answers for the same
+    // markup depending on what the host had been through.
     // A control the component has never written on holds only the server's
     // word, and a mark found there was copied into the template.
     if (!this.own.knows(control)) warnAboutCopiedMark(this, control)

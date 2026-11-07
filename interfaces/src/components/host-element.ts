@@ -271,11 +271,11 @@ export function stillMarked(element: Element, name: string): boolean {
  * Some attributes are both the server's and the component's, and the
  * component must read the server's word back without taking its own echo
  * for it. The question was answered in seven ways across the components,
- * and the model tests found bugs in five classes there. This is the one
- * answer: per node and attribute, the value the component wrote and the
- * server's word it wrote it against. A `WeakMap`, so the memory survives the
- * host being moved, and a node that is gone for good takes its memory with
- * it.
+ * and the model tests found bugs in five classes there. This is the rule
+ * for them to share, and field uses it: per node and attribute, the value
+ * the component wrote and the server's word it wrote it against. A
+ * `WeakMap`, so the memory survives the host being moved, and a node that is
+ * gone for good takes its memory with it.
  */
 export interface Ownership {
   /** Whether the component has written on `element` before. */
@@ -321,21 +321,32 @@ export function ownership(): Ownership {
     Element,
     Map<
       string,
-      { written: string | null; server: string | null; marked: boolean }
+      {
+        written: string | null
+        server: string | null
+        marked: boolean
+        /** Compared by whether it is there, as the write said. */
+        presence: boolean
+      }
     >
   >()
   // By presence, a value is "" when the attribute is there and null when not.
-  const read = (element: Element, name: string, presence?: boolean) =>
+  const byPresence = (value: string | null) => (value === null ? null : "")
+  const read = (element: Element, name: string, presence: boolean) =>
     presence
-      ? element.hasAttribute(name)
-        ? ""
-        : null
+      ? byPresence(element.getAttribute(name))
       : element.getAttribute(name)
   return {
     knows: (element) => memory.has(element),
     serverWord(element, name, { flag, presence } = {}) {
-      const now = read(element, name, flag || presence)
       const known = memory.get(element)?.get(name)
+      // The comparison the write used, so a read that forgets the option
+      // still knows the component's own echo.
+      const now = read(
+        element,
+        name,
+        known?.presence ?? Boolean(flag || presence),
+      )
       if (!known) return now
       // The server's when the value is another, or, for an attribute written
       // with the mark, when a morph from the server has been there since
@@ -349,14 +360,23 @@ export function ownership(): Ownership {
     write(element, name, value, { server, mark, flag, presence }) {
       if (flag) setFlag(element, name, value !== null)
       else setAttr(element, name, value)
-      const written = flag || presence ? (value === null ? null : "") : value
-      if (mark) markWritten(element, name, written !== server)
+      const compared = Boolean(flag || presence)
+      // Both sides in the same form, so `disabled="disabled"` from the
+      // server and the component's `disabled` are the same word.
+      const written = compared ? byPresence(value) : value
+      const said = compared ? byPresence(server) : server
+      if (mark) markWritten(element, name, written !== said)
       let attributes = memory.get(element)
       if (!attributes) {
         attributes = new Map()
         memory.set(element, attributes)
       }
-      attributes.set(name, { written, server, marked: Boolean(mark) })
+      attributes.set(name, {
+        written,
+        server: said,
+        marked: Boolean(mark),
+        presence: compared,
+      })
     },
     written: (element, name) => memory.get(element)?.get(name)?.written,
   }
@@ -365,10 +385,9 @@ export function ownership(): Ownership {
 /**
  * A `MutationObserver` a web component starts on a node and stops again.
  *
- * Every component made its own, and the narrow ones, such as the dialog's
- * observer of `open`, are started on a new node when the server replaces
- * the old: started again here, it stops watching the old node first, so a
- * node that has left the page does not go on calling the component.
+ * Started again on another node, it stops watching the old one first, so a
+ * node the server has replaced does not go on calling the component. field
+ * watches through it.
  */
 export function watcher(
   callback: (records: MutationRecord[]) => void,
@@ -584,8 +603,8 @@ export function warnAboutMarkup(
   }: {
     /**
      * An element with no children is a region the server has not filled
-     * yet, which is not an error in the markup. Written once here, rather
-     * than as `childElementCount > 0` in each `stillBroken`.
+     * yet, which is not an error in the markup. field uses it, in place of
+     * `childElementCount > 0` in its `stillBroken`.
      */
     silentWhenEmpty?: boolean
   } = {},
