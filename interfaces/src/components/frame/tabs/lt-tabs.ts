@@ -3,16 +3,15 @@ import {
   derivedParts,
   HostElement,
   isServerControlled,
-  markWritten,
+  type Ownership,
   ownership,
   SERVER_CONTROLLED,
   setAttr,
-  setFlag,
-  stillMarked,
   uniqueId,
   WRITTEN,
   warnAboutCopiedMark,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 export const LT_TABS_TAG = "lt-tabs" as const
 
@@ -160,32 +159,6 @@ function nameAsReferenced(element: Element): string {
 }
 
 /**
- * What the web component last wrote on a node, and what the server last said.
- *
- * `aria-selected` on the tabs and `hidden` on the panels are both read and
- * written. A naive read is the web component's echo of itself: bare markup
- * got `aria-selected="true"` on the first tab from the web component, and
- * when the server switched tab with a patch that only touched the panels,
- * the web component read its earlier selection back and hid the panel the
- * server had just shown. If something other than what the web component
- * wrote is there, the server has touched it, and it is the server's word. If
- * the same is there, what the server said last applies.
- */
-type Word = { written: string | null; server: string | null }
-
-/**
- * Whether a morph from the server has been there since the web component
- * wrote the attribute: the mark it wrote is gone. Only a value that differed
- * from the server's word was marked (`markWritten`); one that did not has
- * no mark to lose, and its absence says nothing. Read as a sign of the
- * server, every unmarked tab in a row of three released a click under
- * `server-controlled` at once.
- */
-function markGone(element: Element, name: string, word: Word): boolean {
-  return word.written !== word.server && !stillMarked(element, name)
-}
-
-/**
  * Keyboard behaviour in a tab list, and the wiring when the markup comes
  * without it.
  *
@@ -254,7 +227,43 @@ export class LtTabs extends HostElement {
    */
   static observedAttributes = [SERVER_CONTROLLED, "activation"] as const
 
-  private observer?: MutationObserver
+  private readonly watch = watcher(
+    (records) => {
+      if (this.concerns(records)) this.sync()
+    },
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      // The panel's name is the tab's. idiomorph changes the text in a text
+      // node, with nothing else the observer sees.
+      characterData: true,
+      // `disabled` is included because the web component reads it: if a patch
+      // disables the selected tab, the tab stop moves to one that can take
+      // focus. `alt`, `aria-hidden` and `title` change the name of a tab.
+      attributeFilter: [
+        // A morph from the server removes the mark, and the web component
+        // puts it back: the same markup must give the same page.
+        WRITTEN,
+        "aria-selected",
+        "tabindex",
+        "hidden",
+        "disabled",
+        "aria-disabled",
+        // The wiring the web component sets when the markup came without it,
+        // and restores when a patch removes it.
+        "role",
+        "id",
+        "href",
+        "aria-controls",
+        "aria-labelledby",
+        "aria-label",
+        "alt",
+        "aria-hidden",
+        "title",
+      ],
+    },
+  )
   /**
    * The panel the user's tab points to, remembered so a patch cannot take
    * the selection.
@@ -290,8 +299,17 @@ export class LtTabs extends HostElement {
    * without a role is something else, such as a help link.
    */
   private readonly roledByMe = ownership()
-  private selectedMemory = new WeakMap<Element, Word>()
-  private hiddenMemory = new WeakMap<Element, Word>()
+  /**
+   * What the web component wrote for `aria-selected` on each tab and `hidden`
+   * on each panel, and the server's word it wrote against. If something other
+   * than what it wrote is there, the server has touched it; if the same is
+   * there, what the server said last applies. A patch that only touched the
+   * panels once made the component read its earlier selection back and hide
+   * the panel the server had just shown. Each is replaced whole when the
+   * server's answer makes what is in the markup the starting point.
+   */
+  private selectedOwn = ownership()
+  private hiddenOwn = ownership()
   /**
    * The form the server hides panels in, the last time it hid something:
    * `""` from `lt.tabs()`, `"until-found"` or something else. The web
@@ -311,7 +329,7 @@ export class LtTabs extends HostElement {
    */
   private readonly headingIds = new WeakMap<Element, string>()
   /** The name the web component wrote in `aria-label` on a panel without a heading. */
-  private readonly labelByMe = new WeakMap<Element, string>()
+  private readonly labelOwn = ownership()
   /**
    * The tab the user clicked under `server-controlled`, until the server
    * answers.
@@ -375,41 +393,7 @@ export class LtTabs extends HostElement {
       root.addEventListener("beforematch", this.handleBeforematch, true)
     }
     window.addEventListener("hashchange", this.handleHashchange)
-    this.observer = new MutationObserver((records) => {
-      if (this.concerns(records)) this.sync()
-    })
-    this.observer.observe(this, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      // The panel's name is the tab's. idiomorph changes the text in a text
-      // node, with nothing else the observer sees.
-      characterData: true,
-      // `disabled` is included because the web component reads it: if a patch
-      // disables the selected tab, the tab stop moves to one that can take
-      // focus. `alt`, `aria-hidden` and `title` change the name of a tab.
-      attributeFilter: [
-        // A morph from the server removes the mark, and the web component
-        // puts it back: the same markup must give the same page.
-        WRITTEN,
-        "aria-selected",
-        "tabindex",
-        "hidden",
-        "disabled",
-        "aria-disabled",
-        // The wiring the web component sets when the markup came without it,
-        // and restores when a patch removes it.
-        "role",
-        "id",
-        "href",
-        "aria-controls",
-        "aria-labelledby",
-        "aria-label",
-        "alt",
-        "aria-hidden",
-        "title",
-      ],
-    })
+    this.watch.start(this)
     this.sync()
   }
 
@@ -429,8 +413,7 @@ export class LtTabs extends HostElement {
   }
 
   disconnectedCallback(): void {
-    this.observer?.disconnect()
-    this.observer = undefined
+    this.watch.stop()
     this.removeEventListener("click", this.handleClick, true)
     this.removeEventListener("keydown", this.handleKeydown, true)
     document.removeEventListener("beforematch", this.handleBeforematch, true)
@@ -493,41 +476,32 @@ export class LtTabs extends HostElement {
 
   /** The server's word about an attribute, against what the web component last wrote. */
   private serverWord(
-    memory: WeakMap<Element, Word>,
+    own: Ownership,
     element: Element,
     name: string,
   ): string | null {
-    const now = element.getAttribute(name)
-    const known = memory.get(element)
-    if (!known) {
-      warnAboutCopiedMark(this, element)
-      return now
-    }
-    // The server's when the value is another, or when a morph from the
-    // server has been there since the web component wrote it (`WRITTEN`).
-    return now !== known.written || !stillMarked(element, name)
-      ? now
-      : known.server
+    if (!own.knows(element, name)) warnAboutCopiedMark(this, element)
+    return own.serverWord(element, name)
   }
 
   /** Is there something on a tab or a panel other than what the web component wrote? */
   private touchedByOthers(): boolean {
     return this.tabs.some((tab) => {
-      const selected = this.selectedMemory.get(tab)
       if (
-        !selected ||
-        tab.getAttribute("aria-selected") !== selected.written ||
-        markGone(tab, "aria-selected", selected)
+        !this.selectedOwn.knows(tab, "aria-selected") ||
+        tab.getAttribute("aria-selected") !==
+          this.selectedOwn.written(tab, "aria-selected") ||
+        this.selectedOwn.lost(tab, "aria-selected")
       ) {
         return true
       }
       const panel = this.panelFor(tab)
       if (!panel) return false
-      const hidden = this.hiddenMemory.get(panel)
       return (
-        !hidden ||
-        panel.getAttribute("hidden") !== hidden.written ||
-        markGone(panel, "hidden", hidden)
+        !this.hiddenOwn.knows(panel, "hidden") ||
+        panel.getAttribute("hidden") !==
+          this.hiddenOwn.written(panel, "hidden") ||
+        this.hiddenOwn.lost(panel, "hidden")
       )
     })
   }
@@ -553,33 +527,37 @@ export class LtTabs extends HostElement {
     const tabs = this.tabs
     const serverSpoke = tabs.some((tab) => {
       const now = tab.getAttribute("aria-selected")
-      const known = this.selectedMemory.get(tab)
       // A new, bare tab has said nothing. Had it counted, the click's
       // `aria-selected` was read as the server's, and a later move with
       // `hidden` alone was undone.
-      return known
-        ? now !== known.written || markGone(tab, "aria-selected", known)
+      return this.selectedOwn.knows(tab, "aria-selected")
+        ? now !== this.selectedOwn.written(tab, "aria-selected") ||
+            this.selectedOwn.lost(tab, "aria-selected")
         : now !== null
     })
-    this.hiddenMemory = new WeakMap()
+    this.hiddenOwn = ownership()
     if (serverSpoke) {
-      this.selectedMemory = new WeakMap()
+      this.selectedOwn = ownership()
       return
     }
-    for (const tab of tabs) {
-      const written = tab.getAttribute("aria-selected")
-      this.selectedMemory.set(tab, { written, server: null })
-      markWritten(tab, "aria-selected", written !== null)
-    }
+    // What stands there is the component's, against a server that said
+    // nothing: written again as it is, which changes no value, and marked.
+    for (const tab of tabs)
+      this.selectedOwn.write(
+        tab,
+        "aria-selected",
+        tab.getAttribute("aria-selected"),
+        { server: null, mark: true },
+      )
   }
 
   private serverSelected(tab: Element): string | null {
-    return this.serverWord(this.selectedMemory, tab, "aria-selected")
+    return this.serverWord(this.selectedOwn, tab, "aria-selected")
   }
 
   /** The server's word about `hidden` on the panel: the form, or `null` for visible. */
   private serverHidden(panel: Element): string | null {
-    return this.serverWord(this.hiddenMemory, panel, "hidden")
+    return this.serverWord(this.hiddenOwn, panel, "hidden")
   }
 
   /**
@@ -843,7 +821,7 @@ export class LtTabs extends HostElement {
    * `aria-label` applies.
    */
   private name(panel: HTMLElement, tab: HTMLElement): void {
-    const ownLabel = this.labelByMe.get(panel)
+    const ownLabel = this.labelOwn.written(panel, "aria-label")
     const label = panel.getAttribute("aria-label")
     if (label !== null && label !== ownLabel) return
 
@@ -886,15 +864,14 @@ export class LtTabs extends HostElement {
 
   /** Writes the tab's name as `aria-label`, and remembers that the web component wrote it. */
   private setOwnLabel(panel: HTMLElement, text: string): void {
-    setAttr(panel, "aria-label", text)
-    this.labelByMe.set(panel, text)
+    this.labelOwn.write(panel, "aria-label", text)
   }
 
   /** Removes the fallback, when a name that exists has taken over. */
   private dropOwnLabel(panel: HTMLElement): void {
-    if (!this.labelByMe.has(panel)) return
-    setAttr(panel, "aria-label", null)
-    this.labelByMe.delete(panel)
+    if (!this.labelOwn.knows(panel, "aria-label")) return
+    this.labelOwn.write(panel, "aria-label", null)
+    this.labelOwn.forget(panel, "aria-label")
   }
 
   /** Does at least one of the ids point to an element that exists? */
@@ -910,7 +887,7 @@ export class LtTabs extends HostElement {
    * anything.
    *
    * The server's word, not what is there: what the web component wrote does
-   * not count, see `Word`. `aria-selected` first. When that is missing, as in
+   * not count, see `selectedOwn`. `aria-selected` first. When that is missing, as in
    * markup written without JavaScript, `hidden` on the panels says the same:
    * the first panel the server shows belongs to the selected tab. If the
    * markup says nothing, or hides every panel, it is the first, which is what
@@ -1036,7 +1013,8 @@ export class LtTabs extends HostElement {
           'selected", and the arrow keys do nothing.',
         // An empty `<lt-tabs>` is a region the server has not filled yet,
         // and that is not a mistake in the markup.
-        () => this.childElementCount > 0 && this.tabs.length === 0,
+        () => this.tabs.length === 0,
+        { silentWhenEmpty: true },
       )
       return
     }
@@ -1346,9 +1324,10 @@ export class LtTabs extends HostElement {
       // The server's word is noted before the write, or the write was read as
       // the server's in the next round.
       const server = this.serverSelected(tab)
-      setAttr(tab, "aria-selected", String(chosen))
-      this.selectedMemory.set(tab, { written: String(chosen), server })
-      markWritten(tab, "aria-selected", String(chosen) !== server)
+      this.selectedOwn.write(tab, "aria-selected", String(chosen), {
+        server,
+        mark: true,
+      })
       setAttr(tab, "tabindex", i === stop ? "0" : "-1")
 
       const panel = this.panelFor(tab)
@@ -1370,10 +1349,7 @@ export class LtTabs extends HostElement {
       const server = this.serverHidden(panel)
       const written = shown ? null : this.hiddenForm
       if (panel !== this.revealing) {
-        if (written === null) setFlag(panel, "hidden", false)
-        else setAttr(panel, "hidden", written)
-        this.hiddenMemory.set(panel, { written, server })
-        markWritten(panel, "hidden", written !== server)
+        this.hiddenOwn.write(panel, "hidden", written, { server, mark: true })
       }
       /*
        * Only the selected panel is a tab stop, so Tab from the tab list goes

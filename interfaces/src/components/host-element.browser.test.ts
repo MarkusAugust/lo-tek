@@ -8,6 +8,7 @@
  */
 import { describe, expect, it, vi } from "vitest"
 import {
+  derivedParts,
   ownership,
   restoreModalOpen,
   WRITTEN,
@@ -154,6 +155,25 @@ describe("ownership", () => {
     expect(own.written(box, "aria-labelledby")).toBe(undefined)
     expect(own.knows(box, "aria-labelledby")).toBe(false)
   })
+
+  it("says a mark is lost only for a value it marked against the server's word", () => {
+    const own = ownership()
+    const tab = node(`<a></a>`)
+    const other = node(`<a></a>`)
+    own.write(tab, "aria-selected", "true", { server: "false", mark: true })
+    own.write(other, "aria-selected", "false", { server: "false", mark: true })
+    const before = [
+      own.lost(tab, "aria-selected"),
+      own.lost(other, "aria-selected"),
+    ]
+    tab.removeAttribute(WRITTEN)
+    expect([
+      ...before,
+      own.lost(tab, "aria-selected"),
+      // Never marked, since it was the server's own value: nothing to lose.
+      own.lost(other, "aria-selected"),
+    ]).toEqual([false, false, true, false])
+  })
 })
 
 describe("watcher", () => {
@@ -252,3 +272,22 @@ describe("restoreModalOpen", () => {
     expect(restoreModalOpen(null)).toBe(false)
   })
 })
+
+describe("derivedParts", () => {
+  it("takes the roles the component set from an ownership, and still from a WeakSet", () => {
+    const host = document.createElement("lt-example-list")
+    host.innerHTML = `<li class="x">a</li><li class="x" role="option">b</li>`
+    document.body.append(host)
+    const [first, second] = host.querySelectorAll("li")
+    const own = ownership()
+    own.write(second, "role", "option")
+    const set = new WeakSet<Element>([second])
+    const fromOwn = derivedParts(host, ".x", "option", own).length
+    const fromSet = derivedParts(host, ".x", "option", set).length
+    host.remove()
+    void first
+    // The one role there is the component's, so every part counts.
+    expect([fromOwn, fromSet]).toEqual([2, 2])
+  })
+})
+

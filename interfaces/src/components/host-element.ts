@@ -325,6 +325,13 @@ export interface Ownership {
    * taken the attribute over, and the same value later is the server's.
    */
   forget(element: Element, name: string): void
+  /**
+   * Whether a morph from the server has been there since the component
+   * wrote `name` on `element`: it marked a value that differed from the
+   * server's word, and the mark is gone. A value that did not differ had no
+   * mark to lose, and its absence says nothing.
+   */
+  lost(element: Element, name: string): boolean
 }
 
 export function ownership(): Ownership {
@@ -401,6 +408,15 @@ export function ownership(): Ownership {
     written: (element, name) => memory.get(element)?.get(name)?.written,
     forget(element, name) {
       memory.get(element)?.delete(name)
+    },
+    lost(element, name) {
+      const known = memory.get(element)?.get(name)
+      return Boolean(
+        known?.marked &&
+          known.server !== undefined &&
+          known.written !== known.server &&
+          !stillMarked(element, name),
+      )
     },
   }
 }
@@ -572,14 +588,22 @@ export function derivedParts<T extends Element>(
   host: Element,
   selector: string,
   role: string,
-  roledByHost: Pick<Ownership, "written">,
+  /**
+   * The roles the component set: an `ownership()` it wrote them through, or,
+   * as before it existed, a `WeakSet` of the parts it set them on.
+   */
+  roledByHost: Pick<Ownership, "written"> | WeakSet<Element>,
 ): T[] {
+  const mine = (part: Element) =>
+    roledByHost instanceof WeakSet
+      ? roledByHost.has(part)
+      : roledByHost.written(part, "role") === role
   const own = [...host.querySelectorAll<T>(selector)].filter(
     (part) => part.closest(host.localName) === host,
   )
   const bare = own
     .filter((part) => part.getAttribute("role") === role)
-    .every((part) => roledByHost.written(part, "role") === role)
+    .every(mine)
   return bare ? own : own.filter((part) => part.getAttribute("role") === role)
 }
 
