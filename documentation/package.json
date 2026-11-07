@@ -6,7 +6,7 @@
     "dev": "bunx --bun astro dev",
     "start": "bunx --bun astro dev",
     "build": "bunx --bun astro build",
-    "test:docs": "bun scripts/check-documentation.ts && bun scripts/check-recipes.ts && bun scripts/check-browser-import.ts && bun scripts/check-built-version.ts && bun scripts/check-share-card.ts && bun scripts/check-stylesheets.ts && bun scripts/check-agent-channel.ts && bun scripts/check-markdown-pages.ts && bun scripts/check-patterns.ts && bun scripts/check-component-demos.ts && bun scripts/check-mobile.ts && bun scripts/check-accessibility.ts",
+    "test:docs": "bun scripts/check-documentation.ts && bun scripts/check-recipes.ts && bun scripts/check-browser-import.ts && bun scripts/check-built-version.ts && bun scripts/check-share-card.ts && bun scripts/check-stylesheets.ts && bun scripts/check-agent-channel.ts && bun scripts/check-markdown-pages.ts && bun scripts/site.ts && bun scripts/check-patterns.ts && bun scripts/check-component-demos.ts && bun scripts/check-mobile.ts && bun scripts/check-accessibility.ts",
     "preview": "bunx --bun astro preview",
     "astro": "bunx --bun astro"
   },
