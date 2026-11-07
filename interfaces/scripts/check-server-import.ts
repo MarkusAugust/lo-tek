@@ -100,6 +100,75 @@ if (registrationFailures.length > 0) {
   process.exit(1)
 }
 
+/*
+ * And every builder function runs here, with options, and touches nothing.
+ *
+ * A builder function gives attributes and never sets an event listener: the
+ * behaviour belongs to the web components. Without a DOM, `document` and
+ * `HTMLElement` do not exist, so a builder that reaches for them throws. Bun
+ * has `addEventListener` and `EventTarget` all the same, so both are made to
+ * throw while the functions run. The functions called are the builder
+ * functions the manifest names, in both entry points, so `setAttributes`,
+ * which writes to an element on purpose, and guards such as `lt.isState` are
+ * not among them, and a builder missing from either entry point fails.
+ */
+const { SAMPLE } = await import("./builder-sample")
+const named = (
+  (await Bun.file(new URL("manifest/manifest.json", packageRoot)).json()) as {
+    builders: Array<{ name: string }>
+  }
+).builders.map((b) => b.name)
+const builderFailures: string[] = []
+let builders = 0
+const listen = () => {
+  throw new Error("set an event listener")
+}
+const originals = {
+  prototype: EventTarget.prototype.addEventListener,
+  global: globalThis.addEventListener,
+}
+EventTarget.prototype.addEventListener = listen
+globalThis.addEventListener = listen
+try {
+  for (const entry of ["dist/index.js", "dist/react.js"]) {
+    const { lt } = (await import(new URL(entry, packageRoot).href)) as {
+      lt: Record<string, unknown>
+    }
+    for (const name of named) {
+      const builder = lt[name]
+      if (typeof builder !== "function") {
+        builderFailures.push(`  lt.${name} is not a function in ${entry}`)
+        continue
+      }
+      try {
+        ;(builder as (options: unknown) => unknown)(SAMPLE)
+      } catch (error) {
+        builderFailures.push(
+          `  lt.${name}() from ${entry}: ${String(error).split("\n")[0]}`,
+        )
+      }
+      builders += 1
+    }
+  }
+} finally {
+  EventTarget.prototype.addEventListener = originals.prototype
+  globalThis.addEventListener = originals.global
+}
+
+if (named.length === 0 || builders !== 2 * named.length) {
+  console.error(
+    `Called ${builders} builder functions in the two entry points, where the manifest names ${named.length} for each.`,
+  )
+  process.exit(1)
+}
+
+if (builderFailures.length > 0) {
+  console.error(
+    `These builder functions touch what belongs to the browser:\n\n${builderFailures.join("\n")}\n\nA builder function gives attributes. Behaviour belongs in a web component.`,
+  )
+  process.exit(1)
+}
+
 console.log(
-  `All ${entryPoints.length} entry points can be imported without a DOM, and all ${registrations.length} registrations are silent there.`,
+  `All ${entryPoints.length} entry points can be imported without a DOM, all ${registrations.length} registrations are silent there, and all ${builders} builder functions run there without touching the browser.`,
 )
