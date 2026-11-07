@@ -266,6 +266,129 @@ export function stillMarked(element: Element, name: string): boolean {
 }
 
 /**
+ * What a web component wrote on a node, and what the server had said there.
+ *
+ * Some attributes are both the server's and the component's, and the
+ * component must read the server's word back without taking its own echo
+ * for it. The question was answered in seven ways across the components,
+ * and the model tests found bugs in five classes there. This is the one
+ * answer: per node and attribute, the value the component wrote and the
+ * server's word it wrote it against. A `WeakMap`, so the memory survives the
+ * host being moved, and a node that is gone for good takes its memory with
+ * it.
+ */
+export interface Ownership {
+  /** Whether the component has written on `element` before. */
+  knows(element: Element): boolean
+  /**
+   * The server's word for `name` on `element`: what stands there when the
+   * component has never written it, or when it differs from what the
+   * component wrote, or when a morph has removed the mark since; otherwise
+   * the server's word the component wrote against. With `presence` the
+   * attribute is compared by whether it is there, so `data-optional="true"`
+   * and `data-optional` are the same; a `flag` is compared so too.
+   */
+  serverWord(
+    element: Element,
+    name: string,
+    options?: { flag?: boolean; presence?: boolean },
+  ): string | null
+  /**
+   * Writes `value` for `name` on `element`, through `setAttr` or, for a
+   * `flag`, `setFlag`, and notes it against the server's word, compared by
+   * presence for a `flag` or with `presence`. With `mark`,
+   * the attribute is marked as the component's when the value differs from
+   * the server's, so a morph that removes the mark is seen as the server
+   * speaking.
+   */
+  write(
+    element: Element,
+    name: string,
+    value: string | null,
+    options: {
+      server: string | null
+      mark?: boolean
+      flag?: boolean
+      presence?: boolean
+    },
+  ): void
+  /** What the component last wrote for `name` on `element`, or `undefined`. */
+  written(element: Element, name: string): string | null | undefined
+}
+
+export function ownership(): Ownership {
+  const memory = new WeakMap<
+    Element,
+    Map<
+      string,
+      { written: string | null; server: string | null; marked: boolean }
+    >
+  >()
+  // By presence, a value is "" when the attribute is there and null when not.
+  const read = (element: Element, name: string, presence?: boolean) =>
+    presence
+      ? element.hasAttribute(name)
+        ? ""
+        : null
+      : element.getAttribute(name)
+  return {
+    knows: (element) => memory.has(element),
+    serverWord(element, name, { flag, presence } = {}) {
+      const now = read(element, name, flag || presence)
+      const known = memory.get(element)?.get(name)
+      if (!known) return now
+      // The server's when the value is another, or, for an attribute written
+      // with the mark, when a morph from the server has been there since
+      // (`WRITTEN`). Without the mark, only a value that differs from the
+      // component's own says the server spoke.
+      return now !== known.written ||
+        (known.marked && !stillMarked(element, name))
+        ? now
+        : known.server
+    },
+    write(element, name, value, { server, mark, flag, presence }) {
+      if (flag) setFlag(element, name, value !== null)
+      else setAttr(element, name, value)
+      const written = flag || presence ? (value === null ? null : "") : value
+      if (mark) markWritten(element, name, written !== server)
+      let attributes = memory.get(element)
+      if (!attributes) {
+        attributes = new Map()
+        memory.set(element, attributes)
+      }
+      attributes.set(name, { written, server, marked: Boolean(mark) })
+    },
+    written: (element, name) => memory.get(element)?.get(name)?.written,
+  }
+}
+
+/**
+ * A `MutationObserver` a web component starts on a node and stops again.
+ *
+ * Every component made its own, and the narrow ones, such as the dialog's
+ * observer of `open`, are started on a new node when the server replaces
+ * the old: started again here, it stops watching the old node first, so a
+ * node that has left the page does not go on calling the component.
+ */
+export function watcher(
+  callback: (records: MutationRecord[]) => void,
+  init: MutationObserverInit,
+): { start(target: Node): void; stop(): void } {
+  let observer: MutationObserver | undefined
+  return {
+    start(target) {
+      observer?.disconnect()
+      observer = new MutationObserver(callback)
+      observer.observe(target, init)
+    },
+    stop() {
+      observer?.disconnect()
+      observer = undefined
+    },
+  }
+}
+
+/**
  * Turns a boolean attribute on or off, without writing when it is already so.
  *
  * `el.hidden = true` on something already hidden writes the attribute again,
@@ -456,6 +579,16 @@ export function warnAboutMarkup(
   element: Element,
   message: string,
   stillBroken: () => boolean,
+  {
+    silentWhenEmpty = false,
+  }: {
+    /**
+     * An element with no children is a region the server has not filled
+     * yet, which is not an error in the markup. Written once here, rather
+     * than as `childElementCount > 0` in each `stillBroken`.
+     */
+    silentWhenEmpty?: boolean
+  } = {},
 ): void {
   if (typeof console === "undefined") return
   if (reported.get(element)?.has(message)) return
@@ -470,7 +603,9 @@ export function warnAboutMarkup(
 
   whenSettled(() => {
     pending.delete(message)
-    if (!element.isConnected || !stillBroken()) return
+    if (!element.isConnected) return
+    if (silentWhenEmpty && element.childElementCount === 0) return
+    if (!stillBroken()) return
 
     let said = reported.get(element)
     if (!said) {

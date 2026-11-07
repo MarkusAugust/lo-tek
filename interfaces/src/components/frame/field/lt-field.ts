@@ -4,14 +4,14 @@ import {
   addClass,
   defineElement,
   HostElement,
-  markWritten,
+  ownership,
   setAttr,
   setFlag,
-  stillMarked,
   uniqueId,
   WRITTEN,
   warnAboutCopiedMark,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 import { computeFieldAttributes } from "./field-core.js"
 
@@ -70,58 +70,6 @@ const DERIVED_ATTRIBUTES = [
 ]
 
 /**
- * What the component last wrote on a control, and what the server last said.
- *
- * Three attributes are both read from the control and written back to it:
- * `aria-invalid`, `aria-describedby` and `disabled`. They are read because
- * the server may have written the field with `lt.field()`, and then the
- * answer is already there. But a naive read is the component's echo from the
- * previous round. For `aria-invalid` that meant `field.invalid = false`
- * removed the flag on the host while the red border stayed for good. For
- * `aria-describedby` the list never shrank: the error text's id stayed after
- * the error was gone. For `disabled` the field could not be enabled again
- * from the host.
- *
- * The fix is not to remember what the host said last. That was tried, and
- * made the component depend on its history: the same markup gave two
- * different answers depending on whether the host had had `invalid` at some
- * point.
- *
- * Instead the component notes the value it wrote, and on which control. If
- * something else is there next time, someone else has touched the
- * attribute, and that is the server's word. The read is therefore always
- * derived from a change that actually happened, and the same document always
- * gives the same answer.
- */
-type ControlMemory = {
-  written: ControlWord
-  server: ControlWord
-}
-
-/**
- * The same memory for the markers on the label. The component both reads and
- * writes `data-required` and `data-optional`, and without knowing what it
- * wrote itself, it read its own answer back: `optional` and the required
- * marker could not be turned off again.
- */
-type LabelWord = { required: string | null; optional: boolean }
-type LabelMemory = { written: LabelWord; server: LabelWord }
-
-type ControlWord = {
-  invalid: string | null
-  describedBy: string | null
-  disabled: boolean
-}
-
-function readControlWord(control: Element): ControlWord {
-  return {
-    invalid: control.getAttribute("aria-invalid"),
-    describedBy: control.getAttribute("aria-describedby"),
-    disabled: control.hasAttribute("disabled"),
-  }
-}
-
-/**
  * Connects label, control, help text and error text in plain DOM.
  *
  * The component is for markup from code that cannot call a builder function:
@@ -153,7 +101,31 @@ function readControlWord(control: Element): ControlWord {
 export class LtField extends HostElement {
   static observedAttributes = ["disabled", "optional", "described-by"] as const
 
-  private observer?: MutationObserver
+  /**
+   * The children and the derived attributes, watched while connected.
+   * `style` is observed for `display: none` on the error text; a style write
+   * elsewhere in the field, such as a popover positioning its panel, does not
+   * concern the wiring.
+   */
+  private readonly watch = watcher(
+    (records) => {
+      const onlyForeignStyle = records.every(
+        (r) =>
+          r.type === "attributes" &&
+          r.attributeName === "style" &&
+          !(r.target as Element).matches?.(LT_FIELD_PARTS.error),
+      )
+      if (!onlyForeignStyle) this.sync()
+    },
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: DERIVED_ATTRIBUTES,
+      // A morph can change the text of the error text without replacing the node.
+      characterData: true,
+    },
+  )
   /**
    * The ids the help text and the error text last had, whether they came
    * from the markup or from here, so a patch that removes them gets the same
@@ -165,20 +137,17 @@ export class LtField extends HostElement {
   private lastErrorId?: string
   private readonly managedIds = new Set<string>()
   /**
-   * What the component wrote on each control, keyed on the control itself.
-   *
-   * A `WeakMap` and not a "previous control" property. The memory has to
-   * survive the host being disconnected and connected again, as when React
-   * moves a field, and the control disappearing and coming back in a patch.
-   * A property that was reset in `disconnectedCallback` made the component
-   * read its own `aria-invalid="true"` as the server's word after a move, and
-   * the field could never become valid again. A `WeakMap` also keeps no
-   * detached node alive: when the control is gone for good, so is the memory.
+   * What the component wrote on the control and the label, and the server's
+   * word it wrote against, per node. The memory has to survive the host
+   * being disconnected and connected again, as when React moves a field,
+   * and the control disappearing and coming back in a patch: a property
+   * reset in `disconnectedCallback` made the component read its own
+   * `aria-invalid="true"` as the server's word after a move, and the field
+   * could never become valid again. The component both reads and writes
+   * `data-required` and `data-optional` on the label too, and without the
+   * memory `optional` and the required marker could not be turned off.
    */
-  private readonly memory = new WeakMap<Element, ControlMemory>()
-  private readonly labelMemory = new WeakMap<Element, LabelMemory>()
-  /** The `for` the component itself wrote on the label. */
-  private readonly forByMe = new WeakMap<Element, string>()
+  private readonly own = ownership()
   /**
    * Labels where the server wrote a `for` pointing to a different id than
    * the control's. The component rewrites it, but without JavaScript the
@@ -202,8 +171,6 @@ export class LtField extends HostElement {
    * detached node alive until the next `sync()`, on purpose.
    */
   private lastControl?: HTMLElement
-  /** The controls where `data-state` was written by the component. */
-  private readonly stateByMe = new WeakSet<Element>()
 
   /**
    * The properties mirror the attributes.
@@ -253,32 +220,12 @@ export class LtField extends HostElement {
      * Every write in `sync()` compares first. Without that the observer
      * would trigger itself forever.
      */
-    this.observer = new MutationObserver((records) => {
-      // `style` is observed for `display: none` on the error text. A style
-      // write elsewhere in the field, such as a popover positioning its
-      // panel, does not concern the wiring.
-      const onlyForeignStyle = records.every(
-        (r) =>
-          r.type === "attributes" &&
-          r.attributeName === "style" &&
-          !(r.target as Element).matches?.(LT_FIELD_PARTS.error),
-      )
-      if (!onlyForeignStyle) this.sync()
-    })
-    this.observer.observe(this, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: DERIVED_ATTRIBUTES,
-      // A morph can change the text of the error text without replacing the node.
-      characterData: true,
-    })
+    this.watch.start(this)
     this.sync()
   }
 
   disconnectedCallback(): void {
-    this.observer?.disconnect()
-    this.observer = undefined
+    this.watch.stop()
   }
 
   attributeChangedCallback(): void {
@@ -301,7 +248,7 @@ export class LtField extends HostElement {
   private noteFor(label: Element, id: string): void {
     const current = label.getAttribute("for")
     if (current === null || current === id) return
-    if (current !== this.forByMe.get(label)) this.wrongFor.add(label)
+    if (current !== this.own.written(label, "for")) this.wrongFor.add(label)
   }
 
   private resolveLabel(control: HTMLElement | null): HTMLLabelElement | null {
@@ -314,62 +261,6 @@ export class LtField extends HostElement {
         `label[for="${CSS.escape(control.id)}"]`,
       ) ?? null
     )
-  }
-
-  /**
-   * The server's word about the control, derived from what is there now
-   * compared with what the component itself wrote last.
-   *
-   * A control the component has never written on holds only the server's
-   * word. Otherwise each attribute is the server's if it differs from what
-   * the component wrote, and unchanged if it is the same.
-   */
-  private serverLabelWord(label: Element | null): LabelWord {
-    if (!label) return { required: null, optional: false }
-    const now: LabelWord = {
-      required: label.getAttribute("data-required"),
-      optional: label.hasAttribute("data-optional"),
-    }
-    const known = this.labelMemory.get(label)
-    if (!known) return now
-
-    const spoke = (name: string, changed: boolean) =>
-      changed || !stillMarked(label, name)
-    return {
-      required: spoke("data-required", now.required !== known.written.required)
-        ? now.required
-        : known.server.required,
-      optional: spoke("data-optional", now.optional !== known.written.optional)
-        ? now.optional
-        : known.server.optional,
-    }
-  }
-
-  private serverWord(control: Element, now: ControlWord): ControlWord {
-    const known = this.memory.get(control)
-    if (!known) {
-      warnAboutCopiedMark(this, control)
-      return now
-    }
-
-    // The server's when the value is another, or when a morph from the
-    // server has been there since the component wrote it (`WRITTEN`).
-    const spoke = (name: string, changed: boolean) =>
-      changed || !stillMarked(control, name)
-    return {
-      invalid: spoke("aria-invalid", now.invalid !== known.written.invalid)
-        ? now.invalid
-        : known.server.invalid,
-      describedBy: spoke(
-        "aria-describedby",
-        now.describedBy !== known.written.describedBy,
-      )
-        ? now.describedBy
-        : known.server.describedBy,
-      disabled: spoke("disabled", now.disabled !== known.written.disabled)
-        ? now.disabled
-        : known.server.disabled,
-    }
   }
 
   /**
@@ -471,11 +362,8 @@ export class LtField extends HostElement {
         "found no control to connect. Add an <input>, <textarea> or " +
           "<select>, or the label, help text and error text have no field " +
           "to be connected to.",
-        // An empty element is a region the server has not filled yet, and
-        // that is not an error in the markup.
-        () =>
-          this.childElementCount > 0 &&
-          this.ownParts(CONTROL_SELECTOR).length === 0,
+        () => this.ownParts(CONTROL_SELECTOR).length === 0,
+        { silentWhenEmpty: true },
       )
       return
     }
@@ -604,7 +492,13 @@ export class LtField extends HostElement {
     // looked at its own attributes would remove them again. In React that
     // gave a hydration error: the server sent `data-required="symbol"`, the
     // component removed it, and then React decided the HTML did not match.
-    const serverLabel = this.serverLabelWord(label)
+    const serverLabel = {
+      required: label ? this.own.serverWord(label, "data-required") : null,
+      optional: label
+        ? this.own.serverWord(label, "data-optional", { presence: true }) !==
+          null
+        : false,
+    }
     const marker = readMarker(serverLabel.required)
 
     // The state is read from the markup, not just from an attribute on the
@@ -613,7 +507,15 @@ export class LtField extends HostElement {
     // remove it again. The two halves of the API then fought each other. See
     // `ControlMemory` for how the server's word is told apart from what the
     // component wrote.
-    const server = this.serverWord(control, readControlWord(control))
+    // A control the component has never written on holds only the server's
+    // word, and a mark found there was copied into the template.
+    if (!this.own.knows(control)) warnAboutCopiedMark(this, control)
+    const server = {
+      invalid: this.own.serverWord(control, "aria-invalid"),
+      describedBy: this.own.serverWord(control, "aria-describedby"),
+      disabled:
+        this.own.serverWord(control, "disabled", { flag: true }) !== null,
+    }
 
     // `aria-invalid` has four valid values, and both `grammar` and
     // `spelling` mean invalid. Absence, `false` and the empty string mean
@@ -693,29 +595,24 @@ export class LtField extends HostElement {
       // the wiring is implicit.
       if (control.id && !label.contains(control)) {
         this.noteFor(label, control.id)
-        setAttr(label, "for", control.id)
-        this.forByMe.set(label, control.id)
+        this.own.write(label, "for", control.id, { server: null })
       }
-      setAttr(label, "data-required", computed.label["data-required"])
-      setAttr(label, "data-optional", computed.label["data-optional"])
-      const writtenLabel: LabelWord = {
-        required: computed.label["data-required"] ?? null,
-        optional: computed.label["data-optional"] !== undefined,
-      }
-      markWritten(
+      this.own.write(
         label,
         "data-required",
-        writtenLabel.required !== serverLabel.required,
+        computed.label["data-required"] ?? null,
+        { server: serverLabel.required, mark: true },
       )
-      markWritten(
+      this.own.write(
         label,
         "data-optional",
-        writtenLabel.optional !== serverLabel.optional,
+        computed.label["data-optional"] ?? null,
+        {
+          server: serverLabel.optional ? "" : null,
+          mark: true,
+          presence: true,
+        },
       )
-      this.labelMemory.set(label, {
-        written: writtenLabel,
-        server: serverLabel,
-      })
       setAttr(label, "aria-disabled", computed.label["aria-disabled"])
     }
 
@@ -730,8 +627,16 @@ export class LtField extends HostElement {
         ? "true"
         : server.invalid
 
-    setAttr(control, "aria-describedby", computed.control["aria-describedby"])
-    setAttr(control, "aria-invalid", ariaInvalid)
+    this.own.write(
+      control,
+      "aria-describedby",
+      computed.control["aria-describedby"] ?? null,
+      { server: server.describedBy, mark: true },
+    )
+    this.own.write(control, "aria-invalid", ariaInvalid, {
+      server: server.invalid,
+      mark: true,
+    })
     // `setFlag` and not `setAttr`: a template may have written
     // `disabled="disabled"`, and it must stay as it is. `setAttr` would
     // normalise the value to the empty string, and since `disabled` is among
@@ -739,27 +644,10 @@ export class LtField extends HostElement {
     // would each write their own value on every patch. No `aria-disabled`
     // alongside it: a real `disabled` is already visible to assistive
     // technology, and `computeFieldAttributes` only writes it on the label.
-    setFlag(control, "disabled", disabled)
-    const written: ControlWord = {
-      invalid: ariaInvalid,
-      describedBy: computed.control["aria-describedby"] ?? null,
-      disabled,
-    }
-    markWritten(control, "aria-invalid", written.invalid !== server.invalid)
-    markWritten(
-      control,
-      "aria-describedby",
-      written.describedBy !== server.describedBy,
-    )
-    markWritten(control, "disabled", written.disabled !== server.disabled)
-
-    this.memory.set(control, {
-      written: {
-        invalid: written.invalid,
-        describedBy: written.describedBy,
-        disabled: written.disabled,
-      },
-      server,
+    this.own.write(control, "disabled", disabled ? "" : null, {
+      server: server.disabled ? "" : null,
+      mark: true,
+      flag: true,
     })
 
     // `data-state` is only set on the system's controls, and only when the
@@ -773,15 +661,13 @@ export class LtField extends HostElement {
 
     const state = computed.control["data-state"]
     if (state && isSystemField && !control.hasAttribute("data-state")) {
-      setAttr(control, "data-state", state)
-      this.stateByMe.add(control)
+      this.own.write(control, "data-state", state, { server: null })
     } else if (
       !state &&
-      this.stateByMe.has(control) &&
+      this.own.written(control, "data-state") != null &&
       control.getAttribute("data-state") === "invalid"
     ) {
-      control.removeAttribute("data-state")
-      this.stateByMe.delete(control)
+      this.own.write(control, "data-state", null, { server: null })
     }
   }
 }
