@@ -130,9 +130,10 @@ const links =
      * The list above is precise, and that is why it is there: it says what
      * the component requires. But "Getting started" recommends `lotek.css` to
      * anyone linking without a build step, and without this line the two
-     * pages recommended different things. No page lists `tailwind.css` in
-     * `imports`, which is the only stylesheet the combined file does not
-     * cover, so the line is true everywhere.
+     * pages recommended different things. `pageSetup` never asks for
+     * `tailwind.css`, which is the only stylesheet the combined file does
+     * not cover, since it is no component stylesheet, so the line is true
+     * everywhere.
      */
     `<!-- Or everything in one file: ${CDN}/${STYLESHEETS["lotek.css"]} -->`,
   ].join("\n")

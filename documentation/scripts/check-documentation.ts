@@ -414,7 +414,8 @@ for (const { name, path } of componentFolders()) {
    * anywhere in the text. It went green on most pages for the wrong reason:
    * "TypeScript" at the bottom mentions `@lo-tek/interfaces/react`, and that
    * counted. Now "How to use it" itself must say what to import, either in a
-   * code tab or through `imports` on <Example>.
+   * code tab or with `recipe` on <Example>, which shows the stylesheets
+   * `pageSetup` computes from its markup.
    */
   const recipeStart = text.indexOf("## How to use it")
   const recipeEnd = text.indexOf("\n## ", recipeStart + 5)
@@ -425,7 +426,7 @@ for (const { name, path } of componentFolders()) {
 
   if (recipeStart === -1) {
     problems.push({ where, what: 'is missing the section "How to use it"' })
-  } else if (!/\.css/.test(recipe) && !/imports=\{/.test(recipe)) {
+  } else if (!/\.css/.test(recipe) && !/<Example\s+recipe\b/.test(recipe)) {
     /*
      * A stylesheet, not just the package name.
      *
