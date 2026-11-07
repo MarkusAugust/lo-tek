@@ -88,7 +88,9 @@ Both use the same function underneath, so the contract cannot drift apart. The o
     ```tsx
     // main.tsx, runs once when the app starts
     import "@lo-tek/interfaces/tokens.css"
-    import "@lo-tek/interfaces/field.css"
+    import "@lo-tek/interfaces/label.css"
+    import "@lo-tek/interfaces/input.css"
+    import "@lo-tek/interfaces/error-text.css"
     import "@lo-tek/interfaces/button.css"
     ```
 
@@ -196,8 +198,6 @@ Both use the same function underneath, so the contract cannot drift apart. The o
          not `import`: a browser does not resolve a package name. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/frame/field/field.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/css/input/input.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/css/error-text/error-text.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/css/button/button.css">
     <!-- Or everything in one file: https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css -->
     ```

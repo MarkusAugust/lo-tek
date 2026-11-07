@@ -31,7 +31,6 @@
 
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest"
 import { page as browserPage, server, userEvent } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/term.mdx?raw"
 import coreUrl from "../../../../core/lotek-core.wasm?url"
 import {
   type AccessibilityCore,
@@ -47,7 +46,8 @@ import {
   settle,
   unchecked,
 } from "../../../testing/model"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 import { renderedMarkup } from "../../../testing/rendered"
 import { type Replacement, replace } from "../../../testing/update"
 import { defineLtTerm } from "./lt-term"
@@ -58,10 +58,10 @@ import "./term.css"
 
 /** The recipe from the "Plain HTML" tab, without its scripts and comments. */
 const RECIPE_BLOCK = (() => {
-  const block = tabItems(page)
-    .filter((t) => t.name === "Plain HTML")
-    .flatMap((t) => htmlBlocks(t.code))
-    .find((b) => b.includes("<lt-term"))
+  const block = blocks(recipePage("term"), {
+    tab: "Plain HTML",
+    lang: "html",
+  }).find((b) => b.includes("<lt-term"))
   if (!block) throw new Error("no recipe with <lt-term> on the page")
   return block
     .replace(/<script[\s\S]*?<\/script>/g, "")

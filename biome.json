@@ -23,6 +23,7 @@
       "!interfaces/manifest/manifest.json",
       "!interfaces/manifest/files.json",
       "!interfaces/manifest/build-cases.json",
+      "!documentation/generated/recipes.json",
       "!interfaces/src/testing/datastar",
       "!interfaces/src/testing/idiomorph/idiomorph-v0.8.0.js"
     ]

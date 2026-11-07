@@ -24,29 +24,30 @@ import {
   unregistered,
   wentTo,
 } from "./testing/recipe-frame"
-import { htmlBlocks, tabItems } from "./testing/recipes"
+import { recipePage } from "./testing/recipe-pages"
+import { blocks } from "./testing/recipes"
 
 const PAGES = import.meta.glob<string>(
   "../../documentation/src/content/docs/components/*.mdx",
   { query: "?raw", import: "default", eager: true },
 )
 
-/** The HTML blocks of every "Plain HTML" tab on a page, or none. */
-function plainHtml(page: string): string[] {
-  return tabItems(page)
-    .filter((t) => t.name === "Plain HTML")
-    .flatMap((t) => htmlBlocks(t.code))
-}
-
-const pages = Object.entries(PAGES).map(([path, text]) => ({
-  name: path.replace(/^.*\/(.+)\.mdx$/, "$1"),
-  text,
-  blocks: plainHtml(text),
-}))
+/*
+ * The blocks come from `recipes.json`. The page text is read here only for
+ * the count below, which must not go through the same reader.
+ */
+const pages = Object.entries(PAGES).map(([path, text]) => {
+  const name = path.replace(/^.*\/(.+)\.mdx$/, "$1")
+  return {
+    name,
+    text,
+    blocks: blocks(recipePage(name), { tab: "Plain HTML", lang: "html" }),
+  }
+})
 
 /**
  * The scripts in every "Plain HTML" tab, counted by plain string search
- * rather than by `tabItems`, so a tab or a script that reader missed is one
+ * rather than through `recipes.json`, so a tab or a script the reading missed is one
  * the test reports as missing.
  */
 function scriptsInPlainHtml(text: string): number {

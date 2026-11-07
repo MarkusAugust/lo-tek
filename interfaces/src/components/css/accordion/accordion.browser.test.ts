@@ -2,7 +2,6 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { server } from "vitest/browser"
-import page from "../../../../../documentation/src/content/docs/components/accordion.mdx?raw"
 import {
   expectNoAccessibilityViolations,
   mount,
@@ -12,6 +11,8 @@ import { accordion } from "./accordion"
 
 import "../../../tokens/tokens.css"
 import "./accordion.css"
+import { recipePage } from "../../../testing/recipe-pages"
+import { blocks } from "../../../testing/recipes"
 
 describe("lt-accordion", () => {
   afterEach(() => {
@@ -72,7 +73,10 @@ describe("lt-accordion", () => {
     // becomes part of the button's name: the screen reader says "Who can
     // apply? +" when `<summary>` gets focus. The snippet is read from the
     // page, so it cannot drift from the code.
-    const snippet = /```css\n([\s\S]*?)```/.exec(page)?.[1]
+    const snippet = blocks(recipePage("accordion"), {
+      tab: "rest",
+      lang: "css",
+    })[0]
     if (snippet === undefined)
       throw new Error("Found no CSS snippet on the page")
     const style = document.createElement("style")

@@ -367,7 +367,7 @@
     "access": "public"
   },
   "scripts": {
-    "generate": "bun scripts/generate-matrix.ts && bun scripts/generate-tokens.ts && bun scripts/generate-tailwind.ts && bun scripts/generate-vocabulary.ts && bun scripts/generate-agent.ts && bun scripts/generate-manifest.ts",
+    "generate": "bun scripts/extract-recipes.ts && bun scripts/generate-matrix.ts && bun scripts/generate-tokens.ts && bun scripts/generate-tailwind.ts && bun scripts/generate-vocabulary.ts && bun scripts/generate-agent.ts && bun scripts/generate-manifest.ts",
     "build:css": "bun scripts/build-css.ts",
     "pack": "bun run core && rm -rf dist && tsc -b --force && bun run build:css && npm pack --ignore-scripts",
     "build:browser": "tsc -b && bun run build:css",
@@ -411,7 +411,10 @@
     "publint": "^0.3.24",
     "react": "19",
     "react-dom": "19",
+    "remark-mdx": "3.1.1",
+    "remark-parse": "11.0.0",
     "tailwindcss": "4.3.0",
+    "unified": "11.0.5",
     "vite": "7.3.7",
     "vitest": "4.1.12"
   }

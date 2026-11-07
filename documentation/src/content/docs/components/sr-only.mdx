@@ -11,7 +11,7 @@ Content that should be read out, but not shown. The class shrinks the element aw
 
 A row of "Delete" buttons makes sense to someone looking at the table. Someone listening to it gets four identical buttons. The addition in `.lt-sr-only` says which row the button belongs to, without repeating it for the eye.
 
-<Example imports={["tokens.css", "sr-only.css", "button.css"]}
+<Example recipe
   styles={["button", "sr-only"]} layout="stack" maxWidth="26rem" code={`
 <button class="lt-button" data-variant="danger">
   Delete<span class="lt-sr-only"> the report from 4 March</span>

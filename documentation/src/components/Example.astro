@@ -1,6 +1,7 @@
 ---
 import { Code, TabItem, Tabs } from "@astrojs/starlight/components"
 import pkg from "../../../interfaces/package.json"
+import recipes from "../../generated/recipes.json"
 import Preview, { type Stylesheet } from "./Preview.astro"
 
 /** The addresses of the stylesheets, read from the package's own `exports`. */
@@ -36,13 +37,16 @@ interface Props {
    */
   previewCss?: string
   /**
-   * The stylesheets to show in the code tab, as they are imported in an app.
+   * That this is the recipe, so the code tabs show the stylesheets it needs.
    *
    * Without them the code tab is only markup, and the reader has to look
    * further up the page for what must be imported to make it look like this.
-   * With them the tab is the whole recipe.
+   * With them the tab is the whole recipe. The list is computed from the
+   * markup by `pageSetup` and read from `recipes.json`, so no page writes
+   * it: the pages wrote it by hand, and one of them listed a sheet another
+   * already imports.
    */
-  imports?: string[]
+  recipe?: boolean
   /**
    * CSS that belongs to the example, and that the reader should take along.
    *
@@ -58,8 +62,26 @@ interface Props {
   customCss?: string
 }
 
-const { styles, layout, maxWidth, code, previewCss, imports, customCss } =
+const { styles, layout, maxWidth, code, previewCss, recipe, customCss } =
   Astro.props
+
+/*
+ * The setup `generate` computed for this markup. A recipe whose markup is not
+ * in the file means the file is older than the page, and the build stops
+ * rather than showing a guess.
+ */
+const imports = recipe
+  ? (() => {
+      const found = recipes.pages
+        .flatMap((p) => p.examples)
+        .find((e) => e.code === code)
+      if (!found)
+        throw new Error(
+          "Example: this markup is not in documentation/generated/recipes.json. Run bun --filter @lo-tek/interfaces generate.",
+        )
+      return found.setup.stylesheets
+    })()
+  : undefined
 
 const combinedPreviewCss = [customCss, previewCss].filter(Boolean).join("\n")
 

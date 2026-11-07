@@ -36,7 +36,7 @@ import {
   VERSION,
   webTable,
 } from "./agent-parts.js"
-import { kotlinBlocks } from "./recipes.js"
+import { kotlinTab, recipePage } from "./recipes.js"
 
 /** The package name, which bundlers resolve. */
 const PACKAGE_NAME = (component: string) => `@lo-tek/interfaces/${component}`
@@ -81,10 +81,7 @@ const WEBJAR_MODULE = (_component: string, modulePath: string) =>
  * both and compares what they render with the page's HTML recipe, so the
  * rulebook shows code that is known to work.
  */
-const FIELD_BLOCKS =
-  kotlinBlocks(
-    join(PACKAGE, "../documentation/src/content/docs/components/field.mdx"),
-  ) ?? []
+const FIELD_BLOCKS = kotlinTab(recipePage("field")) ?? []
 const FIELD_RECIPE = FIELD_BLOCKS.find((b) => b.includes("fun FlowContent."))
 const FIELD_PAGE = FIELD_BLOCKS.find((b) => /^head\s*\{/m.test(b))
 if (!FIELD_RECIPE || !FIELD_PAGE)

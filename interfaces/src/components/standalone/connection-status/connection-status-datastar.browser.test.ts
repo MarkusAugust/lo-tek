@@ -9,22 +9,21 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 
 import { mount } from "../../../testing/a11y"
-import { htmlBlocks, tabItems } from "../../../testing/recipes"
+import { recipePage } from "../../../testing/recipe-pages"
 import { defineLtConnectionStatus } from "./lt-connection-status"
 
 import "../../../testing/datastar/datastar-v1.0.4.js"
 
-const PAGE = import.meta.glob<string>(
-  "../../../../../documentation/src/content/docs/components/connection-status.mdx",
-  { query: "?raw", import: "default", eager: true },
-)
-
-/** The HTML in the Datastar tab, as the reader pastes it. */
+/** The HTML in the first Datastar tab, as the reader pastes it. */
 function datastarTab(): string {
-  const text = Object.values(PAGE)[0]
-  if (!text) throw new Error("found no connection-status page")
-  const tab = tabItems(text).find((t) => t.name === "Datastar")
-  return htmlBlocks(tab?.code ?? "").join("\n")
+  const tab = recipePage("connection-status").tabs.find(
+    (t) => t.label === "Datastar",
+  )
+  if (!tab) throw new Error("the connection status page has no Datastar tab")
+  return tab.blocks
+    .filter((b) => b.lang === "html")
+    .map((b) => b.code)
+    .join("\n")
 }
 
 /** The `<lt-connection-status>` in the Datastar tab. */

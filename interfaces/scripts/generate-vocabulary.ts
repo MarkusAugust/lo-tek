@@ -55,7 +55,7 @@ import {
   type ElementDoc,
   elements,
 } from "./metadata"
-import { dedent, htmlBlocks, kotlinBlocks } from "./recipes.js"
+import { allBlocks, kotlinTab, recipePage } from "./recipes.js"
 
 export const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const DOCS = "https://lo-tek.sobernetics.no/components/"
@@ -198,8 +198,7 @@ export function webTypes(version: string) {
  * where the cursor is.
  */
 export function recipe(element: ElementDoc): string {
-  const page = readFileSync(join(PAGES, `${element.slug}.mdx`), "utf8")
-  const blocks = htmlBlocks(page)
+  const blocks = allBlocks(recipePage(element.slug), "html")
   const markup = blocks.find(
     (b) =>
       b.includes(`<${element.tag}`) &&
@@ -216,7 +215,7 @@ export function recipe(element: ElementDoc): string {
   const body = markup.split(
     /\n[ \t]*(?:<!--(?:(?!-->)[\s\S])*-->\n[ \t]*)?<script\b/,
   )[0]
-  return dedent(body)
+  return body.replace(/\s+$/, "")
 }
 
 /*
@@ -310,7 +309,7 @@ export function snippets() {
  * `<Fragment slot="kotlin">` in an `<Example>`.
  */
 function kotlinRecipe(slug: string): string | undefined {
-  const blocks = kotlinBlocks(join(PAGES, `${slug}.mdx`))
+  const blocks = kotlinTab(recipePage(slug))
   if (!blocks) return undefined
   const recipe = blocks.find((b) => b.includes("fun FlowContent."))
   if (!recipe)
