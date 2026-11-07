@@ -24,6 +24,21 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **`ownership()` in `@lo-tek/interfaces/host-element`** remembers, per
+  node and attribute, what a web component wrote and the server's word it
+  wrote it against, and tells the two apart with `serverWord()`: the value
+  that stands there, unless it is the component's own echo. `write()` writes
+  through `setAttr` or `setFlag` and can mark the attribute with
+  `data-lt-written`, so a morph that removes the mark is seen as the server
+  speaking. `<lt-field>` keeps its memory through it, and behaves as before.
+- **`watcher()` in the same module** starts a `MutationObserver` on a node
+  and stops it, and leaves the old node when it is started on a new one.
+- **`warnAboutMarkup()` takes `{ silentWhenEmpty: true }`**, which keeps it
+  silent about an element with no children, a region the server has not
+  filled yet.
+
 ## 0.42.0 (2026-11-06)
 
 ### Changed
