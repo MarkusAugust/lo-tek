@@ -320,6 +320,18 @@ export interface Ownership {
   ): void
   /** What the component last wrote for `name` on `element`, or `undefined`. */
   written(element: Element, name: string): string | null | undefined
+  /**
+   * Forgets what the component wrote for `name` on `element`: the server has
+   * taken the attribute over, and the same value later is the server's.
+   */
+  forget(element: Element, name: string): void
+  /**
+   * Whether a morph from the server has been there since the component
+   * wrote `name` on `element`: it marked a value that differed from the
+   * server's word, and the mark is gone. A value that did not differ had no
+   * mark to lose, and its absence says nothing.
+   */
+  lost(element: Element, name: string): boolean
 }
 
 export function ownership(): Ownership {
@@ -394,6 +406,18 @@ export function ownership(): Ownership {
       })
     },
     written: (element, name) => memory.get(element)?.get(name)?.written,
+    forget(element, name) {
+      memory.get(element)?.delete(name)
+    },
+    lost(element, name) {
+      const known = memory.get(element)?.get(name)
+      return Boolean(
+        known?.marked &&
+          known.server !== undefined &&
+          known.written !== known.server &&
+          !stillMarked(element, name),
+      )
+    },
   }
 }
 
@@ -407,9 +431,17 @@ export function ownership(): Ownership {
 export function watcher(
   callback: (records: MutationRecord[]) => void,
   init: MutationObserverInit,
-): { start(target: Node): void; stop(): void } {
+): {
+  start(target: Node): void
+  stop(): void
+  /** Whether it was started and not stopped since. */
+  readonly watching: boolean
+} {
   let observer: MutationObserver | undefined
   return {
+    get watching() {
+      return observer !== undefined
+    },
     start(target) {
       observer?.disconnect()
       observer = new MutationObserver(callback)
@@ -420,6 +452,23 @@ export function watcher(
       observer = undefined
     },
   }
+}
+
+/**
+ * Puts `open` back on a `<dialog>` that is still in the top layer, when a
+ * morph took the attribute the server never sent, and says whether it did.
+ *
+ * The condition is `:modal` and not `open`: a dialog the user has closed
+ * leaves the top layer, and one a morph took `open` from stays there,
+ * invisible, with the rest of the page inert, and `close()` does nothing on
+ * it until the attribute is back.
+ */
+export function restoreModalOpen(
+  dialog: HTMLDialogElement | null | undefined,
+): boolean {
+  if (!dialog?.matches(":modal") || dialog.open) return false
+  setAttr(dialog, "open", "")
+  return true
 }
 
 /**
@@ -539,14 +588,22 @@ export function derivedParts<T extends Element>(
   host: Element,
   selector: string,
   role: string,
-  roledByHost: WeakSet<Element>,
+  /**
+   * The roles the component set: an `ownership()` it wrote them through, or,
+   * as before it existed, a `WeakSet` of the parts it set them on.
+   */
+  roledByHost: Pick<Ownership, "written"> | WeakSet<Element>,
 ): T[] {
+  const mine = (part: Element) =>
+    roledByHost instanceof WeakSet
+      ? roledByHost.has(part)
+      : roledByHost.written(part, "role") === role
   const own = [...host.querySelectorAll<T>(selector)].filter(
     (part) => part.closest(host.localName) === host,
   )
   const bare = own
     .filter((part) => part.getAttribute("role") === role)
-    .every((part) => roledByHost.has(part))
+    .every(mine)
   return bare ? own : own.filter((part) => part.getAttribute("role") === role)
 }
 

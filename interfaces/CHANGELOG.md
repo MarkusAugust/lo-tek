@@ -33,8 +33,20 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   through `setAttr` or `setFlag` and can mark the attribute with
   `data-lt-written`, so a morph that removes the mark is seen as the server
   speaking. `<lt-field>` keeps its memory through it, and behaves as before.
+- **`ownership()` also has `forget()`**, for an attribute the server has
+  taken over, and **`lost()`**, which says that a morph from the server has
+  removed the mark since the component wrote a value that differed from the
+  server's. `<lt-error-summary>`, `<lt-term>`, `<lt-suggestion>` and
+  `<lt-tabs>` keep what they wrote through `ownership()` now, and behave as
+  before.
 - **`watcher()` in the same module** starts a `MutationObserver` on a node
-  and stops it, and leaves the old node when it is started on a new one.
+  and stops it, leaves the old node when it is started on a new one, and
+  says with `watching` whether it runs.
+- **`restoreModalOpen()`** puts `open` back on a `<dialog>` still in the top
+  layer when a morph took it, and says whether it did. `<lt-dialog>` and
+  `<lt-session-timeout>` repair through it.
+- **`derivedParts()` takes an `ownership()`** the roles were written
+  through, as well as the `WeakSet` it took before.
 - **`warnAboutMarkup()` takes `{ silentWhenEmpty: true }`**, which keeps it
   silent about an element with no children, a region the server has not
   filled yet.

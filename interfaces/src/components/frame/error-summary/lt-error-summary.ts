@@ -2,8 +2,10 @@ import {
   addClass,
   defineElement,
   HostElement,
+  ownership,
   setAttr,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 import {
   ERROR_SUMMARY_CLASS,
@@ -82,28 +84,20 @@ export class LtErrorSummary extends HostElement {
   private focusAttempted = false
   /** Where focus was when `hidden` last changed, until the deferred round has run. */
   private focusBefore: Element | null | undefined
-  private observer?: MutationObserver
   /**
    * The `aria-labelledby` the component wrote on the box, or null. Another
    * value there is the server's, and stays; the component's own follows the
    * heading, so a patch that replaces the heading does not leave the name
    * pointing at an id that is gone.
    */
-  private labelledByWritten: string | null = null
-
-  connectedCallback(): void {
-    // One listener on the host, not one per link. The set of links was only
-    // emptied on disconnect, so every link a patch replaced stayed in
-    // memory.
-    this.addEventListener("click", this.handleLinkClick)
-    // The errors come and go while the user corrects them, and `slotchange`
-    // does not fire in plain DOM. The attributes are the ones the component
-    // fills in itself, so a patch that removes them gets them back. Every
-    // write compares first, or the observer would trigger itself.
-    // An id only matters on the heading, which the name points at, and a
-    // name only on the box. The same attributes on a link or a field inside
-    // the box are not ours to follow.
-    this.observer = new MutationObserver((records) => {
+  private readonly own = ownership()
+  /**
+   * An id only matters on the heading, which the name points at, and a name
+   * only on the box. The same attributes on a link or a field inside the box
+   * are not ours to follow.
+   */
+  private readonly watch = watcher(
+    (records) => {
       const relevant = records.some((r) => {
         if (r.attributeName === "id")
           return (r.target as Element).matches(LT_ERROR_SUMMARY_PARTS.title)
@@ -115,8 +109,8 @@ export class LtErrorSummary extends HostElement {
         return true
       })
       if (relevant) this.sync()
-    })
-    this.observer.observe(this, {
+    },
+    {
       childList: true,
       subtree: true,
       attributes: true,
@@ -128,7 +122,19 @@ export class LtErrorSummary extends HostElement {
         "aria-label",
         "id",
       ],
-    })
+    },
+  )
+
+  connectedCallback(): void {
+    // One listener on the host, not one per link. The set of links was only
+    // emptied on disconnect, so every link a patch replaced stayed in
+    // memory.
+    this.addEventListener("click", this.handleLinkClick)
+    // The errors come and go while the user corrects them, and `slotchange`
+    // does not fire in plain DOM. The attributes are the ones the component
+    // fills in itself, so a patch that removes them gets them back. Every
+    // write compares first, or the observer would trigger itself.
+    this.watch.start(this)
     this.sync()
   }
 
@@ -164,8 +170,7 @@ export class LtErrorSummary extends HostElement {
   }
 
   disconnectedCallback(): void {
-    this.observer?.disconnect()
-    this.observer = undefined
+    this.watch.stop()
     this.removeEventListener("click", this.handleLinkClick)
   }
 
@@ -214,16 +219,17 @@ export class LtErrorSummary extends HostElement {
      */
     const labelledBy = this.getAttribute("aria-labelledby")?.trim() || null
     const label = this.getAttribute("aria-label")?.trim() || null
-    const ours = labelledBy !== null && labelledBy === this.labelledByWritten
-    if (labelledBy !== null && !ours) this.labelledByWritten = null
+    const ours =
+      labelledBy !== null &&
+      labelledBy === this.own.written(this, "aria-labelledby")
+    if (labelledBy !== null && !ours) this.own.forget(this, "aria-labelledby")
     if (title?.id && label === null && (labelledBy === null || ours)) {
-      setAttr(this, "aria-labelledby", title.id)
-      this.labelledByWritten = title.id
+      this.own.write(this, "aria-labelledby", title.id)
     } else if (ours) {
       // The heading is gone or lost its id, or the server named the box
       // with `aria-label`, which `aria-labelledby` would otherwise win over.
-      this.removeAttribute("aria-labelledby")
-      this.labelledByWritten = null
+      this.own.write(this, "aria-labelledby", null)
+      this.own.forget(this, "aria-labelledby")
     }
     if (title && !title.id && label === null && labelledBy === null)
       warnAboutMarkup(

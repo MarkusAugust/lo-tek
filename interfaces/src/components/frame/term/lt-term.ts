@@ -2,9 +2,11 @@ import {
   addClass,
   defineElement,
   HostElement,
+  ownership,
   place,
   setAttr,
   warnAboutMarkup,
+  watcher,
 } from "../../host-element.js"
 import { TERM_CLASS, TERM_ENTRY_CLASS } from "./term.js"
 
@@ -66,11 +68,12 @@ function fragmentsOf(word: Element): string[] {
 }
 
 /**
- * The `aria-details` the component wrote, per link. A value that is still
- * there is the component's to change when `href` points elsewhere; any
- * other value is the server's word, and stays.
+ * The `aria-details` the component wrote, per link, shared by every term as
+ * the link may be. A value that is still there is the component's to change
+ * when `href` points elsewhere; any other value is the server's word, and
+ * stays.
  */
-const detailsWritten = new WeakMap<Element, string>()
+const detailsOwn = ownership()
 
 type Shown = "no" | "hover" | "pinned"
 
@@ -114,7 +117,16 @@ export class LtTerm extends HostElement {
   /** The entry this component shows as the card right now. */
   private entry?: HTMLElement
   private shown: Shown = "no"
-  private observer?: MutationObserver
+  /**
+   * The link and the entry it points at. `class` too: the component sets
+   * `lt-term` on a link without it, and a morph takes it again.
+   */
+  private readonly observe = watcher(() => this.sync(), {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["href", "class", "aria-details", "aria-expanded"],
+  })
   /** Watches the entry while the card is open: a patch can strip what the component set on it. */
   private outside?: MutationObserver
   private visibility?: IntersectionObserver
@@ -183,23 +195,14 @@ export class LtTerm extends HostElement {
   }
 
   connectedCallback(): void {
-    this.observer = new MutationObserver(() => this.sync())
-    this.observer.observe(this, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      // `class` too: the component sets `lt-term` on a link without it, and
-      // a morph takes it again.
-      attributeFilter: ["href", "class", "aria-details", "aria-expanded"],
-    })
+    this.observe.start(this)
     LtTerm.watch(this)
     this.sync()
   }
 
   disconnectedCallback(): void {
     this.close()
-    this.observer?.disconnect()
-    this.observer = undefined
+    this.observe.stop()
     LtTerm.unwatch(this)
     this.detachWord()
   }
@@ -241,7 +244,8 @@ export class LtTerm extends HostElement {
       warnAboutMarkup(
         this,
         'found no link: an <a> with an href to the glossary entry, such as href="#term-signal". Without it there is no word to explain.',
-        () => this.childElementCount > 0 && this.findWord() === null,
+        () => this.findWord() === null,
+        { silentWhenEmpty: true },
       )
       this.close()
       this.detachWord()
@@ -290,10 +294,12 @@ export class LtTerm extends HostElement {
     // `aria-details` the server wrote is its word, also when it points
     // elsewhere. What the component wrote follows the entry, and goes with it.
     const details = word.getAttribute("aria-details")
-    if (details === null || details === detailsWritten.get(word)) {
-      setAttr(word, "aria-details", entry?.id ?? null)
-      if (entry) detailsWritten.set(word, entry.id)
-      else detailsWritten.delete(word)
+    if (
+      details === null ||
+      details === detailsOwn.written(word, "aria-details")
+    ) {
+      detailsOwn.write(word, "aria-details", entry?.id ?? null)
+      if (!entry) detailsOwn.forget(word, "aria-details")
     }
 
     if (!entry) {
