@@ -667,11 +667,17 @@ class RecipesTest {
         return problems to registered
     }
 
-    /** The web components on a page that the registration it has leaves out. */
+    /** What `page-setup.ts` writes to `recipes.json` for this side. */
+    private val SETUP = JsonParser.parseString(File(System.getProperty("recipes")).readText()).asJsonObject["setup"].asJsonObject
+
+    /** The `defineLt*` of each tag the package registers, from `recipes.json`. */
+    private val DEFINERS: Map<String, String> = SETUP["definers"].asJsonObject.entrySet().associate { it.key to it.value.asString }
+
+    /** The web components on a page that the registration it has leaves out, and the tags the package has none for. */
     internal fun unregistered(page: String, registered: Set<String>): List<String> =
-        Jsoup.parse(page).allElements.map { it.tagName() }.filter { it.startsWith("lt-") }.distinct().filter { tag ->
-            val own = "defineLt" + tag.removePrefix("lt-").split('-').joinToString("") { it.replaceFirstChar(Char::uppercase) }
-            "defineLt" !in registered && own !in registered
+        Jsoup.parse(page).allElements.map { it.tagName() }.filter { it.startsWith("lt-") }.distinct().mapNotNull { tag ->
+            val own = DEFINERS[tag] ?: return@mapNotNull "has $tag, which the package has no web component for"
+            if ("defineLt" in registered || own in registered) null else "does not register $tag"
         }
 
     /** The scripts the page's HTML recipe loads from an address, as their type and address. */
@@ -768,7 +774,9 @@ class RecipesTest {
         // Every web component on the page needs its own registration, or all of them.
         assertEquals(emptyList<String>(), unregistered("<lt-popover></lt-popover><lt-error-summary></lt-error-summary>", setOf("defineLt")))
         assertEquals(emptyList<String>(), unregistered("<lt-error-summary></lt-error-summary>", setOf("defineLtErrorSummary")))
-        assertEquals(listOf("lt-popover"), unregistered("<lt-popover></lt-popover>", setOf("defineLtTabs")))
+        assertEquals(listOf("does not register lt-popover"), unregistered("<lt-popover></lt-popover>", setOf("defineLtTabs")))
+        // The name of the registration is the package's, not one made from the tag.
+        assertEquals(listOf("has lt-popovr, which the package has no web component for"), unregistered("<lt-popovr></lt-popovr>", setOf("defineLt")))
         assertTrue(templateProblems(template("""<script type="module">more()</script>"""), recipe).first.single().contains("more than register"), "a script of its own")
         assertTrue(templateProblems(template("""<script type="module" src="/app.js"></script>"""), recipe).first.single().contains("more than register"), "a script loaded from elsewhere")
         // A library the HTML recipe loads may stand in the template, with exactly
@@ -794,6 +802,30 @@ class RecipesTest {
     }
 
     /**
+     * The rule that Datastar loads after the registration is written twice:
+     * here for a page template, and in `checkSetup` for a tab. Both answer
+     * the cases `page-setup.ts` writes to `recipes.json`, so a rule changed on
+     * one side alone fails the other.
+     */
+    @Test
+    fun `the order of Datastar and the registration is the rule of page-setup`() {
+        val datastar = SETUP["datastar"].asString
+        val blocks = mapOf(
+            "registration" to """<script type="module">import { defineLt } from "${LotekWebJar.REGISTER}"; defineLt()</script>""",
+            "commented-registration" to """<script type="module">import { defineLt } from "${LotekWebJar.REGISTER}"; go() // defineLt()</script>""",
+            "datastar" to """<script type="module" src="$datastar"></script>""",
+        )
+        val cases = SETUP["orderCases"].asJsonArray.map { it.asJsonObject }
+        val wrong = cases.mapNotNull { case ->
+            val page = case["blocks"].asJsonArray.joinToString("") { blocks[it.asString] ?: fail("no block called ${it.asString}") }
+            val before = templateProblems("<html><body><p>x</p>$page</body></html>", "", setOf("module $datastar")).first.any { "before the registration" in it }
+            if (before == case["before"].asBoolean) null else "${case["name"].asString}: before the registration is $before"
+        }
+        assertEquals(emptyList(), wrong)
+        assertTrue(cases.size > 0, "read ${cases.size} cases")
+    }
+
+    /**
      * The page template in each kotlinx.html tab, with the stylesheet and
      * `defineLt()`, is rendered too, and may have no script but the
      * registration: a script moved there would otherwise escape every rule
@@ -813,9 +845,7 @@ class RecipesTest {
                 val (problems, registered) = templateProblems(page, alone, htmlSources(recipe))
                 failures += problems.map { "${recipe.page}: $it" }
                 // Every web component on the page the template renders is registered there.
-                unregistered(page, registered).takeIf { it.isNotEmpty() }?.let {
-                    failures.add("${recipe.page}: the page template does not register $it")
-                }
+                failures += unregistered(page, registered).map { "${recipe.page}: the page template $it" }
                 registers = registers || registered.isNotEmpty()
                 rendersRecipe = rendersRecipe || squashed(alone) in squashed(page)
                 rendered += 1

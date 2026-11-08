@@ -74,6 +74,10 @@ tasks.test {
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)
     // The test counts the kotlinx.html tabs in the pages itself, so a tab `extractRecipes` missed fails it.
     systemProperty("pages", componentPages.absolutePath)
+    // The setup `page-setup.ts` writes to `recipes.json`: the Datastar address, the registrations and the order cases.
+    val recipesFile = rootDir.resolve("../documentation/generated/recipes.json")
+    systemProperty("recipes", recipesFile.absolutePath)
+    inputs.file(recipesFile).withPathSensitivity(PathSensitivity.NONE)
     // The rulebook's tables and names, read by `RulebookTest`.
     systemProperty("rulebook", rulebookFile.absolutePath)
     inputs.file(rulebookFile).withPathSensitivity(PathSensitivity.NONE)

@@ -54,14 +54,16 @@ abstract class ExtractRecipes : DefaultTask() {
         val resourceDir = resources.get().asFile.apply { deleteRecursively(); mkdirs() }
         val entries = mutableListOf<String>()
         val imports = mutableListOf<String>()
-        val pages = JsonParser.parseString(recipes.get().asFile.readText()).asJsonObject["pages"].asJsonArray
+        val root = JsonParser.parseString(recipes.get().asFile.readText()).asJsonObject
+        val datastar = root["setup"].asJsonObject["datastar"].asString
+        val pages = root["pages"].asJsonArray
             .map { it.asJsonObject }
             .filter { it["path"].asString.startsWith("components/") }
             .sortedBy { it["path"].asString }
         for (page in pages) {
             val file = page["path"].asString.removePrefix("components/")
             val name = file.removeSuffix(".mdx")
-            val (kotlinBlocks, html, where) = recipeIn(file, page) ?: continue
+            val (kotlinBlocks, html, where) = recipeIn(file, page, datastar) ?: continue
             val block = kotlinBlocks.singleOrNull { it.contains("fun FlowContent.") }
                 ?: error("$where must have exactly one ```kotlin block with a `fun FlowContent.…()`.")
             val function = Regex("""fun FlowContent\.(\w+)\(""").find(block)?.groupValues?.get(1)
@@ -140,7 +142,7 @@ abstract class ExtractRecipes : DefaultTask() {
      * A page has one of them at most, and a tab with "kotlin" in another
      * label stops the build rather than being skipped.
      */
-    private fun recipeIn(page: String, entry: JsonObject): Triple<List<String>, List<String>, String>? {
+    private fun recipeIn(page: String, entry: JsonObject, datastar: String): Triple<List<String>, List<String>, String>? {
         val tabs = entry["tabs"].asJsonArray.map { it.asJsonObject }
         val loose = tabs.filter { it["label"].asString.contains("kotlin", ignoreCase = true) && it["label"].asString != "kotlinx.html" }
         if (loose.isNotEmpty()) {
@@ -157,7 +159,7 @@ abstract class ExtractRecipes : DefaultTask() {
             // compared with that tab: a Kotlin server saves through Datastar, not
             // with a script of its own. Only the code is read, not the prose. The
             // script is compared too, so a tab that loads it and should not fails.
-            val label = if (kotlin.any { DATASTAR.containsMatchIn(it) }) "Datastar" else "Plain HTML"
+            val label = comparedWith(kotlin, datastar)
             // The HTML recipe is the one in the same `<Tabs>` as the kotlinx.html tab.
             val html = tabs.filter { it["group"].asInt == tab["group"].asInt && it["label"].asString == label }.singleOrNull()
                 ?: error("$page: the <Tabs> with the kotlinx.html tab must have one $label tab to compare it with.")
@@ -178,7 +180,4 @@ abstract class ExtractRecipes : DefaultTask() {
         tab["blocks"].asJsonArray.map { it.asJsonObject }
             .filter { it["lang"]?.takeIf { l -> !l.isJsonNull }?.asString == language }
             .map { it["code"].asString }
-
-    /** The script that loads Datastar, as the Datastar tabs and the Kotlin recipes write it. */
-    private val DATASTAR = Regex("""src\s*=\s*"https://cdn\.jsdelivr\.net/gh/starfederation/datastar@[^"]+/datastar\.js"""")
 }

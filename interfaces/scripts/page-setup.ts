@@ -154,16 +154,31 @@ for (const [name, builder] of Object.entries(lt)) {
 }
 
 /**
+ * The strings and the line comments of JavaScript, in one pass from left to
+ * right, so a `//` inside a string or an address is not taken for a comment.
+ */
+const SCRIPT_TOKENS =
+  /"(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\[\s\S])*`|(?<![:\w])\/\/.*$/gm
+
+/**
  * The code without its comments, since a comment that mentions `<lt-dialog>`
- * asks for nothing. A line comment is a line that starts with `//`: one after
- * whitespace further in can be text in an element, and the markup after it
- * went missing from the setup.
+ * asks for nothing. Outside a `<script>` a line comment is a line that starts
+ * with `//`: one after whitespace further in can be text in an element, and
+ * the markup after it went missing from the setup. Inside a `<script>` it is
+ * JavaScript, and `go() // defineLtDialog()` registers nothing.
  */
 export function withoutComments(code: string): string {
   return code
     .replace(/<!--[\s\S]*?-->/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/^\s*\/\/.*$/gm, "")
+    .replace(
+      /(<script\b[^>]*>)([\s\S]*?)(<\/script>)/g,
+      (_, open: string, body: string, close: string) =>
+        open +
+        body.replace(SCRIPT_TOKENS, (m) => (m[0] === "/" ? "" : m)) +
+        close,
+    )
 }
 
 export function pageSetup(target: Target, written: string): Setup {
@@ -210,6 +225,53 @@ const BY_PATH = new Map<string, string>(
     .filter(([name, t]) => name.endsWith(".css") && typeof t === "string")
     .map(([name, t]) => [(t as string).slice(2), name.slice(2)]),
 )
+
+/**
+ * The rule that Datastar loads after the registration, as cases both sides
+ * answer: `checkSetup` here, and `templateProblems` in `RecipesTest.kt`, which
+ * reads them from `recipes.json`. A case is the scripts of a page in order,
+ * each side writing a block with its own addresses, and whether Datastar
+ * then stands before the registration. The answers are written out by hand.
+ */
+export const ORDER_CASES: Array<{
+  name: string
+  blocks: Array<"registration" | "commented-registration" | "datastar">
+  before: boolean
+}> = [
+  {
+    name: "Datastar after the registration",
+    blocks: ["registration", "datastar"],
+    before: false,
+  },
+  {
+    name: "Datastar before the registration",
+    blocks: ["datastar", "registration"],
+    before: true,
+  },
+  {
+    name: "Datastar on a page with nothing to register",
+    blocks: ["datastar"],
+    before: false,
+  },
+  {
+    name: "a registration in a comment after code is no registration",
+    blocks: ["datastar", "commented-registration"],
+    before: false,
+  },
+  {
+    name: "Datastar twice, once on each side of the registration",
+    blocks: ["datastar", "registration", "datastar"],
+    before: true,
+  },
+]
+
+/** What `recipes.json` carries for the Kotlin side, so it has no copy of its own. */
+export const SHARED_SETUP = {
+  datastar: DATASTAR_SRC,
+  /** The `defineLt*` of each tag, from the package, never made from the tag's name. */
+  definers: Object.fromEntries(DEFINERS),
+  orderCases: ORDER_CASES,
+}
 
 /** The setup a tab actually writes, read from its code. */
 function written(code: string): {
@@ -548,6 +610,16 @@ export function selfTest(): string[] {
     ["does not call defineLtDialog()"],
   )
   findings(
+    "a registration in a comment after code registers nothing",
+    checkSetup(
+      "html",
+      dialog(
+        `import { defineLtDialog } from "${CDN}/dist/components/frame/dialog/lt-dialog.js"\nconsole.info("ready") // defineLtDialog()`,
+      ),
+    ),
+    ["does not call defineLtDialog()"],
+  )
+  findings(
     "one defineLt() stands for every registration",
     checkSetup(
       "html",
@@ -614,6 +686,20 @@ export function selfTest(): string[] {
       "loads Datastar from https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.3/bundles/datastar.js, not https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js",
     ],
   )
+  const BLOCKS = {
+    registration,
+    "commented-registration": `<script type="module">\nimport { defineLt } from "${CDN}/dist/register.js"\ngo() // defineLt()\n</script>`,
+    datastar: DATASTAR,
+  }
+  for (const { name, blocks, before } of ORDER_CASES)
+    findings(
+      `the order case "${name}"`,
+      checkSetup(
+        "datastar",
+        [css, ...blocks.map((b) => BLOCKS[b]), host].join("\n"),
+      ).filter((f) => f === "loads Datastar before the registration"),
+      before ? ["loads Datastar before the registration"] : [],
+    )
   findings(
     "Datastar as a classic script",
     checkSetup(
