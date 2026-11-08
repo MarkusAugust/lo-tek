@@ -745,7 +745,7 @@ export function isServerControlled(element: Element): boolean {
  */
 export const READS = {
   hasName: ["aria-labelledby", "aria-label"],
-  nameFromHeading: ["aria-labelledby", "aria-label", WRITTEN],
+  nameFromHeading: [WRITTEN, "aria-labelledby", "aria-label"],
   isServerControlled: [SERVER_CONTROLLED],
   restoreModalOpen: ["open"],
   derivedParts: ["role"],
