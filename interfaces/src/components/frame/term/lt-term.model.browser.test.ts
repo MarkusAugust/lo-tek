@@ -404,6 +404,13 @@ function expectAction(ctx: Context, action: Action): Expectation {
   }
 }
 
+/**
+ * Whether the mouse may be over the word or the card, and is moved outside
+ * after a replacement: on it, or somewhere the model has lost track of.
+ */
+const underMouse = (ctx: Context) =>
+  ctx.pointer === "word" || ctx.pointer === "card" || ctx.pointer === "unknown"
+
 /** What an update must do, from the page as it stands and the version sent. */
 function expectUpdate(ctx: Context, send: string, way: Way): Expectation {
   const v = INFO[send]
@@ -412,7 +419,7 @@ function expectUpdate(ctx: Context, send: string, way: Way): Expectation {
     // moved outside right after (see `apply`), so it is known: under a
     // resting mouse the browser gives the new word `pointerenter` when it
     // pleases, and the card the hover opens came a step late under load.
-    const under = ctx.pointer === "word" || ctx.pointer === "card"
+    const under = underMouse(ctx)
     return {
       focus: null,
       context: {
@@ -444,7 +451,7 @@ async function apply(step: Step): Promise<void> {
   followed = null
   if ("send" in step) {
     expectation = expectUpdate(current, step.send, step.way)
-    const under = current.pointer === "word" || current.pointer === "card"
+    const under = underMouse(current)
     if (step.way === "innerHTML") {
       const a = articleOf()
       if (a) a.innerHTML = INFO[step.send].inner

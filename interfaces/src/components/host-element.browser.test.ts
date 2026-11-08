@@ -174,6 +174,16 @@ describe("ownership", () => {
     ]).toEqual([false, false, undefined, false, false])
   })
 
+  it("takes its mark away when it forgets a marked attribute someone else changed", () => {
+    const own = ownership()
+    const box = node(`<div></div>`)
+    own.write(box, "aria-labelledby", "t1", { server: null, mark: true })
+    // A script, not a morph: the value changes and the mark stays.
+    box.setAttribute("aria-labelledby", "other")
+    own.forget(box, "aria-labelledby")
+    expect(box.hasAttribute(WRITTEN)).toBe(false)
+  })
+
   it("takes its mark away too when it releases a marked attribute", () => {
     const own = ownership()
     const tab = node(`<a></a>`)
@@ -319,16 +329,16 @@ describe("nameFromHeading", () => {
     const own = ownership()
     const box = node(`<div></div>`)
     const said: string[] = []
-    said.push(nameFromHeading(own, box, () => "t1"))
+    said.push(nameFromHeading(own, box, box, () => "t1"))
     const first = box.getAttribute("aria-labelledby")
-    said.push(nameFromHeading(own, box, () => "t2"))
+    said.push(nameFromHeading(own, box, box, () => "t2"))
     const followed = box.getAttribute("aria-labelledby")
     box.setAttribute("aria-label", "Problems")
-    said.push(nameFromHeading(own, box, () => "t2"))
+    said.push(nameFromHeading(own, box, box, () => "t2"))
     const gaveWay = box.hasAttribute("aria-labelledby")
     box.removeAttribute("aria-label")
     box.setAttribute("aria-labelledby", "server")
-    said.push(nameFromHeading(own, box, () => "t3"))
+    said.push(nameFromHeading(own, box, box, () => "t3"))
     const kept = box.getAttribute("aria-labelledby")
     expect([first, followed, gaveWay, kept, said]).toEqual([
       "t1",
@@ -342,9 +352,9 @@ describe("nameFromHeading", () => {
   it("takes a blank name for none, and lets go of its own when no heading is left", () => {
     const own = ownership()
     const box = node(`<div aria-labelledby="" aria-label=" "></div>`)
-    const said = [nameFromHeading(own, box, () => "t1")]
+    const said = [nameFromHeading(own, box, box, () => "t1")]
     const named = box.getAttribute("aria-labelledby")
-    said.push(nameFromHeading(own, box, () => null))
+    said.push(nameFromHeading(own, box, box, () => null))
     expect([named, box.hasAttribute("aria-labelledby"), said]).toEqual([
       "t1",
       false,
@@ -359,8 +369,10 @@ describe("nameFromHeading", () => {
       asked++
       return "t1"
     }
-    nameFromHeading(own, node(`<div aria-labelledby="server"></div>`), heading)
-    nameFromHeading(own, node(`<div aria-label="Problems"></div>`), heading)
+    const named = node(`<div aria-labelledby="server"></div>`)
+    const labelled = node(`<div aria-label="Problems"></div>`)
+    nameFromHeading(own, named, named, heading)
+    nameFromHeading(own, labelled, labelled, heading)
     expect(asked).toBe(0)
   })
 })

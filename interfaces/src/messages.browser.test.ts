@@ -377,6 +377,23 @@ describe("the component reports markup that does not hold together", () => {
     expect(messages(warn).some((m) => m.includes("<dialog>"))).toBe(true)
   })
 
+  it("the error summary with data-lt-written copied into the template", async () => {
+    const warn = listen()
+
+    mount(`
+      <lt-error-summary data-lt-written="aria-labelledby" aria-labelledby="t">
+        <h2 id="t">There is a problem</h2>
+        <ul><li><a href="#x">Enter a date</a></li></ul>
+      </lt-error-summary>
+      <input id="x">
+    `)
+    await waitUntilSettled()
+
+    expect(
+      messages(warn).some((m) => m.includes("found data-lt-written")),
+    ).toBe(true)
+  })
+
   it("the session timeout's dialog without a name", async () => {
     const warn = listen()
 

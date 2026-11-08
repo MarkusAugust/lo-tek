@@ -2,6 +2,7 @@ import {
   addClass,
   defineElement,
   HostElement,
+  hasName,
   isServerControlled,
   nameFromHeading,
   ownership,
@@ -244,8 +245,7 @@ export class LtDialog extends HostElement {
   private nameless(dialog: HTMLDialogElement): boolean {
     return (
       dialog.childElementCount > 0 &&
-      !dialog.getAttribute("aria-labelledby")?.trim() &&
-      !dialog.getAttribute("aria-label")?.trim() &&
+      !hasName(dialog) &&
       this.headingOf(dialog) === null
     )
   }
@@ -262,7 +262,7 @@ export class LtDialog extends HostElement {
   private wire(dialog: HTMLDialogElement): void {
     addClass(dialog, DIALOG_CLASS)
 
-    const name = nameFromHeading(this.own, dialog, () => {
+    const name = nameFromHeading(this.own, this, dialog, () => {
       const title = this.headingOf(dialog)
       if (!title) return null
       addClass(title, DIALOG_TITLE_CLASS)
@@ -275,7 +275,7 @@ export class LtDialog extends HostElement {
     if (name === "server") {
       // The attribute can list several ids. The title is the first one that
       // is inside the dialog.
-      const named = dialog.getAttribute("aria-labelledby") ?? ""
+      const named = (dialog.getAttribute("aria-labelledby") ?? "").trim()
       const root = this.getRootNode() as Document | ShadowRoot
       const title = named
         .split(/\s+/)

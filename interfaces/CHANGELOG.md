@@ -41,7 +41,7 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `data-lt-written`, so a morph that removes the mark is seen as the server
   speaking. `<lt-field>` keeps its memory through it, and behaves as before.
 - **`ownership()` also has `forget()`**, for an attribute the server has
-  taken over, and **`lost()`**, which says that a morph from the server has
+  taken over, which takes the component's mark away with the memory, and **`lost()`**, which says that a morph from the server has
   removed the mark since the component wrote a value that differed from the
   server's. **`release()`** removes an attribute the component wrote and
   forgets it in the same step, so the memory cannot outlive the attribute.
@@ -58,7 +58,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   heading with `aria-labelledby`, unless the server named it, and says how
   it is named. `<lt-dialog>`, `<lt-session-timeout>` and
   `<lt-error-summary>` name themselves through it, so the rule is in one
-  place.
+  place, and say so when `data-lt-written` was copied into the template.
+  **`hasName()`** says whether an element has a name that is not blank, for
+  the warnings about an element without one.
 - **`warnAboutMarkup()` takes `{ silentWhenEmpty: true }`**, which keeps it
   silent about an element with no children, a region the server has not
   filled yet.

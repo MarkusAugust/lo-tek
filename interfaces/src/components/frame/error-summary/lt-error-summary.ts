@@ -2,6 +2,7 @@ import {
   addClass,
   defineElement,
   HostElement,
+  hasName,
   nameFromHeading,
   ownership,
   setAttr,
@@ -216,20 +217,14 @@ export class LtErrorSummary extends HostElement {
      * nothing, so it counts as missing.
      * `check-accessibility-tree.ts` checks the name a screen reader gets.
      */
-    const name = nameFromHeading(this.own, this, () => title?.id || null)
+    const name = nameFromHeading(this.own, this, this, () => title?.id || null)
     if (name === "none" && title && !title.id)
       warnAboutMarkup(
         this,
         "has a heading without an id and no name, so it takes focus as an alert a screen reader cannot name. Give the heading an id and the box aria-labelledby pointing at it, as lt.errorSummary({ id }) does.",
         () => {
           const now = this.querySelector(LT_ERROR_SUMMARY_PARTS.title)
-          return (
-            this.isConnected &&
-            now !== null &&
-            !now.id &&
-            !this.getAttribute("aria-label")?.trim() &&
-            !this.getAttribute("aria-labelledby")?.trim()
-          )
+          return this.isConnected && now !== null && !now.id && !hasName(this)
         },
       )
   }

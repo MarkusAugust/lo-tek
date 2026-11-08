@@ -2,6 +2,7 @@ import {
   addClass,
   defineElement,
   HostElement,
+  hasName,
   languageOf,
   nameFromHeading,
   ownership,
@@ -423,8 +424,7 @@ export class LtSessionTimeout extends HostElement {
         const now = this.dialog
         return (
           now !== null &&
-          !now.getAttribute("aria-labelledby")?.trim() &&
-          !now.getAttribute("aria-label")?.trim() &&
+          !hasName(now) &&
           !now.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
         )
       },
@@ -465,7 +465,7 @@ export class LtSessionTimeout extends HostElement {
   private wire(dialog: HTMLDialogElement): void {
     addClass(dialog, SESSION_TIMEOUT_DIALOG_CLASS)
     if (!dialog.hasAttribute("role")) setAttr(dialog, "role", "alertdialog")
-    const name = nameFromHeading(this.own, dialog, () => {
+    const name = nameFromHeading(this.own, this, dialog, () => {
       const title = dialog.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
       if (!title) return null
       if (!title.id) {
