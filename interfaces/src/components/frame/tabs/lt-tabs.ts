@@ -5,10 +5,10 @@ import {
   isServerControlled,
   type Ownership,
   ownership,
+  ownParts,
   SERVER_CONTROLLED,
   setAttr,
   uniqueId,
-  WRITTEN,
   warnAboutCopiedMark,
   warnAboutMarkup,
   watcher,
@@ -242,9 +242,6 @@ export class LtTabs extends HostElement {
       // disables the selected tab, the tab stop moves to one that can take
       // focus. `alt`, `aria-hidden` and `title` change the name of a tab.
       attributeFilter: [
-        // A morph from the server removes the mark, and the web component
-        // puts it back: the same markup must give the same page.
-        WRITTEN,
         "aria-selected",
         "tabindex",
         "hidden",
@@ -647,9 +644,7 @@ export class LtTabs extends HostElement {
     // The first tab list that belongs to this web component, not the first in
     // the tree: when the panels with an inner tab list come before the outer
     // tab list, the inner one was first.
-    for (const list of this.querySelectorAll<HTMLElement>(LIST_SELECTOR))
-      if (list.closest(this.localName) === this) return list
-    return null
+    return ownParts<HTMLElement>(this, LIST_SELECTOR)[0] ?? null
   }
 
   /**
@@ -1063,8 +1058,8 @@ export class LtTabs extends HostElement {
     const list = this.list
     if (!list) return []
     const tabs = new Set<Element>(this.tabs)
-    return [...list.querySelectorAll(ANY_TAB_SELECTOR)].filter(
-      (e) => e.closest(this.localName) === this && !tabs.has(e),
+    return ownParts(this, ANY_TAB_SELECTOR).filter(
+      (e) => list.contains(e) && !tabs.has(e),
     )
   }
 

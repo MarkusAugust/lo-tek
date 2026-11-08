@@ -24,6 +24,33 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **`ownParts()` in `@lo-tek/interfaces/host-element`** gives the elements
+  matching a selector that belong to a host, and not to an element of the
+  same kind inside it. `derivedParts()`, `<lt-field>`, `<lt-tabs>` and
+  `<lt-term>` scope their parts through it, and behave as before.
+- **`READS` in the same module** says which attributes each helper reads or
+  writes on the elements it is given, so a component that calls one knows
+  what to observe.
+
+### Changed
+
+- **`watcher()` always observes `data-lt-written`** when it is given an
+  `attributeFilter`, so a morph that removes the mark is seen whatever the
+  filter names.
+
+### Fixed
+
+- **`<lt-field>` and `<lt-suggestion>` wire a field a patch turns from
+  `type="hidden"` into a control.** The control is found by `type`, which
+  their observers did not watch.
+- **`<lt-popover>` takes an element a patch gives `role="button"` as its
+  trigger.**
+- **`<lt-suggestion>` lets go of the highlight when a patch gives the
+  highlighted option another `data-value`**, since the option is found again
+  by its text and its code.
+
 ## 0.43.0 (2026-11-08)
 
 ### Breaking

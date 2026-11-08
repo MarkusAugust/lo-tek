@@ -107,6 +107,8 @@ export class LtPopover extends HostElement {
         // A patch from a template without `type` removes it, and then the
         // button submits the form again.
         "type",
+        // The trigger is found by `[role='button']` too.
+        "role",
       ],
     },
   )

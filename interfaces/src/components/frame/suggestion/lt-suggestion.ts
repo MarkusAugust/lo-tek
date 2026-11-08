@@ -138,6 +138,10 @@ export class LtSuggestion extends HostElement {
       "autocomplete",
       "aria-autocomplete",
       "class",
+      // A field without a role is `input:not([type='hidden'])`.
+      "type",
+      // The highlight is found again by its text and its code.
+      "data-value",
       // The value field's `value` is an attribute, and a morph can write
       // the server's empty value over the code the user chose.
       "value",

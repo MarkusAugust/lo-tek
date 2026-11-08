@@ -1118,4 +1118,24 @@ describe("lt-field does not read its own echo from the label", () => {
     expect(input.getAttribute("aria-invalid")).toBe("true")
     expect(input.getAttribute("aria-describedby")).toBeNull()
   })
+
+  it("wires a field a patch turns from hidden into a control", async () => {
+    // The control is `input:not([type='hidden'])`, so the observer must see
+    // `type` change, or the field that became visible stays without wiring.
+    mount(`
+      <lt-field>
+        <label for="code">Code</label>
+        <input id="code" name="code" type="hidden">
+        <p class="lt-help-text">Six digits</p>
+      </lt-field>
+    `)
+    await waitForPaint()
+    const input = document.getElementById("code") as HTMLInputElement
+    input.setAttribute("type", "text")
+    await waitForPaint()
+
+    const help = document.querySelector(".lt-help-text") as HTMLElement
+    expect(help.id).not.toBe("")
+    expect(input.getAttribute("aria-describedby")).toBe(help.id)
+  })
 })

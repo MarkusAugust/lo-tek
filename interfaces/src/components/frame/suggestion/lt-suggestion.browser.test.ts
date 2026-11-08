@@ -127,6 +127,26 @@ describe("lt-suggestion", () => {
     expect(input.getAttribute("aria-activedescendant")).toBe(active.id)
   })
 
+  it("lets go of the highlight when a patch gives the option another code", async () => {
+    // The highlight is found again by its text and its code, so the observer
+    // must see `data-value` change: two places can have the same name.
+    const field = await paint()
+    const input = field.querySelector("input") as HTMLInputElement
+    const first = field.querySelector("li") as HTMLElement
+    first.setAttribute("data-value", "glasscutter")
+    await paint()
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }),
+    )
+    await paint()
+    expect(input.getAttribute("aria-activedescendant")).toBe(first.id)
+
+    first.setAttribute("data-value", "glasscutter-north")
+    await paint()
+
+    expect(input.getAttribute("aria-activedescendant")).toBeNull()
+  })
+
   it("chooses with Enter and reports it", async () => {
     const field = await paint()
     const input = field.querySelector("input") as HTMLInputElement
@@ -1847,5 +1867,23 @@ describe("lt-suggestion through a morph from the server", () => {
 
     expect(list().hidden).toBe(true)
     expect(status().textContent).toBe("")
+  })
+
+  it("takes a field a patch turns from hidden into a control as its field", async () => {
+    // The field is `input:not([type='hidden'])` when it has no role, so the
+    // observer must see `type` change.
+    mount(`
+      <lt-suggestion>
+        <label for="late">Breaker</label>
+        <input id="late" name="breaker" type="hidden">
+        <ul class="lt-suggestion__list"><li>Glasscutter</li></ul>
+      </lt-suggestion>
+    `)
+    await waitForPaint()
+    const input = document.getElementById("late") as HTMLInputElement
+    input.setAttribute("type", "text")
+    await waitForPaint()
+
+    expect(input.getAttribute("role")).toBe("combobox")
   })
 })
