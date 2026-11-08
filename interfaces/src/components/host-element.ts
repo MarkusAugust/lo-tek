@@ -436,6 +436,55 @@ export function ownership(): Ownership {
 }
 
 /**
+ * Names `element` from a heading with `aria-labelledby`, unless the server
+ * named it, and says how it is named.
+ *
+ * - `"server"`: an `aria-labelledby` the component did not write, or wrote
+ *   and the server has sent since. It stays, and the component forgets its
+ *   own.
+ * - `"label"`: the server gave an `aria-label`, which `aria-labelledby` would
+ *   otherwise win over. The component lets go of its own.
+ * - `"heading"`: `heading()` gave an id, and `aria-labelledby` points at it,
+ *   written with the mark, so a morph that sends the same id makes it the
+ *   server's. It follows a heading a patch replaced.
+ * - `"none"`: no name and no heading. The component lets go of its own, and
+ *   the caller says so with `warnAboutMarkup`.
+ *
+ * A blank `aria-labelledby` or `aria-label` names nothing, so it counts as
+ * missing. `heading()` is only called when the server has not named the
+ * element, so a caller that gives the heading an id does so only then.
+ * dialog, session-timeout and error-summary name themselves through it.
+ */
+export function nameFromHeading(
+  own: Ownership,
+  element: Element,
+  heading: () => string | null,
+): "server" | "label" | "heading" | "none" {
+  const NAME = "aria-labelledby"
+  const labelledBy = element.getAttribute(NAME)?.trim() || null
+  const label = element.getAttribute("aria-label")?.trim() || null
+  const ours =
+    labelledBy !== null &&
+    own.knows(element, NAME) &&
+    own.serverWord(element, NAME) === null
+  if (labelledBy !== null && !ours) {
+    own.forget(element, NAME)
+    return "server"
+  }
+  if (label !== null) {
+    if (ours) own.release(element, NAME)
+    return "label"
+  }
+  const id = heading()
+  if (!id) {
+    if (ours) own.release(element, NAME)
+    return "none"
+  }
+  own.write(element, NAME, id, { server: null, mark: true })
+  return "heading"
+}
+
+/**
  * A `MutationObserver` a web component starts on a node and stops again.
  *
  * Started again on another node, it stops watching the old one first, so a

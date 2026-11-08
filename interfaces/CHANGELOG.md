@@ -54,6 +54,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`restoreModalOpen()`** puts `open` back on a `<dialog>` still in the top
   layer when a morph took it, and says whether it did. `<lt-dialog>` and
   `<lt-session-timeout>` repair through it.
+- **`nameFromHeading()` in the same module** names an element from a
+  heading with `aria-labelledby`, unless the server named it, and says how
+  it is named. `<lt-dialog>`, `<lt-session-timeout>` and
+  `<lt-error-summary>` name themselves through it, so the rule is in one
+  place.
 - **`warnAboutMarkup()` takes `{ silentWhenEmpty: true }`**, which keeps it
   silent about an element with no children, a region the server has not
   filled yet.
@@ -71,6 +76,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   writes its own with `data-lt-written`, so an `aria-labelledby` the server
   sent is the server's and stays, also with the same id.
   `<lt-session-timeout>` now has that warning too.
+- **`<lt-error-summary>` leaves an `aria-labelledby` the server sent with
+  the same id the component wrote**, also beside an `aria-label`. It now
+  writes its own with `data-lt-written`, as the dialog does.
+- **A blank `aria-labelledby` or `aria-label` on `<lt-dialog>` and
+  `<lt-session-timeout>` counts as no name**, as it already did on
+  `<lt-error-summary>`: the dialog is named from its heading, and the
+  warning about a dialog without a name comes when it has none.
 - **`<lt-field>` leaves a `data-state="invalid"` the server sent itself.**
   When the component had written the value first and a morph then brought
   the same value from the server, the component removed it once the error

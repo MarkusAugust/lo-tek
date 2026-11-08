@@ -2,6 +2,7 @@ import {
   addClass,
   defineElement,
   HostElement,
+  nameFromHeading,
   ownership,
   setAttr,
   warnAboutMarkup,
@@ -85,10 +86,8 @@ export class LtErrorSummary extends HostElement {
   /** Where focus was when `hidden` last changed, until the deferred round has run. */
   private focusBefore: Element | null | undefined
   /**
-   * The `aria-labelledby` the component wrote on the box, or null. Another
-   * value there is the server's, and stays; the component's own follows the
-   * heading, so a patch that replaces the heading does not leave the name
-   * pointing at an id that is gone.
+   * The `aria-labelledby` the component wrote on the box, through
+   * `nameFromHeading()`.
    */
   private readonly own = ownership()
   /**
@@ -217,20 +216,8 @@ export class LtErrorSummary extends HostElement {
      * nothing, so it counts as missing.
      * `check-accessibility-tree.ts` checks the name a screen reader gets.
      */
-    const labelledBy = this.getAttribute("aria-labelledby")?.trim() || null
-    const label = this.getAttribute("aria-label")?.trim() || null
-    const ours =
-      labelledBy !== null &&
-      labelledBy === this.own.written(this, "aria-labelledby")
-    if (labelledBy !== null && !ours) this.own.forget(this, "aria-labelledby")
-    if (title?.id && label === null && (labelledBy === null || ours)) {
-      this.own.write(this, "aria-labelledby", title.id)
-    } else if (ours) {
-      // The heading is gone or lost its id, or the server named the box
-      // with `aria-label`, which `aria-labelledby` would otherwise win over.
-      this.own.release(this, "aria-labelledby")
-    }
-    if (title && !title.id && label === null && labelledBy === null)
+    const name = nameFromHeading(this.own, this, () => title?.id || null)
+    if (name === "none" && title && !title.id)
       warnAboutMarkup(
         this,
         "has a heading without an id and no name, so it takes focus as an alert a screen reader cannot name. Give the heading an id and the box aria-labelledby pointing at it, as lt.errorSummary({ id }) does.",

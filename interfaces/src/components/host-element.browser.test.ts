@@ -9,6 +9,7 @@
 import { describe, expect, it, vi } from "vitest"
 import {
   derivedParts,
+  nameFromHeading,
   ownership,
   restoreModalOpen,
   WRITTEN,
@@ -310,5 +311,56 @@ describe("derivedParts", () => {
     const theServers = derivedParts(host, ".x", "option", ownership()).length
     host.remove()
     expect([ours, theServers]).toEqual([2, 1])
+  })
+})
+
+describe("nameFromHeading", () => {
+  it("names from the heading, follows it, and gives way to the server's words", () => {
+    const own = ownership()
+    const box = node(`<div></div>`)
+    const said: string[] = []
+    said.push(nameFromHeading(own, box, () => "t1"))
+    const first = box.getAttribute("aria-labelledby")
+    said.push(nameFromHeading(own, box, () => "t2"))
+    const followed = box.getAttribute("aria-labelledby")
+    box.setAttribute("aria-label", "Problems")
+    said.push(nameFromHeading(own, box, () => "t2"))
+    const gaveWay = box.hasAttribute("aria-labelledby")
+    box.removeAttribute("aria-label")
+    box.setAttribute("aria-labelledby", "server")
+    said.push(nameFromHeading(own, box, () => "t3"))
+    const kept = box.getAttribute("aria-labelledby")
+    expect([first, followed, gaveWay, kept, said]).toEqual([
+      "t1",
+      "t2",
+      false,
+      "server",
+      ["heading", "heading", "label", "server"],
+    ])
+  })
+
+  it("takes a blank name for none, and lets go of its own when no heading is left", () => {
+    const own = ownership()
+    const box = node(`<div aria-labelledby="" aria-label=" "></div>`)
+    const said = [nameFromHeading(own, box, () => "t1")]
+    const named = box.getAttribute("aria-labelledby")
+    said.push(nameFromHeading(own, box, () => null))
+    expect([named, box.hasAttribute("aria-labelledby"), said]).toEqual([
+      "t1",
+      false,
+      ["heading", "none"],
+    ])
+  })
+
+  it("never asks for the heading when the server named the element", () => {
+    const own = ownership()
+    let asked = 0
+    const heading = () => {
+      asked++
+      return "t1"
+    }
+    nameFromHeading(own, node(`<div aria-labelledby="server"></div>`), heading)
+    nameFromHeading(own, node(`<div aria-label="Problems"></div>`), heading)
+    expect(asked).toBe(0)
   })
 })

@@ -3,6 +3,7 @@ import {
   defineElement,
   HostElement,
   isServerControlled,
+  nameFromHeading,
   ownership,
   restoreModalOpen,
   SERVER_CONTROLLED,
@@ -243,8 +244,8 @@ export class LtDialog extends HostElement {
   private nameless(dialog: HTMLDialogElement): boolean {
     return (
       dialog.childElementCount > 0 &&
-      !dialog.hasAttribute("aria-labelledby") &&
-      !dialog.hasAttribute("aria-label") &&
+      !dialog.getAttribute("aria-labelledby")?.trim() &&
+      !dialog.getAttribute("aria-label")?.trim() &&
       this.headingOf(dialog) === null
     )
   }
@@ -261,36 +262,27 @@ export class LtDialog extends HostElement {
   private wire(dialog: HTMLDialogElement): void {
     addClass(dialog, DIALOG_CLASS)
 
-    const named = dialog.getAttribute("aria-labelledby")
-    // The component's own while it stands as written and still marked: a
-    // morph that sent the same id removes the mark, and the id is then the
-    // server's word.
-    const ours =
-      named !== null &&
-      this.own.knows(dialog, "aria-labelledby") &&
-      this.own.serverWord(dialog, "aria-labelledby") === null
-    if (named && !ours) {
-      this.own.forget(dialog, "aria-labelledby")
+    const name = nameFromHeading(this.own, dialog, () => {
+      const title = this.headingOf(dialog)
+      if (!title) return null
+      addClass(title, DIALOG_TITLE_CLASS)
+      if (!title.id) {
+        this.titleId ??= uniqueId("lt-dialog-title")
+        setAttr(title, "id", this.titleId)
+      }
+      return title.id
+    })
+    if (name === "server") {
       // The attribute can list several ids. The title is the first one that
       // is inside the dialog.
+      const named = dialog.getAttribute("aria-labelledby") ?? ""
       const root = this.getRootNode() as Document | ShadowRoot
       const title = named
         .split(/\s+/)
         .map((id) => root.getElementById?.(id) ?? null)
         .find((element) => element !== null && dialog.contains(element))
       if (title) addClass(title, DIALOG_TITLE_CLASS)
-      return
-    }
-    // A name the server gave with `aria-label`, which `aria-labelledby`
-    // would otherwise win over.
-    if (dialog.hasAttribute("aria-label")) {
-      if (ours) this.own.release(dialog, "aria-labelledby")
-      return
-    }
-
-    const title = this.headingOf(dialog)
-    if (!title) {
-      if (ours) this.own.release(dialog, "aria-labelledby")
+    } else if (name === "none") {
       warnAboutMarkup(
         this,
         "the dialog has no name: it has no aria-labelledby, no " +
@@ -302,17 +294,7 @@ export class LtDialog extends HostElement {
           return now !== null && this.nameless(now)
         },
       )
-      return
     }
-    addClass(title, DIALOG_TITLE_CLASS)
-    if (!title.id) {
-      this.titleId ??= uniqueId("lt-dialog-title")
-      setAttr(title, "id", this.titleId)
-    }
-    this.own.write(dialog, "aria-labelledby", title.id, {
-      server: null,
-      mark: true,
-    })
   }
 
   private notify(open: boolean, returnValue = ""): void {

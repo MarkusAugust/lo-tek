@@ -655,6 +655,22 @@ describe("lt-session-timeout handles Escape, wrong numbers and an expiry", () =>
     expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
   })
 
+  for (const blank of [' aria-labelledby=""', ' aria-label=" "'])
+    it(`takes${blank} for no name, and names the warning from the heading`, async () => {
+      await mountShort(`
+        <lt-session-timeout warn-at="3" expires-at="13">
+          <dialog${blank}>
+            <h2 id="warning-1">Du blir snart logget ut</h2>
+            <p class="lt-session-timeout__text">Vi logger deg ut om
+              <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
+            <span class="lt-sr-only" role="status"></span>
+            <form method="dialog"><button value="extend">Fortsett</button></form>
+          </dialog>
+        </lt-session-timeout>`)
+      await advance(4)
+      expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
+    })
+
   it("leaves a name the renderer has written in place", async () => {
     await mountShort(
       warning().replace(
