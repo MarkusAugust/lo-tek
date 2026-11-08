@@ -16,6 +16,7 @@ import {
   waitForPaint,
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
+import { replace } from "../../../testing/update"
 import { dialog } from "./dialog"
 import { defineLtDialog } from "./lt-dialog"
 
@@ -1332,6 +1333,54 @@ describe("lt-dialog wires from bare structure", () => {
     expect(title.classList.contains("lt-dialog__title")).toBe(true)
     expect(title.id).not.toBe("")
     expect(d.getAttribute("aria-labelledby")).toBe(title.id)
+  })
+
+  it("follows a heading the server replaced with one of another id", async () => {
+    // Only the heading is patched; the <dialog> and the name the component
+    // wrote on it stay. The name pointed at the id that was gone, and a
+    // screen reader announced the dialog without a name.
+    const { d } = await mountBare(BARE.replace("<h2>", '<h2 id="cancel-222">'))
+    expect(d.getAttribute("aria-labelledby")).toBe("cancel-222")
+
+    d.querySelector("h2")?.replaceWith(
+      Object.assign(document.createElement("h2"), {
+        id: "cancel-223",
+        textContent: "Cancel job 222-0482?",
+      }),
+    )
+    await waitForPaint()
+
+    expect(d.getAttribute("aria-labelledby")).toBe("cancel-223")
+  })
+
+  for (const way of ["Datastar", "idiomorph"] as const)
+    it(`leaves an aria-labelledby the server sent by ${way} with the same id the component wrote`, async () => {
+      // The server's own word, the same value as the component's. A name
+      // beside it with aria-label does not take it away.
+      const markup = (named: string) =>
+        `<lt-dialog id="cancel"><dialog${named}><h2 id="cancel-title">Cancel job 222-0481?</h2><form method="dialog"><button class="lt-button" value="keep">Keep the job</button></form></dialog></lt-dialog>`
+      mount(markup(""))
+      await customElements.whenDefined("lt-dialog")
+      await waitForPaint()
+      const d = () => document.querySelector("dialog") as HTMLDialogElement
+      expect(d().getAttribute("aria-labelledby")).toBe("cancel-title")
+
+      replace(
+        way,
+        "cancel",
+        markup(' aria-labelledby="cancel-title" aria-label="Cancel"'),
+      )
+      await waitForPaint()
+
+      expect(d().getAttribute("aria-labelledby")).toBe("cancel-title")
+    })
+
+  it("lets go of the name it wrote when the server names the dialog with aria-label", async () => {
+    const { d } = await mountBare()
+    d.setAttribute("aria-label", "Cancel the job")
+    await waitForPaint()
+
+    expect(d.hasAttribute("aria-labelledby")).toBe(false)
   })
 
   it("leaves a name from aria-label, and does not touch the heading", async () => {

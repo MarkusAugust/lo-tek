@@ -870,8 +870,7 @@ export class LtTabs extends HostElement {
   /** Removes the fallback, when a name that exists has taken over. */
   private dropOwnLabel(panel: HTMLElement): void {
     if (!this.labelOwn.knows(panel, "aria-label")) return
-    this.labelOwn.write(panel, "aria-label", null)
-    this.labelOwn.forget(panel, "aria-label")
+    this.labelOwn.release(panel, "aria-label")
   }
 
   /** Does at least one of the ids point to an element that exists? */

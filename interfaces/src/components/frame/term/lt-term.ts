@@ -298,8 +298,8 @@ export class LtTerm extends HostElement {
       details === null ||
       details === detailsOwn.written(word, "aria-details")
     ) {
-      detailsOwn.write(word, "aria-details", entry?.id ?? null)
-      if (!entry) detailsOwn.forget(word, "aria-details")
+      if (entry) detailsOwn.write(word, "aria-details", entry.id)
+      else detailsOwn.release(word, "aria-details")
     }
 
     if (!entry) {

@@ -3,6 +3,7 @@ import {
   defineElement,
   HostElement,
   languageOf,
+  ownership,
   restoreModalOpen,
   setAttr,
   setText,
@@ -221,6 +222,13 @@ export class LtSessionTimeout extends HostElement {
   /** The id the component gave the heading, so the same one comes back. */
   private titleId?: string
   /**
+   * The `aria-labelledby` the component wrote on the dialog. Another value
+   * there is the renderer's, and stays; the component's own follows the
+   * heading, so a patch that replaces the heading does not leave the name
+   * pointing at an id that is gone.
+   */
+  private readonly own = ownership()
+  /**
    * The dialog the component opened, until `close` has arrived.
    *
    * `close` arrives in a later task than the click that closed the dialog.
@@ -235,7 +243,15 @@ export class LtSessionTimeout extends HostElement {
    * (see `repairOpen()`), and the role and the name the component wrote.
    */
   private readonly watch = watcher(
-    () => {
+    (records) => {
+      // The number is text, and a tick that writes it is no reason to look.
+      const replaced = records.some((record) =>
+        [...record.addedNodes, ...record.removedNodes].some(
+          (node) => node instanceof Element,
+        ),
+      )
+      const attributes = records.some((record) => record.type === "attributes")
+      if (!replaced && !attributes) return
       this.repairOpen()
       /*
        * A morph of the open warning takes the role and the name the component
@@ -245,11 +261,13 @@ export class LtSessionTimeout extends HostElement {
        * is enough to get here; the wiring's own attributes are watched for a
        * morph that leaves `open` alone.
        */
+      // A heading the renderer replaced, too.
       const dialog = this.dialog
       if (dialog?.matches(":modal")) this.wire(dialog)
     },
     {
       subtree: true,
+      childList: true,
       attributes: true,
       attributeFilter: [
         "open",
@@ -392,10 +410,31 @@ export class LtSessionTimeout extends HostElement {
     this.validateParts()
   }
 
+  /** Says so when the dialog has no name, once the page has settled. */
+  private warnNameless(): void {
+    warnAboutMarkup(
+      this,
+      "the dialog has no name: it has no aria-labelledby, no aria-label " +
+        "and no heading, so a screen reader announces the warning " +
+        "without saying what it is about. Give it a heading, or " +
+        "aria-label on the <dialog>.",
+      () => {
+        const now = this.dialog
+        return (
+          now !== null &&
+          !now.hasAttribute("aria-labelledby") &&
+          !now.hasAttribute("aria-label") &&
+          !now.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
+        )
+      },
+    )
+  }
+
   /** The parts inside the dialog. Each of them makes the warning worse when missing. */
   private validateParts(): void {
     const dialog = this.dialog
     if (!dialog) return
+    this.warnNameless()
     warnAboutMarkup(
       this,
       `found no .${SESSION_TIMEOUT_COUNT_CLASS} in the dialog. The user cannot see how much time is left.`,
@@ -425,19 +464,38 @@ export class LtSessionTimeout extends HostElement {
   private wire(dialog: HTMLDialogElement): void {
     addClass(dialog, SESSION_TIMEOUT_DIALOG_CLASS)
     if (!dialog.hasAttribute("role")) setAttr(dialog, "role", "alertdialog")
-    if (
-      dialog.hasAttribute("aria-labelledby") ||
-      dialog.hasAttribute("aria-label")
-    ) {
+    const named = dialog.getAttribute("aria-labelledby")
+    // The component's own while it stands as written and still marked: a
+    // morph that sent the same id removes the mark, and the id is then the
+    // server's word.
+    const ours =
+      named !== null &&
+      this.own.knows(dialog, "aria-labelledby") &&
+      this.own.serverWord(dialog, "aria-labelledby") === null
+    if (named !== null && !ours) {
+      this.own.forget(dialog, "aria-labelledby")
+      return
+    }
+    // A name the renderer gave with `aria-label`, which `aria-labelledby`
+    // would otherwise win over.
+    if (dialog.hasAttribute("aria-label")) {
+      if (ours) this.own.release(dialog, "aria-labelledby")
       return
     }
     const title = dialog.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
-    if (!title) return
+    if (!title) {
+      if (ours) this.own.release(dialog, "aria-labelledby")
+      this.warnNameless()
+      return
+    }
     if (!title.id) {
       this.titleId ??= uniqueId("lt-session-timeout-title")
       setAttr(title, "id", this.titleId)
     }
-    setAttr(dialog, "aria-labelledby", title.id)
+    this.own.write(dialog, "aria-labelledby", title.id, {
+      server: null,
+      mark: true,
+    })
   }
 
   /**

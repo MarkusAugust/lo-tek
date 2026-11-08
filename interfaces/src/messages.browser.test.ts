@@ -377,6 +377,24 @@ describe("the component reports markup that does not hold together", () => {
     expect(messages(warn).some((m) => m.includes("<dialog>"))).toBe(true)
   })
 
+  it("the session timeout's dialog without a name", async () => {
+    const warn = listen()
+
+    mount(`
+      <lt-session-timeout>
+        <dialog>
+          <p class="lt-session-timeout__text">Your session ends in
+            <span class="lt-session-timeout__count" aria-hidden="true"></span>.</p>
+          <span class="lt-sr-only" role="status"></span>
+          <form method="dialog"><button value="extend">Stay connected</button></form>
+        </dialog>
+      </lt-session-timeout>
+    `)
+    await waitUntilSettled()
+
+    expect(messages(warn).some((m) => m.includes("has no name"))).toBe(true)
+  })
+
   it("the session timeout without a count, announcement or buttons", async () => {
     const warn = listen()
 

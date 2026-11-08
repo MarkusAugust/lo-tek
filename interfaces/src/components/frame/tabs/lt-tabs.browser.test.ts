@@ -11,7 +11,7 @@ import { goTo, setAddress } from "../../../testing/address"
 import { attr } from "../../../testing/markup"
 import { replace } from "../../../testing/update"
 import { defineLtTabs, type LtTabs } from "./lt-tabs"
-import { tabs } from "./tabs"
+import { tabs, tabsWithState } from "./tabs"
 
 import "../../../tokens/tokens.css"
 import "./tabs.css"
@@ -627,6 +627,26 @@ describe("lt-tabs wires bare structure", () => {
 
     expect(p[1].getAttribute("aria-labelledby")).toBe("own-name")
     expect(p[1].hasAttribute("aria-label")).toBe(false)
+  })
+
+  it("leaves an aria-label the server writes after the fallback was removed, also with the fallback's text", async () => {
+    mount(
+      BARE.replaceAll(/<h2>[^<]*<\/h2>/g, "").replace(
+        'id="attachments"',
+        'id="attachments" aria-labelledby="own-name"',
+      ),
+    )
+    await paint()
+    const { panels: p } = bareParts()
+    p[1].insertAdjacentHTML("afterend", '<p id="own-name">My attachments</p>')
+    await paint()
+    expect(p[1].hasAttribute("aria-label")).toBe(false)
+
+    // The same text the component once wrote, now from the server.
+    p[1].setAttribute("aria-label", "Attachments")
+    await paint()
+
+    expect(p[1].getAttribute("aria-label")).toBe("Attachments")
   })
 
   it("leaves an aria-label the server wrote", async () => {
@@ -1557,6 +1577,42 @@ describe("lt-tabs through a morph from the server", () => {
       expect(selected()).toEqual([false, true])
     })
   }
+
+  for (const way of ["Datastar", "idiomorph"] as const)
+    it(`writes nothing on an answer by ${way} that says the same as the click, with the marks gone`, async () => {
+      /*
+       * The server answers the click with the whole state, as the React
+       * entry writes it: the values are the ones the click wrote, and only
+       * the marks are gone. That is the server speaking. Read as silence,
+       * the click went on standing, and the component wrote on markup that
+       * already said everything. Found by the model test; the model tests
+       * are not in CI, so this is the guard there.
+       */
+      const full = tabsWithState({
+        id: "file",
+        keys: KEYS.slice(0, 2),
+        label: "Parts of the claim",
+        selected: 1,
+      })
+      const answer = `<lt-tabs id="answer" server-controlled><ul ${attr(full.list)}>${full.tabs.map((t, i) => `<li ${attr(full.item)}><a ${attr(t)}>${LABELS[i]}</a></li>`).join("")}</ul>${full.panels.map((p, i) => `<section ${attr(p)}><h2>${LABELS[i]}</h2><p>${CONTENT[i]}</p></section>`).join("")}</lt-tabs>`
+      const built = tabs({
+        id: "file",
+        keys: KEYS.slice(0, 2),
+        label: "Parts of the claim",
+      })
+      mount(
+        `<lt-tabs id="answer" server-controlled><ul ${attr(built.list)}>${built.tabs.map((t, i) => `<li><a ${attr(t)}>${LABELS[i]}</a></li>`).join("")}</ul>${built.panels.map((p, i) => `<section ${attr(p)}><h2>${LABELS[i]}</h2><p>${CONTENT[i]}</p></section>`).join("")}</lt-tabs>`,
+      )
+      await paint()
+      allTabs()[1].click()
+      await waitForPaint()
+
+      replace(way, "answer", answer)
+      const sent = document.getElementById("answer")?.outerHTML
+      await waitForPaint()
+
+      expect(document.getElementById("answer")?.outerHTML).toBe(sent)
+    })
 
   it("hears the server move the selection with hidden alone, after a click on one of three tabs under server-controlled", async () => {
     /*

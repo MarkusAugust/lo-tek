@@ -654,9 +654,11 @@ export class LtField extends HostElement {
     })
 
     // `data-state` is only set on the system's controls, and only when the
-    // consumer has not set it. It is only removed when the component set it
-    // and the field is no longer invalid. A `data-state` a template wrote by
-    // hand stays as the template wrote it.
+    // consumer has not set it. It is only removed when the component set it,
+    // the field is no longer invalid, and the server has not sent the same
+    // value since: written with the mark, so a morph that sent it removes
+    // the mark. A `data-state` a template wrote by hand stays as the
+    // template wrote it.
     const isSystemField =
       control.classList.contains("lt-input") ||
       control.classList.contains("lt-textarea") ||
@@ -664,13 +666,14 @@ export class LtField extends HostElement {
 
     const state = computed.control["data-state"]
     if (state && isSystemField && !control.hasAttribute("data-state")) {
-      this.own.write(control, "data-state", state)
+      this.own.write(control, "data-state", state, { server: null, mark: true })
     } else if (
       !state &&
       this.own.written(control, "data-state") != null &&
-      control.getAttribute("data-state") === "invalid"
+      control.getAttribute("data-state") === "invalid" &&
+      this.own.serverWord(control, "data-state") === null
     ) {
-      this.own.write(control, "data-state", null)
+      this.own.release(control, "data-state")
     }
   }
 }
