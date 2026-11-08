@@ -65,6 +65,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   silent about an element with no children, a region the server has not
   filled yet.
 
+### Changed
+
+- **`@lo-tek/interfaces/react` is derived from `lt`.** `react.ts` goes over
+  every builder function in the main entry and gives the attribute sets in
+  the result the React names, so a new component comes along by itself.
+  What every function returns, the lists and guards on it, and the types are
+  the same as before; a test holds each function to the main entry's result.
+  `ReactResult<R>` is exported for the type of such a result.
+
 ### Fixed
 
 - **`<lt-dialog>` and `<lt-session-timeout>` keep the dialog's name when the

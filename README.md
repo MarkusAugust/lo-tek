@@ -74,12 +74,11 @@ The browsers are installed with `bun --filter @lo-tek/interfaces browsers`.
 1. Create the folder under the right category, with the component, the stylesheet and a `*.browser.test.ts` next to them.
 2. Add `exports` entries in `interfaces/package.json`, for both CSS and JS.
 3. Export from `interfaces/src/index.ts` if it belongs in `lt`.
-4. Add the builder function to `interfaces/src/react.ts`, with the React names of the attributes.
-5. Declare the element and its properties in `interfaces/src/jsx/react.ts`.
-6. Add the stylesheet to `STYLESHEETS` in `documentation/src/components/Preview.astro`, otherwise the styles are missing from the examples.
-7. Write the component page under `documentation/src/content/docs/components/` and add it to the sidebar in `documentation/astro.config.mjs`.
+4. Declare the element and its properties in `interfaces/src/jsx/react.ts`.
+5. Add the stylesheet to `STYLESHEETS` in `documentation/src/components/Preview.astro`, otherwise the styles are missing from the examples.
+6. Write the component page under `documentation/src/content/docs/components/` and add it to the sidebar in `documentation/astro.config.mjs`.
 
-Steps 4 and 5 are not optional: `react.browser.test.ts` requires every function in `lt` to exist in `/react`, and a test reads `static observedAttributes` from the components and requires every attribute to be declared for JSX.
+The builder function comes along to `@lo-tek/interfaces/react` by itself: `interfaces/src/react.ts` goes over `lt` and gives every attribute set the React names. Only a builder function whose React result must differ, as `lt.tabs()` with the whole state, stands there by hand. Step 4 is not optional: a test reads `static observedAttributes` from the components and requires every attribute to be declared for JSX.
 
 Eight checks keep this in place, and `bun run check` runs them:
 
