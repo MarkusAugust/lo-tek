@@ -634,8 +634,8 @@ describe("lt-session-timeout handles Escape, wrong numbers and an expiry", () =>
     expect(dialog().hasAttribute("aria-labelledby")).toBe(false)
   })
 
-  it("leaves an aria-labelledby the renderer sent with the same id the component wrote", async () => {
-    const warning = (named: string) => `
+  /** A bare warning with a heading that has an id, and `named` on the dialog. */
+  const headed = (named: string) => `
       <lt-session-timeout id="session" warn-at="3" expires-at="13">
         <dialog${named}>
           <h2 id="warning-1">Du blir snart logget ut</h2>
@@ -645,15 +645,24 @@ describe("lt-session-timeout handles Escape, wrong numbers and an expiry", () =>
           <form method="dialog"><button value="extend">Fortsett</button></form>
         </dialog>
       </lt-session-timeout>`
-    await mountShort(warning(""))
+
+  it("leaves an aria-labelledby the renderer sent with the same id the component wrote", async () => {
+    await mountShort(headed(""))
     await advance(4)
     expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
 
-    morph(host(), warning(' aria-labelledby="warning-1" aria-label="Økten"'))
+    morph(host(), headed(' aria-labelledby="warning-1" aria-label="Økten"'))
     await waitForPaint()
 
     expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
   })
+
+  for (const blank of [' aria-labelledby=""', ' aria-label=" "'])
+    it(`takes${blank} for no name, and names the warning from the heading`, async () => {
+      await mountShort(headed(blank))
+      await advance(4)
+      expect(dialog().getAttribute("aria-labelledby")).toBe("warning-1")
+    })
 
   it("leaves a name the renderer has written in place", async () => {
     await mountShort(

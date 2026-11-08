@@ -1375,6 +1375,13 @@ describe("lt-dialog wires from bare structure", () => {
       expect(d().getAttribute("aria-labelledby")).toBe("cancel-title")
     })
 
+  it("takes a blank aria-label for no name, and names the dialog from the heading", async () => {
+    const { d, title } = await mountBare(
+      BARE.replace("<dialog>", '<dialog aria-label=" ">'),
+    )
+    expect(d.getAttribute("aria-labelledby")).toBe(title.id)
+  })
+
   it("lets go of the name it wrote when the server names the dialog with aria-label", async () => {
     const { d } = await mountBare()
     d.setAttribute("aria-label", "Cancel the job")

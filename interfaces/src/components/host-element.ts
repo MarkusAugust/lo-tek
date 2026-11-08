@@ -322,7 +322,9 @@ export interface Ownership {
   written(element: Element, name: string): string | null | undefined
   /**
    * Forgets what the component wrote for `name` on `element`: the server has
-   * taken the attribute over, and the same value later is the server's.
+   * taken the attribute over, and the same value later is the server's. The
+   * mark goes too, so the markup does not say a value the server owns is
+   * the component's.
    */
   forget(element: Element, name: string): void
   /**
@@ -414,6 +416,8 @@ export function ownership(): Ownership {
     },
     written: (element, name) => memory.get(element)?.get(name)?.written,
     forget(element, name) {
+      if (memory.get(element)?.get(name)?.marked)
+        markWritten(element, name, false)
       memory.get(element)?.delete(name)
     },
     release(element, name, { flag } = {}) {
@@ -433,6 +437,71 @@ export function ownership(): Ownership {
       )
     },
   }
+}
+
+/**
+ * Whether `element` has a name from `aria-labelledby` or `aria-label`. A
+ * blank one names nothing. The rule `nameFromHeading()` reads by, for the
+ * warnings about an element without a name.
+ */
+export function hasName(element: Element): boolean {
+  return Boolean(
+    element.getAttribute("aria-labelledby")?.trim() ||
+      element.getAttribute("aria-label")?.trim(),
+  )
+}
+
+/**
+ * Names `element` from a heading with `aria-labelledby`, unless the server
+ * named it, and says how it is named.
+ *
+ * - `"server"`: an `aria-labelledby` the component did not write, or wrote
+ *   and the server has sent since. It stays, and the component forgets its
+ *   own.
+ * - `"label"`: the server gave an `aria-label`, which `aria-labelledby` would
+ *   otherwise win over. The component lets go of its own.
+ * - `"heading"`: `heading()` gave an id, and `aria-labelledby` points at it,
+ *   written with the mark, so a morph that sends the same id makes it the
+ *   server's. It follows a heading a patch replaced.
+ * - `"none"`: no name and no heading. The component lets go of its own, and
+ *   the caller says so with `warnAboutMarkup`.
+ *
+ * A blank `aria-labelledby` or `aria-label` names nothing, so it counts as
+ * missing. `heading()` is only called when the server has not named the
+ * element, so a caller that gives the heading an id does so only then.
+ * dialog, session-timeout and error-summary name themselves through it,
+ * and `host` is the web component that says so when the markup came with
+ * the mark copied in.
+ */
+export function nameFromHeading(
+  own: Ownership,
+  host: Element,
+  element: Element,
+  heading: () => string | null,
+): "server" | "label" | "heading" | "none" {
+  const NAME = "aria-labelledby"
+  if (!own.knows(element, NAME)) warnAboutCopiedMark(host, element)
+  const labelledBy = element.getAttribute(NAME)?.trim() || null
+  const label = element.getAttribute("aria-label")?.trim() || null
+  const ours =
+    labelledBy !== null &&
+    own.knows(element, NAME) &&
+    own.serverWord(element, NAME) === null
+  if (labelledBy !== null && !ours) {
+    own.forget(element, NAME)
+    return "server"
+  }
+  if (label !== null) {
+    if (ours) own.release(element, NAME)
+    return "label"
+  }
+  const id = heading()
+  if (!id) {
+    if (ours) own.release(element, NAME)
+    return "none"
+  }
+  own.write(element, NAME, id, { server: null, mark: true })
+  return "heading"
 }
 
 /**

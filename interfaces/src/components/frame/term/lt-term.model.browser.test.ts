@@ -404,20 +404,28 @@ function expectAction(ctx: Context, action: Action): Expectation {
   }
 }
 
+/**
+ * Whether the mouse may be over the word or the card, and is moved outside
+ * after a replacement: on it, or somewhere the model has lost track of.
+ */
+const underMouse = (ctx: Context) =>
+  ctx.pointer === "word" || ctx.pointer === "card" || ctx.pointer === "unknown"
+
 /** What an update must do, from the page as it stands and the version sent. */
 function expectUpdate(ctx: Context, send: string, way: Way): Expectation {
   const v = INFO[send]
   if (way === "outerHTML" || way === "innerHTML") {
-    // A new component, closed. Under a mouse that stays where it was, a new
-    // word or card may or may not get the pointer, so the mouse is unknown
-    // until it moves again.
-    const under = ctx.pointer === "word" || ctx.pointer === "card"
+    // A new component, closed. A mouse that was on the word or the card is
+    // moved outside right after (see `apply`), so it is known: under a
+    // resting mouse the browser gives the new word `pointerenter` when it
+    // pleases, and the card the hover opens came a step late under load.
+    const under = underMouse(ctx)
     return {
       focus: null,
       context: {
         version: send,
-        mode: under ? null : "no",
-        pointer: under ? "unknown" : ctx.pointer,
+        mode: "no",
+        pointer: under ? "elsewhere" : ctx.pointer,
         fresh: true,
       },
     }
@@ -443,10 +451,13 @@ async function apply(step: Step): Promise<void> {
   followed = null
   if ("send" in step) {
     expectation = expectUpdate(current, step.send, step.way)
+    const under = underMouse(current)
     if (step.way === "innerHTML") {
       const a = articleOf()
       if (a) a.innerHTML = INFO[step.send].inner
     } else replace(step.way, ARTICLE_ID, VERSIONS[step.send])
+    if (under && (step.way === "innerHTML" || step.way === "outerHTML"))
+      await userEvent.hover(outside())
     return
   }
   expectation = expectAction(current, step.user)
@@ -777,18 +788,12 @@ function violations(
       )
   }
 
-  // The same version sent again by a morph changes nothing. Not while the
-  // mouse is unknown: a word or a card replaced under a resting mouse gets
-  // `pointerenter` from the browser when it pleases, in Chromium, Firefox
-  // and WebKit alike, and the card the mouse then opens is the mouse's, not
-  // the morph's. Under load the event came after the step that replaced
-  // the word had settled, and the card opened in the next one.
+  // The same version sent again by a morph changes nothing.
   if (
     "send" in step &&
     (step.way === "Datastar" || step.way === "idiomorph") &&
     was.version === step.send &&
-    was.fresh &&
-    was.pointer !== "unknown"
+    was.fresh
   ) {
     seen.stable++
     if (withoutPosition(after.markup) !== withoutPosition(before.markup))

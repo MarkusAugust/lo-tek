@@ -8,7 +8,7 @@ import {
   waitForPaint,
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
-import { datastarPatch } from "../../../testing/update"
+import { datastarPatch, replace } from "../../../testing/update"
 import { errorSummary } from "./error-summary"
 import { defineLtErrorSummary } from "./lt-error-summary"
 
@@ -168,6 +168,24 @@ describe("lt-error-summary names itself from a heading the template gave an id",
     const box = document.querySelector("lt-error-summary") as HTMLElement
     expect(box.getAttribute("aria-labelledby")).toBe("t")
   })
+
+  for (const way of ["Datastar", "idiomorph"] as const)
+    it(`leaves an aria-labelledby the server sent by ${way} with the same id the component wrote`, async () => {
+      const box = (attributes: string) =>
+        `<div id="region">${BOX('<h2 id="t">There is a problem</h2>', attributes)}</div>`
+      mount(box(""))
+      await settle()
+      const named = () =>
+        document
+          .querySelector("lt-error-summary")
+          ?.getAttribute("aria-labelledby")
+      expect(named()).toBe("t")
+
+      replace(way, "region", box(' aria-labelledby="t" aria-label="Problems"'))
+      await settle()
+
+      expect(named()).toBe("t")
+    })
 
   it("never writes an id on the heading", async () => {
     // Datastar and idiomorph replace an element whose id the server did not

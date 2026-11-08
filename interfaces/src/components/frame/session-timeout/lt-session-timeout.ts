@@ -2,7 +2,9 @@ import {
   addClass,
   defineElement,
   HostElement,
+  hasName,
   languageOf,
+  nameFromHeading,
   ownership,
   restoreModalOpen,
   setAttr,
@@ -422,8 +424,7 @@ export class LtSessionTimeout extends HostElement {
         const now = this.dialog
         return (
           now !== null &&
-          !now.hasAttribute("aria-labelledby") &&
-          !now.hasAttribute("aria-label") &&
+          !hasName(now) &&
           !now.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
         )
       },
@@ -464,38 +465,16 @@ export class LtSessionTimeout extends HostElement {
   private wire(dialog: HTMLDialogElement): void {
     addClass(dialog, SESSION_TIMEOUT_DIALOG_CLASS)
     if (!dialog.hasAttribute("role")) setAttr(dialog, "role", "alertdialog")
-    const named = dialog.getAttribute("aria-labelledby")
-    // The component's own while it stands as written and still marked: a
-    // morph that sent the same id removes the mark, and the id is then the
-    // server's word.
-    const ours =
-      named !== null &&
-      this.own.knows(dialog, "aria-labelledby") &&
-      this.own.serverWord(dialog, "aria-labelledby") === null
-    if (named !== null && !ours) {
-      this.own.forget(dialog, "aria-labelledby")
-      return
-    }
-    // A name the renderer gave with `aria-label`, which `aria-labelledby`
-    // would otherwise win over.
-    if (dialog.hasAttribute("aria-label")) {
-      if (ours) this.own.release(dialog, "aria-labelledby")
-      return
-    }
-    const title = dialog.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
-    if (!title) {
-      if (ours) this.own.release(dialog, "aria-labelledby")
-      this.warnNameless()
-      return
-    }
-    if (!title.id) {
-      this.titleId ??= uniqueId("lt-session-timeout-title")
-      setAttr(title, "id", this.titleId)
-    }
-    this.own.write(dialog, "aria-labelledby", title.id, {
-      server: null,
-      mark: true,
+    const name = nameFromHeading(this.own, this, dialog, () => {
+      const title = dialog.querySelector(LT_SESSION_TIMEOUT_PARTS.title)
+      if (!title) return null
+      if (!title.id) {
+        this.titleId ??= uniqueId("lt-session-timeout-title")
+        setAttr(title, "id", this.titleId)
+      }
+      return title.id
     })
+    if (name === "none") this.warnNameless()
   }
 
   /**
