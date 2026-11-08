@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.43.0 (2026-11-08)
+
 ### Breaking
 
 - **`derivedParts()` in `@lo-tek/interfaces/host-element` takes the
