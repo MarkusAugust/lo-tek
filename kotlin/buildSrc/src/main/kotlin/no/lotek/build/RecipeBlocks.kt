@@ -71,3 +71,18 @@ internal fun recipeBlockProblems(block: String, function: String): List<String> 
     val others = topLevel(block).filterNot { BESIDE_THE_RECIPE.containsMatchIn(it) || it.contains("fun FlowContent.$function(") }
     return others.map { "the recipe's ```kotlin block has more than `$function()` and the types it takes: `$it`. Put the rest in a block of its own." }
 }
+
+/** Any address of Datastar in the code, the right one or not. */
+private val ANY_DATASTAR = Regex(""""(https?://[^"]*datastar[^"]*\.js)"""")
+
+/**
+ * The tab a Kotlin recipe is compared with: "Datastar" when its code loads
+ * Datastar from [datastar], the address `page-setup.ts` writes to
+ * `recipes.json`, and "Plain HTML" when it loads none. Another address stops
+ * the build, since the recipe would otherwise be compared with the wrong tab.
+ */
+internal fun comparedWith(kotlin: List<String>, datastar: String): String {
+    val loaded = kotlin.flatMap { code -> ANY_DATASTAR.findAll(code).map { it.groupValues[1] } }.toSet()
+    loaded.firstOrNull { it != datastar }?.let { error("A Kotlin recipe loads Datastar from $it, not from $datastar.") }
+    return if (loaded.isEmpty()) "Plain HTML" else "Datastar"
+}

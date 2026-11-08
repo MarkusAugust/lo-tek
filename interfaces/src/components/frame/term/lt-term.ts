@@ -3,6 +3,7 @@ import {
   defineElement,
   HostElement,
   ownership,
+  ownParts,
   place,
   setAttr,
   warnAboutMarkup,
@@ -222,11 +223,7 @@ export class LtTerm extends HostElement {
 
   /** The link that belongs to this element, not to an `<lt-term>` inside it. */
   private findWord(): HTMLAnchorElement | null {
-    return (
-      [...this.querySelectorAll<HTMLAnchorElement>(LT_TERM_PARTS.word)].find(
-        (word) => word.closest(this.localName) === this,
-      ) ?? null
-    )
+    return ownParts<HTMLAnchorElement>(this, LT_TERM_PARTS.word)[0] ?? null
   }
 
   private findTarget(word: Element): HTMLElement | null {

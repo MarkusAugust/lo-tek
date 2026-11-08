@@ -920,4 +920,21 @@ describe("lt-popover when the app and the server both open and close it", () => 
     expect(panel().matches(":popover-open")).toBe(true)
     expect(document.activeElement).toBe(item())
   })
+
+  it("takes an element a patch makes a button as its trigger", async () => {
+    // The trigger is found by `[role='button']` as well as `button`, so the
+    // observer must see `role` change, or the element is never wired.
+    mount(`
+      <lt-popover>
+        <span id="trigger" tabindex="0">Actions</span>
+        <ul class="lt-popover" popover><li>Archive</li></ul>
+      </lt-popover>
+    `)
+    await paint()
+    const trigger = document.getElementById("trigger") as HTMLElement
+    trigger.setAttribute("role", "button")
+    await paint()
+
+    expect(trigger.getAttribute("aria-expanded")).toBe("false")
+  })
 })

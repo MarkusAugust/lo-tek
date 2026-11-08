@@ -510,16 +510,25 @@ export function nameFromHeading(
  * Started again on another node, it stops watching the old one first, so a
  * node the server has replaced does not go on calling the component. field
  * watches through it.
+ *
+ * A filter always includes the mark `ownership()` writes: a morph removes it,
+ * and the component must put it back, or the same markup gives another page.
+ * Field and tabs each listed it by hand.
  */
 export function watcher(
   callback: (records: MutationRecord[]) => void,
-  init: MutationObserverInit,
+  options: MutationObserverInit,
 ): {
   start(target: Node): void
   stop(): void
   /** Whether it was started and not stopped since. */
   readonly watching: boolean
 } {
+  const filter = options.attributeFilter
+  const init =
+    filter && !filter.includes(WRITTEN)
+      ? { ...options, attributeFilter: [...filter, WRITTEN] }
+      : options
   let observer: MutationObserver | undefined
   return {
     get watching() {
@@ -654,6 +663,24 @@ export function rememberedId(
 }
 
 /**
+ * The elements matching `selector` that belong to `host`: those whose nearest
+ * element of the host's kind is the host itself. A field inside a field, like
+ * a search field in a popover, belongs to the inner one. The tag is the host's
+ * own, since `defineLt*` takes an optional name. `within` narrows the search
+ * to a node inside the host, such as the tab list, so the panels are not
+ * walked on every round.
+ */
+export function ownParts<T extends Element = Element>(
+  host: Element,
+  selector: string,
+  within: ParentNode = host,
+): T[] {
+  return [...within.querySelectorAll<T>(selector)].filter(
+    (part) => part.closest(host.localName) === host,
+  )
+}
+
+/**
  * The parts with a role, and those without only when the component set the
  * roles itself.
  *
@@ -675,9 +702,7 @@ export function derivedParts<T extends Element>(
   roledByHost: Pick<Ownership, "written">,
 ): T[] {
   const mine = (part: Element) => roledByHost.written(part, "role") === role
-  const own = [...host.querySelectorAll<T>(selector)].filter(
-    (part) => part.closest(host.localName) === host,
-  )
+  const own = ownParts<T>(host, selector)
   const bare = own
     .filter((part) => part.getAttribute("role") === role)
     .every(mine)
@@ -714,6 +739,22 @@ export const SERVER_CONTROLLED = "server-controlled" as const
 export function isServerControlled(element: Element): boolean {
   return element.hasAttribute(SERVER_CONTROLLED)
 }
+
+/**
+ * The attributes each helper reads or writes on the elements it is given.
+ * A component that calls one must observe them, or a patch that changes
+ * them goes unseen: `check-writes.ts` holds every component's observer to
+ * this table, and a test holds the table to what the helpers do.
+ */
+export const READS = {
+  hasName: ["aria-labelledby", "aria-label"],
+  nameFromHeading: [WRITTEN, "aria-labelledby", "aria-label"],
+  isServerControlled: [SERVER_CONTROLLED],
+  restoreModalOpen: ["open"],
+  derivedParts: ["role"],
+  rememberedId: ["id"],
+  stillMarked: [WRITTEN],
+} as const satisfies Record<string, readonly string[]>
 
 /**
  * Warns when the markup a component received does not fit together.

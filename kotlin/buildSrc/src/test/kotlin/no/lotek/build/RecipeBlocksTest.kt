@@ -60,4 +60,16 @@ class RecipeBlocksTest {
             assertTrue(recipeBlockProblems("$recipe\n\n$hidden", "orderForm").isNotEmpty(), hidden)
         }
     }
+
+    @Test
+    fun `a Kotlin recipe that loads Datastar is compared with the Datastar tab, and only from its address`() {
+        val src = "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js"
+        assertEquals("Datastar", comparedWith(listOf("script(type = \"module\", src = \"$src\") {}"), src))
+        assertEquals("Plain HTML", comparedWith(listOf("form { }"), src))
+        // Another version, or the minified file, is a mistake, not a recipe without Datastar.
+        for (other in listOf(src.replace("1.0.4", "1.0.3"), src.replace("datastar.js", "datastar.min.js"))) {
+            val message = runCatching { comparedWith(listOf("script(type = \"module\", src = \"$other\") {}"), src) }.exceptionOrNull()?.message
+            assertTrue(message?.contains(src) == true, "$other: $message")
+        }
+    }
 }

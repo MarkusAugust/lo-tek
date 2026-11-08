@@ -19,6 +19,7 @@ import { unified } from "unified"
 import {
   pageSetup,
   type Setup,
+  SHARED_SETUP,
   selfTest as setupSelfTest,
   type Target,
 } from "./page-setup"
@@ -573,7 +574,11 @@ if (import.meta.main) {
     .map((path) => ({ path, text: readFileSync(join(DOCS, path), "utf8") }))
   const recipes = extractAll(files)
   mkdirSync(dirname(RECIPES), { recursive: true })
-  writeFileSync(RECIPES, `${JSON.stringify(recipes, null, 2)}\n`)
+  // The setup goes along for the Kotlin side, which reads the file anyway.
+  writeFileSync(
+    RECIPES,
+    `${JSON.stringify({ setup: SHARED_SETUP, ...recipes }, null, 2)}\n`,
+  )
   const count = (key: "tabs" | "examples") =>
     recipes.pages.reduce((n, p) => n + p[key].length, 0)
   console.log(

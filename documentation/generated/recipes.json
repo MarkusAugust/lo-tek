@@ -1,4 +1,61 @@
 {
+  "setup": {
+    "datastar": "https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js",
+    "definers": {
+      "lt-connection-status": "defineLtConnectionStatus",
+      "lt-dialog": "defineLtDialog",
+      "lt-error-summary": "defineLtErrorSummary",
+      "lt-field": "defineLtField",
+      "lt-popover": "defineLtPopover",
+      "lt-session-timeout": "defineLtSessionTimeout",
+      "lt-suggestion": "defineLtSuggestion",
+      "lt-tabs": "defineLtTabs",
+      "lt-term": "defineLtTerm",
+      "lt-toast": "defineLtToast"
+    },
+    "orderCases": [
+      {
+        "name": "Datastar after the registration",
+        "blocks": [
+          "registration",
+          "datastar"
+        ],
+        "before": false
+      },
+      {
+        "name": "Datastar before the registration",
+        "blocks": [
+          "datastar",
+          "registration"
+        ],
+        "before": true
+      },
+      {
+        "name": "Datastar on a page with nothing to register",
+        "blocks": [
+          "datastar"
+        ],
+        "before": false
+      },
+      {
+        "name": "a registration in a comment after code is no registration",
+        "blocks": [
+          "datastar",
+          "commented-registration"
+        ],
+        "before": false
+      },
+      {
+        "name": "Datastar twice, once on each side of the registration",
+        "blocks": [
+          "datastar",
+          "registration",
+          "datastar"
+        ],
+        "before": true
+      }
+    ]
+  },
   "pages": [
     {
       "path": "404.mdx",
@@ -7585,8 +7642,24 @@
         "lt.field",
         "<lt-field>",
         "@lo-tek/interfaces/host-element",
+        "lotek takeover",
         "HostElement",
         "defineElement",
+        "setAttr",
+        "setFlag",
+        "setText",
+        "addClass",
+        "ownership()",
+        "WRITTEN",
+        "watcher()",
+        "restoreModalOpen()",
+        "ownParts()",
+        "derivedParts()",
+        "nameFromHeading()",
+        "hasName()",
+        "warnAboutMarkup()",
+        "whenUpgraded()",
+        "READS",
         "@lo-tek/interfaces/tokens",
         "cssTokens",
         "colorTokens",

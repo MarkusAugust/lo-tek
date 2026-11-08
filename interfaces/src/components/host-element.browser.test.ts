@@ -9,9 +9,15 @@
 import { describe, expect, it, vi } from "vitest"
 import {
   derivedParts,
+  hasName,
+  isServerControlled,
   nameFromHeading,
   ownership,
+  ownParts,
+  READS,
+  rememberedId,
   restoreModalOpen,
+  stillMarked,
   WRITTEN,
   warnAboutMarkup,
   watcher,
@@ -231,6 +237,20 @@ describe("watcher", () => {
     expect(seen).toEqual(["open"])
   })
 
+  it("sees a morph take the mark away, whatever the filter names", async () => {
+    const seen: string[] = []
+    const watch = watcher(
+      (records) => seen.push(...records.map((r) => r.attributeName ?? "")),
+      { attributes: true, attributeFilter: ["aria-selected"] },
+    )
+    const target = node(`<a ${WRITTEN}="aria-selected"></a>`)
+    watch.start(target)
+    target.removeAttribute(WRITTEN)
+    await flush()
+    watch.stop()
+    expect(seen).toEqual([WRITTEN])
+  })
+
   it("started on a new node, leaves the old one", async () => {
     const seen: string[] = []
     const watch = watcher(
@@ -374,5 +394,137 @@ describe("nameFromHeading", () => {
     nameFromHeading(own, named, named, heading)
     nameFromHeading(own, labelled, labelled, heading)
     expect(asked).toBe(0)
+  })
+})
+
+describe("READS", () => {
+  /**
+   * The attributes a call touches, read from the DOM while it runs: the two
+   * calls, the selectors given to `matches` and `closest`, and the
+   * properties that reflect an attribute the helpers use. A read along a
+   * path the calls below do not take is not seen.
+   */
+  const touched = (call: () => void) => {
+    const names = new Set<string>()
+    const selector = (s: string) => {
+      for (const m of s.matchAll(/\[\s*([a-zA-Z][\w-]*)/g)) names.add(m[1])
+    }
+    const matches = Element.prototype.matches
+    const closest = Element.prototype.closest
+    const spies = [
+      vi.spyOn(Element.prototype, "matches").mockImplementation(function (
+        this: Element,
+        s: string,
+      ) {
+        selector(s)
+        return matches.call(this, s)
+      }),
+      vi.spyOn(Element.prototype, "closest").mockImplementation(function (
+        this: Element,
+        s: string,
+      ) {
+        selector(s)
+        return closest.call(this, s)
+      }),
+      vi.spyOn(Element.prototype, "getAttribute").mockImplementation(function (
+        this: Element,
+        name: string,
+      ) {
+        names.add(name)
+        return Element.prototype.getAttributeNS.call(this, null, name)
+      }),
+      vi.spyOn(Element.prototype, "hasAttribute").mockImplementation(function (
+        this: Element,
+        name: string,
+      ) {
+        names.add(name)
+        return Element.prototype.getAttributeNS.call(this, null, name) !== null
+      }),
+    ]
+    const id = Object.getOwnPropertyDescriptor(Element.prototype, "id")
+    const open = Object.getOwnPropertyDescriptor(
+      HTMLDialogElement.prototype,
+      "open",
+    )
+    Object.defineProperty(Element.prototype, "id", {
+      ...id,
+      get(this: Element) {
+        names.add("id")
+        return id?.get?.call(this)
+      },
+    })
+    Object.defineProperty(HTMLDialogElement.prototype, "open", {
+      ...open,
+      get(this: HTMLDialogElement) {
+        names.add("open")
+        return open?.get?.call(this)
+      },
+    })
+    try {
+      call()
+    } finally {
+      for (const spy of spies) spy.mockRestore()
+      if (id) Object.defineProperty(Element.prototype, "id", id)
+      if (open) Object.defineProperty(HTMLDialogElement.prototype, "open", open)
+    }
+    return [...names].sort()
+  }
+
+  const host = node(`<lt-x><h2>Title</h2><ul><li role="tab">A</li></ul></lt-x>`)
+  const dialog = () => {
+    const d = document.createElement("dialog")
+    document.body.append(d)
+    return d
+  }
+  const calls: Record<keyof typeof READS, () => void> = {
+    hasName: () => hasName(node(`<div></div>`)),
+    nameFromHeading: () =>
+      nameFromHeading(ownership(), host, node(`<div></div>`), () => null),
+    isServerControlled: () => isServerControlled(node(`<lt-x></lt-x>`)),
+    restoreModalOpen: () => {
+      const d = dialog()
+      d.showModal()
+      d.removeAttribute("open")
+      restoreModalOpen(d)
+      d.close()
+      d.remove()
+    },
+    derivedParts: () => derivedParts(host, "li", "tab", ownership()),
+    rememberedId: () =>
+      rememberedId(new WeakMap(), node(`<div></div>`), "lt-x"),
+    stillMarked: () => stillMarked(node(`<div></div>`), "aria-label"),
+  }
+
+  for (const [name, call] of Object.entries(calls))
+    it(`says what ${name}() touches`, () => {
+      expect(touched(call)).toEqual(
+        [...READS[name as keyof typeof READS]].sort(),
+      )
+    })
+})
+
+describe("ownParts", () => {
+  it("gives a host only the parts that are not inside another of its kind", () => {
+    const outer = node(
+      `<lt-x><input id="a"><lt-x><input id="b"></lt-x><p><input id="c"></p></lt-x>`,
+    )
+    const inner = outer.querySelector("lt-x") as Element
+    expect(ownParts(outer, "input").map((e) => e.id)).toEqual(["a", "c"])
+    expect(ownParts(inner, "input").map((e) => e.id)).toEqual(["b"])
+  })
+
+  it("searches only inside the node it is given, when it is given one", () => {
+    const outer = node(
+      `<lt-x><ul><li id="a"></li><lt-x><ul><li id="b"></li></ul></lt-x></ul><li id="c"></li></lt-x>`,
+    )
+    const list = outer.querySelector("ul") as Element
+    expect(ownParts(outer, "li", list).map((e) => e.id)).toEqual(["a"])
+  })
+
+  it("reads the host's own tag name, so a registration under another name scopes too", () => {
+    const outer = node(
+      `<app-x><b id="a"></b><app-x><b id="b"></b></app-x></app-x>`,
+    )
+    expect(ownParts(outer, "b").map((e) => e.id)).toEqual(["a"])
   })
 })

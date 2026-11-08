@@ -5,10 +5,10 @@ import {
   defineElement,
   HostElement,
   ownership,
+  ownParts,
   setAttr,
   setFlag,
   uniqueId,
-  WRITTEN,
   warnAboutCopiedMark,
   warnAboutMarkup,
   watcher,
@@ -51,9 +51,6 @@ function readMarker(value: string | null | undefined): Marker | undefined {
  * back.
  */
 const DERIVED_ATTRIBUTES = [
-  // A morph from the server removes the mark, and the component puts it
-  // back: the same markup must give the same page.
-  WRITTEN,
   "class",
   "for",
   "id",
@@ -67,6 +64,8 @@ const DERIVED_ATTRIBUTES = [
   "hidden",
   // `data-show` in Datastar hides the error text with `display: none`.
   "style",
+  // The control is `input:not([type='hidden'])`.
+  "type",
 ]
 
 /**
@@ -272,14 +271,8 @@ export class LtField extends HostElement {
    * outer field wrote its wiring on it. The scoping is the same as the one
    * `derivedParts()` in `host-element.ts` uses for the other components.
    */
-  private ownParts<T extends Element>(selector: string): T[] {
-    return [...this.querySelectorAll<T>(selector)].filter(
-      (part) => part.closest(this.localName) === this,
-    )
-  }
-
   private ownPart<T extends Element>(selector: string): T | null {
-    return this.ownParts<T>(selector)[0] ?? null
+    return ownParts<T>(this, selector)[0] ?? null
   }
 
   /**
@@ -362,7 +355,7 @@ export class LtField extends HostElement {
         "found no control to connect. Add an <input>, <textarea> or " +
           "<select>, or the label, help text and error text have no field " +
           "to be connected to.",
-        () => this.ownParts(CONTROL_SELECTOR).length === 0,
+        () => ownParts(this, CONTROL_SELECTOR).length === 0,
         { silentWhenEmpty: true },
       )
       return
@@ -377,7 +370,7 @@ export class LtField extends HostElement {
         "help text and error text connected to it. Give each control " +
         "its own <lt-field>, or put a group in a <fieldset> with a " +
         "<legend>.",
-      () => this.ownParts(CONTROL_SELECTOR).length > 1,
+      () => ownParts(this, CONTROL_SELECTOR).length > 1,
     )
 
     // The label can be outside the element. The lookup has to happen after
