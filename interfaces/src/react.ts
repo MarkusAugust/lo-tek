@@ -1,65 +1,12 @@
-import { accordion } from "./components/css/accordion/accordion.js"
-import { alert } from "./components/css/alert/alert.js"
-import { avatar } from "./components/css/avatar/avatar.js"
-import { badge } from "./components/css/badge/badge.js"
-import { breadcrumbs } from "./components/css/breadcrumbs/breadcrumbs.js"
-import { button } from "./components/css/button/button.js"
-import { card } from "./components/css/card/card.js"
-import { checkbox } from "./components/css/checkbox/checkbox.js"
-import { divider } from "./components/css/divider/divider.js"
-import { errorText } from "./components/css/error-text/error-text.js"
-import { fieldset, legend } from "./components/css/fieldset/fieldset.js"
-import { fileUpload } from "./components/css/file-upload/file-upload.js"
-import { heading } from "./components/css/heading/heading.js"
-import { helpText } from "./components/css/help-text/help-text.js"
-import { icon } from "./components/css/icon/icon.js"
-import { input } from "./components/css/input/input.js"
-import { label } from "./components/css/label/label.js"
-import { link } from "./components/css/link/link.js"
-import { list } from "./components/css/list/list.js"
-import { pagination } from "./components/css/pagination/pagination.js"
-import { paragraph } from "./components/css/paragraph/paragraph.js"
-import { progress } from "./components/css/progress/progress.js"
-import { radio } from "./components/css/radio/radio.js"
-import { search } from "./components/css/search/search.js"
-import { select } from "./components/css/select/select.js"
-import {
-  fieldStates,
-  isFieldState,
-  isRequiredMarker,
-  managedNames,
-  rememberManaged,
-  requiredMarkers,
-} from "./components/css/shared.js"
-import { skeleton } from "./components/css/skeleton/skeleton.js"
-import { skipLink } from "./components/css/skip-link/skip-link.js"
-import { spinner } from "./components/css/spinner/spinner.js"
-import { srOnly } from "./components/css/sr-only/sr-only.js"
-import { steps } from "./components/css/steps/steps.js"
-import { switchControl } from "./components/css/switch/switch.js"
-import { table, tableSort } from "./components/css/table/table.js"
-import { tag } from "./components/css/tag/tag.js"
-import { textarea } from "./components/css/textarea/textarea.js"
-import { toggleGroup } from "./components/css/toggle-group/toggle-group.js"
-import { tooltip } from "./components/css/tooltip/tooltip.js"
-import { dialog } from "./components/frame/dialog/dialog.js"
-import { errorSummary } from "./components/frame/error-summary/error-summary.js"
-import {
-  computeFieldAttributes,
-  createFieldId,
-  type FieldOptions,
-} from "./components/frame/field/field-core.js"
-import { popover } from "./components/frame/popover/popover.js"
-import { sessionTimeout } from "./components/frame/session-timeout/session-timeout.js"
-import { suggestion } from "./components/frame/suggestion/suggestion.js"
+import { managedNames, rememberManaged } from "./components/css/shared.js"
+import { createFieldId } from "./components/frame/field/field-core.js"
 import {
   type TabsWithStateOptions,
   tabsWithState,
 } from "./components/frame/tabs/tabs.js"
 import { termWithState } from "./components/frame/term/term.js"
-import { connectionStatus } from "./components/standalone/connection-status/connection-status.js"
-import { toast } from "./components/standalone/toast/toast.js"
 import { type Attributes, setAttributes as setHtmlAttributes } from "./dom.js"
+import { lt as html, type Lt } from "./lt.js"
 
 // The types of the events, so `addEventListener` is typed also for someone
 // who only imports this entry point. Without the line the import disappeared
@@ -208,17 +155,98 @@ export function setAttributes(
 }
 
 /**
- * Wraps a builder function so the return value gets the React names.
- *
- * The signature is written as an intersection type so TypeScript can infer
- * both the options type and the extra fields attached to the function, that
- * is `variants`, `isVariant` and the others, in one go.
+ * A builder function's result with the React names: every attribute set in
+ * it, in an object or a list as deep as it goes. A set is an object whose
+ * values are all plain values; anything else is gone through.
  */
-function forReact<Options, Result extends Record<string, unknown>, Extra>(
-  fn: ((options?: Options) => Result) & Extra,
-): ((options?: Options) => ReactAttributes<Result>) & Extra {
-  const wrapped = (options?: Options) => toReactAttributes(fn(options))
-  return Object.assign(wrapped, fn)
+export type ReactResult<R> = R extends readonly (infer Item)[]
+  ? ReactResult<Item>[]
+  : R extends object
+    ? R[keyof R] extends string | number | boolean | null | undefined
+      ? ReactAttributes<R>
+      : { [K in keyof R]: ReactResult<R[K]> }
+    : R
+
+/**
+ * The result with the React names. A set is recognised by what
+ * `attributes()` notes on every set a builder function makes, not by its
+ * shape, so a compound whose parts are all absent is not taken for one.
+ */
+function toReactResult(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(toReactResult)
+  if (!value || typeof value !== "object") return value
+  if (managedNames(value))
+    return toReactAttributes(value as Record<string, unknown>)
+  return Object.fromEntries(
+    Object.entries(value).map(([name, child]) => [name, toReactResult(child)]),
+  )
+}
+
+/**
+ * Wraps a builder function so the result gets the React names, and keeps
+ * what hangs on the function: `variants`, `isVariant` and the others.
+ */
+function forReact<F extends (...args: never[]) => unknown>(
+  fn: F,
+): ForReactFn<F> {
+  const wrapped = (...args: Parameters<F>) => toReactResult(fn(...args))
+  return Object.assign(wrapped, fn) as unknown as ForReactFn<F>
+}
+
+/**
+ * The type of a member of `lt` in `/react`. A guard, which answers
+ * `value is T`, is the same function: no builder function answers a
+ * boolean, and at run time `isGuard` tells it by its name. A builder function
+ * takes the same options, named `options` as in the editor, and gives the
+ * React result.
+ */
+type ForReactFn<F> = F extends (...args: never[]) => boolean
+  ? F
+  : F extends (...args: never[]) => infer R
+    ? Parameters<F> extends []
+      ? (() => ReactResult<R>) & { [K in keyof F]: F[K] }
+      : ForReactOptions<F>
+    : F
+
+type ForReactOptions<F> = F extends (options?: infer O) => infer R
+  ? ((options?: O) => ReactResult<R>) & { [K in keyof F]: F[K] }
+  : F extends (options: infer O) => infer R
+    ? ((options: O) => ReactResult<R>) & { [K in keyof F]: F[K] }
+    : F
+
+/**
+ * A guard on `lt`, such as `isState`: it builds nothing, and passes through
+ * as the same function. Named `is` and a capital letter, as every guard in
+ * the package is.
+ */
+const isGuard = (name: string) => /^is[A-Z]/.test(name)
+
+/**
+ * What stands by hand in `lt` below: the two that give the whole state, and
+ * `setAttributes`, which takes an element and builds nothing.
+ */
+const BY_HAND = ["tabs", "term", "setAttributes"] as const
+type ByHand = (typeof BY_HAND)[number]
+
+/**
+ * Every member of `lt` but those by hand, with the React names. Mapped over
+ * `keyof Lt`, and named on `lt` below, so the declaration file refers to it
+ * and the documentation on each member in `lt.ts` comes along to the
+ * consumer's editor.
+ */
+type ForReact = {
+  [K in keyof Lt as K extends ByHand ? never : K]: ForReactFn<Lt[K]>
+}
+
+function everyBuilder(): ForReact {
+  const result: Record<string, unknown> = {}
+  for (const [name, value] of Object.entries(html))
+    if (!(BY_HAND as readonly string[]).includes(name))
+      result[name] =
+        typeof value === "function" && !isGuard(name)
+          ? forReact(value as (...args: never[]) => unknown)
+          : value
+  return result as ForReact
 }
 
 /**
@@ -232,195 +260,52 @@ function forReact<Options, Result extends Record<string, unknown>, Extra>(
  */
 export { createFieldId }
 
-export const lt = {
-  accordion: forReact(accordion),
-  alert: forReact(alert),
-  avatar: forReact(avatar),
-  badge: forReact(badge),
-  breadcrumbs: forReact(breadcrumbs),
-  button: forReact(button),
-  card: forReact(card),
-  checkbox: forReact(checkbox),
-  divider: forReact(divider),
-  errorText: forReact(errorText),
-  fieldset: forReact(fieldset),
-  heading: forReact(heading),
-  fileUpload: forReact(fileUpload),
-  helpText: forReact(helpText),
-  icon: forReact(icon),
-  input: forReact(input),
-  label: forReact(label),
-  legend: forReact(legend),
-  link: forReact(link),
-  list: forReact(list),
-  pagination: forReact(pagination),
-  paragraph: forReact(paragraph),
-  radio: forReact(radio),
-  search: forReact(search),
-  select: forReact(select),
-  skeleton: forReact(skeleton),
-  skipLink: forReact(skipLink),
-  progress: forReact(progress),
-  spinner: forReact(spinner),
-  srOnly: forReact(srOnly),
-  steps: forReact(steps),
-  switch: forReact(switchControl),
-  toggleGroup: forReact(toggleGroup),
-  tooltip: forReact(tooltip),
-  table: forReact(table),
-  tableSort: Object.assign(
-    (options?: Parameters<typeof tableSort>[0]) => {
-      const built = tableSort(options)
-      return {
-        header: built.header,
-        button: toReactAttributes(built.button),
-      }
-    },
-    { isDirection: tableSort.isDirection },
-  ),
-  tag: forReact(tag),
-  textarea: forReact(textarea),
-
+/** The type of `lt` in `/react`. */
+export type ReactLt = ForReact & {
   /**
-   * Wires a whole field, with `className` and `htmlFor` on the label.
-   *
-   * `control`, `help` and `error` have no keys that need renaming, and are
-   * therefore the same in both entry points.
+   * The whole state, not just the links: React reports a mismatch for every
+   * attribute the component writes on an element React has rendered. See
+   * `tabsWithState`.
    */
-  field: (options: FieldOptions) => {
-    const field = computeFieldAttributes(options)
-    return { ...field, label: toReactAttributes(field.label) }
-  },
-
+  readonly tabs: (
+    options: TabsWithStateOptions,
+  ) => ReactResult<ReturnType<typeof tabsWithState>>
   /**
-   * The compound builder functions return one attribute set per element,
-   * and each set must be renamed on its own. `host` has `tabindex`, and the
-   * panels in `lt.tabs()` have both `tabindex` and `class`.
+   * With `aria-expanded`, which `<lt-term>` writes: React reports a mismatch
+   * for an attribute it did not render. See `termWithState`.
    */
-  errorSummary: (options: Parameters<typeof errorSummary>[0] = {}) => {
-    const built = errorSummary(options)
-    return {
-      host: toReactAttributes(built.host),
-      title: toReactAttributes(built.title),
-    }
-  },
+  readonly term: (
+    options: Parameters<typeof termWithState>[0],
+  ) => ReactResult<ReturnType<typeof termWithState>>
+  /** Like `lt.setAttributes` in the main entry, for the sets from here. */
+  readonly setAttributes: typeof setAttributes
+}
 
-  dialog: Object.assign(
-    (options: Parameters<typeof dialog>[0]) => {
-      const built = dialog(options)
-      return {
-        host: built.host,
-        dialog: toReactAttributes(built.dialog),
-        header: toReactAttributes(built.header),
-        title: toReactAttributes(built.title),
-        subtitle: toReactAttributes(built.subtitle),
-        body: toReactAttributes(built.body),
-        footer: toReactAttributes(built.footer),
-      }
-    },
-    {
-      dialog: dialog.dialog,
-      header: dialog.header,
-      title: dialog.title,
-      subtitle: dialog.subtitle,
-      body: dialog.body,
-      footer: dialog.footer,
-      colors: dialog.colors,
-      isColor: dialog.isColor,
-    },
-  ),
-
-  popover: Object.assign(
-    (options: Parameters<typeof popover>[0]) => {
-      const built = popover(options)
-      return {
-        host: built.host,
-        trigger: toReactAttributes(built.trigger),
-        panel: toReactAttributes(built.panel),
-      }
-    },
-    { isPlacement: popover.isPlacement },
-  ),
+/**
+ * Every builder function from the main entry, with the React names. A new
+ * component comes along by itself; only the exceptions stand here.
+ */
+export const lt: ReactLt = {
+  ...everyBuilder(),
 
   /**
    * The whole state, not just the links: React reports a mismatch for every
    * attribute the component writes on an element React has rendered. See
    * `tabsWithState`.
    */
-  tabs: (options: TabsWithStateOptions) => {
-    const built = tabsWithState(options)
-    return {
-      list: toReactAttributes(built.list),
-      item: toReactAttributes(built.item),
-      tabs: built.tabs.map(toReactAttributes),
-      panels: built.panels.map(toReactAttributes),
-    }
-  },
+  tabs: (options: TabsWithStateOptions) =>
+    toReactResult(tabsWithState(options)) as ReactResult<
+      ReturnType<typeof tabsWithState>
+    >,
 
   /**
    * With `aria-expanded`, which `<lt-term>` writes: React reports a mismatch
    * for an attribute it did not render. See `termWithState`.
    */
-  term: (options: Parameters<typeof termWithState>[0]) => {
-    const built = termWithState(options)
-    return {
-      word: toReactAttributes(built.word),
-      entry: toReactAttributes(built.entry),
-    }
-  },
-
-  suggestion: (options: Parameters<typeof suggestion>[0]) => {
-    const built = suggestion(options)
-    return {
-      ...built,
-      label: toReactAttributes(built.label),
-      control: toReactAttributes(built.control),
-      list: toReactAttributes(built.list),
-      options: built.options.map(toReactAttributes),
-      empty: toReactAttributes(built.empty),
-      status: toReactAttributes(built.status),
-      value: toReactAttributes(built.value),
-    }
-  },
-
-  toast: (options: Parameters<typeof toast>[0] = {}) => {
-    const built = toast(options)
-    return {
-      host: toReactAttributes(built.host),
-      message: toReactAttributes(built.message),
-      close: toReactAttributes(built.close),
-    }
-  },
-
-  sessionTimeout: Object.assign(
-    (options: Parameters<typeof sessionTimeout>[0]) => {
-      const built = sessionTimeout(options)
-      return {
-        host: toReactAttributes(built.host),
-        dialog: toReactAttributes(built.dialog),
-        title: toReactAttributes(built.title),
-        text: toReactAttributes(built.text),
-        count: toReactAttributes(built.count),
-        live: toReactAttributes(built.live),
-        actions: toReactAttributes(built.actions),
-        extend: toReactAttributes(built.extend),
-        logout: toReactAttributes(built.logout),
-      }
-    },
-    {
-      dialog: sessionTimeout.dialog,
-      title: sessionTimeout.title,
-      text: sessionTimeout.text,
-      count: sessionTimeout.count,
-      actions: sessionTimeout.actions,
-    },
-  ),
-  connectionStatus: forReact(connectionStatus),
+  term: (options: Parameters<typeof termWithState>[0]) =>
+    toReactResult(termWithState(options)) as ReactResult<
+      ReturnType<typeof termWithState>
+    >,
 
   setAttributes,
-
-  states: fieldStates,
-  isState: isFieldState,
-  markers: requiredMarkers,
-  isMarker: isRequiredMarker,
-} as const
+}

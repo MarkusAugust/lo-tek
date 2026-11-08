@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, expectTypeOf, it } from "vitest"
 import type { Attributes } from "./dom"
 import { lt } from "./lt"
 import { lt as ltReact, type ReactSet } from "./react"
@@ -110,9 +110,9 @@ describe("lt from /react", () => {
    * only when the tabs get a count. The allowed values hang on the function,
    * so they can be read without a hand-written list.
    */
-  function calls(
+  function optionSets(
     builder: (options?: Record<string, unknown>) => unknown,
-  ): unknown[] {
+  ): Record<string, unknown>[] {
     /*
      * The smallest call is included because most builder functions must work
      * without arguments. `id` is sent anyway, since the builder functions that
@@ -147,8 +147,16 @@ describe("lt from /react", () => {
         })
     }
 
+    // Every id given, so no builder function makes a random one, and two
+    // calls with the same options give the same result.
+    return extra.map((options) => ({ titleId: "job-title", ...options }))
+  }
+
+  function calls(
+    builder: (options?: Record<string, unknown>) => unknown,
+  ): unknown[] {
     const results: unknown[] = []
-    for (const options of extra) {
+    for (const options of optionSets(builder)) {
       try {
         results.push(builder(options))
       } catch {
@@ -188,11 +196,120 @@ describe("lt from /react", () => {
     }
   })
 
+  /**
+   * The main entry's result with the React names, all the way down. A set
+   * is told here by its shape, and in `react.ts` by what `attributes()`
+   * notes on it, so the two can disagree and the test can fail. What
+   * `/react` promises for every builder function but the two that give the
+   * whole state, so React hydrates without mismatches.
+   */
+  function renamed(value: unknown): unknown {
+    if (Array.isArray(value)) return value.map(renamed)
+    if (!value || typeof value !== "object") return value
+    const entries = Object.entries(value)
+    const flat = entries.every(
+      ([, child]) => !child || typeof child !== "object",
+    )
+    if (!flat)
+      return Object.fromEntries(
+        entries.map(([k, child]) => [k, renamed(child)]),
+      )
+    return Object.fromEntries(
+      entries.map(([k, child]) => [
+        {
+          class: "className",
+          for: "htmlFor",
+          tabindex: "tabIndex",
+          autocomplete: "autoComplete",
+        }[k] ?? k,
+        k === "tabindex" ? Number(child) : child,
+      ]),
+    )
+  }
+  const WHOLE_STATE = ["tabs", "term"]
+
+  it("gives the main entry's result with React's names, for every builder function", () => {
+    const main = lt as unknown as Record<string, (o?: unknown) => unknown>
+    let compared = 0
+    for (const [name, builder] of builders) {
+      if (WHOLE_STATE.includes(name)) continue
+      for (const options of optionSets(builder)) {
+        let expected: unknown
+        try {
+          expected = main[name](options)
+        } catch {
+          // What the main entry refuses, /react refuses too.
+          expect(() => builder(options), `${name}()`).toThrow()
+          continue
+        }
+        // The guards answer a boolean and build nothing.
+        if (typeof expected !== "object") continue
+        expect(builder(options), `${name}()`).toEqual(renamed(expected))
+        compared++
+      }
+    }
+    expect(compared).toBeGreaterThan(100)
+  })
+
+  it("gives the guards and the lists as the same values as the main entry", () => {
+    expect([
+      ltReact.isState === lt.isState,
+      ltReact.isMarker === lt.isMarker,
+      ltReact.states === lt.states,
+      ltReact.markers === lt.markers,
+    ]).toEqual([true, true, true, true])
+  })
+
+  it("keeps what hangs on every builder function", () => {
+    const main = lt as unknown as Record<string, Record<string, unknown>>
+    const react = ltReact as unknown as Record<string, Record<string, unknown>>
+    for (const [name] of builders) {
+      expect(Object.keys(react[name]).sort(), name).toEqual(
+        Object.keys(main[name]).sort(),
+      )
+      for (const key of Object.keys(main[name]))
+        expect(react[name][key], `${name}.${key}`).toBe(main[name][key])
+    }
+  })
+
   it("has exactly the same builder functions as the main entry", () => {
-    // `react.ts` has its own list, and a new component must go into both.
+    // `react.ts` goes over `lt`, and adds the two with the whole state.
     // The check goes both ways: a function that only exists in one is just
     // as wrong whichever of them it is.
     expect(Object.keys(ltReact).sort()).toEqual(Object.keys(lt).sort())
+  })
+})
+
+describe("the types a React app sees", () => {
+  // Checked by `typecheck:tests`: the entry is derived from `lt` by a mapped
+  // type, and a type that widened to `unknown` would still run.
+  it("keeps the option types, the names, the lists and the guards", () => {
+    expectTypeOf(
+      ltReact.button({ variant: "secondary" }).className,
+    ).toEqualTypeOf<"lt-button">()
+    expectTypeOf(ltReact.button)
+      .parameter(0)
+      .toEqualTypeOf<Parameters<typeof lt.button>[0]>()
+    expectTypeOf(ltReact.button.variants).toEqualTypeOf(lt.button.variants)
+    expectTypeOf(
+      ltReact.field({ id: "f" }).label.htmlFor,
+    ).toEqualTypeOf<string>()
+    expectTypeOf(ltReact.field({ id: "f" }).state).toEqualTypeOf(
+      lt.field({ id: "f" }).state,
+    )
+    expectTypeOf(
+      ltReact.tabs({ id: "f", keys: ["a"], label: "L" }).tabs[0].tabIndex,
+    ).toEqualTypeOf<number>()
+    expectTypeOf(ltReact.dialog.colors).toEqualTypeOf(lt.dialog.colors)
+    expectTypeOf(ltReact.dialog({ titleId: "t" }).title.className).toBeString()
+    expectTypeOf(ltReact.tableSort.isDirection).toEqualTypeOf(
+      lt.tableSort.isDirection,
+    )
+    expectTypeOf(ltReact.isState).toEqualTypeOf(lt.isState)
+    expectTypeOf(ltReact.isMarker).toEqualTypeOf(lt.isMarker)
+    expectTypeOf(ltReact.button.isVariant).toEqualTypeOf(lt.button.isVariant)
+    expectTypeOf(ltReact.suggestion({ id: "s" }).options).toBeArray()
+    expectTypeOf(ltReact.breadcrumbs).parameters.toEqualTypeOf<[]>()
   })
 })
 
