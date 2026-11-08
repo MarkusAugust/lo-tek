@@ -70,9 +70,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`@lo-tek/interfaces/react` is derived from `lt`.** `react.ts` goes over
   every builder function in the main entry and gives the attribute sets in
   the result the React names, so a new component comes along by itself.
-  What every function returns, the lists and guards on it, and the types are
-  the same as before; a test holds each function to the main entry's result.
-  `ReactResult<R>` is exported for the type of such a result.
+  What every function returns, and the lists and guards on it, are the same
+  as before; a test holds each function to the main entry's result. The
+  type of each function wrapped without a React result of its own is now
+  the React result alone, where it used to be an intersection that also had
+  the main entry's, and the documentation on
+  each member of `lt` comes along to the editor from `/react` too.
+  `ReactResult<R>` and `ReactLt` are exported for the types.
 
 ### Fixed
 

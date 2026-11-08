@@ -197,7 +197,9 @@ describe("lt from /react", () => {
   })
 
   /**
-   * The main entry's result with the React names, all the way down: what
+   * The main entry's result with the React names, all the way down. A set
+   * is told here by its shape, and in `react.ts` by what `attributes()`
+   * notes on it, so the two can disagree and the test can fail. What
    * `/react` promises for every builder function but the two that give the
    * whole state, so React hydrates without mismatches.
    */
@@ -234,24 +236,40 @@ describe("lt from /react", () => {
       for (const options of optionSets(builder)) {
         let expected: unknown
         try {
-          expected = renamed(main[name](options))
+          expected = main[name](options)
         } catch {
+          // What the main entry refuses, /react refuses too.
+          expect(() => builder(options), `${name}()`).toThrow()
           continue
         }
-        expect(builder(options), `${name}()`).toEqual(expected)
+        // The guards answer a boolean and build nothing.
+        if (typeof expected !== "object") continue
+        expect(builder(options), `${name}()`).toEqual(renamed(expected))
         compared++
       }
     }
     expect(compared).toBeGreaterThan(100)
   })
 
+  it("gives the guards and the lists as the same values as the main entry", () => {
+    expect([
+      ltReact.isState === lt.isState,
+      ltReact.isMarker === lt.isMarker,
+      ltReact.states === lt.states,
+      ltReact.markers === lt.markers,
+    ]).toEqual([true, true, true, true])
+  })
+
   it("keeps what hangs on every builder function", () => {
     const main = lt as unknown as Record<string, Record<string, unknown>>
     const react = ltReact as unknown as Record<string, Record<string, unknown>>
-    for (const [name] of builders)
+    for (const [name] of builders) {
       expect(Object.keys(react[name]).sort(), name).toEqual(
         Object.keys(main[name]).sort(),
       )
+      for (const key of Object.keys(main[name]))
+        expect(react[name][key], `${name}.${key}`).toBe(main[name][key])
+    }
   })
 
   it("has exactly the same builder functions as the main entry", () => {
@@ -262,15 +280,6 @@ describe("lt from /react", () => {
   })
 })
 
-/**
- * `tabindex` is not just a different name.
- *
- * In HTML the value is a string, in React `tabIndex` is a number. Had we left
- * the string, `lt.tabs()` came out with `tabIndex: "0"`, and TypeScript
- * rejected it in every React app. It worked in the browser, since React
- * converts the value itself, so the bug only showed as a type error for the
- * consumer. It was found in a real React app, not here.
- */
 describe("the types a React app sees", () => {
   // Checked by `typecheck:tests`: the entry is derived from `lt` by a mapped
   // type, and a type that widened to `unknown` would still run.
@@ -297,10 +306,22 @@ describe("the types a React app sees", () => {
       lt.tableSort.isDirection,
     )
     expectTypeOf(ltReact.isState).toEqualTypeOf(lt.isState)
+    expectTypeOf(ltReact.isMarker).toEqualTypeOf(lt.isMarker)
+    expectTypeOf(ltReact.button.isVariant).toEqualTypeOf(lt.button.isVariant)
     expectTypeOf(ltReact.suggestion({ id: "s" }).options).toBeArray()
+    expectTypeOf(ltReact.breadcrumbs).parameters.toEqualTypeOf<[]>()
   })
 })
 
+/**
+ * `tabindex` is not just a different name.
+ *
+ * In HTML the value is a string, in React `tabIndex` is a number. Had we left
+ * the string, `lt.tabs()` came out with `tabIndex: "0"`, and TypeScript
+ * rejected it in every React app. It worked in the browser, since React
+ * converts the value itself, so the bug only showed as a type error for the
+ * consumer. It was found in a real React app, not here.
+ */
 describe("tabIndex comes out as a number", () => {
   it("on the error summary", () => {
     expect(typeof ltReact.errorSummary({ count: 1 }).host.tabIndex).toBe(

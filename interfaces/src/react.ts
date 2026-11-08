@@ -167,14 +167,18 @@ export type ReactResult<R> = R extends readonly (infer Item)[]
       : { [K in keyof R]: ReactResult<R[K]> }
     : R
 
+/**
+ * The result with the React names. A set is recognised by what
+ * `attributes()` notes on every set a builder function makes, not by its
+ * shape, so a compound whose parts are all absent is not taken for one.
+ */
 function toReactResult(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(toReactResult)
   if (!value || typeof value !== "object") return value
-  const entries = Object.entries(value)
-  if (entries.every(([, child]) => !child || typeof child !== "object"))
+  if (managedNames(value))
     return toReactAttributes(value as Record<string, unknown>)
   return Object.fromEntries(
-    entries.map(([name, child]) => [name, toReactResult(child)]),
+    Object.entries(value).map(([name, child]) => [name, toReactResult(child)]),
   )
 }
 
@@ -184,37 +188,62 @@ function toReactResult(value: unknown): unknown {
  */
 function forReact<F extends (...args: never[]) => unknown>(
   fn: F,
-): ((...args: Parameters<F>) => ReactResult<ReturnType<F>>) & {
-  [K in keyof F]: F[K]
-} {
-  const wrapped = (...args: Parameters<F>) =>
-    toReactResult(fn(...args)) as ReactResult<ReturnType<F>>
-  return Object.assign(wrapped, fn)
+): ForReactFn<F> {
+  const wrapped = (...args: Parameters<F>) => toReactResult(fn(...args))
+  return Object.assign(wrapped, fn) as unknown as ForReactFn<F>
 }
 
-/** What is in `lt` and builds nothing: it passes through as it is. */
-const PASSED = [
-  "setAttributes",
-  "states",
-  "isState",
-  "markers",
-  "isMarker",
-] as const
-type Passed = (typeof PASSED)[number]
+/**
+ * The type of a member of `lt` in `/react`. A guard, which answers
+ * `value is T`, is the same function: no builder function answers a
+ * boolean, and at run time `isGuard` tells it by its name. A builder function
+ * takes the same options, named `options` as in the editor, and gives the
+ * React result.
+ */
+type ForReactFn<F> = F extends (...args: never[]) => boolean
+  ? F
+  : F extends (...args: never[]) => infer R
+    ? Parameters<F> extends []
+      ? (() => ReactResult<R>) & { [K in keyof F]: F[K] }
+      : ForReactOptions<F>
+    : F
 
-/** Every builder function in `lt` with the React names. */
+type ForReactOptions<F> = F extends (options?: infer O) => infer R
+  ? ((options?: O) => ReactResult<R>) & { [K in keyof F]: F[K] }
+  : F extends (options: infer O) => infer R
+    ? ((options: O) => ReactResult<R>) & { [K in keyof F]: F[K] }
+    : F
+
+/**
+ * A guard on `lt`, such as `isState`: it builds nothing, and passes through
+ * as the same function. Named `is` and a capital letter, as every guard in
+ * the package is.
+ */
+const isGuard = (name: string) => /^is[A-Z]/.test(name)
+
+/**
+ * What stands by hand in `lt` below: the two that give the whole state, and
+ * `setAttributes`, which takes an element and builds nothing.
+ */
+const BY_HAND = ["tabs", "term", "setAttributes"] as const
+type ByHand = (typeof BY_HAND)[number]
+
+/**
+ * Every member of `lt` but those by hand, with the React names. Mapped over
+ * `keyof Lt`, and named on `lt` below, so the declaration file refers to it
+ * and the documentation on each member in `lt.ts` comes along to the
+ * consumer's editor.
+ */
 type ForReact = {
-  [K in Exclude<keyof Lt, Passed>]: Lt[K] extends (...args: never[]) => unknown
-    ? ReturnType<typeof forReact<Lt[K]>>
-    : Lt[K]
+  [K in keyof Lt as K extends ByHand ? never : K]: ForReactFn<Lt[K]>
 }
 
 function everyBuilder(): ForReact {
   const result: Record<string, unknown> = {}
   for (const [name, value] of Object.entries(html))
-    if (!(PASSED as readonly string[]).includes(name))
+    if (!(BY_HAND as readonly string[]).includes(name))
       result[name] =
-        typeof value === "function"
+        typeof value === "function" && !isGuard(name)
           ? forReact(value as (...args: never[]) => unknown)
           : value
   return result as ForReact
@@ -231,11 +260,32 @@ function everyBuilder(): ForReact {
  */
 export { createFieldId }
 
+/** The type of `lt` in `/react`. */
+export type ReactLt = ForReact & {
+  /**
+   * The whole state, not just the links: React reports a mismatch for every
+   * attribute the component writes on an element React has rendered. See
+   * `tabsWithState`.
+   */
+  readonly tabs: (
+    options: TabsWithStateOptions,
+  ) => ReactResult<ReturnType<typeof tabsWithState>>
+  /**
+   * With `aria-expanded`, which `<lt-term>` writes: React reports a mismatch
+   * for an attribute it did not render. See `termWithState`.
+   */
+  readonly term: (
+    options: Parameters<typeof termWithState>[0],
+  ) => ReactResult<ReturnType<typeof termWithState>>
+  /** Like `lt.setAttributes` in the main entry, for the sets from here. */
+  readonly setAttributes: typeof setAttributes
+}
+
 /**
  * Every builder function from the main entry, with the React names. A new
  * component comes along by itself; only the exceptions stand here.
  */
-export const lt = {
+export const lt: ReactLt = {
   ...everyBuilder(),
 
   /**
@@ -258,9 +308,4 @@ export const lt = {
     >,
 
   setAttributes,
-
-  states: html.states,
-  isState: html.isState,
-  markers: html.markers,
-  isMarker: html.isMarker,
-} as const
+}

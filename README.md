@@ -73,7 +73,7 @@ The browsers are installed with `bun --filter @lo-tek/interfaces browsers`.
 
 1. Create the folder under the right category, with the component, the stylesheet and a `*.browser.test.ts` next to them.
 2. Add `exports` entries in `interfaces/package.json`, for both CSS and JS.
-3. Export from `interfaces/src/index.ts` if it belongs in `lt`.
+3. Add the builder function to `lt` in `interfaces/src/lt.ts`, and export from `interfaces/src/index.ts` what belongs there.
 4. Declare the element and its properties in `interfaces/src/jsx/react.ts`.
 5. Add the stylesheet to `STYLESHEETS` in `documentation/src/components/Preview.astro`, otherwise the styles are missing from the examples.
 6. Write the component page under `documentation/src/content/docs/components/` and add it to the sidebar in `documentation/astro.config.mjs`.
