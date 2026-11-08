@@ -400,11 +400,32 @@ describe("nameFromHeading", () => {
 describe("READS", () => {
   /**
    * The attributes a call touches, read from the DOM while it runs: the two
-   * calls, and the properties that reflect an attribute the helpers use.
+   * calls, the selectors given to `matches` and `closest`, and the
+   * properties that reflect an attribute the helpers use. A read along a
+   * path the calls below do not take is not seen.
    */
   const touched = (call: () => void) => {
     const names = new Set<string>()
+    const selector = (s: string) => {
+      for (const m of s.matchAll(/\[\s*([a-zA-Z][\w-]*)/g)) names.add(m[1])
+    }
+    const matches = Element.prototype.matches
+    const closest = Element.prototype.closest
     const spies = [
+      vi.spyOn(Element.prototype, "matches").mockImplementation(function (
+        this: Element,
+        s: string,
+      ) {
+        selector(s)
+        return matches.call(this, s)
+      }),
+      vi.spyOn(Element.prototype, "closest").mockImplementation(function (
+        this: Element,
+        s: string,
+      ) {
+        selector(s)
+        return closest.call(this, s)
+      }),
       vi.spyOn(Element.prototype, "getAttribute").mockImplementation(function (
         this: Element,
         name: string,
@@ -490,6 +511,14 @@ describe("ownParts", () => {
     const inner = outer.querySelector("lt-x") as Element
     expect(ownParts(outer, "input").map((e) => e.id)).toEqual(["a", "c"])
     expect(ownParts(inner, "input").map((e) => e.id)).toEqual(["b"])
+  })
+
+  it("searches only inside the node it is given, when it is given one", () => {
+    const outer = node(
+      `<lt-x><ul><li id="a"></li><lt-x><ul><li id="b"></li></ul></lt-x></ul><li id="c"></li></lt-x>`,
+    )
+    const list = outer.querySelector("ul") as Element
+    expect(ownParts(outer, "li", list).map((e) => e.id)).toEqual(["a"])
   })
 
   it("reads the host's own tag name, so a registration under another name scopes too", () => {

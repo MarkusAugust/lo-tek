@@ -688,7 +688,9 @@ export function selfTest(): string[] {
   )
   const BLOCKS = {
     registration,
-    "commented-registration": `<script type="module">\nimport { defineLt } from "${CDN}/dist/register.js"\ngo() // defineLt()\n</script>`,
+    // Only the comment tells it from a registration, so nothing else can
+    // make the rule turn it down.
+    "commented-registration": `<script type="module">\nimport { defineLt } from "${CDN}/dist/register.js" // defineLt()\n</script>`,
     datastar: DATASTAR,
   }
   for (const { name, blocks, before } of ORDER_CASES)

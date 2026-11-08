@@ -1058,9 +1058,7 @@ export class LtTabs extends HostElement {
     const list = this.list
     if (!list) return []
     const tabs = new Set<Element>(this.tabs)
-    return ownParts(this, ANY_TAB_SELECTOR).filter(
-      (e) => list.contains(e) && !tabs.has(e),
-    )
+    return ownParts(this, ANY_TAB_SELECTOR, list).filter((e) => !tabs.has(e))
   }
 
   /**

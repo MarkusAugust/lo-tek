@@ -668,7 +668,8 @@ class RecipesTest {
     }
 
     /** What `page-setup.ts` writes to `recipes.json` for this side. */
-    private val SETUP = JsonParser.parseString(File(System.getProperty("recipes")).readText()).asJsonObject["setup"].asJsonObject
+    private val SETUP = JsonParser.parseString(File(System.getProperty("recipes")).readText()).asJsonObject["setup"]?.asJsonObject
+        ?: error("recipes.json has no setup, which page-setup.ts writes. Run `bun --filter @lo-tek/interfaces generate`.")
 
     /** The `defineLt*` of each tag the package registers, from `recipes.json`. */
     private val DEFINERS: Map<String, String> = SETUP["definers"].asJsonObject.entrySet().associate { it.key to it.value.asString }
@@ -812,7 +813,7 @@ class RecipesTest {
         val datastar = SETUP["datastar"].asString
         val blocks = mapOf(
             "registration" to """<script type="module">import { defineLt } from "${LotekWebJar.REGISTER}"; defineLt()</script>""",
-            "commented-registration" to """<script type="module">import { defineLt } from "${LotekWebJar.REGISTER}"; go() // defineLt()</script>""",
+            "commented-registration" to """<script type="module">import { defineLt } from "${LotekWebJar.REGISTER}" // defineLt()</script>""",
             "datastar" to """<script type="module" src="$datastar"></script>""",
         )
         val cases = SETUP["orderCases"].asJsonArray.map { it.asJsonObject }

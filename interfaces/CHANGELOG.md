@@ -28,7 +28,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 - **`ownParts()` in `@lo-tek/interfaces/host-element`** gives the elements
   matching a selector that belong to a host, and not to an element of the
-  same kind inside it. `derivedParts()`, `<lt-field>`, `<lt-tabs>` and
+  same kind inside it, optionally only inside a node of the host's own.
+  `derivedParts()`, `<lt-field>`, `<lt-tabs>` and
   `<lt-term>` scope their parts through it, and behave as before.
 - **`READS` in the same module** says which attributes each helper reads or
   writes on the elements it is given, so a component that calls one knows

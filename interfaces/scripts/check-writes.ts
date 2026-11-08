@@ -124,7 +124,6 @@ export function unobserved(source: string, exempt: string[] = []): string[] {
     ts.ScriptTarget.Latest,
     true,
   )
-  const constants = new Map<string, ts.Expression>()
   const watching = new Set<string>()
   const observed = new Set<string>([WRITTEN])
   let everything = false
@@ -134,6 +133,29 @@ export function unobserved(source: string, exempt: string[] = []): string[] {
       if (kind === "writes" || !touched.has(name)) touched.set(name, kind)
   }
 
+  // The initializer of the declaration an identifier names: the nearest
+  // `const` in the blocks around it, so two methods with a `name` each keep
+  // their own.
+  const declared = (id: ts.Identifier): ts.Expression | undefined => {
+    for (
+      let scope: ts.Node | undefined = id.parent;
+      scope;
+      scope = scope.parent
+    ) {
+      if (!("statements" in scope)) continue
+      for (const statement of (scope as ts.Block).statements) {
+        if (!ts.isVariableStatement(statement)) continue
+        for (const d of statement.declarationList.declarations)
+          if (
+            ts.isIdentifier(d.name) &&
+            d.name.text === id.text &&
+            d.initializer
+          )
+            return d.initializer
+      }
+    }
+    return undefined
+  }
   const resolve = (node: ts.Node | undefined): string[] => {
     if (!node) return []
     if (
@@ -145,9 +167,8 @@ export function unobserved(source: string, exempt: string[] = []): string[] {
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
       return [node.text]
     if (ts.isIdentifier(node)) {
-      const known = KNOWN[node.text]
-      if (known) return [known]
-      return resolve(constants.get(node.text))
+      if (own(KNOWN, node.text)) return [KNOWN[node.text]]
+      return resolve(declared(node))
     }
     if (ts.isArrayLiteralExpression(node))
       return node.elements.flatMap((e) =>
@@ -189,16 +210,9 @@ export function unobserved(source: string, exempt: string[] = []): string[] {
     else if (on("attributes")) everything = true
   }
 
-  // First the constants and the observers, since a filter can name a
-  // constant declared further down and `observe()` can come before the
-  // assignment in the text.
+  // First the observers, since `observe()` can come before the assignment in
+  // the text.
   const collect = (node: ts.Node) => {
-    if (
-      ts.isVariableDeclaration(node) &&
-      ts.isIdentifier(node.name) &&
-      node.initializer
-    )
-      constants.set(node.name.text, node.initializer)
     if (
       ts.isNewExpression(node) &&
       node.expression.getText(file) === "MutationObserver" &&
@@ -228,7 +242,7 @@ export function unobserved(source: string, exempt: string[] = []): string[] {
         if (name === "setAttr" || name === "setFlag")
           touch(resolve(second), "writes")
         if (name === "addClass") touch(["class"], "writes")
-        if (name in READS)
+        if (own(READS, name))
           touch([...READS[name as keyof typeof READS]], "reads")
       }
       if (ts.isPropertyAccessExpression(callee)) {
@@ -342,6 +356,10 @@ const UNOBSERVED: Record<
   ],
 }
 
+/** Whether `key` is the object's own, not one from `Object.prototype`, like `toString`. */
+const own = (object: object, key: string): boolean =>
+  Object.keys(object).includes(key)
+
 /** The calls that end in what the observer is there to trigger. */
 const SYNCS = new Set(["sync", "wire"])
 /** The methods of `ownership()` that take the attribute as their second argument. */
@@ -448,6 +466,24 @@ export function selfTest(): string[] {
       ),
     ),
     ["writes class, which no observer that calls sync() watches"],
+  )
+  expect(
+    "a function or a name that is also a member of Object is not a helper or a constant",
+    unobserved(
+      component(
+        `${syncing(`[]`)}\nsync() { toString(this); this.box.getAttribute(constructor) }`,
+      ),
+    ),
+    [],
+  )
+  expect(
+    "a constant is the one in scope, not another of the same name elsewhere",
+    unobserved(
+      component(
+        `${syncing(`["role"]`)}\nsync() { const name = "aria-label"; setAttr(this.box, name, "x") }\nwire() { const name = "role"; setAttr(this.box, name, "tab") }`,
+      ),
+    ),
+    ["writes aria-label, which no observer that calls sync() watches"],
   )
   expect(
     "a name in a constant, and a filter spread from a list",

@@ -666,13 +666,16 @@ export function rememberedId(
  * The elements matching `selector` that belong to `host`: those whose nearest
  * element of the host's kind is the host itself. A field inside a field, like
  * a search field in a popover, belongs to the inner one. The tag is the host's
- * own, since `defineLt*` takes an optional name.
+ * own, since `defineLt*` takes an optional name. `within` narrows the search
+ * to a node inside the host, such as the tab list, so the panels are not
+ * walked on every round.
  */
 export function ownParts<T extends Element = Element>(
   host: Element,
   selector: string,
+  within: ParentNode = host,
 ): T[] {
-  return [...host.querySelectorAll<T>(selector)].filter(
+  return [...within.querySelectorAll<T>(selector)].filter(
     (part) => part.closest(host.localName) === host,
   )
 }

@@ -55,7 +55,9 @@ abstract class ExtractRecipes : DefaultTask() {
         val entries = mutableListOf<String>()
         val imports = mutableListOf<String>()
         val root = JsonParser.parseString(recipes.get().asFile.readText()).asJsonObject
-        val datastar = root["setup"].asJsonObject["datastar"].asString
+        val setup = root["setup"]?.asJsonObject
+            ?: error("recipes.json has no setup, which page-setup.ts writes. Run `bun --filter @lo-tek/interfaces generate`.")
+        val datastar = setup["datastar"].asString
         val pages = root["pages"].asJsonArray
             .map { it.asJsonObject }
             .filter { it["path"].asString.startsWith("components/") }
