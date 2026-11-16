@@ -5,7 +5,7 @@
  * the component's promise and the specifications, never from a browser.
  */
 import { DEFAULT_TEXTS } from "../../src/components/default-texts"
-import type { Contract } from "./contract"
+import type { Contract, Step } from "./contract"
 
 /**
  * Why a field without its label still has a name to `lotek check`: the
@@ -536,6 +536,39 @@ const term: Contract = {
   ],
 }
 
+/**
+ * Safari 27.2 never takes in a `role` or `aria-live` added to a node that
+ * already exists: text put into it later is not announced, and VoiceOver
+ * says nothing (measured on 2026-11-16, and heard). But a change elsewhere
+ * on the page just before the text, such as the barrier's marker, made
+ * Safari take it in after all, and the check announced what a quiet page
+ * never does. So the step after such a change waits a second before it
+ * acts, as a page does where nothing happens between.
+ */
+function settled(steps: Step[]): Step[] {
+  const [first, ...rest] = steps
+  return [{ ...first, do: [{ pause: 1000 }, ...first.do] }, ...rest]
+}
+
+/**
+ * The component defined in a step of its own, after the page has loaded and
+ * the browser has built its accessibility tree, as on a page whose package
+ * comes late from a CDN. With the define in the recipe it usually ran before
+ * the tree existed, and the check passed by timing only.
+ */
+function definedLate(
+  define: string,
+  steps: Step[],
+): { replace: [string, string]; steps: Step[] } {
+  return {
+    replace: [`  ${define}()\n`, `  window.lotekDefine = ${define}\n`],
+    steps: [
+      { name: "define", do: [{ run: "window.lotekDefine()" }], quiet: true },
+      ...settled(steps),
+    ],
+  }
+}
+
 const toast: Contract = {
   component: "toast",
   steps: [
@@ -612,6 +645,24 @@ const toast: Contract = {
   ],
 }
 
+/**
+ * The region from the web component alone, as on a page that writes
+ * `<lt-toast>` without `lt.toast()` and loads the package late.
+ */
+const toastLate = definedLate("defineLtToast", toast.steps)
+const toastWithoutRegion: Contract = {
+  ...toast,
+  variant: {
+    name: "the region from the web component",
+    replace: [
+      ['role="status" aria-live="polite"\n          aria-atomic="false" ', ""],
+      toastLate.replace,
+    ],
+  },
+  steps: toastLate.steps,
+  mutations: [],
+}
+
 const sessionTimeout: Contract = {
   component: "session-timeout",
   clock: true,
@@ -685,13 +736,44 @@ const connectionStatus: Contract = {
  * variant takes it out, so the region comes only from the web component, the
  * way a template that leaves it out or a morph that tears it off gets it.
  */
+const connectionStatusLate = definedLate(
+  "defineLtConnectionStatus",
+  connectionStatus.steps,
+)
 const connectionStatusWithoutRegion: Contract = {
   ...connectionStatus,
   variant: {
     name: "the region from the web component",
-    replace: [[' role="status" aria-live="polite"', ""]],
+    replace: [
+      [' role="status" aria-live="polite"', ""],
+      connectionStatusLate.replace,
+    ],
   },
+  steps: connectionStatusLate.steps,
   mutations: connectionStatus.mutations,
+}
+
+/**
+ * A morph without `data-ignore-morph` takes the server's `role` and
+ * `aria-live` off the element after the page has loaded. The next outage
+ * must still be announced.
+ */
+const connectionStatusMorphed: Contract = {
+  ...connectionStatus,
+  variant: { name: "the region taken off by a morph", replace: [] },
+  steps: [
+    {
+      name: "morph",
+      do: [
+        {
+          run: 'const c = document.querySelector("lt-connection-status"); c.removeAttribute("role"); c.removeAttribute("aria-live")',
+        },
+      ],
+      quiet: true,
+    },
+    ...settled(connectionStatus.steps),
+  ],
+  mutations: [],
 }
 
 /* The form controls. Their markup is the first example on each page. */
@@ -1057,9 +1139,11 @@ export const CONTRACTS: Contract[] = [
   popover,
   term,
   toast,
+  toastWithoutRegion,
   sessionTimeout,
   connectionStatus,
   connectionStatusWithoutRegion,
+  connectionStatusMorphed,
   input,
   textarea,
   select,

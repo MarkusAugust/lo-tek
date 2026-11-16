@@ -45,6 +45,19 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **VoiceOver in Safari reads out the messages in `<lt-toast>`.** The
   component warns in the console when the markup names the region anyway,
   with `aria-label`, `aria-labelledby` or `title`, and leaves the name.
+- **VoiceOver in Safari announces `<lt-toast>` and
+  `<lt-connection-status>` when the markup leaves the region out.** Safari
+  27.2 ignores a `role` or `aria-live` that a script sets on an element
+  already on the page, so a region the component filled in itself was
+  silent. `<lt-toast>` now takes itself out and puts itself back when it had
+  to add the role: a message that had focus loses it, and Datastar runs
+  `data-init` on the region once more. `<lt-connection-status>` no longer
+  sets `role` and `aria-live` on itself; when the markup has neither, the
+  bar is the region. Markup from `lt.toast()` and `lt.connectionStatus()`
+  has the region, and behaves as before.
+- **`<lt-connection-status>` writes the text two frames after a new bar,**
+  not one. Firefox announced nothing when the bar was the region and its
+  text came in the first frame.
 
 ## 0.44.0 (2026-11-16)
 

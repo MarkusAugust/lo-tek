@@ -2345,7 +2345,7 @@
     },
     {
       "name": "connectionStatus",
-      "description": "The attributes for the bar that says the connection is lost.\n\nBy definition the server cannot tell you it is unreachable. When it is down, nothing comes from it to render. So the component creates all the content itself, and `data-ignore-morph` stops a later patch from tearing it away the moment the connection is back. The host is the live region, `role=\"status\"` with `aria-live=\"polite\"`, so the region exists before the bar and its text arrive.",
+      "description": "The attributes for the bar that says the connection is lost.\n\nBy definition the server cannot tell you it is unreachable. When it is down, nothing comes from it to render. So the component creates all the content itself, and `data-ignore-morph` stops a later patch from tearing it away the moment the connection is back. The host is the live region, `role=\"status\"` with `aria-live=\"polite\"`, so the region exists before the bar and its text arrive. It has to be in the markup: Safari ignores a role set on an element that is already on the page.",
       "example": "<lt-connection-status {...lt.connectionStatus()} />",
       "options": [
         {

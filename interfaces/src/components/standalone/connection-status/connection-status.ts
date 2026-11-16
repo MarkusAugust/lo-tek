@@ -27,7 +27,8 @@ export type ConnectionStatusAttributes = {
  * content itself, and `data-ignore-morph` stops a later patch from tearing
  * it away the moment the connection is back. The host is the live region,
  * `role="status"` with `aria-live="polite"`, so the region exists before the
- * bar and its text arrive.
+ * bar and its text arrive. It has to be in the markup: Safari ignores a role
+ * set on an element that is already on the page.
  *
  * ```ts
  * <lt-connection-status {...lt.connectionStatus()} />

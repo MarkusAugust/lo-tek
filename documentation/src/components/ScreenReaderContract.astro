@@ -43,6 +43,7 @@ function action(a: Action): string {
   if ("type" in a) return `Type "${escapeHtml(a.type)}"`
   if ("click" in a) return `Click <code>${escapeHtml(a.click)}</code>`
   if ("clock" in a) return `Wait ${duration(a.clock)}`
+  if ("pause" in a) return `Wait ${duration(a.pause)}`
   return `Call <code>${escapeHtml(a.run)}</code>`
 }
 

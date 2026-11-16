@@ -361,6 +361,7 @@ function pageHandle(page: Page): PageHandle {
       else if ("type" in action) await page.keyboard.type(action.type)
       else if ("click" in action) await page.click(action.click)
       else if ("clock" in action) await page.clock.runFor(action.clock)
+      else if ("pause" in action) await Bun.sleep(action.pause)
       else if ("run" in action) await page.evaluate(action.run)
     },
     // Playwright's types unbox the argument; the runner passes plain values.

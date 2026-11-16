@@ -78,18 +78,18 @@ export class LtConnectionStatus extends HostElement {
   connectedCallback(): void {
     this.classList.add(CONNECTION_STATUS_CLASS)
     /*
-     * The host is the live region, from the moment it is connected, so the
-     * region exists long before the bar and its text arrive. Only what is
-     * missing: a role or politeness the server wrote stays. When the bar was
-     * the region, it was inserted together with its text, and Firefox sent
-     * no live-region text through AT-SPI at all, so "No connection" was
-     * never announced. `check-accessibility-tree.ts` checks it.
+     * The live region is the host when the markup made it one, as
+     * `lt.connectionStatus()` does: then the region exists long before the
+     * bar and its text arrive. A host without it is not made a region here.
+     * Safari never takes in a `role` or `aria-live` set on a node that
+     * already exists (measured in Safari 27.2), so VoiceOver said nothing
+     * about the outage. Then the bar is the region instead, see `createBar`.
+     *
+     * A morph can take the region off the host, or put it on, while the bar
+     * shows. Then the bar is made anew, so there is always one region and
+     * never two.
      */
-    this.markRegion()
-    // A morph without `data-ignore-morph` takes both off, and then the next
-    // outage is never announced. Writing only what is missing keeps the
-    // observer from triggering itself.
-    this.regionObserver = new MutationObserver(() => this.markRegion())
+    this.regionObserver = new MutationObserver(() => this.matchRegion())
     this.regionObserver.observe(this, {
       attributes: true,
       attributeFilter: ["role", "aria-live"],
@@ -107,7 +107,7 @@ export class LtConnectionStatus extends HostElement {
      * it kept saying so until the next time the network dropped. `failing`
      * is the app's word and not the network's, so it stays.
      */
-    if (this.bar?.dataset.state === "online") this.scheduleRemoval(this.bar)
+    if (this.bar?.dataset.state === "online") this.scheduleRemoval()
     else if (this.bar?.dataset.state === "offline" && !this.failing) {
       this.showOnline()
     }
@@ -116,14 +116,36 @@ export class LtConnectionStatus extends HostElement {
   private regionObserver?: MutationObserver
 
   /**
-   * The region, as a pair and only when both are missing. A role the server
-   * wrote carries its own politeness (`alert` is assertive), and an
-   * `aria-live` added next to it would override that.
+   * Either is enough: a role the server wrote carries its own politeness
+   * (`alert` is assertive), and `aria-live="off"` is the server's word too.
    */
-  private markRegion(): void {
-    if (this.hasAttribute("role") || this.hasAttribute("aria-live")) return
-    this.setAttribute("role", "status")
-    this.setAttribute("aria-live", "polite")
+  private hostIsRegion(): boolean {
+    return this.hasAttribute("role") || this.hasAttribute("aria-live")
+  }
+
+  /**
+   * The bar, as the region when the host is not one. The role is set before
+   * the bar is in the document: that is the only way Safari takes it in.
+   */
+  private createBar(): HTMLElement {
+    const bar = document.createElement("div")
+    bar.className = CONNECTION_STATUS_BAR_CLASS
+    if (!this.hostIsRegion()) {
+      bar.setAttribute("role", "status")
+      bar.setAttribute("aria-live", "polite")
+    }
+    return bar
+  }
+
+  private matchRegion(): void {
+    const old = this.bar
+    if (!old || old.hasAttribute("role") !== this.hostIsRegion()) return
+    const state = old.dataset.state as "offline" | "online"
+    const bar = this.createBar()
+    bar.dataset.state = state
+    old.replaceWith(bar)
+    this.bar = bar
+    this.write(bar, true, state)
   }
 
   disconnectedCallback(): void {
@@ -140,9 +162,9 @@ export class LtConnectionStatus extends HostElement {
    *
    * A live region must exist before its content arrives, or assistive
    * technology does not announce the first change. The region is the host
-   * (see `connectedCallback`), so the bar is content inside a region that is
-   * already there; the text is still set in the next frame when the bar is
-   * new, so the bar and its text arrive as two changes.
+   * or the bar (see `connectedCallback`). Either way the text is set two
+   * frames later when the bar is new, so the bar and its text arrive as two
+   * changes (see `write`).
    *
    * The bar is created only when it is needed, not on connection: when it
    * was in the DOM before React hydrated, React found an element it had not
@@ -151,8 +173,7 @@ export class LtConnectionStatus extends HostElement {
   private ensureBar(): { bar: HTMLElement; fresh: boolean } {
     if (this.bar) return { bar: this.bar, fresh: false }
 
-    const bar = document.createElement("div")
-    bar.className = CONNECTION_STATUS_BAR_CLASS
+    const bar = this.createBar()
     this.append(bar)
     this.bar = bar
     return { bar, fresh: true }
@@ -171,7 +192,13 @@ export class LtConnectionStatus extends HostElement {
       bar.textContent = text()
       return
     }
-    requestAnimationFrame(() => {
+    // Two frames, not one: a callback for the first frame runs before
+    // Firefox has made the bar's accessible object, and a region that
+    // arrives with its text is never announced there. Measured through
+    // AT-SPI: silent after one frame, announced after two.
+    const afterTwoFrames = (write: () => void) =>
+      requestAnimationFrame(() => requestAnimationFrame(write))
+    afterTwoFrames(() => {
       // The guard is the state, not the bar: if `reportSuccess()` came in
       // the same frame, the bar already says "online", and the offline text
       // must not be written over the receipt.
@@ -203,13 +230,13 @@ export class LtConnectionStatus extends HostElement {
     this.write(bar, false, "online")
     this.emit("connection-restored")
 
-    this.scheduleRemoval(bar)
+    this.scheduleRemoval()
   }
 
-  private scheduleRemoval(bar: HTMLElement): void {
+  private scheduleRemoval(): void {
     if (this.timer) window.clearTimeout(this.timer)
     this.timer = window.setTimeout(() => {
-      bar.remove()
+      this.bar?.remove()
       this.bar = undefined
       this.timer = undefined
     }, RECEIPT_MS)

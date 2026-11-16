@@ -31,6 +31,12 @@ export type Action =
   | { click: string }
   /** Moves the page's fake clock, for components that wait. */
   | { clock: number }
+  /**
+   * Lets real time pass, in milliseconds: a change the browser has to take
+   * in before the next action, as a page does between loading and the
+   * first outage.
+   */
+  | { pause: number }
   /** Runs an expression in the page, for imperative calls like `showToast`. */
   | { run: string }
 

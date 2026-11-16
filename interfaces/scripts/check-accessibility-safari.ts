@@ -16,13 +16,21 @@
  *   Develop, Allow Remote Automation;
  * - `safaridriver --enable` in a terminal, with your password.
  *
- * VoiceOver must be off while it runs.
+ * VoiceOver must be off while it runs, and Safari must not be open: the check
+ * starts Safari itself, set to answer as it answers VoiceOver, and quits it
+ * again (`asVoiceOverGetsIt` in `accessibility/ax.ts`).
  *
  * Run with: bun run build, then bun interfaces/scripts/check-accessibility-safari.ts
  */
 import { existsSync } from "node:fs"
 import { join, resolve } from "node:path"
-import { AX, launch, recorder, SetupFailure } from "./accessibility/ax"
+import {
+  AX,
+  asVoiceOverGetsIt,
+  launch,
+  recorder,
+  SetupFailure,
+} from "./accessibility/ax"
 import { CONTRACTS } from "./accessibility/contracts"
 import { serve } from "./accessibility/fixture"
 import {
@@ -58,7 +66,9 @@ const failures: string[] = []
 let ran = 0
 let browser: Awaited<ReturnType<typeof launch>> | undefined
 let rec: Awaited<ReturnType<typeof recorder>> | undefined
+let restore: (() => Promise<void>) | undefined
 try {
+  restore = await asVoiceOverGetsIt()
   browser = await launch()
   rec = await recorder()
   console.log(`The accessibility tree, through AX, in ${rec.versions}`)
@@ -76,6 +86,7 @@ try {
 } finally {
   rec?.stop()
   await browser?.close()
+  await restore?.()
   server.stop()
 }
 

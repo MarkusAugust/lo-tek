@@ -6358,6 +6358,7 @@
         "close",
         "role=\"status\"",
         "defineLtToast()",
+        "data-init",
         "data-ignore-morph",
         "lt-toast__message",
         "lt-toast__close",

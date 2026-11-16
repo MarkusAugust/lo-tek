@@ -409,6 +409,88 @@ function freePort(): number {
   return port
 }
 
+const FORCE = [
+  "com.apple.Accessibility",
+  "ShouldForceWebKitAccessibilityEnabled",
+]
+
+/** The Safari processes that run now: the pid, and whether safaridriver started it. */
+function safaris(): { pid: number; automation: boolean }[] {
+  const ps = Bun.spawnSync(["ps", "-axo", "pid=,args="]).stdout.toString()
+  return ps
+    .split("\n")
+    .filter((line) => /\/Safari\.app\/Contents\/MacOS\/Safari( |$)/.test(line))
+    .map((line) => ({
+      pid: Number.parseInt(line, 10),
+      automation: line.includes("--automation"),
+    }))
+}
+
+async function quitSafari(): Promise<void> {
+  for (const { pid } of safaris()) process.kill(pid)
+  for (let i = 0; safaris().length > 0; i++) {
+    if (i > 100)
+      throw new SetupFailure(
+        "safari-will-not-quit: Safari still runs after 10 s",
+      )
+    await Bun.sleep(100)
+  }
+}
+
+/**
+ * Makes Safari answer as it answers VoiceOver, for as long as the check runs.
+ *
+ * WebKit has two ways to answer an accessibility client: from the main
+ * thread, or from a copy of the tree on a thread of its own (isolated tree
+ * mode). Only VoiceOver gets the second (`clientSupportsIsolatedTree` in
+ * WebKit's AXObjectCacheMac.mm), and the two differ: measured in Safari 27.2,
+ * an option reached with `aria-activedescendant` is selected in one and not
+ * in the other. So a Safari that has never met VoiceOver fails contracts that
+ * hold for a VoiceOver user.
+ *
+ * The user default below, undocumented and read in the same WebKit file,
+ * gives every client the second way. A web process reads it once, when it
+ * starts, and never goes back, so Safari is started anew with it set and
+ * quit again when it is taken off. A Safari the user opened is not ours to
+ * quit: then the check refuses.
+ *
+ * Returns what puts the machine back.
+ */
+export async function asVoiceOverGetsIt(): Promise<() => Promise<void>> {
+  if (safaris().some((s) => !s.automation))
+    throw new SetupFailure(
+      "safari-is-open: the check starts Safari itself, with a setting Safari only reads when it starts. Quit Safari and run again",
+    )
+  await quitSafari()
+  const already =
+    Bun.spawnSync(["defaults", "read", ...FORCE])
+      .stdout.toString()
+      .trim() === "1"
+  if (!already) {
+    const write = Bun.spawnSync([
+      "defaults",
+      "write",
+      ...FORCE,
+      "-bool",
+      "true",
+    ])
+    if (write.exitCode !== 0)
+      throw new SetupFailure(
+        `no-forced-tree: defaults write ${FORCE.join(" ")} failed: ${write.stderr.toString().trim()}`,
+      )
+  }
+  let restored = false
+  const restore = async () => {
+    if (restored) return
+    restored = true
+    if (!already) Bun.spawnSync(["defaults", "delete", ...FORCE])
+    await quitSafari().catch(() => {})
+  }
+  for (const signal of ["SIGINT", "SIGTERM"] as const)
+    process.once(signal, () => restore().finally(() => process.exit(130)))
+  return restore
+}
+
 export async function launch(): Promise<BrowserHandle> {
   if (!Bun.which("safaridriver"))
     throw new SetupFailure(
@@ -532,7 +614,8 @@ export async function launch(): Promise<BrowserHandle> {
         await execute("window.__lotekClock.runFor(arguments[0])", [
           Math.min(left, 10_000),
         ])
-    } else if ("run" in action)
+    } else if ("pause" in action) await Bun.sleep(action.pause)
+    else if ("run" in action)
       // An expression, as Playwright's page.evaluate(string) takes it. What it
       // returns is left in the page: a returned element is not serialisable.
       await execute("(0, eval)(arguments[0]); return null", [action.run])
