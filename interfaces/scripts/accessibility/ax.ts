@@ -9,8 +9,14 @@
  * the automation. Each setup step that is missing is a failure with its
  * name.
  */
-import { existsSync, mkdirSync, readFileSync } from "node:fs"
-import { homedir } from "node:os"
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs"
+import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import { createInterface } from "node:readline"
 import type { Action } from "./contract"
@@ -414,6 +420,9 @@ const FORCE = [
   "ShouldForceWebKitAccessibilityEnabled",
 ]
 
+/** Stands while the default is one this check set. */
+const OURS = join(tmpdir(), "lotek-forced-webkit-accessibility")
+
 /** The Safari processes that run now: the pid, and whether safaridriver started it. */
 function safaris(): { pid: number; automation: boolean }[] {
   const ps = Bun.spawnSync(["ps", "-axo", "pid=,args="]).stdout.toString()
@@ -454,6 +463,11 @@ async function quitSafari(): Promise<void> {
  * quit again when it is taken off. A Safari the user opened is not ours to
  * quit: then the check refuses.
  *
+ * The default is the machine's, not Safari's: any app with a web view that
+ * starts while the check runs keeps the second way until it quits. A default
+ * that was set before the check is left as it was. `OURS` tells that apart
+ * from one a killed run left behind, which the next run takes off.
+ *
  * Returns what puts the machine back.
  */
 export async function asVoiceOverGetsIt(): Promise<() => Promise<void>> {
@@ -463,10 +477,12 @@ export async function asVoiceOverGetsIt(): Promise<() => Promise<void>> {
     )
   await quitSafari()
   const already =
+    !existsSync(OURS) &&
     Bun.spawnSync(["defaults", "read", ...FORCE])
       .stdout.toString()
       .trim() === "1"
   if (!already) {
+    writeFileSync(OURS, "")
     const write = Bun.spawnSync([
       "defaults",
       "write",
@@ -483,10 +499,13 @@ export async function asVoiceOverGetsIt(): Promise<() => Promise<void>> {
   const restore = async () => {
     if (restored) return
     restored = true
-    if (!already) Bun.spawnSync(["defaults", "delete", ...FORCE])
+    if (!already) {
+      Bun.spawnSync(["defaults", "delete", ...FORCE])
+      rmSync(OURS, { force: true })
+    }
     await quitSafari().catch(() => {})
   }
-  for (const signal of ["SIGINT", "SIGTERM"] as const)
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const)
     process.once(signal, () => restore().finally(() => process.exit(130)))
   return restore
 }
@@ -651,7 +670,9 @@ export async function launch(): Promise<BrowserHandle> {
         ? "safaridriver still runs"
         : "no safaridriver left",
     close: async () => {
-      await call("DELETE", S).catch(() => {})
+      // With a deadline: what puts the machine back comes after this, and
+      // must not wait for a safaridriver that no longer answers.
+      await Promise.race([call("DELETE", S).catch(() => {}), Bun.sleep(5000)])
       driver.kill()
     },
   }

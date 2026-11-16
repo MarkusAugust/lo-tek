@@ -7719,7 +7719,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<lt-connection-status class=\"lt-connection-status\" data-ignore-morph></lt-connection-status>",
+          "code": "<lt-connection-status class=\"lt-connection-status\" role=\"status\" aria-live=\"polite\" data-ignore-morph></lt-connection-status>",
           "section": "Three categories"
         },
         {

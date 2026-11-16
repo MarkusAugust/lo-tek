@@ -143,6 +143,22 @@ describe("lt-connection-status", () => {
     expect(status.hasAttribute("role")).toBe(false)
   })
 
+  it("keeps the bar as the region when the host gets a role afterwards", async () => {
+    // Safari does not take in a role set on a host that already exists, so
+    // a bar without one would leave VoiceOver with no region at all.
+    const fresh = document.createElement(
+      "lt-connection-status",
+    ) as LtConnectionStatus
+    document.body.append(fresh)
+    fresh.reportFailure()
+    const bar = fresh.firstElementChild as HTMLElement
+    fresh.setAttribute("role", "status")
+    await waitForPaint()
+    expect(fresh.firstElementChild).toBe(bar)
+    expect(bar.getAttribute("role")).toBe("status")
+    fresh.remove()
+  })
+
   it("lt.connectionStatus() writes the region", () => {
     const built = connectionStatus()
     expect(built.role).toBe("status")

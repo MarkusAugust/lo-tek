@@ -85,11 +85,18 @@ export class LtConnectionStatus extends HostElement {
      * already exists (measured in Safari 27.2), so VoiceOver said nothing
      * about the outage. Then the bar is the region instead, see `createBar`.
      *
-     * A morph can take the region off the host, or put it on, while the bar
-     * shows. Then the bar is made anew, so there is always one region and
-     * never two.
+     * A morph can take the region off the host while the bar shows. Then
+     * the bar is made anew as the region. A region the host gets afterwards
+     * is set on a node that already exists, so it does not count: the bar
+     * stays the region.
      */
-    this.regionObserver = new MutationObserver(() => this.matchRegion())
+    this.hostIsRegion = this.hasRegionAttributes()
+    // The host may have changed while it was out of the document.
+    this.matchRegion()
+    this.regionObserver = new MutationObserver(() => {
+      if (!this.hasRegionAttributes()) this.hostIsRegion = false
+      this.matchRegion()
+    })
     this.regionObserver.observe(this, {
       attributes: true,
       attributeFilter: ["role", "aria-live"],
@@ -116,10 +123,16 @@ export class LtConnectionStatus extends HostElement {
   private regionObserver?: MutationObserver
 
   /**
+   * Whether the host was a region when it was connected, and still is. See
+   * `connectedCallback`.
+   */
+  private hostIsRegion = false
+
+  /**
    * Either is enough: a role the server wrote carries its own politeness
    * (`alert` is assertive), and `aria-live="off"` is the server's word too.
    */
-  private hostIsRegion(): boolean {
+  private hasRegionAttributes(): boolean {
     return this.hasAttribute("role") || this.hasAttribute("aria-live")
   }
 
@@ -130,7 +143,7 @@ export class LtConnectionStatus extends HostElement {
   private createBar(): HTMLElement {
     const bar = document.createElement("div")
     bar.className = CONNECTION_STATUS_BAR_CLASS
-    if (!this.hostIsRegion()) {
+    if (!this.hostIsRegion) {
       bar.setAttribute("role", "status")
       bar.setAttribute("aria-live", "polite")
     }
@@ -139,7 +152,7 @@ export class LtConnectionStatus extends HostElement {
 
   private matchRegion(): void {
     const old = this.bar
-    if (!old || old.hasAttribute("role") !== this.hostIsRegion()) return
+    if (!old || old.hasAttribute("role") !== this.hostIsRegion) return
     const state = old.dataset.state as "offline" | "online"
     const bar = this.createBar()
     bar.dataset.state = state

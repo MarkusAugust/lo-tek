@@ -171,8 +171,10 @@ export class LtToast extends HostElement {
     // without a builder function, or registered under another name, ends up
     // in the corner.
     this.classList.add(TOAST_CLASS)
-    const late = !this.hasAttribute("role")
-    if (late) this.setAttribute("role", "status")
+    const late = ["role", "aria-live", "aria-atomic"].some(
+      (name) => !this.hasAttribute(name),
+    )
+    if (!this.hasAttribute("role")) this.setAttribute("role", "status")
     if (!this.hasAttribute("aria-live")) {
       this.setAttribute("aria-live", "polite")
     }
@@ -181,11 +183,11 @@ export class LtToast extends HostElement {
     }
     this.warnIfNamed()
     /*
-     * Safari never takes in a `role` set on a node that already exists
-     * (measured in Safari 27.2): the messages were shown, and VoiceOver said
-     * nothing. A node that is inserted with its role is taken in, so the
-     * region is put back where it stands. It connects once more, finds the
-     * role, and stops here.
+     * Safari never takes in a `role` or `aria-live` set on a node that
+     * already exists (measured in Safari 27.2): the messages were shown, and
+     * VoiceOver said nothing. A node that is inserted with them is taken in,
+     * so the region is put back where it stands. It connects once more,
+     * finds all three, and stops here.
      *
      * The cost is the server's to avoid by writing the role, as `lt.toast()`
      * does: a message that had focus loses it, and a framework that acts on

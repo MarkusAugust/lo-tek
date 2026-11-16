@@ -187,6 +187,28 @@ describe("lt-toast keeps the pause and focus", () => {
   })
 })
 
+describe("a region that had to be filled in", () => {
+  it("is put back where it stood, with its content", async () => {
+    mount(
+      `<p id="before"></p><lt-toast-bare><b id="inside"></b></lt-toast-bare><p id="after"></p>`,
+    )
+    const element = document.querySelector("lt-toast-bare") as LtToast
+    const inside = document.getElementById("inside")
+    await waitForPaint()
+
+    defineLtToast("lt-toast-bare")
+
+    expect(element.getAttribute("role")).toBe("status")
+    expect(element.isConnected).toBe(true)
+    expect(element.previousElementSibling?.id).toBe("before")
+    expect(element.nextElementSibling?.id).toBe("after")
+    expect(element.firstElementChild).toBe(inside)
+    // It works after the second connect: the message has its close button.
+    const message = element.show("Relay 14 is back")
+    expect(message.querySelector("button")).not.toBeNull()
+  })
+})
+
 /*
  * A tag name registered late. `lt-toast` has already taken the constructor,
  * so `defineLtToast("lt-toast-late")` registers a subclass of it.

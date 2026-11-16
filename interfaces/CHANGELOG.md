@@ -50,7 +50,7 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   27.2 ignores a `role` or `aria-live` that a script sets on an element
   already on the page, so a region the component filled in itself was
   silent. `<lt-toast>` now takes itself out and puts itself back when it had
-  to add the role: a message that had focus loses it, and Datastar runs
+  to add `role`, `aria-live` or `aria-atomic`: a message that had focus loses it, and Datastar runs
   `data-init` on the region once more. `<lt-connection-status>` no longer
   sets `role` and `aria-live` on itself; when the markup has neither, the
   bar is the region. Markup from `lt.toast()` and `lt.connectionStatus()`

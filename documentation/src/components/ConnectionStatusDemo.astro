@@ -19,7 +19,7 @@ import Preview from "./Preview.astro"
 		<button class="lt-button" id="demo-connection-off" type="button">Simulate a failed request</button>
 		<button class="lt-button" data-variant="secondary" id="demo-connection-on" type="button">Simulate it working again</button>
 	</div>
-	<lt-connection-status class="lt-connection-status" data-ignore-morph></lt-connection-status>
+	<lt-connection-status class="lt-connection-status" role="status" aria-live="polite" data-ignore-morph></lt-connection-status>
 </Preview>
 
 <script>
