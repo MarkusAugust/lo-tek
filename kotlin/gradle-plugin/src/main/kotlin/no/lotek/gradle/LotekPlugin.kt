@@ -105,7 +105,15 @@ class LotekPlugin : Plugin<Project> {
 private fun run(args: List<String>, workingDirectory: File): Pair<Int, String> {
     val stdout = ByteArrayOutputStream()
     val stderr = ByteArrayOutputStream()
-    val code = CommandLine.run(args, workingDirectory, ByteArrayInputStream(ByteArray(0)), stdout, stderr)
+    val code =
+        try {
+            CommandLine.run(args, workingDirectory, ByteArrayInputStream(ByteArray(0)), stdout, stderr)
+        } catch (crash: RuntimeException) {
+            // The module aborted. What it wrote before that says why, and
+            // was lost with the exception.
+            val written = (stdout.toString(Charsets.UTF_8) + stderr.toString(Charsets.UTF_8)).trim()
+            throw GradleException("The command line crashed ($crash). It wrote:\n\n$written", crash)
+        }
     return code to (stdout.toString(Charsets.UTF_8) + stderr.toString(Charsets.UTF_8)).trim()
 }
 
