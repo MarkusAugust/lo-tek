@@ -244,9 +244,8 @@ mod tests {
             assert!(page(quiet).is_empty(), "{quiet}: {:?}", page(quiet));
         }
         // The default written out is no translation.
-        let written = page(
-            r#"<html lang="nn"><lt-toast close-label="Close message"></lt-toast></html>"#,
-        );
+        let written =
+            page(r#"<html lang="nn"><lt-toast close-label="Close message"></lt-toast></html>"#);
         assert_eq!(written.len(), 1, "{written:?}");
         assert!(written[0].contains("Close message"), "{written:?}");
         // The nearest lang counts.
