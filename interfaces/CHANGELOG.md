@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.45.0 (2026-11-16)
+
 ### Breaking
 
 - **The Kotlin package, the Gradle plugin and `lotek.jar` require Java 21.**
