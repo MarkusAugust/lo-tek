@@ -8,7 +8,7 @@
  * HTML-AAM). Where a browser differs, that is decided as our bug, a known
  * deviation (`platform.ts`), or a misreading, and written down.
  */
-import type { Politeness, Role, State } from "./platform"
+import type { Engine, Politeness, Role, State } from "./platform"
 
 /** A node as a screen reader is given it. */
 export type Expected = {
@@ -68,6 +68,11 @@ export type Mutation = {
   /** The step that must fail. */
   failsAt: string
   /**
+   * Where an engine cannot show what `failsAt` checks, the step the mutation
+   * fails at there instead, with the reason in a comment.
+   */
+  failsAtIn?: Partial<Record<Engine, string>>
+  /**
    * What `lotek check` says about the mutated recipe, without a browser.
    * `"without-name"`: it reports a name the markup no longer gives. A
    * mutation that leaves a name empty in the browsers must have it, or
@@ -76,6 +81,12 @@ export type Mutation = {
    * reports exactly the mutations that say so, and nothing on the recipe.
    */
   lotekCheck?: "without-name" | { not: string }
+  /**
+   * The engines the mutation runs in, when not all: a cause only one of them
+   * shows, such as a name on a live region, which only Safari stays silent
+   * about.
+   */
+  engines?: Engine[]
 }
 
 export type Contract = {
@@ -98,6 +109,8 @@ export type Contract = {
   variant?: { name: string; replace: [string, string][] }
   /** Set up the fake clock before the page loads. */
   clock?: true
+  /** The engines the contract runs in, when not all, with the reason in a comment. */
+  engines?: Engine[]
   steps: Step[]
   mutations: Mutation[]
 }

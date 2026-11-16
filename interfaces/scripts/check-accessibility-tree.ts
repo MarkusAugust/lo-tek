@@ -134,7 +134,10 @@ const failures: string[] = []
 const only = process.env.LOTEK_A11Y_ONLY
 const chosen = CONTRACTS.filter((c) => !only || c.component === only)
 // Counted from every contract, not from the queue, unless a filter is set.
-const expected = ENGINES.length * runsOf(only ? chosen : CONTRACTS)
+const expected = ENGINES.reduce(
+  (n, engine) => n + runsOf(only ? chosen : CONTRACTS, engine),
+  0,
+)
 let ran = 0
 /** The longest a session per engine may take: the whole run, with room. */
 const SESSION_DEADLINE = 15 * 60_000
@@ -273,7 +276,7 @@ function report(): never {
     engines: ENGINES.length,
     partial:
       only || engineFilter
-        ? `Partial run (LOTEK_A11Y_ONLY=${only ?? ""}, LOTEK_A11Y_ENGINE=${engineFilter ?? ""}): ${runsOf(CONTRACTS) * ATSPI_ENGINES.length} runs make the check`
+        ? `Partial run (LOTEK_A11Y_ONLY=${only ?? ""}, LOTEK_A11Y_ENGINE=${engineFilter ?? ""}): ${ATSPI_ENGINES.reduce((n, engine) => n + runsOf(CONTRACTS, engine), 0)} runs make the check`
         : undefined,
     failures,
   })

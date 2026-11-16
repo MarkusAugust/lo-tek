@@ -21,6 +21,8 @@ import { CONTRACTS } from "./accessibility/contracts"
 import {
   ATSPI_ROLES,
   ATSPI_STATES,
+  AX_EVENTS,
+  AX_ROLES,
   KNOWN_DEVIATIONS,
   UNCOMPARED_STATES,
 } from "./accessibility/platform"
@@ -64,6 +66,16 @@ if (listed.length > 0)
   )
 checked++
 
+/* The AX recorder observes the notifications in AX_EVENTS, which the adapter passes it. */
+const swift = read("interfaces/scripts/accessibility/recorder.swift")
+for (const event of AX_EVENTS) {
+  if (swift.includes(`"${event}"`))
+    problems.push(
+      `recorder.swift names "${event}" itself: the notifications come from AX_EVENTS on the command line`,
+    )
+  checked++
+}
+
 /*
  * Every role the platform table maps is a role the core's accessibility
  * tree knows: `platform.ts` says what AT-SPI calls a role, the core which
@@ -72,7 +84,10 @@ checked++
 const core = accessibilityCore(
   readFileSync(join(ROOT, "interfaces/core/lotek-core.wasm")),
 )
-for (const role of Object.keys(ATSPI_ROLES)) {
+for (const role of new Set([
+  ...Object.keys(ATSPI_ROLES),
+  ...Object.keys(AX_ROLES),
+])) {
   if (!core.roles.includes(role))
     problems.push(
       `platform.ts maps the role "${role}", which the core's accessibility tree does not know`,

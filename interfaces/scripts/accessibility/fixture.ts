@@ -52,6 +52,8 @@ function example(page: string, index: number): string {
 export function fixture(
   contract: Contract,
   mutation: number | undefined,
+  /** The fake clock in `fake-clock.js`, for a browser without one of its own. */
+  fakeClock = false,
 ): string {
   let html =
     contract.example === undefined
@@ -80,7 +82,8 @@ export function fixture(
   // speak; the checks leave its own text out (`isBarrier`).
   const barrier =
     '<div id="lotek-barrier" aria-live="polite" style="position:absolute;left:-10000px">lotek-barrier</div>'
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${contract.component}</title></head><body>\n${html}\n${barrier}\n</body></html>`
+  const clock = fakeClock ? '<script src="/fake-clock.js"></script>' : ""
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">${clock}<title>${contract.component}</title></head><body>\n${html}\n${barrier}\n</body></html>`
 }
 
 /** The fixtures and the package, on 127.0.0.1, on a free port the system picks. */
@@ -97,12 +100,20 @@ export function serve() {
         if (!contract) return new Response("no such contract", { status: 404 })
         const m = url.searchParams.get("mutation")
         return new Response(
-          fixture(contract, m === null ? undefined : Number(m)),
+          fixture(
+            contract,
+            m === null ? undefined : Number(m),
+            url.searchParams.get("clock") === "fake",
+          ),
           {
             headers: { "content-type": "text/html; charset=utf-8" },
           },
         )
       }
+      if (url.pathname === "/fake-clock.js")
+        return new Response(Bun.file(join(import.meta.dir, "fake-clock.js")), {
+          headers: { "content-type": "text/javascript" },
+        })
       if (url.pathname.startsWith("/pkg/")) {
         const path = normalize(
           join(PACKAGE, url.pathname.slice("/pkg/".length)),

@@ -17,6 +17,7 @@ import {
   deviationAt,
   type Expected,
   label,
+  type Mutation,
   type Step,
 } from "./contract"
 import { PACKAGE, type serve } from "./fixture"
@@ -52,9 +53,12 @@ export type Platform = {
   /** "AT-SPI", in messages. */
   name: string
   roles: Record<Role, readonly string[]>
-  states: Record<State, string>
+  /** `null`: the platform cannot show the state, and it is counted, not compared. */
+  states: Record<State, string | null>
   /** The event that carries the change, in messages. */
   changeEvent: (change: Change) => string
+  /** Whether the role is the document's: with nothing focused, the document has the focus. */
+  isDocument: (role: string) => boolean
 }
 
 /**
@@ -121,10 +125,16 @@ export class StepFailure extends Error {
 const emptied = (expected: Expected, node: PlatformNode | null) =>
   node !== null && node.name.trim() === "" && expected.name !== ""
 
-/** The role names this engine gives for the role, the known deviation first. */
-function rolesFor(platform: Platform, engine: Engine, role: Expected["role"]) {
+/** The role names this engine gives for the role at the step, the known deviation first. */
+function rolesFor(
+  platform: Platform,
+  engine: Engine,
+  role: Expected["role"],
+  at: string,
+) {
   const deviation = KNOWN_ROLE_DEVIATIONS.find(
-    (d) => d.engine === engine && d.role === role,
+    (d) =>
+      d.engine === engine && d.role === role && (!d.at || d.at.includes(at)),
   )
   const spec: string[] = [...platform.roles[role]]
   return {
@@ -137,10 +147,11 @@ function rolesFor(platform: Platform, engine: Engine, role: Expected["role"]) {
 const roleMatches = (
   platform: Platform,
   engine: Engine,
+  at: string,
   expected: Expected,
   node: PlatformNode,
 ) => {
-  const { accepted, spec } = rolesFor(platform, engine, expected.role)
+  const { accepted, spec } = rolesFor(platform, engine, expected.role, at)
   return accepted.includes(node.role) || spec.includes(node.role)
 }
 
@@ -148,6 +159,7 @@ const roleMatches = (
 function roleProblem(
   platform: Platform,
   engine: Engine,
+  at: string,
   expected: Expected,
   node: PlatformNode,
 ): string | undefined {
@@ -155,12 +167,24 @@ function roleProblem(
     platform,
     engine,
     expected.role,
+    at,
   )
   if (accepted.includes(node.role)) return undefined
   if (deviation && spec.includes(node.role))
     return `role "${node.role}" as Core-AAM says now: the known role deviation for ${engine} (${expected.role} as "${deviation.platformRole}") is gone, remove it from platform.ts`
   return `role "${node.role}", not ${expected.role}`
 }
+
+/**
+ * The states a contract promised that the platform cannot show, and how
+ * often: never compared, so the report says so.
+ */
+const uncompared = new Map<string, number>()
+function leftOut(platform: Platform, state: State) {
+  const key = `${state} (${platform.name})`
+  uncompared.set(key, (uncompared.get(key) ?? 0) + 1)
+}
+export const leftOutStates = () => uncompared
 
 function compare(
   platform: Platform,
@@ -172,10 +196,14 @@ function compare(
 ): string[] {
   if (!node) return [`${what}: no node`]
   const problems: string[] = []
-  const wrongRole = roleProblem(platform, engine, expected, node)
+  const wrongRole = roleProblem(platform, engine, at, expected, node)
   if (wrongRole) problems.push(wrongRole)
   const wrongName = KNOWN_DEVIATIONS.find(
-    (d) => d.engine === engine && d.at === at && "name" in d,
+    (d) =>
+      d.engine === engine &&
+      d.at === at &&
+      "name" in d &&
+      (d.on === "within") === what.startsWith("within"),
   )
   const actual = node.name.trim()
   if (wrongName && "name" in wrongName) {
@@ -202,7 +230,12 @@ function compare(
   const gone = (state: string) =>
     `${state} as the spec says now: the known deviation for ${engine} at ${at} is gone, remove it from platform.ts`
   for (const state of expected.states ?? []) {
-    const has = node.states.includes(platform.states[state])
+    const token = platform.states[state]
+    if (token === null) {
+      leftOut(platform, state)
+      continue
+    }
+    const has = node.states.includes(token)
     if (
       deviations.some((d) => "missingState" in d && d.missingState === state)
     ) {
@@ -210,7 +243,12 @@ function compare(
     } else if (!has) problems.push(`not ${state} [${node.states.join(", ")}]`)
   }
   for (const state of expected.notStates ?? []) {
-    const has = node.states.includes(platform.states[state])
+    const token = platform.states[state]
+    if (token === null) {
+      leftOut(platform, state)
+      continue
+    }
+    const has = node.states.includes(token)
     if (deviations.some((d) => "extraState" in d && d.extraState === state)) {
       if (!has) problems.push(gone(`not ${state}`))
     } else if (has) problems.push(`${state}, which it must not be`)
@@ -245,7 +283,9 @@ const core = accessibilityCore(
 
 /** What the core says about a node, as a contract's expectation. */
 function expectation(platform: Platform, node: AxNode): Expected {
-  const states = Object.keys(platform.states) as State[]
+  const states = (Object.keys(platform.states) as State[]).filter(
+    (s) => platform.states[s] !== null,
+  )
   return {
     role: node.role as Role,
     name: node.name,
@@ -283,7 +323,7 @@ async function coreAgrees(
   const focused = (await rec.focused(step)).node
   const mine = tree.find((n) => n.states.includes("focused"))
   if (!mine)
-    return focused && !focused.role.startsWith("document")
+    return focused && !platform.isDocument(focused.role)
       ? [
           `core: no focused node, ${platform.name} has ${focused.role} "${focused.name}"`,
         ]
@@ -434,7 +474,7 @@ async function step(
     if (s.within) {
       const want = s.within
       const ancestor = now.ancestors.find((a) =>
-        roleMatches(platform, engine, want, a),
+        roleMatches(platform, engine, at, want, a),
       )
       if (!ancestor)
         problems.push(
@@ -459,7 +499,7 @@ async function step(
     const want = s.focus
     const isFocused = (node: PlatformNode) =>
       !want ||
-      (roleMatches(platform, engine, want, node) &&
+      (roleMatches(platform, engine, at, want, node) &&
         node.name.trim() === want.name)
     const changes: Change[] = [
       ...(s.changes.states ?? []),
@@ -664,7 +704,7 @@ export async function runEngine(
 ): Promise<{ ran: number; failures: string[] }> {
   const failures: string[] = []
   let ran = 0
-  runs: for (const contract of contracts) {
+  runs: for (const contract of contracts.filter((c) => runsIn(c, engine))) {
     const clean = await guarded(browser, () =>
       run(platform, engine, browser, rec, server, contract),
     )
@@ -674,6 +714,7 @@ export async function runEngine(
       )
     if (clean.dead) break
     for (const [m, mutation] of contract.mutations.entries()) {
+      if (!runsIn(mutation, engine)) continue
       const broken = await guarded(browser, () =>
         run(platform, engine, browser, rec, server, contract, m),
       )
@@ -687,9 +728,9 @@ export async function runEngine(
         failures.push(
           `${engine} ${label(contract)}: the mutation "${mutation.name}" passed every step, so nothing guards it`,
         )
-      else if (broken.at !== mutation.failsAt)
+      else if (broken.at !== failsAt(mutation, engine))
         failures.push(
-          `${engine} ${label(contract)}: the mutation "${mutation.name}" failed at ${broken.at}, not ${mutation.failsAt}: ${broken.message}`,
+          `${engine} ${label(contract)}: the mutation "${mutation.name}" failed at ${broken.at}, not ${failsAt(mutation, engine)}: ${broken.message}`,
         )
       if (!broken.ok && broken.emptyName && mutation.lotekCheck === undefined)
         failures.push(
@@ -699,15 +740,28 @@ export async function runEngine(
     }
     ran++
     console.log(
-      `  ${engine} ${label(contract)}: ${clean.ok ? `${clean.steps} steps` : "red"}, ${contract.mutations.length} mutations`,
+      `  ${engine} ${label(contract)}: ${clean.ok ? `${clean.steps} steps` : "red"}, ${contract.mutations.filter((m) => runsIn(m, engine)).length} mutations`,
     )
   }
   return { ran, failures }
 }
 
+/** The step the mutation must fail at in the engine. */
+const failsAt = (mutation: Mutation, engine: Engine) =>
+  mutation.failsAtIn?.[engine] ?? mutation.failsAt
+
+/** Whether a contract or a mutation runs in the engine: in every one, unless it names some. */
+const runsIn = (thing: { engines?: Engine[] }, engine: Engine) =>
+  !thing.engines || thing.engines.includes(engine)
+
 /** The runs a set of contracts makes in one engine: each recipe and each of its mutations. */
-export const runsOf = (contracts: Contract[]) =>
-  contracts.reduce((n, c) => n + 1 + c.mutations.length, 0)
+export const runsOf = (contracts: Contract[], engine: Engine) =>
+  contracts
+    .filter((c) => runsIn(c, engine))
+    .reduce(
+      (n, c) => n + 1 + c.mutations.filter((m) => runsIn(m, engine)).length,
+      0,
+    )
 
 /** The count and the failures, and the exit status. */
 export function report(options: {
@@ -723,6 +777,10 @@ export function report(options: {
     `\n${ran} runs of ${expected} expected, ${options.contracts} contracts in ${options.engines} engines`,
   )
   if (options.partial) console.log(options.partial)
+  for (const [state, times] of uncompared)
+    console.log(
+      `Not compared, since the platform cannot show it: ${state}, ${times} times`,
+    )
   for (const f of failures) console.error(`✗ ${f}`)
   if (ran !== expected || ran === 0) {
     console.error(`✗ ran ${ran} of ${expected}`)

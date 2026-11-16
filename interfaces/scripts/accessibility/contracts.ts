@@ -7,6 +7,15 @@
 import { DEFAULT_TEXTS } from "../../src/components/default-texts"
 import type { Contract } from "./contract"
 
+/**
+ * Why a field without its label still has a name to `lotek check`: the
+ * placeholder, HTML-AAM 4.1.1, step 4, as Chromium and Firefox give it.
+ * Safari keeps the placeholder in AXPlaceholderValue and leaves AXTitle
+ * empty (seen in 27.2, 2026-11-16), so there the name is empty.
+ */
+const PLACEHOLDER_IS_THE_NAME =
+  "the placeholder is the name (HTML-AAM 4.1.1, step 4), and only Safari leaves it out of AXTitle"
+
 const dialog: Contract = {
   component: "dialog",
   steps: [
@@ -408,16 +417,21 @@ const popover: Contract = {
       focus: { role: "button", name: "Actions", notStates: ["expanded"] },
     },
   ],
+  // In Safari these fail a step later: AX cannot show expandable
+  // (AX_UNCOMPARED), so focus-trigger passes, and the menu that never opens
+  // is what fails.
   mutations: [
     {
       name: "the panel not recognised",
       replace: ['<ul class="lt-popover" id="actions">', '<ul id="actions">'],
       failsAt: "focus-trigger",
+      failsAtIn: { safari: "open" },
     },
     {
       name: "the component not registered",
       replace: ["defineLtPopover()\n", "\n"],
       failsAt: "focus-trigger",
+      failsAtIn: { safari: "open" },
     },
   ],
 }
@@ -455,6 +469,8 @@ const term: Contract = {
       focus: { role: "link", name: "act of God", notStates: ["expanded"] },
     },
   ],
+  // In Safari these fail a step later, as the popover's do: AX cannot show
+  // expandable, so focus-word passes, and the card that never opens fails.
   mutations: [
     {
       // Without the id on the entry the link points at nothing: the word
@@ -462,11 +478,13 @@ const term: Contract = {
       name: "the entry not recognised",
       replace: ['<div id="term-act-of-god">', "<div>"],
       failsAt: "focus-word",
+      failsAtIn: { safari: "open" },
     },
     {
       name: "the component not registered",
       replace: ["defineLtTerm()\n", "\n"],
       failsAt: "focus-word",
+      failsAtIn: { safari: "open" },
     },
   ],
 }
@@ -643,6 +661,7 @@ const input: Contract = {
       name: "the label not pointing at the field",
       replace: [' for="fixer"', ""],
       failsAt: "focus-field",
+      lotekCheck: { not: PLACEHOLDER_IS_THE_NAME },
     },
     // No "invalid only in colour" here: type="email" with the value "fixer@"
     // is invalid to the browser itself, so a screen reader is told so
@@ -671,6 +690,7 @@ const textarea: Contract = {
       name: "the label not pointing at the field",
       replace: [' for="objective"', ""],
       failsAt: "focus-field",
+      lotekCheck: { not: PLACEHOLDER_IS_THE_NAME },
     },
     {
       // data-state="invalid" only colours the field; aria-invalid is what a

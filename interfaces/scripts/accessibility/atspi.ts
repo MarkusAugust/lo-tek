@@ -32,6 +32,8 @@ export const ATSPI: Platform = {
     change === "description"
       ? "object:property-change:accessible-description"
       : `object:state-changed:${ATSPI_STATES[change]}`,
+  // "document web", and "document frame" in Firefox.
+  isDocument: (role) => role.startsWith("document"),
 }
 
 type Node = {
