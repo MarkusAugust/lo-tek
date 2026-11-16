@@ -660,8 +660,35 @@ const toastWithoutRegion: Contract = {
     ],
   },
   steps: toastLate.steps,
-  mutations: [],
+  mutations: [
+    {
+      // The fix switched off from the page: the region is not put back, so
+      // its role stays one set on a node that already exists. Chromium and
+      // Firefox take that in, so only Safari runs it.
+      name: "the region not put back",
+      replace: [
+        "window.lotekDefine = defineLtToast",
+        'window.lotekDefine = () => { const insert = Node.prototype.insertBefore; Node.prototype.insertBefore = function (node, before) { return node.localName === "lt-toast" ? node : insert.call(this, node, before) }; defineLtToast() }',
+      ],
+      failsAt: "restart-fails",
+      engines: ["safari"],
+    },
+  ],
 }
+
+/**
+ * Keeps `role` and `aria-live` off the bar of `<lt-connection-status>`, from
+ * the page: the fix switched off, for the mutations below.
+ */
+/**
+ * Makes a frame asked for inside a frame run at once, so the component's
+ * two frames before the text become the one they were.
+ */
+const ONE_FRAME =
+  "const raf = window.requestAnimationFrame.bind(window); let inside = false; window.requestAnimationFrame = (f) => inside ? (f(performance.now()), 0) : raf((t) => { inside = true; try { f(t) } finally { inside = false } })"
+
+const BAR_NEVER_THE_REGION =
+  'const set = Element.prototype.setAttribute; Element.prototype.setAttribute = function (name, value) { if (!(this.className === "lt-connection-status__bar" && (name === "role" || name === "aria-live"))) set.call(this, name, value) }'
 
 const sessionTimeout: Contract = {
   component: "session-timeout",
@@ -750,7 +777,24 @@ const connectionStatusWithoutRegion: Contract = {
     ],
   },
   steps: connectionStatusLate.steps,
-  mutations: connectionStatus.mutations,
+  mutations: [
+    ...connectionStatus.mutations,
+    {
+      // As before 0.45.0: the component marked its host after it was on the
+      // page, the bar was no region, and the text came one frame after the
+      // bar. All three: with the text two frames after the bar, Safari 27.2
+      // announced it from a host marked that late too (2026-11-16).
+      // Chromium and Firefox take the late role in either way, so only
+      // Safari runs it.
+      name: "the role set on the host afterwards, none on the bar, and the text a frame after it",
+      replace: [
+        "window.lotekDefine = defineLtConnectionStatus",
+        `window.lotekDefine = () => { ${ONE_FRAME}; ${BAR_NEVER_THE_REGION}; defineLtConnectionStatus(); const c = document.querySelector("lt-connection-status"); c.setAttribute("role", "status"); c.setAttribute("aria-live", "polite") }`,
+      ],
+      failsAt: "offline",
+      engines: ["safari"],
+    },
+  ],
 }
 
 /**
@@ -773,7 +817,18 @@ const connectionStatusMorphed: Contract = {
     },
     ...settled(connectionStatus.steps),
   ],
-  mutations: [],
+  mutations: [
+    {
+      // Without the fix the bar is no region once the morph has taken the
+      // host's away, and then nothing is, in any engine.
+      name: "the bar not made the region",
+      replace: [
+        "defineLtConnectionStatus()\n",
+        `${BAR_NEVER_THE_REGION}; defineLtConnectionStatus()\n`,
+      ],
+      failsAt: "offline",
+    },
+  ],
 }
 
 /* The form controls. Their markup is the first example on each page. */

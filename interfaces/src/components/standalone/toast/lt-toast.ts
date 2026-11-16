@@ -183,9 +183,9 @@ export class LtToast extends HostElement {
     }
     this.warnIfNamed()
     /*
-     * Safari never takes in a `role` or `aria-live` set on a node that
-     * already exists (measured in Safari 27.2): the messages were shown, and
-     * VoiceOver said nothing. A node that is inserted with them is taken in,
+     * Safari does not take in a `role` or `aria-live` set on a node that
+     * already exists until something else in the tree changes (measured in
+     * Safari 27.2): the messages were shown, and VoiceOver said nothing. A node that is inserted with them is taken in,
      * so the region is put back where it stands. It connects once more,
      * finds all three, and stops here.
      *

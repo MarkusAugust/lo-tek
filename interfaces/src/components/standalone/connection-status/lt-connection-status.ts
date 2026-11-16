@@ -81,9 +81,11 @@ export class LtConnectionStatus extends HostElement {
      * The live region is the host when the markup made it one, as
      * `lt.connectionStatus()` does: then the region exists long before the
      * bar and its text arrive. A host without it is not made a region here.
-     * Safari never takes in a `role` or `aria-live` set on a node that
-     * already exists (measured in Safari 27.2), so VoiceOver said nothing
-     * about the outage. Then the bar is the region instead, see `createBar`.
+     * Safari does not take in a `role` or `aria-live` set on a node that
+     * already exists until something else in the tree changes. When the
+     * component marked its host and wrote the text a frame after the bar,
+     * VoiceOver said nothing about the outage (measured in Safari 27.2).
+     * Then the bar is the region instead, see `createBar`.
      *
      * A morph can take the region off the host while the bar shows. Then
      * the bar is made anew as the region. A region the host gets afterwards
