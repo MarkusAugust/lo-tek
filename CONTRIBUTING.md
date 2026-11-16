@@ -117,6 +117,20 @@ Once per machine:
 - Swift from the command line tools, `xcode-select --install`, which
   compiles the recorder the first time.
 
+Quit Safari before you run it. The check starts Safari itself and quits it
+again, and refuses when a Safari you opened is running, since that one is
+not its to quit. Leave the keyboard alone meanwhile: an app that comes to
+the front takes it from Safari, and the run fails as interrupted.
+
+Safari answers VoiceOver from another copy of the accessibility tree than
+it gives other clients, and the two differ. So that the check reads what
+VoiceOver gets, it sets the user default
+`ShouldForceWebKitAccessibilityEnabled` in `com.apple.Accessibility` while
+it runs, and takes it off afterwards. The default is the machine's: an app
+with a web view that starts during the run keeps that mode until it quits.
+A default you set yourself is left alone. See `asVoiceOverGetsIt` in
+`interfaces/scripts/accessibility/ax.ts`.
+
 VoiceOver must be off while it runs: Safari takes VoiceOver's use of the
 window as someone else's, and stops the automation. Each missing step fails
 with its name. What Safari does differently from the specifications is in
