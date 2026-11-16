@@ -63,7 +63,7 @@
     },
     "vscode": {
       "name": "interfaces",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "devDependencies": {
         "@lo-tek/interfaces": "workspace:*",
         "@types/node": "24.12.4",
