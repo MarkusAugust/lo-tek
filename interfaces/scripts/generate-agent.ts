@@ -459,7 +459,7 @@ const NO_DEFINE: [string, string] = [
 ]
 const FOREIGN_TEXT: [string, string] = [
   "A component speaks English on a page in another language",
-  "The text in the markup comes from you, and is written with the app's own translation setup. The few default texts the package has are replaced with `label` and `close-label` on `<lt-toast>`, `offline-text` and `online-text` on `<lt-connection-status>`, `count-none`, `count-one` and `count-other` on `<lt-suggestion>`, and `--lt-label-required-text`, `--lt-label-optional-text` and `--lt-label-required-symbol` in CSS. Numbers and durations follow the nearest `lang`, usually the one on `<html>`. See https://lo-tek.sobernetics.no/translation/",
+  "The text in the markup comes from you, and is written with the app's own translation setup. The few default texts the package has are replaced with `close-label` on `<lt-toast>`, `offline-text` and `online-text` on `<lt-connection-status>`, `count-none`, `count-one` and `count-other` on `<lt-suggestion>`, and `--lt-label-required-text`, `--lt-label-optional-text` and `--lt-label-required-symbol` in CSS. Numbers and durations follow the nearest `lang`, usually the one on `<html>`. See https://lo-tek.sobernetics.no/translation/",
 ]
 const NEVER_INVALID: [string, string] = [
   "The error text never shows, and the field counts as valid",

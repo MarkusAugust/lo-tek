@@ -375,10 +375,6 @@ export const elements: Elements = {
         "type": "number",
         "description": "Milliseconds before a message disappears. The default is 6000, and 0 keeps the messages."
       },
-      "label": {
-        "type": "text",
-        "description": "Text that tells screen readers what the region is for."
-      },
       "close-label": {
         "type": "text",
         "description": "What the close button in each message is called for screen readers. The default is \"Close message\"."
@@ -386,19 +382,15 @@ export const elements: Elements = {
     },
     "parts": {},
     "texts": {
-      "toastRegion": {
-        "text": "Notifications",
-        "replacedBy": [
-          "label",
-          "aria-label"
-        ]
-      },
       "toastClose": {
         "text": "Close message",
         "replacedBy": [
           "close-label"
         ]
       }
+    },
+    "removed": {
+      "label": "The region has no name since 0.45.0: Safari announces nothing from a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it."
     },
     "events": {
       "toast-dismiss": {}

@@ -339,13 +339,6 @@
           }
         },
         {
-          "name": "label",
-          "description": {
-            "kind": "markdown",
-            "value": "Text that tells screen readers what the region is for."
-          }
-        },
-        {
           "name": "close-label",
           "description": {
             "kind": "markdown",

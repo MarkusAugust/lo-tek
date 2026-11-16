@@ -142,8 +142,7 @@
     "prefix": "lt-toast",
     "body": [
       "<lt-toast id=\"$1\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"",
-      "          aria-atomic=\"false\"",
-      "          aria-label=\"Messages\" data-ignore-morph></lt-toast>",
+      "          aria-atomic=\"false\" data-ignore-morph></lt-toast>",
       "",
       "<button class=\"lt-button\" id=\"$2\" type=\"button\">Restart relay 14</button>"
     ],

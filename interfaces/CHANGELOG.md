@@ -32,6 +32,18 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   runs, and in none of 30 on Java 21. The artifacts are now compiled for
   Java 21, so an older Java refuses to load them instead of crashing halfway.
   0.44.0 has the crash on Java 17.
+- **`<lt-toast>` has no name.** `label` on the element, `label` in
+  `lt.toast()` and `Lt.toast()`, and the default text "Notifications" are
+  gone, and the component no longer writes `aria-label` on the region.
+  Safari announces nothing from a live region with an accessible name, so
+  VoiceOver in Safari said nothing about any message. Take `label` away, and
+  `aria-label` with it; `lotek check` reports a `label` left in a template.
+
+### Fixed
+
+- **VoiceOver in Safari reads out the messages in `<lt-toast>`.** The
+  component warns in the console when the markup names the region anyway,
+  with `aria-label`, `aria-labelledby` or `title`, and leaves the name.
 
 ## 0.44.0 (2026-11-16)
 

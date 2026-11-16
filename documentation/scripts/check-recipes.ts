@@ -343,8 +343,8 @@ for (const entry of recipes.pages.filter(
      * page wrote `<lt-toast label="Notifications">` in all four tabs, and then
      * `data-ignore-morph` was missing in all four, the Datastar tab included,
      * where the page itself says the attribute is not optional. The component
-     * sets `role` and `aria-label` itself, but not that, so a patch would have
-     * torn the messages away.
+     * sets `role` itself, but not that, so a patch would have torn the
+     * messages away.
      */
     for (const [tag, builder] of HOSTS) {
       const hosts = [...bare.matchAll(new RegExp(`<${tag}\\b[^>]*>`, "g"))]

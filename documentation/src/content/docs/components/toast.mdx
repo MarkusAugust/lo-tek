@@ -40,8 +40,7 @@ The container is added once, and the messages come from your code. That is the d
 
     ```html
     <lt-toast id="messages" class="lt-toast" role="status" aria-live="polite"
-              aria-atomic="false"
-              aria-label="Messages" data-ignore-morph></lt-toast>
+              aria-atomic="false" data-ignore-morph></lt-toast>
 
     <button class="lt-button" id="restart" type="button">Restart relay 14</button>
 
@@ -103,7 +102,7 @@ The container is added once, and the messages come from your code. That is the d
     import { type LtToast, showToast } from "@lo-tek/interfaces/toast"
     import "@lo-tek/interfaces/tokens.css"
 
-    const toasts = lt.toast({ label: "Messages" })
+    const toasts = lt.toast()
 
     const Messages = createContext<(text: string, color?: "success" | "danger") => void>(
       () => {},
@@ -147,7 +146,7 @@ The container is added once, and the messages come from your code. That is the d
 
     // Put the container in the page layout, so it exists on every page
 
-    const toasts = lt.toast({ label: "Messages" })
+    const toasts = lt.toast()
 
     ---
 
@@ -177,8 +176,7 @@ The container is added once, and the messages come from your code. That is the d
     <!-- Or everything in one file: https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css -->
 
     <lt-toast id="messages" class="lt-toast" role="status" aria-live="polite"
-              aria-atomic="false"
-              aria-label="Messages" data-ignore-morph></lt-toast>
+              aria-atomic="false" data-ignore-morph></lt-toast>
 
     <button
       class="lt-button"
@@ -212,7 +210,7 @@ The container is added once, and the messages come from your code. That is the d
     A refusal is the same answer with the danger message and `duration: 0`. Datastar runs the answer only from a 200: an error status runs nothing, and a server that does not answer gets no message, which is what [Connection Status](/components/connection-status/) is for. Datastar also follows a redirect, and morphs the log-in page into this one without a message, so a request with the `Datastar-Request` header is answered with the message when the session has run out, not redirected.
   </TabItem>
   <TabItem label="kotlinx.html">
-    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`, and the Datastar recipe. `Lt.toast()` gives the region its role, its name and `data-ignore-morph`, so a patch from the server leaves the messages alone. The button posts with `@post`, and the server answers with the call to `show()`, as in the Datastar tab. The page has no script of its own. After an ordinary form submission and a redirect, the next page renders an [alert](/components/alert/) instead, as in [With Ktor](/kotlin/#with-ktor).
+    On a Kotlin or Java server, with kotlinx.html and `lo-tek-kotlinx-html`, and the Datastar recipe. `Lt.toast()` gives the region its role and `data-ignore-morph`, so a patch from the server leaves the messages alone. The button posts with `@post`, and the server answers with the call to `show()`, as in the Datastar tab. The page has no script of its own. After an ordinary form submission and a redirect, the next page renders an [alert](/components/alert/) instead, as in [With Ktor](/kotlin/#with-ktor).
 
     ```kotlin
     import kotlinx.html.*
@@ -221,7 +219,7 @@ The container is added once, and the messages come from your code. That is the d
     import no.lotek.html.ltToast
 
     fun FlowContent.relay() {
-        ltToast { lt(Lt.toast(label = "Messages").host); id = "messages" }
+        ltToast { lt(Lt.toast().host); id = "messages" }
         button {
             lt(Lt.button())
             type = ButtonType.button
@@ -251,7 +249,7 @@ The container is added once, and the messages come from your code. That is the d
 A toast has three parts, and `lt.toast()` gives one attribute set for each. It is the same `toasts` as in the React and Astro recipes above:
 
 ```ts
-const toasts = lt.toast({ label: "Messages" })
+const toasts = lt.toast()
 ```
 
 | Set | Which part | Who writes it |
@@ -274,8 +272,7 @@ Without a build step, you write the same set out as plain attributes, as the "Pl
 
 ```html
 <lt-toast id="messages" class="lt-toast" role="status" aria-live="polite"
-          aria-atomic="false"
-          aria-label="Messages" data-ignore-morph></lt-toast>
+          aria-atomic="false" data-ignore-morph></lt-toast>
 ```
 
 `data-ignore-morph` is the most important of them, and the only one the component does not set itself.
@@ -287,7 +284,6 @@ Without a build step, you write the same set out as plain attributes, as the "Pl
 | Name | What it is |
 | --- | --- |
 | `duration` | Default lifetime in milliseconds. Without the attribute it is 6000. `0` leaves the messages in place. |
-| `label` | Text that says what the region is. Becomes `aria-label`. Default: "Notifications" |
 | `close-label` | What the close button in each message is called for the screen reader. Default: "Close message". `lt.toast({ closeLabel })` writes it |
 | `show(text, options)` | Shows a message and returns the element |
 | `dismiss(message)` | Removes one message, and dispatches `toast-dismiss`. If the message had focus, focus moves to the message next to it |
@@ -303,7 +299,7 @@ The options for `show()`:
 | `duration` | from the element | Milliseconds before the message disappears |
 | `closeLabel` | from `close-label` | What the close button is called for the screen reader, for this one message |
 
-Both texts can be translated. See [Translation](/translation/).
+The text of the close button can be translated. See [Translation](/translation/).
 
 ## Messages that disappear
 
@@ -338,6 +334,7 @@ See [Customising](../../customising/) for how the variables and the layer work.
 
 <ScreenReaderContract component="toast" />
 
+- **The region has no name.** Safari announces nothing from a live region with a name, from `aria-label`, `aria-labelledby` or `title`, so VoiceOver would say nothing about the messages. The component warns in the console when the markup names it. A `status` region needs no name, and the name is never read out with a message.
 - One thing at a time. Five messages on top of each other are read out one after another, and none of them gets attention.
 - Do not put important actions in a message that disappears. The undo button belongs in the page.
 - Errors that stop the user belong in an [Alert](../alert/) or an [Error Summary](../error-summary/), not in the corner.

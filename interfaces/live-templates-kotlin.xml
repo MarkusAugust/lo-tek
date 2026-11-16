@@ -47,7 +47,7 @@
       <option name="KOTLIN_TOPLEVEL" value="true" />
     </context>
   </template>
-  <template name="lttoast" value="fun FlowContent.relay() {&#10;    ltToast { lt(no.lotek.Lt.toast(label = &quot;Messages&quot;).host); id = &quot;$messages$&quot; }&#10;    button {&#10;        lt(no.lotek.Lt.button())&#10;        type = ButtonType.button&#10;        attributes[&quot;data-on:click&quot;] = &quot;@post('/relays/14/restart')&quot;&#10;        +&quot;Restart relay 14&quot;&#10;    }&#10;}" description="The Kotlin recipe from the toast page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
+  <template name="lttoast" value="fun FlowContent.relay() {&#10;    ltToast { lt(no.lotek.Lt.toast().host); id = &quot;$messages$&quot; }&#10;    button {&#10;        lt(no.lotek.Lt.button())&#10;        type = ButtonType.button&#10;        attributes[&quot;data-on:click&quot;] = &quot;@post('/relays/14/restart')&quot;&#10;        +&quot;Restart relay 14&quot;&#10;    }&#10;}" description="The Kotlin recipe from the toast page, in kotlinx.html. Needs import kotlinx.html.* and no.lotek.html.*; the names from no.lotek are imported when it is inserted." toReformat="true" toShortenFQNames="true">
     <variable name="messages" expression="" defaultValue="" alwaysStopAt="true" />
     <context>
       <option name="KOTLIN_TOPLEVEL" value="true" />

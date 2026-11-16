@@ -5,7 +5,7 @@
       "end": 35,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/translation/",
-      "message": "<lt-toast> is on a page in \"nb\", and writes its own text in \"en\": \"Notifications\", \"Close message\". A screen reader reads it out in the middle of the page's language. Write label, close-label in the page's language."
+      "message": "<lt-toast> is on a page in \"nb\", and writes its own text in \"en\": \"Close message\". A screen reader reads it out in the middle of the page's language. Write close-label in the page's language."
     }
   ],
   "page": [
@@ -14,7 +14,7 @@
       "end": 35,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/translation/",
-      "message": "<lt-toast> is on a page in \"nb\", and writes its own text in \"en\": \"Notifications\", \"Close message\". A screen reader reads it out in the middle of the page's language. Write label, close-label in the page's language."
+      "message": "<lt-toast> is on a page in \"nb\", and writes its own text in \"en\": \"Close message\". A screen reader reads it out in the middle of the page's language. Write close-label in the page's language."
     }
   ],
   "styled": [
@@ -23,7 +23,7 @@
       "end": 35,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/translation/",
-      "message": "<lt-toast> is on a page in \"nb\", and writes its own text in \"en\": \"Notifications\", \"Close message\". A screen reader reads it out in the middle of the page's language. Write label, close-label in the page's language."
+      "message": "<lt-toast> is on a page in \"nb\", and writes its own text in \"en\": \"Close message\". A screen reader reads it out in the middle of the page's language. Write close-label in the page's language."
     },
     {
       "start": 172,

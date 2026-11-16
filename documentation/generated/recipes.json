@@ -6179,7 +6179,7 @@
             {
               "lang": "html",
               "meta": null,
-              "code": "<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\"\n          aria-label=\"Messages\" data-ignore-morph></lt-toast>\n\n<button class=\"lt-button\" id=\"restart\" type=\"button\">Restart relay 14</button>\n\n<!-- Once for the whole app, in the page template. Not once per component. -->\n<script type=\"module\">\n  import { defineLtToast } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/toast/lt-toast.js\"\n\n  defineLtToast()\n</script>\n\n<script type=\"module\">\n  const messages = document.getElementById(\"messages\")\n\n  document.getElementById(\"restart\").addEventListener(\"click\", async () => {\n    let answer\n    try {\n      answer = await fetch(\"/relays/14/restart\", { method: \"POST\" })\n    } catch {}\n    // A gateway whose server is gone answers 502, 503 or 504, which is no\n    // answer from the relay either. Any other answer that is not ok means\n    // the server is there and said no.\n    if (answer && [502, 503, 504].includes(answer.status)) answer = undefined\n    // fetch follows a redirect, as to the log-in page when the session has\n    // run out, and the page it lands on is ok. That is no restart.\n    if (answer?.ok && !answer.redirected) {\n      messages.show(\"Relay 14 is back\", { color: \"success\" })\n    } else if (answer) {\n      messages.show(\"Relay 14 refused the restart. Try again.\", { color: \"danger\", duration: 0 })\n    } else {\n      messages.show(\"Relay 14 did not answer. Try again.\", { color: \"danger\", duration: 0 })\n    }\n  })\n</script>"
+              "code": "<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\" data-ignore-morph></lt-toast>\n\n<button class=\"lt-button\" id=\"restart\" type=\"button\">Restart relay 14</button>\n\n<!-- Once for the whole app, in the page template. Not once per component. -->\n<script type=\"module\">\n  import { defineLtToast } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/toast/lt-toast.js\"\n\n  defineLtToast()\n</script>\n\n<script type=\"module\">\n  const messages = document.getElementById(\"messages\")\n\n  document.getElementById(\"restart\").addEventListener(\"click\", async () => {\n    let answer\n    try {\n      answer = await fetch(\"/relays/14/restart\", { method: \"POST\" })\n    } catch {}\n    // A gateway whose server is gone answers 502, 503 or 504, which is no\n    // answer from the relay either. Any other answer that is not ok means\n    // the server is there and said no.\n    if (answer && [502, 503, 504].includes(answer.status)) answer = undefined\n    // fetch follows a redirect, as to the log-in page when the session has\n    // run out, and the page it lands on is ok. That is no restart.\n    if (answer?.ok && !answer.redirected) {\n      messages.show(\"Relay 14 is back\", { color: \"success\" })\n    } else if (answer) {\n      messages.show(\"Relay 14 refused the restart. Try again.\", { color: \"danger\", duration: 0 })\n    } else {\n      messages.show(\"Relay 14 did not answer. Try again.\", { color: \"danger\", duration: 0 })\n    }\n  })\n</script>"
             }
           ],
           "setup": {
@@ -6212,7 +6212,7 @@
             {
               "lang": "tsx",
               "meta": null,
-              "code": "import { createContext, useContext, useRef } from \"react\"\nimport { lt } from \"@lo-tek/interfaces/react\"\nimport { type LtToast, showToast } from \"@lo-tek/interfaces/toast\"\nimport \"@lo-tek/interfaces/tokens.css\"\n\nconst toasts = lt.toast({ label: \"Messages\" })\n\nconst Messages = createContext<(text: string, color?: \"success\" | \"danger\") => void>(\n  () => {},\n)\n\nexport function MessagesProvider({ children }: { children: React.ReactNode }) {\n  const queue = useRef<LtToast>(null)\n\n  const notify = (text: string, color?: \"success\" | \"danger\") => {\n    if (!queue.current) return\n    showToast(queue.current, text, { color, duration: color === \"danger\" ? 0 : undefined })\n  }\n\n  return (\n    <Messages.Provider value={notify}>\n      {children}\n      <lt-toast ref={queue} {...toasts.host} />\n    </Messages.Provider>\n  )\n}\n\nexport const useMessages = () => useContext(Messages)"
+              "code": "import { createContext, useContext, useRef } from \"react\"\nimport { lt } from \"@lo-tek/interfaces/react\"\nimport { type LtToast, showToast } from \"@lo-tek/interfaces/toast\"\nimport \"@lo-tek/interfaces/tokens.css\"\n\nconst toasts = lt.toast()\n\nconst Messages = createContext<(text: string, color?: \"success\" | \"danger\") => void>(\n  () => {},\n)\n\nexport function MessagesProvider({ children }: { children: React.ReactNode }) {\n  const queue = useRef<LtToast>(null)\n\n  const notify = (text: string, color?: \"success\" | \"danger\") => {\n    if (!queue.current) return\n    showToast(queue.current, text, { color, duration: color === \"danger\" ? 0 : undefined })\n  }\n\n  return (\n    <Messages.Provider value={notify}>\n      {children}\n      <lt-toast ref={queue} {...toasts.host} />\n    </Messages.Provider>\n  )\n}\n\nexport const useMessages = () => useContext(Messages)"
             },
             {
               "lang": "tsx",
@@ -6240,7 +6240,7 @@
             {
               "lang": "astro",
               "meta": null,
-              "code": "---\nimport { lt } from \"@lo-tek/interfaces\"\nimport \"@lo-tek/interfaces/tokens.css\"\nimport \"@lo-tek/interfaces/toast.css\"\n\n// Put the container in the page layout, so it exists on every page\n\nconst toasts = lt.toast({ label: \"Messages\" })\n\n---\n\n<slot />\n\n<lt-toast id=\"messages\" {...toasts.host}></lt-toast>\n\n<script>\n  import { defineLtToast } from \"@lo-tek/interfaces/toast\"\n  defineLtToast()\n\n  // Make the queue available to the islands on the page\n  window.notify = (text, options) =>\n    document.getElementById(\"messages\").show(text, options)\n</script>"
+              "code": "---\nimport { lt } from \"@lo-tek/interfaces\"\nimport \"@lo-tek/interfaces/tokens.css\"\nimport \"@lo-tek/interfaces/toast.css\"\n\n// Put the container in the page layout, so it exists on every page\n\nconst toasts = lt.toast()\n\n---\n\n<slot />\n\n<lt-toast id=\"messages\" {...toasts.host}></lt-toast>\n\n<script>\n  import { defineLtToast } from \"@lo-tek/interfaces/toast\"\n  defineLtToast()\n\n  // Make the queue available to the islands on the page\n  window.notify = (text, options) =>\n    document.getElementById(\"messages\").show(text, options)\n</script>"
             }
           ],
           "setup": {
@@ -6262,7 +6262,7 @@
             {
               "lang": "html",
               "meta": null,
-              "code": "<!-- The stylesheets the page needs. Without a build step it is `<link>`, not\n     `import`: a browser does not resolve a package name. -->\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css\">\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/standalone/toast/toast.css\">\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/css/button/button.css\">\n<!-- Or everything in one file: https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css -->\n\n<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\"\n          aria-label=\"Messages\" data-ignore-morph></lt-toast>\n\n<button\n  class=\"lt-button\"\n  type=\"button\"\n  data-on:click=\"@post('/relays/14/restart')\"\n>\n  Restart relay 14\n</button>\n\n<!-- Once for the whole app, in the page template. Not once per component. -->\n<script type=\"module\">\n  import { defineLtToast } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/toast/lt-toast.js\"\n\n  defineLtToast()\n</script>\n\n<!-- Datastar itself, after the registration: module scripts run in the\n     order they stand, so no request goes out before the web components\n     exist. Without it the `data-` attributes below do nothing. -->\n<script type=\"module\"\n        src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js\"></script>"
+              "code": "<!-- The stylesheets the page needs. Without a build step it is `<link>`, not\n     `import`: a browser does not resolve a package name. -->\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/tokens/tokens.css\">\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/standalone/toast/toast.css\">\n<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/src/components/css/button/button.css\">\n<!-- Or everything in one file: https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css -->\n\n<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\" data-ignore-morph></lt-toast>\n\n<button\n  class=\"lt-button\"\n  type=\"button\"\n  data-on:click=\"@post('/relays/14/restart')\"\n>\n  Restart relay 14\n</button>\n\n<!-- Once for the whole app, in the page template. Not once per component. -->\n<script type=\"module\">\n  import { defineLtToast } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/toast/lt-toast.js\"\n\n  defineLtToast()\n</script>\n\n<!-- Datastar itself, after the registration: module scripts run in the\n     order they stand, so no request goes out before the web components\n     exist. Without it the `data-` attributes below do nothing. -->\n<script type=\"module\"\n        src=\"https://cdn.jsdelivr.net/gh/starfederation/datastar@v1.0.4/bundles/datastar.js\"></script>"
             },
             {
               "lang": "js",
@@ -6290,7 +6290,7 @@
             {
               "lang": "kotlin",
               "meta": null,
-              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\nimport no.lotek.html.ltToast\n\nfun FlowContent.relay() {\n    ltToast { lt(Lt.toast(label = \"Messages\").host); id = \"messages\" }\n    button {\n        lt(Lt.button())\n        type = ButtonType.button\n        attributes[\"data-on:click\"] = \"@post('/relays/14/restart')\"\n        +\"Restart relay 14\"\n    }\n}"
+              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\nimport no.lotek.html.ltToast\n\nfun FlowContent.relay() {\n    ltToast { lt(Lt.toast().host); id = \"messages\" }\n    button {\n        lt(Lt.button())\n        type = ButtonType.button\n        attributes[\"data-on:click\"] = \"@post('/relays/14/restart')\"\n        +\"Restart relay 14\"\n    }\n}"
             },
             {
               "lang": "kotlin",
@@ -6312,7 +6312,7 @@
         {
           "lang": "ts",
           "meta": null,
-          "code": "const toasts = lt.toast({ label: \"Messages\" })",
+          "code": "const toasts = lt.toast()",
           "section": "The markup"
         },
         {
@@ -6324,7 +6324,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\"\n          aria-label=\"Messages\" data-ignore-morph></lt-toast>",
+          "code": "<lt-toast id=\"messages\" class=\"lt-toast\" role=\"status\" aria-live=\"polite\"\n          aria-atomic=\"false\" data-ignore-morph></lt-toast>",
           "section": "The markup"
         }
       ],
@@ -6365,8 +6365,6 @@
         "data-ignore-morph",
         "duration",
         "0",
-        "label",
-        "aria-label",
         "close-label",
         "lt.toast({ closeLabel })",
         "show(text, options)",
@@ -6399,7 +6397,11 @@
         "--lt-toast-radius",
         "var(--lt-spacing-1)",
         "--lt-toast-layer",
-        "60"
+        "60",
+        "aria-label",
+        "aria-labelledby",
+        "title",
+        "status"
       ]
     },
     {
@@ -8313,7 +8315,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<button class=\"lt-button\" data-variant=\"danger\" id=\"cancel-job\" type=\"button\">\n  Cancel the job\n</button>\n\n<dialog class=\"lt-dialog\" id=\"confirm\" aria-labelledby=\"confirm-title\">\n  <h2 class=\"lt-dialog__title\" id=\"confirm-title\">Cancel job 222-0481?</h2>\n\n  <div class=\"lt-dialog__body\">\n    <p>The crew keeps the advance. This cannot be undone.</p>\n  </div>\n\n  <form method=\"dialog\" class=\"lt-dialog__footer\">\n    <button class=\"lt-button\" data-variant=\"secondary\" value=\"keep\">Keep the job</button>\n    <button class=\"lt-button\" data-variant=\"danger\" value=\"cancel\">Cancel the job</button>\n  </form>\n</dialog>\n\n<lt-toast id=\"messages\" label=\"Notifications\"></lt-toast>\n\n<script type=\"module\">\n  import { defineLtToast } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/toast/lt-toast.js\"\n\n  defineLtToast()\n\n  const dialog = document.getElementById(\"confirm\")\n  const messages = document.getElementById(\"messages\")\n\n  document.getElementById(\"cancel-job\").addEventListener(\"click\", () => {\n    // Escape and close() without a value leave the previous value in place.\n    dialog.returnValue = \"\"\n    dialog.showModal()\n  })\n\n  dialog.addEventListener(\"close\", async () => {\n    if (dialog.returnValue !== \"cancel\") return\n\n    await cancelJob()\n    messages.show(\"Job 222-0481 has been cancelled\", { color: \"success\" })\n  })\n</script>",
+          "code": "<button class=\"lt-button\" data-variant=\"danger\" id=\"cancel-job\" type=\"button\">\n  Cancel the job\n</button>\n\n<dialog class=\"lt-dialog\" id=\"confirm\" aria-labelledby=\"confirm-title\">\n  <h2 class=\"lt-dialog__title\" id=\"confirm-title\">Cancel job 222-0481?</h2>\n\n  <div class=\"lt-dialog__body\">\n    <p>The crew keeps the advance. This cannot be undone.</p>\n  </div>\n\n  <form method=\"dialog\" class=\"lt-dialog__footer\">\n    <button class=\"lt-button\" data-variant=\"secondary\" value=\"keep\">Keep the job</button>\n    <button class=\"lt-button\" data-variant=\"danger\" value=\"cancel\">Cancel the job</button>\n  </form>\n</dialog>\n\n<lt-toast id=\"messages\"></lt-toast>\n\n<script type=\"module\">\n  import { defineLtToast } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/standalone/toast/lt-toast.js\"\n\n  defineLtToast()\n\n  const dialog = document.getElementById(\"confirm\")\n  const messages = document.getElementById(\"messages\")\n\n  document.getElementById(\"cancel-job\").addEventListener(\"click\", () => {\n    // Escape and close() without a value leave the previous value in place.\n    dialog.returnValue = \"\"\n    dialog.showModal()\n  })\n\n  dialog.addEventListener(\"close\", async () => {\n    if (dialog.returnValue !== \"cancel\") return\n\n    await cancelJob()\n    messages.show(\"Job 222-0481 has been cancelled\", { color: \"success\" })\n  })\n</script>",
           "section": "The markup"
         },
         {
@@ -8932,10 +8934,6 @@
         "lang",
         "<html>",
         "lang",
-        "label",
-        "<lt-toast>",
-        "label",
-        "lt.toast()",
         "close-label",
         "<lt-toast>",
         "closeLabel",

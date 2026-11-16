@@ -24,8 +24,6 @@
 export const DEFAULT_LANGUAGE = "en"
 
 export const DEFAULT_TEXTS = {
-  /** `aria-label` on the `<lt-toast>` region. Replaced with `label`. */
-  toastRegion: "Notifications",
   /** The close button in each message. Replaced with `close-label`. */
   toastClose: "Close message",
   /** `<lt-connection-status>` when the connection is lost. Replaced with `offline-text`. */

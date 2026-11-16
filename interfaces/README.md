@@ -73,7 +73,7 @@ defineLtToast()
 
 ```html
 <lt-toast class="lt-toast" role="status" aria-live="polite" aria-atomic="false"
-          aria-label="Notifications" data-ignore-morph></lt-toast>
+          data-ignore-morph></lt-toast>
 ```
 
 Every `defineLt*` also takes a tag name of your choice, such as `defineLtToast("app-toast")`, and repeated calls are harmless, also alongside `defineLt()`. The stylesheets are still written for the `lt-*` names: an `<lt-field>` registered as `<my-field>` still wires the label to the field, but the `display` rule on the element name does not follow, `<lt-tabs>` and `<lt-suggestion>` do not hide their content before registration, and `<lt-dialog>` no longer positions a dialog that is open before it is modal. The four that set their class themselves, `<lt-toast>`, `<lt-session-timeout>`, `<lt-connection-status>` and `<lt-error-summary>`, look the same under another name.

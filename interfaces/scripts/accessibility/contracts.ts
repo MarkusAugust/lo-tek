@@ -525,6 +525,17 @@ const toast: Contract = {
   ],
   mutations: [
     {
+      // The cause of the bug fixed in 0.45.0: Safari announces nothing from a
+      // named live region, and Chromium and Firefox do, so only Safari runs it.
+      name: "the region named",
+      replace: [
+        'aria-atomic="false" data-ignore-morph></lt-toast>',
+        'aria-atomic="false" aria-label="Messages" data-ignore-morph></lt-toast>',
+      ],
+      failsAt: "restart-fails",
+      engines: ["safari"],
+    },
+    {
       // The component only writes aria-live when it is missing, so the
       // server's "off" stands, and nothing is announced.
       name: "the region switched off",

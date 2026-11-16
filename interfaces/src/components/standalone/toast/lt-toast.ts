@@ -1,5 +1,10 @@
 import { DEFAULT_TEXTS } from "../../default-texts.js"
-import { defineElement, HostElement, whenUpgraded } from "../../host-element.js"
+import {
+  defineElement,
+  HostElement,
+  warnAboutMarkup,
+  whenUpgraded,
+} from "../../host-element.js"
 import { TOAST_CLASS, TOAST_CLOSE_CLASS, TOAST_MESSAGE_CLASS } from "./toast.js"
 
 export const LT_TOAST_TAG = "lt-toast" as const
@@ -12,8 +17,14 @@ export function isToastColor(value: unknown): value is ToastColor {
 }
 
 const DEFAULT_DURATION = 6000
-const DEFAULT_LABEL = DEFAULT_TEXTS.toastRegion
 const DEFAULT_CLOSE_LABEL = DEFAULT_TEXTS.toastClose
+
+/**
+ * The attributes that give the region a name, which leaves it silent in
+ * Safari: VoiceOver said nothing about any message in a region named by any
+ * of them (Safari 27.2, 2026-11-16).
+ */
+const NAMING = ["aria-label", "aria-labelledby", "title"] as const
 
 export type ShowOptions = {
   /** What the message means. Default: `neutral`. */
@@ -47,6 +58,11 @@ export type ShowOptions = {
  * `aria-atomic="false"`: `status` is atomic by default, and then the whole
  * stack was announced again for every new message.
  *
+ * The region has no name. Safari announces nothing from a live region with
+ * an accessible name, and until 0.45.0 the component named it "Notifications",
+ * so VoiceOver in Safari said nothing about any message. The component warns
+ * when the markup names it anyway.
+ *
  * Messages that disappear by themselves are an accessibility trap: someone
  * who reads slowly or uses magnification does not have time to read them. So
  * the close button is always there, and the timer stops while the mouse or
@@ -59,7 +75,9 @@ export type ShowOptions = {
  * ```
  */
 export class LtToast extends HostElement {
-  static observedAttributes = ["duration", "label", "close-label"] as const
+  // Both are read when a message is shown, so a change needs no callback.
+  // The list is what the manifest documents.
+  static observedAttributes = ["duration", "close-label"] as const
 
   /**
    * The screen reader name of the close button in each message shown.
@@ -89,12 +107,6 @@ export class LtToast extends HostElement {
     this.setAttribute("duration", String(value))
   }
 
-  /**
-   * Whether the component wrote `aria-label`. Before, `label` overwrote an
-   * `aria-label` the author had set, and when `label` was removed, the old
-   * one stayed.
-   */
-  private ownsLabel = false
   /**
    * The element focus came from before it entered a message. If the last
    * message is removed while it has focus, focus goes back there. Before, it
@@ -166,20 +178,21 @@ export class LtToast extends HostElement {
     if (!this.hasAttribute("aria-atomic")) {
       this.setAttribute("aria-atomic", "false")
     }
-    if (!this.hasAttribute("aria-label")) {
-      this.ownsLabel = true
-      this.setAttribute(
-        "aria-label",
-        this.getAttribute("label") ?? DEFAULT_LABEL,
+    // A warning, never a removal: the name is the markup's, and taking it
+    // away would fight the framework or morph that wrote it.
+    if (this.named())
+      warnAboutMarkup(
+        this,
+        `the region has a name (${NAMING.filter((a) => this.hasAttribute(a)).join(", ")}), ` +
+          "and Safari announces nothing from a named live region, so VoiceOver " +
+          "says nothing about the messages. Take the name away: a status " +
+          "region needs none.",
+        () => this.named(),
       )
-    }
   }
 
-  attributeChangedCallback(name: string, _old: string, value: string): void {
-    // `label` can be set after the element is in the DOM, for example by a
-    // framework that fills in the attributes in a later step.
-    if (name !== "label" || !this.ownsLabel) return
-    this.setAttribute("aria-label", value || DEFAULT_LABEL)
+  private named(): boolean {
+    return NAMING.some((name) => this.hasAttribute(name))
   }
 
   /** Shows a message, and returns the element it was put in. */

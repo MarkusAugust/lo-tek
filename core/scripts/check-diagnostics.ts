@@ -412,7 +412,7 @@ const cases: Case[] = [
   },
   {
     name: "a value with > in it",
-    html: `<lt-toast label="a > b" duration="5"></lt-toast>`,
+    html: `<lt-toast close-label="a > b" duration="5"></lt-toast>`,
     count: 0,
   },
   {

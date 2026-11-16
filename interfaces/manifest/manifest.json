@@ -377,10 +377,6 @@
           "type": "number",
           "description": "Milliseconds before a message disappears. The default is 6000, and 0 keeps the messages."
         },
-        "label": {
-          "type": "text",
-          "description": "Text that tells screen readers what the region is for."
-        },
         "close-label": {
           "type": "text",
           "description": "What the close button in each message is called for screen readers. The default is \"Close message\"."
@@ -388,19 +384,15 @@
       },
       "parts": {},
       "texts": {
-        "toastRegion": {
-          "text": "Notifications",
-          "replacedBy": [
-            "label",
-            "aria-label"
-          ]
-        },
         "toastClose": {
           "text": "Close message",
           "replacedBy": [
             "close-label"
           ]
         }
+      },
+      "removed": {
+        "label": "The region has no name since 0.45.0: Safari announces nothing from a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it."
       },
       "events": {
         "toast-dismiss": {}
@@ -5058,16 +5050,8 @@
     },
     {
       "name": "toast",
-      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
+      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\nThe region has no name. Safari announces nothing from a live region with an accessible name, whether it comes from `aria-label`, `aria-labelledby` or `title`, and a named region left VoiceOver silent about every message (Safari 27.2, 2026-11-16, `check-accessibility-safari.ts`). WAI-ARIA does not require a name for `status`, and the name is never spoken with a message.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
       "options": [
-        {
-          "name": "label",
-          "required": false,
-          "type": {
-            "kind": "text"
-          },
-          "description": "Text that says what the region is. Becomes `aria-label`."
-        },
         {
           "name": "closeLabel",
           "required": false,
@@ -5100,19 +5084,9 @@
               "role": "status",
               "aria-live": "polite",
               "aria-atomic": "false",
-              "aria-label": "Notifications",
               "data-ignore-morph": ""
             },
             "options": {
-              "label": {
-                "cases": {},
-                "template": {
-                  "aria-label": "{label}"
-                },
-                "empty": {
-                  "aria-label": ""
-                }
-              },
               "closeLabel": {
                 "cases": {},
                 "template": {
@@ -5129,11 +5103,6 @@
               "class": "lt-toast__message"
             },
             "options": {
-              "label": {
-                "cases": {},
-                "template": {},
-                "empty": {}
-              },
               "closeLabel": {
                 "cases": {},
                 "template": {},
@@ -5146,11 +5115,6 @@
               "class": "lt-toast__close"
             },
             "options": {
-              "label": {
-                "cases": {},
-                "template": {},
-                "empty": {}
-              },
               "closeLabel": {
                 "cases": {},
                 "template": {},

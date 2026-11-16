@@ -48,7 +48,7 @@
       <option name="HTML" value="true" />
     </context>
   </template>
-  <template name="lt-toast" value="&lt;lt-toast id=&quot;$messages$&quot; class=&quot;lt-toast&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&#10;          aria-atomic=&quot;false&quot;&#10;          aria-label=&quot;Messages&quot; data-ignore-morph&gt;&lt;/lt-toast&gt;&#10;&#10;&lt;button class=&quot;lt-button&quot; id=&quot;$restart$&quot; type=&quot;button&quot;&gt;Restart relay 14&lt;/button&gt;" description="A queue of short messages in the corner of the screen. The messages are created from script with `show(text, { color, duration })`." toReformat="false" toShortenFQNames="false">
+  <template name="lt-toast" value="&lt;lt-toast id=&quot;$messages$&quot; class=&quot;lt-toast&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&#10;          aria-atomic=&quot;false&quot; data-ignore-morph&gt;&lt;/lt-toast&gt;&#10;&#10;&lt;button class=&quot;lt-button&quot; id=&quot;$restart$&quot; type=&quot;button&quot;&gt;Restart relay 14&lt;/button&gt;" description="A queue of short messages in the corner of the screen. The messages are created from script with `show(text, { color, duration })`." toReformat="false" toShortenFQNames="false">
     <variable name="messages" expression="" defaultValue="" alwaysStopAt="true" />
     <variable name="restart" expression="" defaultValue="" alwaysStopAt="true" />
     <context>

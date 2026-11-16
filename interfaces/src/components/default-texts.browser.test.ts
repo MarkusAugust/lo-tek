@@ -59,11 +59,6 @@ async function connection(attributes: string, back: boolean): Promise<string> {
  * shows. Every text has a row: the type requires it.
  */
 const SHOWN: Record<Key, (attributes: string) => Promise<string>> = {
-  toastRegion: async (attributes) => {
-    mount(`<lt-toast ${attributes}></lt-toast>`)
-    await waitForPaint()
-    return document.querySelector("lt-toast")?.getAttribute("aria-label") ?? ""
-  },
   toastClose: async (attributes) => {
     mount(`<lt-toast ${attributes}></lt-toast>`)
     const toast = document.querySelector("lt-toast") as LtToast
