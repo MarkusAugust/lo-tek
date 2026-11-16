@@ -334,7 +334,7 @@ See [Customising](../../customising/) for how the variables and the layer work.
 
 <ScreenReaderContract component="toast" />
 
-- **The region has no name.** Safari announces nothing from a live region with a name, from `aria-label`, `aria-labelledby` or `title`, so VoiceOver would say nothing about the messages. The component warns in the console when the markup names it. A `status` region needs no name, and the name is never read out with a message.
+- **The region has no name.** Safari announces nothing that is put into a live region with a name, from `aria-label`, `aria-labelledby` or `title`, so VoiceOver would say nothing about the messages. The component warns in the console when the markup names it. A `status` region needs no name, and the name is never read out with a message.
 - One thing at a time. Five messages on top of each other are read out one after another, and none of them gets attention.
 - Do not put important actions in a message that disappears. The undo button belongs in the page.
 - Errors that stop the user belong in an [Alert](../alert/) or an [Error Summary](../error-summary/), not in the corner.

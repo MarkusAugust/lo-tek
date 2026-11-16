@@ -200,8 +200,8 @@ export const AX_CHANGES: Record<State | "description", string | null> = {
  * and the text in AXAnnouncementKey. Undocumented: Core-AAM gives
  * AXLiveRegionChanged, which carries no text, and Safari 27.2 sent no such
  * notification in a run on 2026-11-16, but this one, which VoiceOver spoke.
- * 10 was seen for polite. 90 is NSAccessibilityPriorityHigh, which Apple
- * documents, for assertive, not yet seen from a live region.
+ * 10 was seen for polite, and 90 for assertive, from a role=alert that was
+ * shown (the error summary without autofocus).
  */
 export const AX_LIVE: Record<Politeness, number> = {
   polite: 10,

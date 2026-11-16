@@ -58,10 +58,10 @@ export type ShowOptions = {
  * `aria-atomic="false"`: `status` is atomic by default, and then the whole
  * stack was announced again for every new message.
  *
- * The region has no name. Safari announces nothing from a live region with
- * an accessible name, and until 0.45.0 the component named it "Notifications",
- * so VoiceOver in Safari said nothing about any message. The component warns
- * when the markup names it anyway.
+ * The region has no name. Safari announces nothing put into a live region
+ * with an accessible name, and until 0.45.0 the component named it
+ * "Notifications", so VoiceOver in Safari said nothing about any message.
+ * The component warns when the markup names it anyway.
  *
  * Messages that disappear by themselves are an accessibility trap: someone
  * who reads slowly or uses magnification does not have time to read them. So
@@ -184,7 +184,7 @@ export class LtToast extends HostElement {
       warnAboutMarkup(
         this,
         `the region has a name (${NAMING.filter((a) => this.hasAttribute(a)).join(", ")}), ` +
-          "and Safari announces nothing from a named live region, so VoiceOver " +
+          "and Safari announces nothing put into a named live region, so VoiceOver " +
           "says nothing about the messages. Take the name away: a status " +
           "region needs none.",
         () => this.named(),

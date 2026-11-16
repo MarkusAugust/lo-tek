@@ -39,12 +39,13 @@ export type ToastAttributes = {
  * because something went well should not interrupt what the screen reader is
  * doing.
  *
- * The region has no name. Safari announces nothing from a live region with
- * an accessible name, whether it comes from `aria-label`, `aria-labelledby`
- * or `title`, and a named region left VoiceOver silent about every message
- * (Safari 27.2, 2026-11-16, `check-accessibility-safari.ts`). WAI-ARIA does
- * not require a name for `status`, and the name is never spoken with a
- * message.
+ * The region has no name. Safari announces nothing put into a live region
+ * with an accessible name, whether it comes from `aria-label`,
+ * `aria-labelledby` or `title`, and a named region left VoiceOver silent
+ * about every message (Safari 27.2, 2026-11-16, measured with
+ * `check-accessibility-safari.ts` and by ear; not found documented).
+ * WAI-ARIA does not require a name for `status`, and the name is never
+ * spoken with a message.
  *
  * `data-ignore-morph` is not optional. `<lt-toast>` creates and removes its
  * message elements inside the region, and without the attribute the Datastar

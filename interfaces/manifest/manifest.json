@@ -392,7 +392,7 @@
         }
       },
       "removed": {
-        "label": "The region has no name since 0.45.0: Safari announces nothing from a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it."
+        "label": "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it."
       },
       "events": {
         "toast-dismiss": {}
@@ -5050,7 +5050,7 @@
     },
     {
       "name": "toast",
-      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\nThe region has no name. Safari announces nothing from a live region with an accessible name, whether it comes from `aria-label`, `aria-labelledby` or `title`, and a named region left VoiceOver silent about every message (Safari 27.2, 2026-11-16, `check-accessibility-safari.ts`). WAI-ARIA does not require a name for `status`, and the name is never spoken with a message.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
+      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\nThe region has no name. Safari announces nothing put into a live region with an accessible name, whether it comes from `aria-label`, `aria-labelledby` or `title`, and a named region left VoiceOver silent about every message (Safari 27.2, 2026-11-16, measured with `check-accessibility-safari.ts` and by ear; not found documented). WAI-ARIA does not require a name for `status`, and the name is never spoken with a message.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
       "options": [
         {
           "name": "closeLabel",

@@ -35,9 +35,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`<lt-toast>` has no name.** `label` on the element, `label` in
   `lt.toast()` and `Lt.toast()`, and the default text "Notifications" are
   gone, and the component no longer writes `aria-label` on the region.
-  Safari announces nothing from a live region with an accessible name, so
-  VoiceOver in Safari said nothing about any message. Take `label` away, and
-  `aria-label` with it; `lotek check` reports a `label` left in a template.
+  Safari 27.2 announces nothing that is put into a live region with an
+  accessible name, so VoiceOver in Safari said nothing about any message.
+  Measured, and not found documented. Take `label` away, and `aria-label`
+  with it; `lotek check` reports a `label` left in a template.
 
 ### Fixed
 

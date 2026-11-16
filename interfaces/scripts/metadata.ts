@@ -778,7 +778,7 @@ export const elements: readonly ElementDoc[] = [
     },
     {
       label:
-        "The region has no name since 0.45.0: Safari announces nothing from a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it.",
+        "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it.",
     },
   ),
 

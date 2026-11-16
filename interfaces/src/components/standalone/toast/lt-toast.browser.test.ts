@@ -159,7 +159,7 @@ describe("lt-toast keeps the pause and focus", () => {
   })
 
   it("has no name, from the builder function or the component", async () => {
-    // Safari announces nothing from a named live region.
+    // Safari announces nothing put into a named live region.
     mount(`<lt-toast></lt-toast>`)
     const toast = await paint()
     for (const name of ["aria-label", "aria-labelledby", "title"])
