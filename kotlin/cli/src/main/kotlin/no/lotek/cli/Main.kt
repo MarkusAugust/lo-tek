@@ -12,7 +12,7 @@ import kotlin.system.exitProcess
 /**
  * Whether the command line runs from a terminal.
  *
- * Java 17 has a console only when both input and output are a terminal, and
+ * Java 21 has a console only when both input and output are a terminal, and
  * that is enough to show the hint to whoever typed the command without files.
  * From Java 22 it always has one, and `isTerminal()` answers instead.
  */

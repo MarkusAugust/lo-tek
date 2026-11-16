@@ -60,7 +60,7 @@ The version is the npm package's, but not every npm version is on Maven
 Central. Use the newest one there, and never write a version you have not seen
 on
 https://central.sonatype.com/artifact/io.github.markusaugust/lo-tek-interfaces.
-The package requires Java 17 or newer.
+The package requires Java 21 or newer.
 
 The package is also a WebJar: the files are under
 `META-INF/resources/webjars/lo-tek/<version>/`, with the same paths as in the

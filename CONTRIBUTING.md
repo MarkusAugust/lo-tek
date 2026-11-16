@@ -51,7 +51,7 @@ The step `Generated files are up to date` asks git whether the build changed any
 the change is committed. Otherwise the step fails on your own changes.
 
 Besides Bun it needs: Rust, since the check in the package is built from
-`core/`; Java 17 or later, for the jar and the Kotlin tests; and network access the first
+`core/`; Java 21 or later, for the jar and the Kotlin tests; and network access the first
 time, when VS Code is downloaded. On Linux without a display, meaning with neither `DISPLAY` nor
 `WAYLAND_DISPLAY` set, you also need `xvfb-run`; if the machine has a display, VS Code
 runs on it. The accessibility tree check reads AT-SPI, which only Linux has: on

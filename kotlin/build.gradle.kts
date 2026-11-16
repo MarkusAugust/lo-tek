@@ -36,16 +36,18 @@ dependencies {
 kotlin {
     coreLibrariesVersion = "2.2.21"
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_21)
         languageVersion.set(KotlinVersion.KOTLIN_2_2)
         apiVersion.set(KotlinVersion.KOTLIN_2_2)
     }
 }
 
-// Java 17 as the minimum: it covers the LTS versions most teams are on.
+// Java 21 as the minimum. It was 17, and there the command line crashed: on
+// Linux x86-64 `lotekTheme` aborted in 27 of 30 runs with "memory allocation
+// of 8 bytes failed" from the module, and in none of 30 on Java 21.
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 /*
