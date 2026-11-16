@@ -70,8 +70,8 @@ describe("lt-connection-status", () => {
   })
 
   it("leaves a host without the region alone, and makes the bar the region", async () => {
-    // Safari never takes in a role set on a node that already exists, so a
-    // host the component marked itself was silent in VoiceOver. The bar gets
+    // Safari does not reliably take in a role set on a node that already
+    // exists, and a host the component marked itself was silent in VoiceOver. The bar gets
     // the role before it is in the document. That the text is announced is
     // checked through AX in check-accessibility-safari.ts.
     const fresh = document.createElement(
@@ -144,7 +144,7 @@ describe("lt-connection-status", () => {
   })
 
   it("keeps the bar as the region when the host gets a role afterwards", async () => {
-    // Safari does not take in a role set on a host that already exists, so
+    // Safari does not reliably take in a role set on a host that already exists, so
     // a bar without one would leave VoiceOver with no region at all.
     const fresh = document.createElement(
       "lt-connection-status",

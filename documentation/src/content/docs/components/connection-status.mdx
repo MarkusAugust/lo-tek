@@ -252,7 +252,7 @@ The component also listens to the browser's `offline` and `online`, so a network
 
 <ScreenReaderContract component="connection-status" />
 
-The component itself is `role="status"` with `aria-live="polite"`, not `alert`, so the region exists before the bar and its text arrive; a role or politeness you write stays. Write the role in the markup, as the examples here do. If it is missing, the bar becomes the region instead, since Safari ignores a role that a script adds to an element already on the page. The message is important, but should not interrupt in the middle of a word. It stays until the connection is back, so someone who reads slowly has time to read it.
+The component itself is `role="status"` with `aria-live="polite"`, not `alert`, so the region exists before the bar and its text arrive; a role or politeness you write stays. Write the role in the markup, as the examples here do. If it is missing, the bar becomes the region instead, since Safari does not reliably pick up a role that a script adds to an element already on the page. The message is important, but should not interrupt in the middle of a word. It stays until the connection is back, so someone who reads slowly has time to read it.
 
 While a modal dialog is open, the bar is inert and sits under the backdrop, like everything else outside the dialog. If the connection drops then, the user learns about it only when the dialog closes.
 

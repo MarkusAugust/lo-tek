@@ -537,11 +537,11 @@ const term: Contract = {
 }
 
 /**
- * Safari 27.2 never takes in a `role` or `aria-live` added to a node that
- * already exists: text put into it later is not announced, and VoiceOver
- * says nothing (measured on 2026-11-16, and heard). But a change elsewhere
- * on the page just before the text, such as the barrier's marker, made
- * Safari take it in after all, and the check announced what a quiet page
+ * Safari 27.2 does not take in a `role` or `aria-live` added to a node
+ * that already exists by itself: text put into it later is not announced,
+ * and VoiceOver says nothing (measured on 2026-11-16, and heard). A change
+ * elsewhere on the page just before the text, such as the barrier's marker,
+ * made Safari take it in after all, and the check announced what a quiet page
  * never does. So the step after such a change waits a second before it
  * acts, as a page does where nothing happens between.
  */
