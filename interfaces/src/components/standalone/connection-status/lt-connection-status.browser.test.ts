@@ -59,8 +59,8 @@ describe("lt-connection-status", () => {
 
     const bar = findBar() as HTMLElement
     expect(bar.dataset.state).toBe("offline")
-    // The host is the live region, from the moment it is connected, so the
-    // region exists before the bar; the bar is not a region of its own. That
+    // The markup made the host the live region, so the region exists before
+    // the bar; the bar is not a region of its own. That
     // the text is announced is checked through AT-SPI in
     // check-accessibility-tree.ts.
     expect(status.getAttribute("role")).toBe("status")
@@ -69,14 +69,32 @@ describe("lt-connection-status", () => {
     expect(bar.textContent).toContain("No connection")
   })
 
-  it("is the live region before anything is reported, and keeps a role the server wrote", async () => {
-    const fresh = document.createElement("lt-connection-status")
+  it("leaves a host without the region alone, and makes the bar the region", async () => {
+    // Safari never takes in a role set on a node that already exists, so a
+    // host the component marked itself was silent in VoiceOver. The bar gets
+    // the role before it is in the document. That the text is announced is
+    // checked through AX in check-accessibility-safari.ts.
+    const fresh = document.createElement(
+      "lt-connection-status",
+    ) as LtConnectionStatus
     document.body.append(fresh)
-    expect(fresh.getAttribute("role")).toBe("status")
-    expect(fresh.getAttribute("aria-live")).toBe("polite")
+    expect(fresh.hasAttribute("role")).toBe(false)
+    expect(fresh.hasAttribute("aria-live")).toBe(false)
     expect(fresh.childElementCount).toBe(0)
-    fresh.remove()
 
+    fresh.reportFailure()
+    const bar = fresh.firstElementChild as HTMLElement
+    expect(bar.getAttribute("role")).toBe("status")
+    expect(bar.getAttribute("aria-live")).toBe("polite")
+    // The region first, its text afterwards.
+    expect(bar.textContent).toBe("")
+    await waitForPaint()
+    await waitForPaint()
+    expect(bar.textContent).toContain("No connection")
+    fresh.remove()
+  })
+
+  it("keeps a role the server wrote", () => {
     const written = document.createElement("lt-connection-status")
     written.setAttribute("role", "alert")
     written.setAttribute("aria-live", "assertive")
@@ -97,15 +115,47 @@ describe("lt-connection-status", () => {
     alert.remove()
   })
 
-  it("puts the region back when a morph takes it off", async () => {
-    const fresh = document.createElement("lt-connection-status")
-    document.body.append(fresh)
-    // The way a morph that only knows the server's markup does it.
-    fresh.removeAttribute("role")
-    fresh.removeAttribute("aria-live")
+  it("makes the bar anew as the region when a morph takes the region off the host", async () => {
+    const status = document.querySelector(
+      "lt-connection-status",
+    ) as LtConnectionStatus
+    status.reportFailure()
     await waitForPaint()
-    expect(fresh.getAttribute("role")).toBe("status")
-    expect(fresh.getAttribute("aria-live")).toBe("polite")
+    await waitForPaint()
+    const before = findBar() as HTMLElement
+    expect(before.hasAttribute("role")).toBe(false)
+
+    // The way a morph that only knows markup without the region does it.
+    status.removeAttribute("role")
+    status.removeAttribute("aria-live")
+    await waitForPaint()
+    await waitForPaint()
+    await waitForPaint()
+
+    const after = findBar() as HTMLElement
+    expect(after).not.toBe(before)
+    expect(before.isConnected).toBe(false)
+    expect(after.getAttribute("role")).toBe("status")
+    expect(after.getAttribute("aria-live")).toBe("polite")
+    expect(after.dataset.state).toBe("offline")
+    expect(after.textContent).toContain("No connection")
+    // The host is left as the morph wrote it: one region, never two.
+    expect(status.hasAttribute("role")).toBe(false)
+  })
+
+  it("keeps the bar as the region when the host gets a role afterwards", async () => {
+    // Safari does not take in a role set on a host that already exists, so
+    // a bar without one would leave VoiceOver with no region at all.
+    const fresh = document.createElement(
+      "lt-connection-status",
+    ) as LtConnectionStatus
+    document.body.append(fresh)
+    fresh.reportFailure()
+    const bar = fresh.firstElementChild as HTMLElement
+    fresh.setAttribute("role", "status")
+    await waitForPaint()
+    expect(fresh.firstElementChild).toBe(bar)
+    expect(bar.getAttribute("role")).toBe("status")
     fresh.remove()
   })
 

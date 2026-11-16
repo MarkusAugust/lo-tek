@@ -2,8 +2,9 @@
 /**
  * What a screen reader is given, step by step, for one component: the
  * accessibility contract `check-accessibility-tree.ts` checks through AT-SPI
- * in the engines in `ENGINE_NAMES`, written out from the same data. The page cannot
- * promise anything the check does not test, and the other way round.
+ * in Chromium and Firefox, and `check-accessibility-safari.ts` through AX in
+ * Safari, written out from the same data. The page cannot promise anything
+ * the checks do not test, and the other way round.
  */
 import {
   type Action,
@@ -14,6 +15,7 @@ import {
 import { CONTRACTS } from "../../../interfaces/scripts/accessibility/contracts"
 import {
   ENGINE_NAMES,
+  ENGINE_PLATFORM,
   KNOWN_DEVIATIONS,
   KNOWN_ROLE_DEVIATIONS,
 } from "../../../interfaces/scripts/accessibility/platform"
@@ -41,6 +43,7 @@ function action(a: Action): string {
   if ("type" in a) return `Type "${escapeHtml(a.type)}"`
   if ("click" in a) return `Click <code>${escapeHtml(a.click)}</code>`
   if ("clock" in a) return `Wait ${duration(a.clock)}`
+  if ("pause" in a) return `Wait ${duration(a.pause)}`
   return `Call <code>${escapeHtml(a.run)}</code>`
 }
 
@@ -94,14 +97,17 @@ const deviations = [
   ).map((d) => ({ engine: d.engine, seen: d.seen })),
 ]
 const engines = new Intl.ListFormat("en", { type: "conjunction" }).format(
-  Object.values(ENGINE_NAMES),
+  (Object.keys(ENGINE_NAMES) as (keyof typeof ENGINE_NAMES)[])
+    .filter((e) => ENGINE_PLATFORM[e] === "AT-SPI")
+    .map((e) => ENGINE_NAMES[e]),
 )
 ---
 
 <p>
   What a screen reader is given when the recipe above is used, step by step. It is checked through AT-SPI, the
   interface Orca reads, in {engines}, on every change, by <code>check-accessibility-tree.ts</code>, and
-  every change the check lists as a mutation must make it fail.
+  through AX, the interface VoiceOver reads, in {ENGINE_NAMES.safari} on a Mac before every release, by
+  <code>check-accessibility-safari.ts</code>. Every change the checks list as a mutation must make them fail.
 </p>
 <ol>
   {contract.steps.map((s) => <li><Fragment set:html={`${s.do.map(action).join(", then ")}: ${outcome(s)}.`} /></li>)}

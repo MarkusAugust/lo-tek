@@ -88,7 +88,12 @@ const WRITES_TEXT = new RegExp(
 )
 
 /** The attribute names themselves are not text. */
-const NOT_TEXT = new Set(["aria-label", "title", "placeholder"])
+const NOT_TEXT = new Set([
+  "aria-label",
+  "aria-labelledby",
+  "title",
+  "placeholder",
+])
 
 /**
  * The line without what is not text: the arguments to DOM lookups, which are

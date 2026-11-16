@@ -1,5 +1,10 @@
 import { DEFAULT_TEXTS } from "../../default-texts.js"
-import { defineElement, HostElement, whenUpgraded } from "../../host-element.js"
+import {
+  defineElement,
+  HostElement,
+  warnAboutMarkup,
+  whenUpgraded,
+} from "../../host-element.js"
 import { TOAST_CLASS, TOAST_CLOSE_CLASS, TOAST_MESSAGE_CLASS } from "./toast.js"
 
 export const LT_TOAST_TAG = "lt-toast" as const
@@ -12,8 +17,14 @@ export function isToastColor(value: unknown): value is ToastColor {
 }
 
 const DEFAULT_DURATION = 6000
-const DEFAULT_LABEL = DEFAULT_TEXTS.toastRegion
 const DEFAULT_CLOSE_LABEL = DEFAULT_TEXTS.toastClose
+
+/**
+ * The attributes that give the region a name, which leaves it silent in
+ * Safari: VoiceOver said nothing about any message in a region named by any
+ * of them (Safari 27.2, 2026-11-16).
+ */
+const NAMING = ["aria-label", "aria-labelledby", "title"] as const
 
 export type ShowOptions = {
   /** What the message means. Default: `neutral`. */
@@ -47,6 +58,11 @@ export type ShowOptions = {
  * `aria-atomic="false"`: `status` is atomic by default, and then the whole
  * stack was announced again for every new message.
  *
+ * The region has no name. Safari announces nothing put into a live region
+ * with an accessible name, and until 0.45.0 the component named it
+ * "Notifications", so VoiceOver in Safari said nothing about any message.
+ * The component warns when the markup names it anyway.
+ *
  * Messages that disappear by themselves are an accessibility trap: someone
  * who reads slowly or uses magnification does not have time to read them. So
  * the close button is always there, and the timer stops while the mouse or
@@ -59,7 +75,9 @@ export type ShowOptions = {
  * ```
  */
 export class LtToast extends HostElement {
-  static observedAttributes = ["duration", "label", "close-label"] as const
+  // Both are read when a message is shown, so a change needs no callback.
+  // The list is what the manifest documents.
+  static observedAttributes = ["duration", "close-label"] as const
 
   /**
    * The screen reader name of the close button in each message shown.
@@ -89,12 +107,6 @@ export class LtToast extends HostElement {
     this.setAttribute("duration", String(value))
   }
 
-  /**
-   * Whether the component wrote `aria-label`. Before, `label` overwrote an
-   * `aria-label` the author had set, and when `label` was removed, the old
-   * one stayed.
-   */
-  private ownsLabel = false
   /**
    * The element focus came from before it entered a message. If the last
    * message is removed while it has focus, focus goes back there. Before, it
@@ -159,6 +171,9 @@ export class LtToast extends HostElement {
     // without a builder function, or registered under another name, ends up
     // in the corner.
     this.classList.add(TOAST_CLASS)
+    const late = ["role", "aria-live", "aria-atomic"].some(
+      (name) => !this.hasAttribute(name),
+    )
     if (!this.hasAttribute("role")) this.setAttribute("role", "status")
     if (!this.hasAttribute("aria-live")) {
       this.setAttribute("aria-live", "polite")
@@ -166,24 +181,45 @@ export class LtToast extends HostElement {
     if (!this.hasAttribute("aria-atomic")) {
       this.setAttribute("aria-atomic", "false")
     }
-    if (!this.hasAttribute("aria-label")) {
-      this.ownsLabel = true
-      this.setAttribute(
-        "aria-label",
-        this.getAttribute("label") ?? DEFAULT_LABEL,
-      )
-    }
+    this.warnIfNamed()
+    /*
+     * Safari never takes in a `role` or `aria-live` set on a node that
+     * already exists (measured in Safari 27.2): the messages were shown, and
+     * VoiceOver said nothing. A node that is inserted with them is taken in,
+     * so the region is put back where it stands. It connects once more,
+     * finds all three, and stops here.
+     *
+     * The cost is the server's to avoid by writing the role, as `lt.toast()`
+     * does: a message that had focus loses it, and a framework that acts on
+     * insertion, as Datastar does with `data-init`, acts once more.
+     */
+    if (late) this.parentNode?.insertBefore(this, this.nextSibling)
   }
 
-  attributeChangedCallback(name: string, _old: string, value: string): void {
-    // `label` can be set after the element is in the DOM, for example by a
-    // framework that fills in the attributes in a later step.
-    if (name !== "label" || !this.ownsLabel) return
-    this.setAttribute("aria-label", value || DEFAULT_LABEL)
+  /*
+   * A warning, never a removal: the name is the markup's, and taking it
+   * away would fight the framework or morph that wrote it. On connect, and
+   * again on each message, for a name a framework sets later.
+   */
+  private warnIfNamed(): void {
+    if (this.named())
+      warnAboutMarkup(
+        this,
+        `the region has a name (${NAMING.filter((a) => this.hasAttribute(a)).join(", ")}), ` +
+          "and Safari announces nothing put into a named live region, so VoiceOver " +
+          "says nothing about the messages. Take the name away: a status " +
+          "region needs none.",
+        () => this.named(),
+      )
+  }
+
+  private named(): boolean {
+    return NAMING.some((name) => this.hasAttribute(name))
   }
 
   /** Shows a message, and returns the element it was put in. */
   show(message: string, options: ShowOptions = {}): HTMLElement {
+    this.warnIfNamed()
     const {
       color = "neutral",
       duration = this.duration,

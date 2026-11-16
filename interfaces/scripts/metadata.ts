@@ -209,8 +209,6 @@ export const TEXT_PLACES: Record<
   keyof typeof DEFAULT_TEXTS,
   { element: string; replacedBy: readonly string[] }
 > = {
-  // `aria-label` on the host wins over `label`.
-  toastRegion: { element: LT_TOAST_TAG, replacedBy: ["label", "aria-label"] },
   toastClose: { element: LT_TOAST_TAG, replacedBy: ["close-label"] },
   connectionOffline: {
     element: LT_CONNECTION_STATUS_TAG,
@@ -240,7 +238,7 @@ function textsOf(
   if (rows.length === 0) return {}
   for (const [key, place] of rows)
     for (const attribute of place.replacedBy)
-      if (attribute !== "aria-label" && !attributes.includes(attribute))
+      if (!attributes.includes(attribute))
         throw new Error(
           `TEXT_PLACES.${key}: <${tag}> does not read ${attribute}`,
         )
@@ -543,6 +541,10 @@ export const BUILDER_PARTS: Record<
   toast: { host: null, message: null, close: null },
 }
 
+/** Why the toast region takes no name, for each attribute that would give it one. */
+const TOAST_UNNAMED =
+  "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages."
+
 const flag = (description: string): AttributeDoc => ({
   description,
   value: "flag",
@@ -768,7 +770,6 @@ export const elements: readonly ElementDoc[] = [
       duration: number(
         "Milliseconds before a message disappears. The default is 6000, and 0 keeps the messages.",
       ),
-      label: text("Text that tells screen readers what the region is for."),
       "close-label": text(
         'What the close button in each message is called for screen readers. The default is "Close message".',
       ),
@@ -778,6 +779,12 @@ export const elements: readonly ElementDoc[] = [
         description:
           "A message was closed, by the user, because its time ran out, or with `dismiss()`. `clear()` dispatches none.",
       },
+    },
+    {
+      label: `${TOAST_UNNAMED} Take \`label\` away, and \`aria-label\` with it.`,
+      "aria-label": `${TOAST_UNNAMED} Take \`aria-label\` away.`,
+      "aria-labelledby": `${TOAST_UNNAMED} Take \`aria-labelledby\` away.`,
+      title: `${TOAST_UNNAMED} Take \`title\` away.`,
     },
   ),
 

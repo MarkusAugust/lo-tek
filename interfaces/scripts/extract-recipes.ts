@@ -477,7 +477,7 @@ export function selfTest(): string[] {
           "<Tabs>",
           '  <TabItem label="Datastar">',
           "    ```html",
-          '    <lt-toast label="Notifications"></lt-toast>',
+          '    <lt-toast id="messages"></lt-toast>',
           "    ```",
           "  </TabItem>",
           '  <TabItem label="Try it">',

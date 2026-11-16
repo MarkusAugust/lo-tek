@@ -32,6 +32,32 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   runs, and in none of 30 on Java 21. The artifacts are now compiled for
   Java 21, so an older Java refuses to load them instead of crashing halfway.
   0.44.0 has the crash on Java 17.
+- **`<lt-toast>` has no name.** `label` on the element, `label` in
+  `lt.toast()` and `Lt.toast()`, and the default text "Notifications" are
+  gone, and the component no longer writes `aria-label` on the region.
+  Safari 27.2 announces nothing that is put into a live region with an
+  accessible name, so VoiceOver in Safari said nothing about any message.
+  Measured, and not found documented. Take `label` away, and `aria-label`
+  with it; `lotek check` reports a `label` left in a template.
+
+### Fixed
+
+- **VoiceOver in Safari reads out the messages in `<lt-toast>`.** The
+  component warns in the console when the markup names the region anyway,
+  with `aria-label`, `aria-labelledby` or `title`, and leaves the name.
+- **VoiceOver in Safari announces `<lt-toast>` and
+  `<lt-connection-status>` when the markup leaves the region out.** Safari
+  27.2 ignores a `role` or `aria-live` that a script sets on an element
+  already on the page, so a region the component filled in itself was
+  silent. `<lt-toast>` now takes itself out and puts itself back when it had
+  to add `role`, `aria-live` or `aria-atomic`: a message that had focus loses it, and Datastar runs
+  `data-init` on the region once more. `<lt-connection-status>` no longer
+  sets `role` and `aria-live` on itself; when the markup has neither, the
+  bar is the region. Markup from `lt.toast()` and `lt.connectionStatus()`
+  has the region, and behaves as before.
+- **`<lt-connection-status>` writes the text two frames after a new bar,**
+  not one. Firefox announced nothing when the bar was the region and its
+  text came in the first frame.
 
 ## 0.44.0 (2026-11-16)
 

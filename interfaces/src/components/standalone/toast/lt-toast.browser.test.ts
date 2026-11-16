@@ -1,6 +1,6 @@
 /// <reference path="../../../types/css.d.ts" />
 
-import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
   expectNoAccessibilityViolations,
@@ -26,7 +26,7 @@ describe("lt-toast", () => {
   })
 
   beforeEach(async () => {
-    mount(`<lt-toast label="Messages"></lt-toast>`)
+    mount(`<lt-toast></lt-toast>`)
     await paint()
   })
 
@@ -36,7 +36,6 @@ describe("lt-toast", () => {
     // A message in the corner should not interrupt what the screen reader is doing.
     expect(toast.getAttribute("role")).toBe("status")
     expect(toast.getAttribute("aria-live")).toBe("polite")
-    expect(toast.getAttribute("aria-label")).toBe("Messages")
   })
 
   it("shows a message with a close button", async () => {
@@ -159,11 +158,13 @@ describe("lt-toast keeps the pause and focus", () => {
     expect(ltToast().host["aria-atomic"]).toBe("false")
   })
 
-  it("is named Notifications in both the builder function and the component", async () => {
+  it("has no name, from the builder function or the component", async () => {
+    // Safari announces nothing put into a named live region.
     mount(`<lt-toast></lt-toast>`)
     const toast = await paint()
-    expect(toast.getAttribute("aria-label")).toBe("Notifications")
-    expect(ltToast().host["aria-label"]).toBe("Notifications")
+    for (const name of ["aria-label", "aria-labelledby", "title"])
+      expect(toast.hasAttribute(name), name).toBe(false)
+    expect(Object.keys(ltToast().host)).not.toContain("aria-label")
   })
 
   it("gives an unknown colour no border", async () => {
@@ -183,6 +184,28 @@ describe("lt-toast keeps the pause and focus", () => {
     toast.show("Two", { duration: 0 })
     toast.clear()
     expect(toast.querySelectorAll(".lt-toast__message")).toHaveLength(0)
+  })
+})
+
+describe("a region that had to be filled in", () => {
+  it("is put back where it stood, with its content", async () => {
+    mount(
+      `<p id="before"></p><lt-toast-bare><b id="inside"></b></lt-toast-bare><p id="after"></p>`,
+    )
+    const element = document.querySelector("lt-toast-bare") as LtToast
+    const inside = document.getElementById("inside")
+    await waitForPaint()
+
+    defineLtToast("lt-toast-bare")
+
+    expect(element.getAttribute("role")).toBe("status")
+    expect(element.isConnected).toBe(true)
+    expect(element.previousElementSibling?.id).toBe("before")
+    expect(element.nextElementSibling?.id).toBe("after")
+    expect(element.firstElementChild).toBe(inside)
+    // It works after the second connect: the message has its close button.
+    const message = element.show("Relay 14 is back")
+    expect(message.querySelector("button")).not.toBeNull()
   })
 })
 
@@ -299,25 +322,59 @@ describe("lt-toast, focus and name", () => {
     expect(document.activeElement).not.toBe(a)
   })
 
-  it("gives the region the default name when label is removed", () => {
-    mount(`<lt-toast label="Messages"></lt-toast>`)
-    const region = document.querySelector("lt-toast") as LtToast
-    expect(region.getAttribute("aria-label")).toBe("Messages")
+  for (const name of ["aria-label", "aria-labelledby", "title"])
+    it(`warns about a name from ${name}, and leaves it`, async () => {
+      const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+      try {
+        mount(
+          `<span id="name">Messages</span><lt-toast ${name}="${name === "aria-labelledby" ? "name" : "Messages"}"></lt-toast>`,
+        )
+        const region = document.querySelector("lt-toast") as LtToast
+        // The warning waits for the page to settle: the parser, then two frames.
+        await waitForPaint()
+        await waitForPaint()
 
-    region.removeAttribute("label")
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining(`the region has a name (${name})`),
+          region,
+        )
+        // Never removed: the name is the markup's.
+        expect(region.hasAttribute(name)).toBe(true)
+      } finally {
+        warn.mockRestore()
+      }
+    })
 
-    expect(region.getAttribute("aria-label")).toBe("Notifications")
+  it("warns about a name set after it connected, when a message is shown", async () => {
+    // A framework can fill in the attributes in a later step.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      mount(`<lt-toast></lt-toast>`)
+      const region = document.querySelector("lt-toast") as LtToast
+      await waitForPaint()
+      region.setAttribute("aria-label", "Messages")
+      region.show("Saved")
+      await waitForPaint()
+      await waitForPaint()
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("the region has a name (aria-label)"),
+        region,
+      )
+    } finally {
+      warn.mockRestore()
+    }
   })
 
-  it("leaves an aria-label the author set", () => {
-    // Before, `label` overwrote it.
-    mount(`<lt-toast aria-label="Author"></lt-toast>`)
-    const region = document.querySelector("lt-toast") as LtToast
-
-    region.setAttribute("label", "Other")
-    expect(region.getAttribute("aria-label")).toBe("Author")
-    region.removeAttribute("label")
-    expect(region.getAttribute("aria-label")).toBe("Author")
+  it("does not warn about a region without a name", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      mount(`<lt-toast></lt-toast>`)
+      await waitForPaint()
+      await waitForPaint()
+      expect(warn).not.toHaveBeenCalled()
+    } finally {
+      warn.mockRestore()
+    }
   })
 })
 

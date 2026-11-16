@@ -377,10 +377,6 @@
           "type": "number",
           "description": "Milliseconds before a message disappears. The default is 6000, and 0 keeps the messages."
         },
-        "label": {
-          "type": "text",
-          "description": "Text that tells screen readers what the region is for."
-        },
         "close-label": {
           "type": "text",
           "description": "What the close button in each message is called for screen readers. The default is \"Close message\"."
@@ -388,19 +384,18 @@
       },
       "parts": {},
       "texts": {
-        "toastRegion": {
-          "text": "Notifications",
-          "replacedBy": [
-            "label",
-            "aria-label"
-          ]
-        },
         "toastClose": {
           "text": "Close message",
           "replacedBy": [
             "close-label"
           ]
         }
+      },
+      "removed": {
+        "label": "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it.",
+        "aria-label": "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `aria-label` away.",
+        "aria-labelledby": "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `aria-labelledby` away.",
+        "title": "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `title` away."
       },
       "events": {
         "toast-dismiss": {}
@@ -2350,7 +2345,7 @@
     },
     {
       "name": "connectionStatus",
-      "description": "The attributes for the bar that says the connection is lost.\n\nBy definition the server cannot tell you it is unreachable. When it is down, nothing comes from it to render. So the component creates all the content itself, and `data-ignore-morph` stops a later patch from tearing it away the moment the connection is back. The host is the live region, `role=\"status\"` with `aria-live=\"polite\"`, so the region exists before the bar and its text arrive.",
+      "description": "The attributes for the bar that says the connection is lost.\n\nBy definition the server cannot tell you it is unreachable. When it is down, nothing comes from it to render. So the component creates all the content itself, and `data-ignore-morph` stops a later patch from tearing it away the moment the connection is back. The host is the live region, `role=\"status\"` with `aria-live=\"polite\"`, so the region exists before the bar and its text arrive. It has to be in the markup: Safari ignores a role set on an element that is already on the page.",
       "example": "<lt-connection-status {...lt.connectionStatus()} />",
       "options": [
         {
@@ -5058,16 +5053,8 @@
     },
     {
       "name": "toast",
-      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
+      "description": "The attributes for the toast region.\n\nThe region is `role=\"status\"` and not `role=\"alert\"`. A message that comes because something went well should not interrupt what the screen reader is doing.\n\nThe region has no name. Safari announces nothing put into a live region with an accessible name, whether it comes from `aria-label`, `aria-labelledby` or `title`, and a named region left VoiceOver silent about every message (Safari 27.2, 2026-11-16, measured with `check-accessibility-safari.ts` and by ear; not found documented). WAI-ARIA does not require a name for `status`, and the name is never spoken with a message.\n\n`data-ignore-morph` is not optional. `<lt-toast>` creates and removes its message elements inside the region, and without the attribute the Datastar morph tears them away at the next patch, because the server's version of the region is empty. The attribute must be in the HTML the server sends: the component cannot set it on itself, since the morph reads it from the server's node.",
       "options": [
-        {
-          "name": "label",
-          "required": false,
-          "type": {
-            "kind": "text"
-          },
-          "description": "Text that says what the region is. Becomes `aria-label`."
-        },
         {
           "name": "closeLabel",
           "required": false,
@@ -5100,19 +5087,9 @@
               "role": "status",
               "aria-live": "polite",
               "aria-atomic": "false",
-              "aria-label": "Notifications",
               "data-ignore-morph": ""
             },
             "options": {
-              "label": {
-                "cases": {},
-                "template": {
-                  "aria-label": "{label}"
-                },
-                "empty": {
-                  "aria-label": ""
-                }
-              },
               "closeLabel": {
                 "cases": {},
                 "template": {
@@ -5129,11 +5106,6 @@
               "class": "lt-toast__message"
             },
             "options": {
-              "label": {
-                "cases": {},
-                "template": {},
-                "empty": {}
-              },
               "closeLabel": {
                 "cases": {},
                 "template": {},
@@ -5146,11 +5118,6 @@
               "class": "lt-toast__close"
             },
             "options": {
-              "label": {
-                "cases": {},
-                "template": {},
-                "empty": {}
-              },
               "closeLabel": {
                 "cases": {},
                 "template": {},

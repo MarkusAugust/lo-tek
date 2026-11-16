@@ -179,8 +179,6 @@ type LtConnectionStatusAttributes = Host & {
 type LtToastAttributes = Host & {
   /** Milliseconds before the messages disappear. */
   duration?: number
-  /** Text that says what the region is. */
-  label?: string
   /** The screen reader name of the close button in each message. */
   "close-label"?: string
 }

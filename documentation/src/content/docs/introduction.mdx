@@ -41,7 +41,7 @@ A web component you put your own HTML elements into. It creates no markup itself
 A web component that creates all its content itself, because there is nothing for the server to send.
 
 ```html
-<lt-connection-status class="lt-connection-status" data-ignore-morph></lt-connection-status>
+<lt-connection-status class="lt-connection-status" role="status" aria-live="polite" data-ignore-morph></lt-connection-status>
 ```
 
 The category is an exception with a condition, not a third equal route. It applies only to surfaces that arise from something on the client, and that carry no value into a submission. There is one of them: [`<lt-connection-status>`](../components/connection-status/), where the server by definition cannot report that it is unreachable. In addition there is [`<lt-toast>`](../components/toast/), which is an imperative API you call rather than markup you write.

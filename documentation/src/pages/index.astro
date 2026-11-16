@@ -199,7 +199,7 @@ const GRADE = [
       <!-- What you do not have to solve yourself. -->
       <div class="profile-plate">
         <h2 class="profile-plate__title" id="strengths">What you do not have to solve yourself</h2>
-        <p class="profile-plate__count" aria-hidden="true">04 points</p>
+        <p class="profile-plate__count" aria-hidden="true">05 points</p>
       </div>
 
       <ol class="ladder ladder--prose" aria-labelledby="strengths">
@@ -288,6 +288,32 @@ form.html:3:13: warning: The class "lt-modal"
             pages you are reading now, and <a class="masthead__link" href="/llms.txt">llms.txt</a>
             shows the way. More about the setup under
             <a class="masthead__link" href="/coding-agents/">Coding agents</a>.
+          </p>
+        </li>
+
+        <li class="node">
+          <p class="node__index" aria-hidden="true">05</p>
+          <h3 class="node__title">Focus and announcements are tested, not assumed</h3>
+          <p class="node__what">
+            When a dialog opens, the screen reader has to be told that it
+            opened, what it is called and where focus went. When a message
+            appears, it has to be read out once, without interrupting. Every
+            component with behaviour has a contract: the steps a user takes,
+            and what the screen reader must be given after each one. If a
+            component breaks its contract, the change is stopped.
+          </p>
+          <pre class="node__pre" tabindex="0"><code>✗ safari toast: restart-fails:
+  announce: "Relay 14 refused
+  the restart. Try again."
+  0 times in polite regions,
+  not once</code></pre>
+          <p class="node__what">
+            The check reads what the browser gives the screen reader, through
+            the operating system's own accessibility API: Chromium and Firefox
+            on every change, and Safari on macOS before every release. Axe
+            looks at the markup. This looks at what happens after a key is
+            pressed. The contract for each component is on its page, under
+            Accessibility.
           </p>
         </li>
       </ol>

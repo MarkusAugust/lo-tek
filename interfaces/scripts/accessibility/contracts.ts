@@ -5,7 +5,16 @@
  * the component's promise and the specifications, never from a browser.
  */
 import { DEFAULT_TEXTS } from "../../src/components/default-texts"
-import type { Contract } from "./contract"
+import type { Contract, Step } from "./contract"
+
+/**
+ * Why a field without its label still has a name to `lotek check`: the
+ * placeholder, HTML-AAM 4.1.1, step 4, as Chromium and Firefox give it.
+ * Safari keeps the placeholder in AXPlaceholderValue and leaves AXTitle
+ * empty (seen in 27.2, 2026-11-16), so there the name is empty.
+ */
+const PLACEHOLDER_IS_THE_NAME =
+  "the placeholder is the name (HTML-AAM 4.1.1, step 4), and only Safari leaves it out of AXTitle"
 
 const dialog: Contract = {
   component: "dialog",
@@ -375,6 +384,53 @@ const errorSummary: Contract = {
   ],
 }
 
+/**
+ * The box with `data-autofocus="false"`, which leaves the focus in the
+ * field. Then nothing but the alert tells the screen reader that the form
+ * failed. Safari announces nothing from a named live region when text is
+ * put into it, as <lt-toast> showed; a named alert that is shown, as this
+ * one, it announces by its name, with AXPriorityKey 90 (Safari 27.2,
+ * 2026-11-16).
+ *
+ * Not in Firefox, for a reason in the check: Firefox reports the shown box
+ * as a child added to the form, with its text, and the AT-SPI adapter only
+ * counts text inserted in a live region, so it sees no announcement. That is
+ * a gap in `atspi.ts`, not one shown in Firefox.
+ */
+const errorSummaryWithoutFocus: Contract = {
+  component: "error-summary",
+  engines: ["chromium", "safari"],
+  variant: {
+    name: "without autofocus",
+    replace: [
+      [
+        'aria-labelledby="errors-title" hidden>',
+        'aria-labelledby="errors-title" data-autofocus="false" hidden>',
+      ],
+    ],
+  },
+  steps: [
+    {
+      name: "focus-field",
+      do: [{ focus: "#fixer" }],
+      focus: { role: "textbox", name: "Fixer's address" },
+    },
+    {
+      name: "submit-with-an-error",
+      do: [{ press: "Enter" }],
+      focus: { role: "textbox", name: "Fixer's address" },
+      announce: { politeness: "assertive", text: "The form has one error" },
+    },
+  ],
+  mutations: [
+    {
+      name: "the box never shown",
+      replace: ["box.hidden = errors.length === 0", "box.hidden = true"],
+      failsAt: "submit-with-an-error",
+    },
+  ],
+}
+
 const popover: Contract = {
   component: "popover",
   steps: [
@@ -408,16 +464,21 @@ const popover: Contract = {
       focus: { role: "button", name: "Actions", notStates: ["expanded"] },
     },
   ],
+  // In Safari these fail a step later: AX cannot show expandable
+  // (AX_UNCOMPARED), so focus-trigger passes, and the menu that never opens
+  // is what fails.
   mutations: [
     {
       name: "the panel not recognised",
       replace: ['<ul class="lt-popover" id="actions">', '<ul id="actions">'],
       failsAt: "focus-trigger",
+      failsAtIn: { safari: "open" },
     },
     {
       name: "the component not registered",
       replace: ["defineLtPopover()\n", "\n"],
       failsAt: "focus-trigger",
+      failsAtIn: { safari: "open" },
     },
   ],
 }
@@ -455,6 +516,8 @@ const term: Contract = {
       focus: { role: "link", name: "act of God", notStates: ["expanded"] },
     },
   ],
+  // In Safari these fail a step later, as the popover's do: AX cannot show
+  // expandable, so focus-word passes, and the card that never opens fails.
   mutations: [
     {
       // Without the id on the entry the link points at nothing: the word
@@ -462,13 +525,48 @@ const term: Contract = {
       name: "the entry not recognised",
       replace: ['<div id="term-act-of-god">', "<div>"],
       failsAt: "focus-word",
+      failsAtIn: { safari: "open" },
     },
     {
       name: "the component not registered",
       replace: ["defineLtTerm()\n", "\n"],
       failsAt: "focus-word",
+      failsAtIn: { safari: "open" },
     },
   ],
+}
+
+/**
+ * Safari 27.2 never takes in a `role` or `aria-live` added to a node that
+ * already exists: text put into it later is not announced, and VoiceOver
+ * says nothing (measured on 2026-11-16, and heard). But a change elsewhere
+ * on the page just before the text, such as the barrier's marker, made
+ * Safari take it in after all, and the check announced what a quiet page
+ * never does. So the step after such a change waits a second before it
+ * acts, as a page does where nothing happens between.
+ */
+function settled(steps: Step[]): Step[] {
+  const [first, ...rest] = steps
+  return [{ ...first, do: [{ pause: 1000 }, ...first.do] }, ...rest]
+}
+
+/**
+ * The component defined in a step of its own, after the page has loaded and
+ * the browser has built its accessibility tree, as on a page whose package
+ * comes late from a CDN. With the define in the recipe it usually ran before
+ * the tree existed, and the check passed by timing only.
+ */
+function definedLate(
+  define: string,
+  steps: Step[],
+): { replace: [string, string]; steps: Step[] } {
+  return {
+    replace: [`  ${define}()\n`, `  window.lotekDefine = ${define}\n`],
+    steps: [
+      { name: "define", do: [{ run: "window.lotekDefine()" }], quiet: true },
+      ...settled(steps),
+    ],
+  }
 }
 
 const toast: Contract = {
@@ -507,6 +605,18 @@ const toast: Contract = {
   ],
   mutations: [
     {
+      // The cause of the bug fixed in 0.45.0: Safari announces nothing put
+      // into a named live region, and Chromium and Firefox do, so only Safari
+      // runs it.
+      name: "the region named",
+      replace: [
+        'aria-atomic="false" data-ignore-morph></lt-toast>',
+        'aria-atomic="false" aria-label="Messages" data-ignore-morph></lt-toast>',
+      ],
+      failsAt: "restart-fails",
+      engines: ["safari"],
+    },
+    {
       // The component only writes aria-live when it is missing, so the
       // server's "off" stands, and nothing is announced.
       name: "the region switched off",
@@ -533,6 +643,24 @@ const toast: Contract = {
       failsAt: "restart-fails",
     },
   ],
+}
+
+/**
+ * The region from the web component alone, as on a page that writes
+ * `<lt-toast>` without `lt.toast()` and loads the package late.
+ */
+const toastLate = definedLate("defineLtToast", toast.steps)
+const toastWithoutRegion: Contract = {
+  ...toast,
+  variant: {
+    name: "the region from the web component",
+    replace: [
+      ['role="status" aria-live="polite"\n          aria-atomic="false" ', ""],
+      toastLate.replace,
+    ],
+  },
+  steps: toastLate.steps,
+  mutations: [],
 }
 
 const sessionTimeout: Contract = {
@@ -608,13 +736,44 @@ const connectionStatus: Contract = {
  * variant takes it out, so the region comes only from the web component, the
  * way a template that leaves it out or a morph that tears it off gets it.
  */
+const connectionStatusLate = definedLate(
+  "defineLtConnectionStatus",
+  connectionStatus.steps,
+)
 const connectionStatusWithoutRegion: Contract = {
   ...connectionStatus,
   variant: {
     name: "the region from the web component",
-    replace: [[' role="status" aria-live="polite"', ""]],
+    replace: [
+      [' role="status" aria-live="polite"', ""],
+      connectionStatusLate.replace,
+    ],
   },
+  steps: connectionStatusLate.steps,
   mutations: connectionStatus.mutations,
+}
+
+/**
+ * A morph without `data-ignore-morph` takes the server's `role` and
+ * `aria-live` off the element after the page has loaded. The next outage
+ * must still be announced.
+ */
+const connectionStatusMorphed: Contract = {
+  ...connectionStatus,
+  variant: { name: "the region taken off by a morph", replace: [] },
+  steps: [
+    {
+      name: "morph",
+      do: [
+        {
+          run: 'const c = document.querySelector("lt-connection-status"); c.removeAttribute("role"); c.removeAttribute("aria-live")',
+        },
+      ],
+      quiet: true,
+    },
+    ...settled(connectionStatus.steps),
+  ],
+  mutations: [],
 }
 
 /* The form controls. Their markup is the first example on each page. */
@@ -643,6 +802,7 @@ const input: Contract = {
       name: "the label not pointing at the field",
       replace: [' for="fixer"', ""],
       failsAt: "focus-field",
+      lotekCheck: { not: PLACEHOLDER_IS_THE_NAME },
     },
     // No "invalid only in colour" here: type="email" with the value "fixer@"
     // is invalid to the browser itself, so a screen reader is told so
@@ -671,6 +831,7 @@ const textarea: Contract = {
       name: "the label not pointing at the field",
       replace: [' for="objective"', ""],
       failsAt: "focus-field",
+      lotekCheck: { not: PLACEHOLDER_IS_THE_NAME },
     },
     {
       // data-state="invalid" only colours the field; aria-invalid is what a
@@ -974,12 +1135,15 @@ export const CONTRACTS: Contract[] = [
   tabs,
   ...tabNames,
   errorSummary,
+  errorSummaryWithoutFocus,
   popover,
   term,
   toast,
+  toastWithoutRegion,
   sessionTimeout,
   connectionStatus,
   connectionStatusWithoutRegion,
+  connectionStatusMorphed,
   input,
   textarea,
   select,

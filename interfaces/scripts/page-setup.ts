@@ -417,7 +417,7 @@ export function selfTest(): string[] {
   )
   expect(
     "a web component styled by its element alone needs its stylesheet",
-    pageSetup("html", `<lt-toast label="Notifications"></lt-toast>`),
+    pageSetup("html", `<lt-toast id="messages"></lt-toast>`),
     {
       stylesheets: ["tokens.css", "toast.css"],
       register: ["defineLtToast"],

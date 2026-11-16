@@ -56,7 +56,8 @@ time, when VS Code is downloaded. On Linux without a display, meaning with neith
 `WAYLAND_DISPLAY` set, you also need `xvfb-run`; if the machine has a display, VS Code
 runs on it. The accessibility tree check reads AT-SPI, which only Linux has: on
 macOS it runs in the Playwright image and needs podman or docker; on Linux,
-install what `interfaces/scripts/accessibility/install.sh` lists, once.
+install what `interfaces/scripts/accessibility/install.sh` lists, once. The
+same contracts in Safari are not in `check`: see `bun run check:safari`.
 Install [rustup](https://rustup.rs), and `rust-toolchain.toml` fetches
 the right version and the targets on the first call.
 
@@ -93,6 +94,48 @@ If Playwright's browsers cannot be downloaded, offline or behind a firewall,
 or Chromium already installed on the machine. The path is read from `CHROMIUM`, otherwise
 the usual locations are tried. Chromium only: Firefox and WebKit have to be
 Playwright's own builds.
+
+## `bun run check:safari`
+
+The accessibility contracts, which CI reads through AT-SPI in Chromium and
+Firefox, read through AX in Safari, the way VoiceOver gets them
+(`interfaces/scripts/check-accessibility-safari.ts`). Safari only runs on
+macOS and CI is Linux, so it runs on a Mac: `prepare-version` runs it before
+it sets a version, and it is worth running before a pull request that
+touches a component, since a merge to master deploys the documentation. It
+takes about 15 seconds after a `bun run build`, and brings Safari to the
+front while it runs.
+
+Once per machine:
+
+- System Settings, Privacy & Security, Accessibility: allow the terminal you
+  run it from, so it can read Safari's tree.
+- Safari, Settings, Advanced: Show features for web developers. Then
+  Develop, Allow Remote Automation.
+- `safaridriver --enable` in a terminal, with your password, and quit
+  Safari once afterwards.
+- Swift from the command line tools, `xcode-select --install`, which
+  compiles the recorder the first time.
+
+Quit Safari before you run it. The check starts Safari itself and quits it
+again, and refuses when a Safari you opened is running, since that one is
+not its to quit. Leave the keyboard alone meanwhile: an app that comes to
+the front takes it from Safari, and the run fails as interrupted.
+
+Safari answers VoiceOver from another copy of the accessibility tree than
+it gives other clients, and the two differ. So that the check reads what
+VoiceOver gets, it sets the user default
+`ShouldForceWebKitAccessibilityEnabled` in `com.apple.Accessibility` while
+it runs, and takes it off afterwards. The default is the machine's: an app
+with a web view that starts during the run keeps that mode until it quits.
+A default you set yourself is left alone. See `asVoiceOverGetsIt` in
+`interfaces/scripts/accessibility/ax.ts`.
+
+VoiceOver must be off while it runs: Safari takes VoiceOver's use of the
+window as someone else's, and stops the automation. Each missing step fails
+with its name. What Safari does differently from the specifications is in
+`KNOWN_DEVIATIONS` with the Safari version, as for Firefox, and the run
+fails when Safari starts doing it right.
 
 ## Generated files
 
@@ -140,6 +183,8 @@ git push -u origin release-0.4.0 && gh pr create --fill
 The commit comes before `check`, not after: `Generated files are up to date` asks git whether the build changed anything, and `prepare-version` has just written fourteen tracked files, so run before the commit, `check` stops on them several minutes into the run.
 
 `prepare-version` renames the heading `Unreleased` to the number and the date, adds a new empty one above it, and sets the same number in `interfaces/package.json`, `bun.lock`, `web-types.json`, `kotlin/gradle.properties` and the presentation. Finally it runs `generate-agent.ts` and `generate-manifest.ts`, so `interfaces/agent/*.md` and `interfaces/manifest/*.json`, which also contain the version, carry the new number in the same commit. It refuses to set a version that is not higher than the current one, and to release an empty `Unreleased`, and all the checks come before it writes anything, so an aborted attempt leaves no half-written files.
+
+After its own checks, and before it writes anything, `prepare-version` builds the package and runs `bun run check:safari` on the commit, so the working tree must be clean, and the build must leave it clean. On a machine that is not a Mac, or when a Safari update breaks the check before a release that cannot wait, such as one for a security advisory, `bun run prepare-version 0.4.0 --without-safari "<why>"` skips it and says so loudly; say so in the release pull request too.
 
 Both `prepare-version` and `tag` start with `bun run advisories`, and stop if it finds anything. It asks `bun audit` about the whole npm lockfile, devDependencies included, and OSV about every crate in `Cargo.lock`, every Maven coordinate and Gradle plugin written out in a `*.gradle.kts`, the standard library in `coreLibrariesVersion`, and the Kotlin each Gradle in the repository embeds, which `kotlin-dsl` brings (read with `./gradlew --version`). A version it cannot read, a plugin id missing from `PLUGINS`, a plugin without a version that is neither a Gradle core plugin nor versioned in another build file, or a crate from git stops the run. Transitive Maven dependencies and Gradle itself are not covered. Fix what it reports before releasing: `bun audit fix` for npm, a new version in `Cargo.lock` or the build file otherwise. An advisory that cannot be fixed yet goes in `ACCEPTED` in `scripts/check-advisories.ts`, with the reason. It is not a step in CI, because the answer changes when an advisory is published, not when the code does. Run it yourself before a pull request is merged, since a merge to master deploys the documentation.
 

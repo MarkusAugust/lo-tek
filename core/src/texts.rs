@@ -5,15 +5,15 @@
 //! left are the defaults a component writes when nobody has given it another
 //! (`texts` on an element in the manifest, from `DEFAULT_TEXTS`), and the
 //! texts a stylesheet shows (`texts` on a class, read from the CSS). On a
-//! Norwegian page a screen reader then says "Notifications" or "(required)"
+//! Norwegian page a screen reader then says "Close message" or "(required)"
 //! in the middle of Norwegian.
 //!
 //! The language is the nearest `lang`, as the components read it. Without
 //! one, or with one from the template, the rule cannot tell, and says
 //! nothing; the same goes for an element with a binding or a spread, which
 //! can give it the attribute. A text is replaced by any of the attributes in
-//! `replacedBy`, unless its value is the default itself, as `lt.toast()`
-//! writes it without `label`. A stylesheet text is replaced when a style
+//! `replacedBy`, unless its value is the default itself, which is still the
+//! English text. A stylesheet text is replaced when a style
 //! sheet sets its variable, and is only checked when the style sheets are
 //! given.
 
@@ -229,7 +229,6 @@ mod tests {
     fn warns_about_the_default_texts_on_a_page_in_another_language() {
         let found = page(r#"<html lang="nb"><body><lt-toast></lt-toast></body></html>"#);
         assert_eq!(found.len(), 1, "{found:?}");
-        assert!(found[0].contains("\"Notifications\""), "{found:?}");
         assert!(found[0].contains("\"Close message\""), "{found:?}");
         assert!(found[0].contains("\"nb\""), "{found:?}");
         for quiet in [
@@ -237,19 +236,18 @@ mod tests {
             r#"<html lang="en-GB"><lt-toast></lt-toast></html>"#,
             "<lt-toast></lt-toast>",
             r#"<html lang="${locale}"><lt-toast></lt-toast></html>"#,
-            r#"<html lang="nb"><lt-toast label="Varsler" close-label="Lukk"></lt-toast></html>"#,
-            r#"<html lang="nb"><lt-toast aria-label="Varsler" close-label="${t('lukk')}"></lt-toast></html>"#,
+            r#"<html lang="nb"><lt-toast close-label="Lukk"></lt-toast></html>"#,
+            r#"<html lang="nb"><lt-toast close-label="${t('lukk')}"></lt-toast></html>"#,
             r#"<html lang="nb"><lt-toast {...props}></lt-toast></html>"#,
             r#"<div lang="en"><lt-toast></lt-toast></div>"#,
         ] {
             assert!(page(quiet).is_empty(), "{quiet}: {:?}", page(quiet));
         }
-        // `lt.toast()` without `label` writes the default itself.
-        let builder = page(
-            r#"<html lang="nn"><lt-toast aria-label="Notifications" close-label="Lukk"></lt-toast></html>"#,
-        );
-        assert_eq!(builder.len(), 1, "{builder:?}");
-        assert!(!builder[0].contains("Close message"), "{builder:?}");
+        // The default written out is no translation.
+        let written =
+            page(r#"<html lang="nn"><lt-toast close-label="Close message"></lt-toast></html>"#);
+        assert_eq!(written.len(), 1, "{written:?}");
+        assert!(written[0].contains("Close message"), "{written:?}");
         // The nearest lang counts.
         assert_eq!(
             page(r#"<html lang="en"><section lang="nb"><lt-connection-status></lt-connection-status></section></html>"#).len(),
