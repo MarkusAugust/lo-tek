@@ -165,6 +165,7 @@ export async function recorder(): Promise<
     stdout: "pipe",
     stderr: "inherit",
   })
+  helpers.add(child)
   const events: AxEvent[] = []
   const answers: Answer[] = []
   let ready: { safari: string; macos: string; registered: string[] } | undefined
@@ -420,6 +421,12 @@ const FORCE = [
   "ShouldForceWebKitAccessibilityEnabled",
 ]
 
+/**
+ * safaridriver and the recorder, while they run: a run that is interrupted
+ * takes them with it, where they used to be left running.
+ */
+const helpers = new Set<{ kill(): void }>()
+
 /** Stands while the default is one this check set. */
 const OURS = join(tmpdir(), "lotek-forced-webkit-accessibility")
 
@@ -506,7 +513,10 @@ export async function asVoiceOverGetsIt(): Promise<() => Promise<void>> {
     await quitSafari().catch(() => {})
   }
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const)
-    process.once(signal, () => restore().finally(() => process.exit(130)))
+    process.once(signal, () => {
+      for (const helper of helpers) helper.kill()
+      restore().finally(() => process.exit(130))
+    })
   return restore
 }
 
@@ -520,6 +530,7 @@ export async function launch(): Promise<BrowserHandle> {
     stdout: "ignore",
     stderr: "pipe",
   })
+  helpers.add(driver)
   const base = `http://127.0.0.1:${port}`
   for (let i = 0; ; i++) {
     try {

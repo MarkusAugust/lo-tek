@@ -29,7 +29,8 @@ A confirmation is an interruption. It is worth it when the action cannot be undo
   </form>
 </dialog>
 
-<lt-toast id="messages"></lt-toast>
+<lt-toast id="messages" class="lt-toast" role="status" aria-live="polite"
+          aria-atomic="false" data-ignore-morph></lt-toast>
 
 <script type="module">
   import { defineLtToast } from
