@@ -191,11 +191,11 @@ jobs:
       - name: VS Code extension
         run: xvfb-run -a bun vscode/scripts/check-vscode.ts
 
-      # Java 17, the lowest version the jar promises to run on.
+      # Java 21, the lowest version the jar promises to run on.
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
 
       - uses: gradle/actions/setup-gradle@v4
 

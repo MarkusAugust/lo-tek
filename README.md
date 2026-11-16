@@ -44,7 +44,7 @@ No component uses shadow DOM. The category says who creates the nodes: the rende
 
 ## Local development
 
-Prerequisites: Bun and Rust ([rustup](https://rustup.rs)). `bun run check` also needs Java 17 or later, see [CONTRIBUTING.md](CONTRIBUTING.md).
+Prerequisites: Bun and Rust ([rustup](https://rustup.rs)). `bun run check` also needs Java 21 or later, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ```bash
 bun install

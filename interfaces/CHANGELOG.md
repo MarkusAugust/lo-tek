@@ -24,6 +24,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **The Kotlin package, the Gradle plugin and `lotek.jar` require Java 21.**
+  They required Java 17. On Java 17 on Linux x86-64 the command line crashed:
+  `lotekTheme` aborted with "Trapped on unreachable instruction" in 27 of 30
+  runs, and in none of 30 on Java 21. The artifacts are now compiled for
+  Java 21, so an older Java refuses to load them instead of crashing halfway.
+  0.44.0 has the crash on Java 17.
+
 ## 0.44.0 (2026-11-16)
 
 ### Added

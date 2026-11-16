@@ -11,7 +11,7 @@ plugins {
  * The commands are written in Rust (`cli/`), and the WASI module comes
  * with the npm package as `core/lotek.wasm`. Chicory runs it, compiled to
  * bytecode here, so the jar answers the same as `npx @lo-tek/interfaces` and
- * the executable from `cargo install`. It needs only Java 17, not Node, not
+ * the executable from `cargo install`. It needs only Java 21, not Node, not
  * Rust.
  */
 group = rootProject.group
@@ -36,15 +36,15 @@ kotlin {
     // The same Kotlin as the consumers': see the root build.
     coreLibrariesVersion = "2.2.21"
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_21)
         languageVersion.set(KotlinVersion.KOTLIN_2_2)
         apiVersion.set(KotlinVersion.KOTLIN_2_2)
     }
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 // The command line and the files it reads, from the npm package the root project has unpacked.
