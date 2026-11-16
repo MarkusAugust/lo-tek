@@ -98,6 +98,7 @@ for (const name of packages) {
   for (const other of [
     ".github/workflows/ci.yml",
     "interfaces/scripts/check-accessibility-tree.ts",
+    "interfaces/scripts/accessibility/atspi.ts",
   ])
     if (read(other).includes(name))
       problems.push(`${other} names ${name}: the list is in install.sh`)

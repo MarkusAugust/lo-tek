@@ -104,7 +104,7 @@ export type Politeness = keyof typeof ATSPI_LIVE
 
 /**
  * The engines the check runs in, and their names in prose. Not WebKit: see
- * `ENGINES` in `check-accessibility-tree.ts`.
+ * `LAUNCH` in `accessibility/atspi.ts`.
  */
 export const ENGINE_NAMES = {
   chromium: "Chromium",
@@ -128,8 +128,11 @@ export type Deviation = {
   { missingState: State }
   /** A state the spec says must not be there, and which this engine adds. */
   | { extraState: State }
-  /** An event the spec says the engine must send, and which it does not. */
-  | { missingEvent: string }
+  /**
+   * A change the spec says the engine must send an event for, and which it
+   * does not: a state turning on, or the description.
+   */
+  | { missingChange: State | "description" }
   /** A name the engine computes differently from AccName. */
   | { name: string }
 )
@@ -142,7 +145,8 @@ export type Deviation = {
 export type RoleDeviation = {
   engine: Engine
   role: Role
-  atspi: string
+  /** What the engine's platform calls the role instead. */
+  platformRole: string
   seen: string
 }
 
@@ -150,13 +154,13 @@ export const KNOWN_ROLE_DEVIATIONS: RoleDeviation[] = [
   {
     engine: "firefox",
     role: "alert",
-    atspi: "alert",
+    platformRole: "alert",
     seen: "Firefox 150 (Playwright firefox-1522), 2026-10-29: role=alert is ROLE_ALERT, where Core-AAM maps it to ROLE_NOTIFICATION",
   },
   {
     engine: "firefox",
     role: "alertdialog",
-    atspi: "dialog",
+    platformRole: "dialog",
     seen: "Firefox 150, 2026-10-29: role=alertdialog on <dialog> is ROLE_DIALOG, where Core-AAM maps alertdialog to ROLE_ALERT",
   },
 ]
@@ -183,13 +187,13 @@ export const KNOWN_DEVIATIONS: Deviation[] = [
   {
     engine: "firefox",
     at: "field:submit-empty",
-    missingEvent: "object:state-changed:invalid-entry",
+    missingChange: "invalid",
     seen: "Firefox 150, 2026-10-29: follows from the deviation at field:focus-field. The field was already invalid-entry before the submit, so there is no change to send",
   },
   {
     engine: "firefox",
     at: "field:submit-empty",
-    missingEvent: "object:property-change:accessible-description",
+    missingChange: "description",
     seen: "Firefox 150, 2026-10-29: when the component wires the error text with aria-describedby, Firefox has the new description when asked, but sends no description change event, which Core-AAM requires for aria-describedby. With the focus staying in the field, Orca says nothing about the error text until the focus moves",
   },
 ]
