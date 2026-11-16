@@ -3,6 +3,19 @@
 The extension has its own version number. It does not follow the package,
 since it only changes when an element or an attribute does.
 
+## 0.14.0
+
+The checker and the vocabulary from `@lo-tek/interfaces` 0.45.0.
+
+- **`<lt-toast>` has no `label`.** Completion and hover no longer offer it,
+  and `removed-attribute` reports one left in a template. The region has no
+  name any more: Safari announces nothing that is put into a named live
+  region, so VoiceOver said nothing about the messages.
+- **`aria-label`, `aria-labelledby` and `title` on `<lt-toast>` are
+  reported,** for the same reason.
+- **`untranslated-text` on `<lt-toast>` names only "Close message",** and
+  asks for `close-label`.
+
 ## 0.13.0
 
 The checker and the vocabulary from `@lo-tek/interfaces` 0.41.0.

@@ -78,6 +78,13 @@ intellijPlatform {
         // Shown on the Marketplace and in the IDE on update, and must be in
         // English like the description. Write a new line for each version.
         changeNotes = """
+            <b>0.9.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
+            0.45.0. <code>&lt;lt-toast&gt;</code> has no <code>label</code>: Safari
+            announces nothing that is put into a named live region, so VoiceOver said
+            nothing about the messages. A <code>label</code>, <code>aria-label</code>,
+            <code>aria-labelledby</code> or <code>title</code> left on the region is
+            reported, and <code>untranslated-text</code> names only "Close message".
+            <br><br>
             <b>0.8.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
             0.42.0. The Kotlin live templates have no script of their own: they are the
             Datastar recipe rendered by the server, so the page loads Datastar once in its
