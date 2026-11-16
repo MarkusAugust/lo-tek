@@ -227,10 +227,13 @@ if (advisories.exitCode !== 0) {
  * package built from it, so the build runs first and must leave the tree
  * clean too.
  */
-const git = (...args: string[]) =>
-  Bun.spawnSync(["git", ...args], { cwd: monorepoRoot })
-    .stdout.toString()
-    .trim()
+// A git that fails says nothing on stdout, which would read as a clean tree.
+const git = (...args: string[]) => {
+  const run = Bun.spawnSync(["git", ...args], { cwd: monorepoRoot })
+  if (run.exitCode !== 0)
+    stop(`git ${args.join(" ")} failed: ${run.stderr.toString().trim()}`)
+  return run.stdout.toString().trim()
+}
 if (withoutSafari !== undefined) {
   console.warn(
     `\n!!! The Safari check is SKIPPED: ${withoutSafari}\n!!! Say so in the release pull request.\n`,

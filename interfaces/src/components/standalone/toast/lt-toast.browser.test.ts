@@ -304,7 +304,9 @@ describe("lt-toast, focus and name", () => {
     it(`warns about a name from ${name}, and leaves it`, async () => {
       const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
       try {
-        mount(`<span id="name">Messages</span><lt-toast ${name}="${name === "aria-labelledby" ? "name" : "Messages"}"></lt-toast>`)
+        mount(
+          `<span id="name">Messages</span><lt-toast ${name}="${name === "aria-labelledby" ? "name" : "Messages"}"></lt-toast>`,
+        )
         const region = document.querySelector("lt-toast") as LtToast
         // The warning waits for the page to settle: the parser, then two frames.
         await waitForPaint()
@@ -320,6 +322,26 @@ describe("lt-toast, focus and name", () => {
         warn.mockRestore()
       }
     })
+
+  it("warns about a name set after it connected, when a message is shown", async () => {
+    // A framework can fill in the attributes in a later step.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {})
+    try {
+      mount(`<lt-toast></lt-toast>`)
+      const region = document.querySelector("lt-toast") as LtToast
+      await waitForPaint()
+      region.setAttribute("aria-label", "Messages")
+      region.show("Saved")
+      await waitForPaint()
+      await waitForPaint()
+      expect(warn).toHaveBeenCalledWith(
+        expect.stringContaining("the region has a name (aria-label)"),
+        region,
+      )
+    } finally {
+      warn.mockRestore()
+    }
+  })
 
   it("does not warn about a region without a name", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {})

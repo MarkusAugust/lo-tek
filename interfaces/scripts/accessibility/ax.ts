@@ -117,6 +117,9 @@ function compiled(): string {
   return binary
 }
 
+/** The barrier's element in the fixture. */
+const BARRIER = "lotek-barrier"
+
 /*
  * The barrier's text, taken out of an announcement. Safari announces a
  * change to one live region with the text of the others on the page, as
@@ -158,7 +161,7 @@ export async function recorder(): Promise<
   })
   const events: AxEvent[] = []
   const answers: Answer[] = []
-  let ready: { safari: string; macos: string } | undefined
+  let ready: { safari: string; macos: string; registered: string[] } | undefined
   // Once Safari has stopped the automation, or the recorder has gone, every
   // wait fails at once, with the reason.
   let gone: string | undefined
@@ -212,6 +215,13 @@ export async function recorder(): Promise<
   } catch (error) {
     throw new SetupFailure((error as Error).message)
   }
+  // A notification the observer did not take would look like one Safari
+  // never sends, and be written down as Safari's deviation.
+  const missing = AX_EVENTS.filter((e) => !ready?.registered.includes(e))
+  if (missing.length > 0)
+    throw new SetupFailure(
+      `not-observed: AXObserverAddNotification refused ${missing.join(", ")}`,
+    )
   // Only the page the run is on: Safari is one process for every window,
   // and the owner's own tabs post too.
   const own = (e: AxEvent) => e.page === page
@@ -248,6 +258,8 @@ export async function recorder(): Promise<
     },
     // The recorder asks the tree each time, so there is no last focus to forget.
     forget: () => {},
+    // Only the barrier's own node: Safari puts the marker into other
+    // regions' announcements too, and one of those is not the barrier.
     marker: (from, marker, step) =>
       until(
         () => {
@@ -256,6 +268,7 @@ export async function recorder(): Promise<
               k >= from &&
               own(e) &&
               e.type === "AXAnnouncementRequested" &&
+              e.node.id === BARRIER &&
               (e.text ?? "").includes(marker),
           )
           return i >= 0 ? i : undefined
@@ -304,6 +317,9 @@ export async function recorder(): Promise<
             own(e) &&
             e.type === "AXAnnouncementRequested" &&
             e.live === true &&
+            // The barrier's own announcement, with the others' text in it,
+            // is the barrier, not a change of theirs.
+            e.node.id !== BARRIER &&
             withoutMarkers(e.text ?? "") !== "",
         )
         .map((e) => {
@@ -317,13 +333,23 @@ export async function recorder(): Promise<
                 politeness: "polite" as const,
               }
         }),
+    /*
+     * A notification says that something changed, not which way. A state
+     * must have turned on, as AT-SPI's detail1 says there, so the node as
+     * the recorder read it with the notification must have it.
+     */
     changed: (from, to, change, isFocused) => {
       const type = AX_CHANGES[change]
       if (type === null) return false
+      const token = change === "description" ? null : AX_STATES[change]
       return events
         .slice(from, to)
         .some(
-          (e) => own(e) && e.type === type && isFocused(platformNode(e.node)),
+          (e) =>
+            own(e) &&
+            e.type === type &&
+            (token === null || e.node.states.includes(token)) &&
+            isFocused(platformNode(e.node)),
         )
     },
     describe: (from, end) =>
@@ -333,10 +359,14 @@ export async function recorder(): Promise<
           (e, k) =>
             `${from + k === end ? ">>barrier " : ""}+${e.ms}ms ${e.type} ${e.node.role} "${e.node.name}" #${e.node.id} [${e.node.states.join(", ")}]${e.text ? ` ${JSON.stringify(e.text)}` : ""}${e.priority ? ` priority ${e.priority}` : ""} (${e.page})`,
         ),
+    // A recorder that has gone has a closed pipe: stopping it must not
+    // throw, or the WebDriver session is never closed.
     stop: () => {
-      child.stdin.write("quit\n")
-      child.stdin.flush()
-      child.stdin.end()
+      try {
+        child.stdin.write("quit\n")
+        child.stdin.flush()
+        child.stdin.end()
+      } catch {}
       setTimeout(() => child.kill(), 1000)
     },
   }

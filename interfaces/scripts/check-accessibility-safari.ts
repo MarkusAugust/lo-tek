@@ -25,7 +25,12 @@ import { join, resolve } from "node:path"
 import { AX, launch, recorder, SetupFailure } from "./accessibility/ax"
 import { CONTRACTS } from "./accessibility/contracts"
 import { serve } from "./accessibility/fixture"
-import { report, runEngine, runsOf } from "./accessibility/runner"
+import {
+  comparedWithCore,
+  report,
+  runEngine,
+  runsOf,
+} from "./accessibility/runner"
 
 const PACKAGE = resolve(import.meta.dir, "..")
 
@@ -61,6 +66,9 @@ try {
   const result = await runEngine(AX, "safari", browser, rec, server, chosen)
   ran = result.ran
   failures.push(...result.failures)
+  // As the AT-SPI conductor requires: a comparison that never ran is no check.
+  if (comparedWithCore() === 0)
+    failures.push("safari: the core's tree was compared with AX on no step")
   console.log(`safari: ${Math.round(performance.now() - t0)} ms`)
 } catch (error) {
   if (!(error instanceof SetupFailure)) throw error

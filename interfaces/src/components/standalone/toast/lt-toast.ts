@@ -178,8 +178,15 @@ export class LtToast extends HostElement {
     if (!this.hasAttribute("aria-atomic")) {
       this.setAttribute("aria-atomic", "false")
     }
-    // A warning, never a removal: the name is the markup's, and taking it
-    // away would fight the framework or morph that wrote it.
+    this.warnIfNamed()
+  }
+
+  /*
+   * A warning, never a removal: the name is the markup's, and taking it
+   * away would fight the framework or morph that wrote it. On connect, and
+   * again on each message, for a name a framework sets later.
+   */
+  private warnIfNamed(): void {
     if (this.named())
       warnAboutMarkup(
         this,
@@ -197,6 +204,7 @@ export class LtToast extends HostElement {
 
   /** Shows a message, and returns the element it was put in. */
   show(message: string, options: ShowOptions = {}): HTMLElement {
+    this.warnIfNamed()
     const {
       color = "neutral",
       duration = this.duration,

@@ -411,6 +411,30 @@ const cases: Case[] = [
     covers: "DURATION",
   },
   {
+    // The old toast recipe wrote aria-label, and a named region is silent in Safari.
+    name: "aria-label on the toast region",
+    html: `<lt-toast aria-label="Messages"></lt-toast>`,
+    count: 1,
+    mentions: ["aria-label has been removed"],
+    covers: "aria-label",
+  },
+  {
+    // The old toast recipe wrote aria-label, and a named region is silent in Safari.
+    name: "aria-labelledby on the toast region",
+    html: `<lt-toast aria-labelledby="t"></lt-toast>`,
+    count: 1,
+    mentions: ["aria-labelledby has been removed"],
+    covers: "aria-labelledby",
+  },
+  {
+    // The old toast recipe wrote aria-label, and a named region is silent in Safari.
+    name: "title on the toast region",
+    html: `<lt-toast title="Messages"></lt-toast>`,
+    count: 1,
+    mentions: ["title has been removed"],
+    covers: "title",
+  },
+  {
     name: "a value with > in it",
     html: `<lt-toast close-label="a > b" duration="5"></lt-toast>`,
     count: 0,

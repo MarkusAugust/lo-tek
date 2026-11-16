@@ -541,6 +541,10 @@ export const BUILDER_PARTS: Record<
   toast: { host: null, message: null, close: null },
 }
 
+/** Why the toast region takes no name, for each attribute that would give it one. */
+const TOAST_UNNAMED =
+  "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages."
+
 const flag = (description: string): AttributeDoc => ({
   description,
   value: "flag",
@@ -777,8 +781,10 @@ export const elements: readonly ElementDoc[] = [
       },
     },
     {
-      label:
-        "The region has no name since 0.45.0: Safari announces nothing put into a named live region, so VoiceOver said nothing about the messages. Take `label` away, and `aria-label` with it.",
+      label: `${TOAST_UNNAMED} Take \`label\` away, and \`aria-label\` with it.`,
+      "aria-label": `${TOAST_UNNAMED} Take \`aria-label\` away.`,
+      "aria-labelledby": `${TOAST_UNNAMED} Take \`aria-labelledby\` away.`,
+      title: `${TOAST_UNNAMED} Take \`title\` away.`,
     },
   ),
 

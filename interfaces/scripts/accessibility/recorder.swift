@@ -202,7 +202,8 @@ func ancestors(_ e: AXUIElement) -> [[String: Any]] {
 /// The title of the document the element is in: the fixture's is the contract's component.
 func page(_ e: AXUIElement) -> String {
   guard let area = webArea(e) else { return "" }
-  return string(area, "AXDescription") ?? string(area, "AXTitle") ?? ""
+  let description = string(area, "AXDescription") ?? ""
+  return description.isEmpty ? string(area, "AXTitle") ?? "" : description
 }
 
 func frontmost() -> String {
