@@ -384,6 +384,53 @@ const errorSummary: Contract = {
   ],
 }
 
+/**
+ * The box with `data-autofocus="false"`, which leaves the focus in the
+ * field. Then nothing but the alert tells the screen reader that the form
+ * failed. Safari announces nothing from a named live region when text is
+ * put into it, as <lt-toast> showed; a named alert that is shown, as this
+ * one, it announces by its name, with AXPriorityKey 90 (Safari 27.2,
+ * 2026-11-16).
+ *
+ * Not in Firefox, for a reason in the check: Firefox reports the shown box
+ * as a child added to the form, with its text, and the AT-SPI adapter only
+ * counts text inserted in a live region, so it sees no announcement. That is
+ * a gap in `atspi.ts`, not one shown in Firefox.
+ */
+const errorSummaryWithoutFocus: Contract = {
+  component: "error-summary",
+  engines: ["chromium", "safari"],
+  variant: {
+    name: "without autofocus",
+    replace: [
+      [
+        'aria-labelledby="errors-title" hidden>',
+        'aria-labelledby="errors-title" data-autofocus="false" hidden>',
+      ],
+    ],
+  },
+  steps: [
+    {
+      name: "focus-field",
+      do: [{ focus: "#fixer" }],
+      focus: { role: "textbox", name: "Fixer's address" },
+    },
+    {
+      name: "submit-with-an-error",
+      do: [{ press: "Enter" }],
+      focus: { role: "textbox", name: "Fixer's address" },
+      announce: { politeness: "assertive", text: "The form has one error" },
+    },
+  ],
+  mutations: [
+    {
+      name: "the box never shown",
+      replace: ["box.hidden = errors.length === 0", "box.hidden = true"],
+      failsAt: "submit-with-an-error",
+    },
+  ],
+}
+
 const popover: Contract = {
   component: "popover",
   steps: [
@@ -1005,6 +1052,7 @@ export const CONTRACTS: Contract[] = [
   tabs,
   ...tabNames,
   errorSummary,
+  errorSummaryWithoutFocus,
   popover,
   term,
   toast,
