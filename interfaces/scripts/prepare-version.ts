@@ -8,7 +8,12 @@
  * `publish.yml` then stops the run, but only after the tag has been pushed,
  * and a pushed tag has to be removed again.
  *
+ * Before it writes anything it runs the accessibility contracts in Safari
+ * (`check-accessibility-safari.ts`), which CI cannot run, on the commit as it
+ * is: the working tree must be clean, and the package is built first.
+ *
  * Run with: bun run prepare-version <next version>
+ *       or: bun run prepare-version <next version> --without-safari "<why>"
  */
 
 import { readFileSync, writeFileSync } from "node:fs"
@@ -29,6 +34,19 @@ function stop(message: string): never {
 }
 
 const newVersion = process.argv[2]
+
+/*
+ * The way past the Safari check, for when it cannot run: a Safari update
+ * that breaks the check must not hold back a release for a security
+ * advisory. It takes a reason, and says loudly that the check was skipped.
+ */
+const without = process.argv.indexOf("--without-safari")
+const withoutSafari =
+  without === -1 ? undefined : (process.argv[without + 1] ?? "").trim()
+if (withoutSafari === "")
+  stop(
+    '--without-safari takes the reason: --without-safari "Safari 28 breaks the recorder"',
+  )
 
 if (!newVersion) {
   stop("Missing version number. Use: bun run prepare-version 0.4.0")
@@ -199,6 +217,54 @@ const advisories = Bun.spawnSync(
 )
 if (advisories.exitCode !== 0) {
   stop("Open security advisories, see above. Nothing has been written.")
+}
+
+/*
+ * The accessibility contracts in Safari, the last check before anything is
+ * written. CI runs them in Chromium and Firefox through AT-SPI on every
+ * change; Safari only runs on a Mac, and this is the Mac that releases. The
+ * check runs on the commit as it is, so the tree must be clean, and on the
+ * package built from it, so the build runs first and must leave the tree
+ * clean too.
+ */
+const git = (...args: string[]) =>
+  Bun.spawnSync(["git", ...args], { cwd: monorepoRoot })
+    .stdout.toString()
+    .trim()
+if (withoutSafari !== undefined) {
+  console.warn(
+    `\n!!! The Safari check is SKIPPED: ${withoutSafari}\n!!! Say so in the release pull request.\n`,
+  )
+} else {
+  if (process.platform !== "darwin")
+    stop(
+      'The Safari check needs a Mac. Release from one, or pass --without-safari "<why>". Nothing has been written.',
+    )
+  if (git("status", "--porcelain") !== "")
+    stop(
+      "The working tree has changes, and the Safari check must run on the commit. Commit or stash them first. Nothing has been written.",
+    )
+  const head = git("rev-parse", "--short", "HEAD")
+  console.log(`Building the package on ${head} for the Safari check`)
+  const build = Bun.spawnSync(["bun", "run", "build"], {
+    cwd: packageDir,
+    stdio: ["inherit", "inherit", "inherit"],
+  })
+  if (build.exitCode !== 0)
+    stop("The build failed, see above. Nothing has been written.")
+  if (git("status", "--porcelain") !== "")
+    stop(
+      "The build changed files in the tree: the generated files on this commit are not up to date. Nothing has been written.",
+    )
+  const safari = Bun.spawnSync(
+    ["bun", join(packageDir, "scripts", "check-accessibility-safari.ts")],
+    { stdio: ["inherit", "inherit", "inherit"] },
+  )
+  if (safari.exitCode !== 0)
+    stop(
+      `The Safari check is red on ${head}, see above. Nothing has been written.`,
+    )
+  console.log(`✓ The Safari check is green on ${head}.`)
 }
 
 await Bun.write(

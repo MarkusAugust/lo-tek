@@ -233,6 +233,13 @@ export const ENGINE_NAMES = {
 
 export type Engine = keyof typeof ENGINE_NAMES
 
+/** The platform each engine is read through, for the prose about the checks. */
+export const ENGINE_PLATFORM: Record<Engine, "AT-SPI" | "AX"> = {
+  chromium: "AT-SPI",
+  firefox: "AT-SPI",
+  safari: "AX",
+}
+
 /**
  * Where a browser does not do what Core-AAM says, the contract requires what
  * it does instead, with the version it was seen in. When the browser starts
