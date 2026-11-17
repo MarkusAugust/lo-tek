@@ -885,7 +885,7 @@ export function classesData(): Classes {
     )
   const out: Classes = {}
   for (const [name, info] of Object.entries(found)) {
-    const { content, partOf, parts, name: named } = classDocs[name]
+    const { content, partOf, parts, name: named, tags } = classDocs[name]
     out[name] = {
       component: info.component,
       title: info.title,
@@ -896,6 +896,7 @@ export function classesData(): Classes {
       ...(parts ? { parts } : {}),
       ...(named ? { name: named } : {}),
       ...(info.texts ? { texts: info.texts } : {}),
+      ...(tags ? { tags } : {}),
       attributes: info.attributes,
     }
   }

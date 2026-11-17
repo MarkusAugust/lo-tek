@@ -58,7 +58,7 @@ import type { LtConnectionStatus } from "../src/components/standalone/connection
 import { LT_CONNECTION_STATUS_TAG } from "../src/components/standalone/connection-status/lt-connection-status.js"
 import type { LtToast } from "../src/components/standalone/toast/lt-toast.js"
 import { LT_TOAST_TAG } from "../src/components/standalone/toast/lt-toast.js"
-import type { DefaultText, Name } from "../src/vocabulary/types.js"
+import type { DefaultText, Name, Tag } from "../src/vocabulary/types.js"
 
 /** An allowed value, with what it means. */
 export type ValueDoc = { name: string; description: string }
@@ -863,6 +863,8 @@ export type ClassDoc = {
   partOf?: string
   /** LO-TEK demands a name for the element with the class. */
   name?: Name
+  /** The tags the class can be on, the first being the one to write. */
+  tags?: readonly Tag[]
 }
 
 /** A row in a form: the control and the label side by side. */
@@ -961,7 +963,10 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-button": { content: "text" },
+  "lt-button": {
+    content: "text",
+    tags: [{ tag: "button" }, { tag: "a", requires: ["href"] }],
+  },
   "lt-card": {
     content: "free",
     parts: {

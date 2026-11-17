@@ -561,6 +561,47 @@ mod tests {
     }
 
     #[test]
+    fn a_class_on_the_wrong_tag() {
+        let html = utf16(r#"<div class="lt-button">Order</div>"#);
+        let found = diagnose_markup(&html, &manifest::for_tests());
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].rule, "class-on-wrong-tag");
+        assert_eq!(
+            crate::text::lossy(&html[found[0].start..found[0].end]),
+            "lt-button"
+        );
+    }
+
+    #[test]
+    fn a_class_on_one_of_its_tags() {
+        let found = diagnose_markup(
+            &utf16(r#"<button class="lt-button">Order</button>"#),
+            &manifest::for_tests(),
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn a_button_class_on_a_link() {
+        let found = diagnose_markup(
+            &utf16(r#"<a class="lt-button" href="/jobs">Jobs</a>"#),
+            &manifest::for_tests(),
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn a_button_class_on_a_link_without_href() {
+        let found = diagnose_markup(
+            &utf16(r#"<a class="lt-button">Jobs</a>"#),
+            &manifest::for_tests(),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].rule, "class-on-wrong-tag");
+        assert!(found[0].message.contains("href"), "{}", found[0].message);
+    }
+
+    #[test]
     fn a_flag_on_a_class_takes_no_value() {
         let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
         assert!(markup(r#"<label class="lt-label" data-optional>Navn</label>"#).is_empty());

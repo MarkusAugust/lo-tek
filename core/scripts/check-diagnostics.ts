@@ -71,11 +71,40 @@ type Case = {
   maxMs?: number
   /** Check as a whole page, with the wiring rules. */
   page?: boolean
+  /** The rule the finding must have. */
+  rule?: string
+  /** The page the finding must link to. */
+  link?: string
 }
 
 const FIELD_OK = `<lt-field id="f"><label for="handle">Handle</label><input class="lt-input" name="handle" id="handle"></lt-field>`
 
 const cases: Case[] = [
+  {
+    name: "a button class on a <div>",
+    html: `<div class="lt-button">Order</div>`,
+    count: 1,
+    rule: "class-on-wrong-tag",
+    severity: "error",
+    covers: "lt-button",
+    link: "https://lo-tek.sobernetics.no/components/button/",
+  },
+  {
+    name: "a button class on a link without href",
+    html: `<a class="lt-button">Jobs</a>`,
+    count: 1,
+    rule: "class-on-wrong-tag",
+    mentions: ["href"],
+    covers: "lt-button",
+  },
+  {
+    name: "a button class on a button, and on a link with href, also a bound one",
+    html: `<button class="lt-button">Order</button>
+<a class="lt-button" href="/jobs">Jobs</a>
+<a class="lt-button" :href="url">Jobs</a>
+<a class="lt-button" th:href="@{/jobs}">Jobs</a>`,
+    count: 0,
+  },
   {
     name: "a button with only an icon and no name",
     html: `<button class="lt-button"><svg class="lt-icon" aria-hidden="true"><path d="M0 0"/></svg><span aria-hidden="true">x</span></button>`,
@@ -870,7 +899,7 @@ cases.push(
   },
   {
     name: "page: a hidden field and a submit button need no label",
-    html: `<input class="lt-input" type="hidden" name="t"><input class="lt-button" type="submit" value="Send">`,
+    html: `<input class="lt-input" type="hidden" name="t"><input type="submit" value="Send">`,
     count: 0,
     page: true,
   },
@@ -1505,6 +1534,10 @@ for (const c of cases) {
   for (const m of c.notMentions ?? [])
     if (first.message.includes(m))
       fail(`the message mentions "${m}": ${first.message}`)
+  if (c.rule && first.rule !== c.rule)
+    fail(`expected the rule ${c.rule}, got ${first.rule}`)
+  if (c.link && first.link !== c.link)
+    fail(`expected the link ${c.link}, got ${first.link}`)
   if (c.severity && first.severity !== c.severity)
     fail(`expected ${c.severity}, got ${first.severity}`)
   if (c.covers) {

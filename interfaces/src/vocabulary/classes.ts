@@ -170,6 +170,17 @@ export const classes: Classes = {
     "description": "A button for actions. CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/button/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "button"
+      },
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [

@@ -808,6 +808,7 @@ fn find_class<'a>(vocabulary: &'a Vocabulary, name: &[u16]) -> Option<&'a Class>
 
 fn check_classes(
     vocabulary: &Vocabulary,
+    tag: &[u16],
     attributes: &[ReadAttribute],
     conditional: bool,
     cache: &mut Cache,
@@ -833,6 +834,17 @@ fn check_classes(
         }
         if let Some(info) = find_class(vocabulary, token) {
             present.push(info);
+            if let Some(message) = wrong_tag(info, tag, attributes) {
+                findings.push(Finding {
+                    start,
+                    end: start + token.len(),
+                    severity: Severity::Error,
+                    link: info.link.clone(),
+                    message,
+                    fix: None,
+                    rule: "class-on-wrong-tag",
+                });
+            }
             continue;
         }
         let meant = closest(token, &name, Some(cache));
@@ -976,6 +988,38 @@ fn check_classes(
     findings
 }
 
+/// `class-on-wrong-tag`: what is wrong when the class is on a tag its
+/// `tags` do not allow, or on one that lacks an attribute it requires. A
+/// class without `tags`, from a manifest before the field, is not checked.
+fn wrong_tag(info: &Class, tag: &[u16], attributes: &[ReadAttribute]) -> Option<String> {
+    if info.tags.is_empty() {
+        return None;
+    }
+    let tag = lowercase(tag);
+    let same: Vec<&Tag> = info
+        .tags
+        .iter()
+        .filter(|t| t.tag == "*" || equals(&tag, &t.tag))
+        .collect();
+    if same.is_empty() {
+        return Some(format!("{} is on the wrong tag.", info.name));
+    }
+    fn missing<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<&'a String> {
+        t.requires
+            .iter()
+            .find(|name| attribute(attributes, name).is_none())
+    }
+    if same.iter().any(|t| missing(t, attributes).is_none()) {
+        return None;
+    }
+    let name = missing(same[0], attributes)?;
+    Some(format!(
+        "{} is on <{}> without {name}.",
+        info.name,
+        lossy(&tag)
+    ))
+}
+
 /// A disabled link that still has `href`.
 ///
 /// `aria-disabled` tells the screen reader, and the style turns off the mouse
@@ -1104,6 +1148,7 @@ pub fn diagnose_visible(source: Utf16, vocabulary: &Vocabulary, page: bool) -> V
             i += 1;
             continue;
         };
+        let tag = &source[i + 1..name_end];
         i = name_end;
         let Some(end) = tag_end(&source, name_end) else {
             continue;
@@ -1115,6 +1160,7 @@ pub fn diagnose_visible(source: Utf16, vocabulary: &Vocabulary, page: bool) -> V
         let attributes = read_attributes(b, name_end);
         findings.extend(check_classes(
             vocabulary,
+            tag,
             &attributes,
             has_condition(b, name_end, &attributes),
             &mut cache,

@@ -177,6 +177,41 @@
               "additionalProperties": false
             }
           },
+          "tags": {
+            "type": "array",
+            "description": "The tags the class can be on, the first being the one to write. lotek check reports the class on any other. Added after schemaVersion 1, so a fragment from lotek takeover written before it has none.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["tag"],
+              "properties": {
+                "tag": {
+                  "type": "string",
+                  "description": "The tag name, or * for any."
+                },
+                "attributes": {
+                  "type": "object",
+                  "description": "Attributes the tag must have, with the values it may have there, as type on an input.",
+                  "additionalProperties": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "requires": {
+                  "type": "array",
+                  "description": "Attributes the tag must have, with a value of the template's own, as href on a link.",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
           "parts": {
             "type": "object",
             "description": "The parts the markup consists of, for the classes with a fixed structure, with the selector relative to the element with the class. Absent for the classes without one.",
