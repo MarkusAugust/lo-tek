@@ -99,6 +99,24 @@ for (const b of palette) {
     continue
   }
   for (const f of findings(markup)) fail("2. create", `${b.name}: ${f}`)
+  // Options that share a name must send different values, or the server
+  // cannot tell which was picked. The core does not judge this.
+  const sent = new Map<string, string[]>()
+  for (const m of markup.matchAll(/<input\b[^>]*>/g)) {
+    const name = m[0].match(/\sname="([^"]*)"/)?.[1]
+    const type = m[0].match(/\stype="([^"]*)"/)?.[1]
+    if (!name || (type !== "radio" && type !== "checkbox")) continue
+    sent.set(name, [
+      ...(sent.get(name) ?? []),
+      m[0].match(/\svalue="([^"]*)"/)?.[1] ?? "on",
+    ])
+  }
+  for (const [name, values] of sent)
+    if (new Set(values).size < values.length)
+      fail(
+        "2. create",
+        `${b.name}: the options named ${name} send ${values.join(", ")}, the same twice`,
+      )
 
   // 3. Panel: every option the tool shows, with every value it offers.
   const driven = new Set(Object.keys(anatomy.options ?? {}))
@@ -183,37 +201,77 @@ for (const b of palette) {
         ])
   }
   // A setting is an option of a builder function the node calls; the
-  // values come from that function in the manifest.
-  for (const choice of nodesOf(anatomy.nodes).filter((n) => n.oneOf))
-    for (const [alternative, node] of Object.entries(choice.oneOf) as [
-      string,
-      Loose,
-    ][])
-      for (const setting of node.settings ?? [])
-        for (const source of node.from ?? []) {
-          const builder = manifest.builders.find(
-            (x) => x.name === String(source).split(".")[0],
-          )
-          const option = builder?.options.find((o) => o.name === setting)
-          if (!option) continue
-          const values =
-            option.type.kind === "values"
-              ? option.type.values
-              : option.type.kind === "flag"
-                ? [true]
-                : []
-          for (const value of values)
-            changes.push([
-              `${choice.name} = ${alternative} with ${setting} = ${value}`,
-              (i) => {
-                i.choices = { ...i.choices, [choice.name]: alternative }
-                i.settings = {
-                  ...i.settings,
-                  [choice.name]: { [setting]: value },
-                }
-              },
-            ])
+  // values come from that function in the manifest. In a repeat the
+  // setting is keyed by the item, for every item. A value other than the
+  // option's default must change the markup, or the setting never arrives.
+  const effects: [string, (i: Loose) => void, (i: Loose) => void][] = []
+  const withSettings = (
+    node: Loose,
+    target: string,
+    repeat: string | undefined,
+    choose: (i: Loose) => void,
+  ) => {
+    for (const setting of node.settings ?? [])
+      for (const source of node.from ?? []) {
+        const builder = manifest.builders.find(
+          (x) => x.name === String(source).split(".")[0],
+        )
+        const option = builder?.options.find((o) => o.name === setting)
+        if (!option) continue
+        const values =
+          option.type.kind === "values"
+            ? option.type.values
+            : option.type.kind === "flag"
+              ? [true]
+              : []
+        for (const value of values) {
+          const set = (i: Loose) => {
+            choose(i)
+            const one = { [setting]: value }
+            i.settings = {
+              ...i.settings,
+              [target]: repeat
+                ? Object.fromEntries(
+                    (i.repeats[repeat] ?? []).map((k: string) => [k, one]),
+                  )
+                : one,
+            }
+          }
+          const what = `${target} with ${setting} = ${value}`
+          changes.push([what, set])
+          if (value !== option.default) effects.push([what, set, choose])
         }
+      }
+  }
+  for (const node of nodesOf(anatomy.nodes)) {
+    if (node.oneOf)
+      for (const [alternative, inner] of Object.entries(node.oneOf) as [
+        string,
+        Loose,
+      ][])
+        withSettings(inner, node.name, node.repeat, (i) => {
+          i.choices = { ...i.choices, [node.name]: alternative }
+        })
+    else if (node.name) withSettings(node, node.name, node.repeat, () => {})
+  }
+  for (const [what, set, choose] of effects) {
+    const without = created(anatomy, "c1")
+    choose(without)
+    const withIt = created(anatomy, "c1")
+    set(withIt)
+    try {
+      if (
+        renderAnatomy(manifest, b.name, without) ===
+        renderAnatomy(manifest, b.name, withIt)
+      )
+        fail(
+          "3. panel",
+          `${b.name}: ${what} changes nothing, so it never arrives`,
+        )
+    } catch {
+      // Reported with the change below.
+    }
+  }
   for (const [what, change] of changes) {
     const instance = created(anatomy, "c1")
     change(instance)

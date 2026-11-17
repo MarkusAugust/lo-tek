@@ -6,6 +6,8 @@ import {
   type AnatomyInstance,
   createdInstance,
   renderAnatomy,
+  VOID,
+  variantsOf,
   withItem,
 } from "./index"
 
@@ -16,21 +18,6 @@ import {
  * alternative of every choice and every optional part, must come out of
  * the parser with every element at the depth it was written at.
  */
-
-const VOID = new Set([
-  "area",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "source",
-  "track",
-  "wbr",
-])
 
 /** Each start tag with its depth, read from the markup as written. */
 function written(html: string): string[] {
@@ -74,28 +61,6 @@ function created(anatomy: Anatomy): AnatomyInstance {
   return instance
 }
 
-/** Every choice with its alternatives, and every optional node's name. */
-function variants(anatomy: Anatomy): Partial<AnatomyInstance>[] {
-  const out: Partial<AnatomyInstance>[] = [{}]
-  const walk = (value: unknown) => {
-    if (value === null || typeof value !== "object") return
-    const node = value as {
-      name?: string
-      oneOf?: Record<string, unknown>
-      optional?: true
-      wrapper?: true
-    }
-    if (node.oneOf && node.name)
-      for (const alternative of Object.keys(node.oneOf))
-        out.push({ choices: { [node.name]: alternative } })
-    if (node.name && (node.optional || node.wrapper))
-      out.push({ parts: { [node.name]: true } })
-    for (const child of Object.values(value)) walk(child)
-  }
-  walk(anatomy.nodes)
-  return out
-}
-
 const builders = (manifest as unknown as Manifest).builders.filter(
   (b) => b.anatomy,
 )
@@ -113,20 +78,13 @@ describe("the anatomies", () => {
   for (const b of builders)
     it(`${b.name}: the parser keeps every element where the anatomy writes it`, () => {
       const anatomy = b.anatomy as Anatomy
-      for (const variant of variants(anatomy)) {
+      for (const variant of variantsOf(anatomy)) {
         const instance = { ...created(anatomy), ...variant }
-        let html: string
-        try {
-          html = renderAnatomy(
-            manifest as unknown as Manifest,
-            b.name,
-            instance,
-          )
-        } catch {
-          // An instance the anatomy refuses, as a subtitle without its header,
-          // writes nothing to parse; check-design-tool.ts holds what it allows.
-          continue
-        }
+        const html = renderAnatomy(
+          manifest as unknown as Manifest,
+          b.name,
+          instance,
+        )
         expect(
           parsed(html),
           `${b.name} ${JSON.stringify(variant)}: ${html}`,

@@ -882,7 +882,7 @@
     },
     "anatomyNode": {
       "type": "object",
-      "description": "An element. from is where its attributes come from, in order: a builder function, a set in its answer, or a class the function carries. They merge in that order, a later value winning and class joined; then attributes are written over them. The first node that names a builder function calls it, with options and then the designer's settings, and the nodes inside use the same answer.",
+      "description": "An element. from is where its attributes come from, in order: a builder function, a set in its answer, or a class the function carries. They merge in that order, a later value winning and class joined; then attributes are written over them. The first node that names a builder function calls it, as does a node with options for it: with the designer's settings first and the anatomy's options over them, so the fixed options win. The nodes inside use the same answer.",
       "required": ["tag"],
       "properties": {
         "tag": {

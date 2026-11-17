@@ -43,6 +43,7 @@ import {
   type AnatomyInstance,
   createdInstance,
   renderAnatomy,
+  variantsOf,
   withItem,
 } from "../src/anatomy/index.js"
 import { DEFAULT_LANGUAGE } from "../src/components/default-texts.js"
@@ -792,39 +793,18 @@ try {
     let base = createdInstance(b.anatomy, "c1")
     for (const [group, { min }] of Object.entries(b.anatomy.repeats ?? {}))
       if (min === 0) base = withItem(b.anatomy, base, group, `${group}1`)
-    const variants: Partial<AnatomyInstance>[] = [{}]
-    const walk = (value: unknown) => {
-      if (value === null || typeof value !== "object") return
-      const node = value as {
-        name?: string
-        oneOf?: Record<string, unknown>
-        optional?: true
-        wrapper?: true
-      }
-      if (node.oneOf && node.name)
-        for (const alternative of Object.keys(node.oneOf))
-          variants.push({ choices: { [node.name]: alternative } })
-      if (node.name && (node.optional || node.wrapper))
-        for (const on of [true, false])
-          variants.push({ parts: { [node.name]: on } })
-      for (const child of Object.values(value)) walk(child)
-    }
-    walk(b.anatomy.nodes)
+    const variants = variantsOf(b.anatomy)
     for (const variant of variants) {
       const instance = { ...base, ...variant }
-      try {
-        anatomyCases.push({
-          builder: b.name,
+      anatomyCases.push({
+        builder: b.name,
+        instance,
+        expected: renderAnatomy(
+          manifest as unknown as Manifest,
+          b.name,
           instance,
-          expected: renderAnatomy(
-            manifest as unknown as Manifest,
-            b.name,
-            instance,
-          ),
-        })
-      } catch {
-        // An instance the anatomy refuses, as a subtitle without its header.
-      }
+        ),
+      })
     }
   }
 } finally {

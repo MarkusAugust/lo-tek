@@ -70,7 +70,7 @@ const escapeAttribute = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
 
 /** The elements HTML writes without an end tag. */
-const VOID = new Set([
+export const VOID = new Set([
   "area",
   "br",
   "col",
@@ -159,7 +159,7 @@ class Writer {
     const given = this.instance.repeats?.[group]
     if (given) return given
     const min = this.anatomy.repeats?.[group]?.min ?? 1
-    return Array.from({ length: min }, (_, i) => `${group}-${i + 1}`)
+    return Array.from({ length: min }, (_, i) => `${group}${i + 1}`)
   }
 
   /** A keyed value, read with the keys of the given groups, outermost first. */
@@ -327,7 +327,8 @@ class Writer {
             : value,
         ]),
       )
-      answers.set(builder, call(builder, { ...settings, ...options }))
+      const own = builder === this.builder ? this.options : {}
+      answers.set(builder, call(builder, { ...own, ...settings, ...options }))
     }
 
     const attributes: Record<string, string | true> = {}
@@ -415,9 +416,15 @@ class Writer {
       if (!Array.isArray(set)) return (set as Answer | undefined) ?? {}
       // A list from the anatomy's own builder function has one set for each
       // key of the group its keys come from.
-      const group = Object.values(this.anatomy.options ?? {}).find(
-        (o): o is { repeat: string } => "repeat" in o,
-      )?.repeat
+      const bound = Object.values(this.anatomy.options ?? {})
+        .filter((o): o is { repeat: string } => "repeat" in o)
+        .map((o) => o.repeat)
+      // The node's own group when its keys are bound, otherwise the one
+      // bound group the node stands in.
+      const group =
+        place.group && bound.includes(place.group)
+          ? place.group
+          : bound.find((g) => place.keys[g] !== undefined)
       const at = group ? this.keys(group).indexOf(place.keys[group]) : -1
       return (set[at] as Answer | undefined) ?? {}
     }
@@ -448,7 +455,8 @@ export function renderAnatomy(
 /**
  * A new component, as a tool creates it on a drop: the fewest items each
  * group may have, keyed `<group>1`, `<group>2` and so on, and every hole
- * filled with the example its declaration gives, for each item it is per.
+ * filled with the example its declaration gives, for each item it is per;
+ * a value per item gets the item's key, so every option sends its own.
  * Optional nodes are there when they are `created`, and every choice takes
  * its first alternative. `renderAnatomy()` writes it as correct markup.
  */
@@ -465,6 +473,12 @@ export function createdInstance(anatomy: Anatomy, id: string): AnatomyInstance {
             perItem(per.slice(1), value),
           ]),
         )
+  const perKey = (per: readonly string[], key?: string): Keyed<string> =>
+    per.length === 0
+      ? (key ?? "")
+      : Object.fromEntries(
+          (repeats[per[0]] ?? []).map((k) => [k, perKey(per.slice(1), k)]),
+        )
   const holes: Record<string, Keyed<string>> = {}
   const content: Record<string, Keyed<string>> = {}
   for (const [name, hole] of Object.entries(anatomy.holes)) {
@@ -473,6 +487,10 @@ export function createdInstance(anatomy: Anatomy, id: string): AnatomyInstance {
     if (hole.content === "free") content[name] = value
     else holes[name] = value
   }
+  // A value per item gets the item's key, so every option sends its own.
+  for (const [name, hole] of Object.entries(anatomy.holes))
+    if (hole.kind === "value" && hole.per?.length && hole.example !== undefined)
+      holes[name] = perKey(hole.per)
   return { id, repeats, holes, content }
 }
 
@@ -498,6 +516,8 @@ export function withItem(
     example: string,
   ): Keyed<string> => {
     if (per.length === 0) return value ?? example
+    // One value for every item already holds for the new one too.
+    if (typeof value === "string") return value
     const level = { ...((value as Record<string, Keyed<string>>) ?? {}) }
     for (const k of repeats[per[0]] ?? [])
       if (per[0] !== group || k === key || level[k] !== undefined)
@@ -512,4 +532,40 @@ export function withItem(
     target[name] = filled(target[name], hole.per, hole.example)
   }
   return { ...instance, repeats, holes, content }
+}
+
+/**
+ * The instances a tool can make from a created one with one change each:
+ * every alternative of every choice, every optional part on and off, and
+ * every option a node is there with, on. The reference cases, the parser
+ * witness and the page guard all try these.
+ */
+export function variantsOf(anatomy: Anatomy): Partial<AnatomyInstance>[] {
+  const out: Partial<AnatomyInstance>[] = [{}]
+  const walk = (value: unknown) => {
+    if (value === null || typeof value !== "object") return
+    const node = value as {
+      name?: string
+      oneOf?: Record<string, unknown>
+      optional?: true
+      wrapper?: true
+      requires?: string
+      when?: string
+    }
+    if (node.oneOf && node.name)
+      for (const alternative of Object.keys(node.oneOf))
+        out.push({ choices: { [node.name]: alternative } })
+    if (node.name && (node.optional || node.wrapper))
+      for (const on of [true, false])
+        out.push({
+          parts: {
+            [node.name]: on,
+            ...(on && node.requires ? { [node.requires]: true } : {}),
+          },
+        })
+    if (node.when) out.push({ options: { [node.when]: true } })
+    for (const child of Object.values(value)) walk(child)
+  }
+  walk(anatomy.nodes)
+  return out
 }

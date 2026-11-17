@@ -11,7 +11,14 @@
 
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { type AnatomyInstance, renderAnatomy } from "../src/anatomy/index.js"
+import {
+  type AnatomyInstance,
+  createdInstance,
+  renderAnatomy,
+  VOID,
+  variantsOf,
+  withItem,
+} from "../src/anatomy/index.js"
 import type { Manifest } from "../src/vocabulary/types.js"
 import { allBlocks, type RecipePage, recipePage } from "./recipes.js"
 
@@ -576,6 +583,29 @@ const sorted = (html: string) =>
 
 const errors: string[] = []
 
+// An item inserted where a hole has one value for every item keeps that
+// value for all of them, the new one too.
+{
+  const tabs = manifest.builders.find((b) => b.name === "tabs")?.anatomy
+  if (tabs) {
+    const shared = withItem(
+      tabs,
+      {
+        id: "t",
+        repeats: { tab: ["a", "b"] },
+        holes: { label: "Parts", title: "Shared" },
+        content: { panel: "<p>x</p>" },
+      },
+      "tab",
+      "new",
+    )
+    const expected = `<lt-tabs><ul class="lt-tabs__list" aria-label="Parts"><li><a href="#t-tabs-new">Shared</a></li><li><a href="#t-tabs-a">Shared</a></li><li><a href="#t-tabs-b">Shared</a></li></ul><section id="t-tabs-new" class="lt-tabs__panel"><h2 id="t-tabs-new-heading">Shared</h2><p>x</p></section><section id="t-tabs-a" class="lt-tabs__panel"><h2 id="t-tabs-a-heading">Shared</h2><p>x</p></section><section id="t-tabs-b" class="lt-tabs__panel"><h2 id="t-tabs-b-heading">Shared</h2><p>x</p></section></lt-tabs>`
+    const written = renderAnatomy(manifest, "tabs", shared)
+    if (written !== expected)
+      errors.push(`withItem with a shared value gives\n    ${written}`)
+  }
+}
+
 // The comparison itself: the order does not count, a value or a missing
 // attribute does.
 if (sorted('<a href="/x" class="y">') !== sorted('<a class="y" href="/x">'))
@@ -614,21 +644,6 @@ for (const c of cases) {
  */
 type Tree = { name: string; children: Tree[] }
 
-const VOID_TAGS = new Set([
-  "area",
-  "br",
-  "col",
-  "embed",
-  "hr",
-  "img",
-  "input",
-  "link",
-  "meta",
-  "source",
-  "track",
-  "wbr",
-])
-
 /** The elements with a LO-TEK class or tag, as nested trees: "tag.class". */
 function reduced(html: string): Tree[] {
   const root: Tree = { name: "", children: [] }
@@ -652,7 +667,7 @@ function reduced(html: string): Tree[] {
     const parent = [...stack].reverse().find((e) => e.kept)?.tree ?? root
     const tree: Tree = { name: [tag, ...classes].join("."), children: [] }
     if (kept) parent.children.push(tree)
-    if (!VOID_TAGS.has(tag) && !selfClosing)
+    if (!VOID.has(tag) && !selfClosing)
       stack.push({ tag, tree: kept ? tree : parent, kept })
   }
   return root.children
@@ -740,35 +755,46 @@ for (const b of manifest.builders) {
     .flatMap((name) =>
       examplesFor(manifest.builders.find((x) => x.name === name)?.docs),
     )
-  // Every alternative of every choice in the anatomy.
-  const choicesIn = (value: unknown): [string, string][] => {
-    if (value === null || typeof value !== "object") return []
-    const node = value as { name?: string; oneOf?: Record<string, unknown> }
-    const own: [string, string][] = node.oneOf
-      ? Object.keys(node.oneOf).map((a) => [node.name ?? "", a])
-      : []
-    return [...own, ...Object.values(value).flatMap(choicesIn)]
-  }
-  const choices = choicesIn(b.anatomy)
-  for (const [choice, alternative] of [["", ""], ...choices]) {
-    const holes: Record<string, unknown> = {}
-    for (const [name, hole] of Object.entries(b.anatomy.holes))
-      if (hole.example !== undefined && hole.content !== "free")
-        holes[name] = hole.example
+  // As created, and with every choice, optional part and option a node
+  // is there with. A render that throws is an error, not a skip.
+  for (const variant of variantsOf(b.anatomy)) {
     const instance = {
-      id: "c1",
-      holes: holes as Record<string, string>,
-      ...(choice ? { choices: { [choice]: alternative } } : {}),
+      ...createdInstance(b.anatomy, "c1"),
+      ...variant,
+      content: {},
     }
     let html = ""
     try {
       html = renderAnatomy(manifest, b.name, instance)
-    } catch {
+    } catch (error) {
+      errors.push(
+        `${b.name} ${JSON.stringify(variant)}: ${error instanceof Error ? error.message : error}`,
+      )
       continue
     }
-    if (!onPage(reduced(html), examples))
+    // A wrapper the variant does not turn on, as <lt-dialog> around a
+    // dialog with a header, is witnessed by the variants that have it, and
+    // the rest may stand on the page without it.
+    const wrappers = (
+      JSON.stringify(b.anatomy).match(
+        /"name":"[^"]+"(?=[^{}]*"wrapper":true)/g,
+      ) ?? []
+    )
+      .map((m) => m.slice(8, -1))
+      .filter((w) => !(variant.parts && w in variant.parts))
+    const unwrapped = renderAnatomy(manifest, b.name, {
+      ...instance,
+      parts: {
+        ...instance.parts,
+        ...Object.fromEntries(wrappers.map((w) => [w, false])),
+      },
+    })
+    if (
+      !onPage(reduced(html), examples) &&
+      !onPage(reduced(unwrapped), examples)
+    )
       errors.push(
-        `${b.name}${choice ? ` with ${choice} = ${alternative}` : ""}: the structure is in no example on its page:\n    ${html}`,
+        `${b.name} ${JSON.stringify(variant)}: the structure is in no example on its page:\n    ${html}`,
       )
   }
 }
@@ -828,7 +854,19 @@ function disagreements(name: string, anatomy: Json): string[] {
                   ...b,
                   anatomy: {
                     holes: anatomy.holes,
-                    nodes: [{ ...node, children: [] }],
+                    // The node alone, without what makes it conditional,
+                    // so a part or a `when` node is checked too.
+                    nodes: [
+                      {
+                        ...node,
+                        children: [],
+                        optional: undefined,
+                        wrapper: undefined,
+                        created: undefined,
+                        requires: undefined,
+                        when: undefined,
+                      },
+                    ],
                   } as never,
                 }
               : b,
