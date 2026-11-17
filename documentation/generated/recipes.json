@@ -7841,6 +7841,12 @@
         {
           "lang": "kotlin",
           "meta": null,
+          "code": "val anatomy = Lotek.manifest.builders.first { it.name == \"tabs\" }.anatomy!!\nvar tabs = Anatomies.created(anatomy, \"c1\")\ntabs = Anatomies.withItem(anatomy, tabs, \"tab\", \"claim\")\nval html = Anatomies.render(Lotek.manifest, \"tabs\", tabs)",
+          "section": "The builder functions"
+        },
+        {
+          "lang": "kotlin",
+          "meta": null,
           "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.InputType\nimport no.lotek.html.lt\n\nfun FlowContent.fixerField(fixer: String, invalid: Boolean) {\n    val field = Lt.field(id = \"fixer\", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)\n    label { lt(field.label); +\"Fixer's address\" }\n    input { lt(Lt.input(type = InputType.EMAIL), field.control); name = \"fixer\"; required = true; value = fixer }\n    p { lt(Lt.helpText(), field.help); +\"The board writes to the fixer, never to the crew.\" }\n    p { lt(Lt.errorText(), field.error); +\"Enter the fixer's address, for example fixer@relay.example.\" }\n}",
           "section": "kotlinx.html"
         },
@@ -7950,6 +7956,13 @@
         "null",
         "JavaCallTest",
         "Lt.button(…)",
+        "Anatomies.render",
+        "renderAnatomy()",
+        "@lo-tek/interfaces/anatomy",
+        "created",
+        "withItem",
+        "variants",
+        "annotate",
         "io.github.markusaugust:lo-tek-kotlinx-html",
         "lt(…)",
         "ltField { … }",

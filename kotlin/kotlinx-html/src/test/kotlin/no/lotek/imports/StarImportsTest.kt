@@ -17,6 +17,19 @@ private fun Tag.marked() {
     attributes["data-marked"] = ""
 }
 
+/*
+ * The names for the anatomies, which a design tool imports with a star next
+ * to kotlinx.html. Each is named here, so one that kotlinx.html has too
+ * makes the file stop compiling.
+ */
+@Suppress("unused")
+private val anatomyNames =
+    listOf(
+        Anatomies::class, AnatomyInstance::class, Keyed::class, Anatomy::class, AnatomyRepeat::class,
+        AnatomyHoleDeclaration::class, HoleContent::class, HoleKind::class, AnatomyChild::class,
+        AnatomyAttribute::class, AnatomyHole::class, AnatomyChoice::class, AnatomyNode::class, AnatomyOption::class,
+    )
+
 class StarImportsTest {
     @Test
     fun `kotlinx html and LO-TEK can both be imported with a star`() {

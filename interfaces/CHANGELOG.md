@@ -57,6 +57,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   designer makes but one: an id the designer sets is the element's
   identity, and a new one gives a new element. A class from `annotate` is
   joined to the anatomy's.
+- **The anatomies in Kotlin:** `Lotek.manifest` reads each anatomy as types
+  (`Anatomy`, `AnatomyNode`, `AnatomyHole`, `AnatomyChoice` and the
+  declarations of the holes), where `Builder.anatomy` was the raw JSON
+  before. `Anatomies.render` writes the same markup as `renderAnatomy()`,
+  character for character, and `Anatomies.created`, `withItem` and
+  `variants` make the same instances, so a design tool on the JVM can
+  build pages from real components and patch them with Datastar.
+  `anatomy-cases.json` now holds every change a tool makes, with how the
+  instance was made: an item inserted, a tag, a setting and `annotate`, as
+  well as the variants.
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.

@@ -171,16 +171,18 @@ tasks.test {
     val interfaces = rootDir.resolve("../interfaces")
     systemProperty("parity", core.resolve("parity").absolutePath)
     systemProperty("theme", core.resolve("theme").absolutePath)
-    // The fixtures and the build cases are read through a path, so Gradle
+    // The fixtures and the build and anatomy cases are read through a path, so Gradle
     // does not see them without this, and a new fixture would leave the test
     // counted as up to date.
     inputs.dir(core.resolve("parity")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(core.resolve("theme")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(interfaces.resolve("manifest/build-cases.json")).withPathSensitivity(PathSensitivity.NONE)
+    inputs.file(interfaces.resolve("manifest/anatomy-cases.json")).withPathSensitivity(PathSensitivity.NONE)
     inputs.file(manifestFile).withPathSensitivity(PathSensitivity.NONE)
     val manifestPath = manifestFile.map { it.asFile.absolutePath }
     jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-Dmanifest=${manifestPath.get()}") })
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)
+    systemProperty("anatomyCases", interfaces.resolve("manifest/anatomy-cases.json").absolutePath)
     systemProperty("webjar", layout.buildDirectory.dir("webjar/META-INF/resources/webjars/lo-tek/$version").get().asFile.absolutePath)
     // The sources jar Maven Central gets, which is where IntelliJ reads the
     // KDoc of `Lt` from. `SourcesJarTest` requires the generated `Lt.kt` in it.

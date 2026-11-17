@@ -13,8 +13,9 @@
  *   - `manifest/files.json`: the rulebooks and the component files the
  *     command line reads from the package.
  *   - `manifest/anatomy-cases.json`: every anatomy rendered by
- *     `renderAnatomy()`, as created and with each choice and optional part.
- *     A renderer in another language must give exactly the same.
+ *     `renderAnatomy()`, as created and with each change a design tool
+ *     makes, with how the instance was made. A renderer in another
+ *     language must give exactly the same, and make the same instances.
  *
  * The builder functions are not written by hand. The options and their
  * types are read by the TypeScript compiler from the signatures in
@@ -60,7 +61,12 @@ import {
 } from "../src/tokens/tokens.js"
 import { classes } from "../src/vocabulary/classes.js"
 import { elements } from "../src/vocabulary/elements.js"
-import type { Anatomy, Manifest } from "../src/vocabulary/types.js"
+import type {
+  Anatomy,
+  AnatomyChild,
+  AnatomyNode,
+  Manifest,
+} from "../src/vocabulary/types.js"
 import {
   type BuilderFunction as Base,
   type Option,
@@ -776,15 +782,90 @@ writeFileSync(
 /*
  * The anatomies as `renderAnatomy()` writes them, for a renderer in another
  * language to give exactly the same: every component as created, with an
- * item in each group that may have none, and with every alternative of
- * every choice and every optional part. Repository only, as the build
- * cases are.
+ * item in each group that may have none, and with each change a design
+ * tool makes from there. `change` says how the instance was made, so the
+ * other language can make it too: a `variant` from `variantsOf()`, an item
+ * inserted with `withItem()` first and last in each group, every `tag` a
+ * node offers, every value of every `setting`, and `annotate`, where the
+ * attributes are written with `{address}` for the element's address.
+ * Repository only, as the build cases are.
  */
-const anatomyCases: {
+type AnatomyCase = {
   builder: string
+  change: "variant" | "withItem" | "tag" | "setting" | "annotate"
+  withItem?: { group: string; key: string; at: number }
+  annotate?: Record<string, string>
   instance: AnatomyInstance
   expected: string
-}[] = []
+}
+const anatomyCases: AnatomyCase[] = []
+/** What a tool's annotate gives, with `{address}` for the address. */
+const ANNOTATE = {
+  "data-node": "{address}",
+  id: "tool-{address}",
+  class: "tool-node",
+}
+/**
+ * Every node in an anatomy, the alternatives of each choice included, with
+ * what makes it written: the alternatives chosen, the optional parts on and
+ * the options on around it. `named` is the name its settings go under, the
+ * choice's for an alternative without one, and `group` the innermost group
+ * around it, which its settings are keyed by.
+ */
+type NodePlace = {
+  node: AnatomyNode
+  named?: string
+  group?: string
+  choices: Record<string, string>
+  parts: Record<string, boolean>
+  options: Record<string, boolean>
+}
+type Around = Omit<NodePlace, "node" | "named">
+const placesOf = (
+  children: readonly AnatomyChild[] = [],
+  around: Around,
+): NodePlace[] =>
+  children.flatMap((c) =>
+    "hole" in c
+      ? []
+      : "oneOf" in c
+        ? Object.entries(c.oneOf).flatMap(([alternative, node]) =>
+            visit(node, node.name ?? c.name, {
+              ...around,
+              group: c.repeat ?? around.group,
+              choices: { ...around.choices, [c.name]: alternative },
+            }),
+          )
+        : visit(c, c.name, { ...around, group: c.repeat ?? around.group }),
+  )
+const visit = (
+  node: AnatomyNode,
+  named: string | undefined,
+  around: Around,
+): NodePlace[] => {
+  const here: Around = {
+    ...around,
+    parts:
+      node.name && (node.optional || node.wrapper)
+        ? {
+            ...around.parts,
+            [node.name]: true,
+            ...(node.requires ? { [node.requires]: true } : {}),
+          }
+        : around.parts,
+    options: node.when
+      ? { ...around.options, [node.when]: true }
+      : around.options,
+  }
+  return [{ node, named, ...here }, ...placesOf(node.children, here)]
+}
+/** The instance with what makes the node written, and nothing empty. */
+const writing = (base: AnatomyInstance, place: NodePlace): AnatomyInstance => ({
+  ...base,
+  ...(Object.keys(place.choices).length ? { choices: place.choices } : {}),
+  ...(Object.keys(place.parts).length ? { parts: place.parts } : {}),
+  ...(Object.keys(place.options).length ? { options: place.options } : {}),
+})
 const silent = console.warn
 console.warn = () => {}
 try {
@@ -793,19 +874,101 @@ try {
     let base = createdInstance(b.anatomy, "c1")
     for (const [group, { min }] of Object.entries(b.anatomy.repeats ?? {}))
       if (min === 0) base = withItem(b.anatomy, base, group, `${group}1`)
-    const variants = variantsOf(b.anatomy)
-    for (const variant of variants) {
-      const instance = { ...base, ...variant }
+    const made: Omit<AnatomyCase, "builder" | "expected">[] = []
+    for (const variant of variantsOf(b.anatomy))
+      made.push({ change: "variant", instance: { ...base, ...variant } })
+    for (const group of Object.keys(b.anatomy.repeats ?? {}))
+      for (const at of [0, base.repeats?.[group]?.length ?? 0])
+        made.push({
+          change: "withItem",
+          withItem: { group, key: "inserted", at },
+          instance: withItem(b.anatomy, base, group, "inserted", at),
+        })
+    const places = placesOf(b.anatomy.nodes, {
+      choices: {},
+      parts: {},
+      options: {},
+    })
+    // A tag case where the node is not written would test nothing, so
+    // every tag must give other markup than the first.
+    for (const place of places) {
+      const { node } = place
+      if (!node.name || typeof node.tag === "string") continue
+      const as = (tag: string) => ({
+        ...writing(base, place),
+        tags: { [node.name as string]: tag },
+      })
+      const first = renderAnatomy(
+        manifest as unknown as Manifest,
+        b.name,
+        as(node.tag[0]),
+      )
+      for (const tag of node.tag) {
+        if (
+          tag !== node.tag[0] &&
+          renderAnatomy(manifest as unknown as Manifest, b.name, as(tag)) ===
+            first
+        )
+          throw new Error(
+            `anatomy-cases: ${b.name} as <${tag}> writes what <${node.tag[0]}> does, so ${node.name} is not written.`,
+          )
+        made.push({ change: "tag", instance: as(tag) })
+      }
+    }
+    // Per item when the node is in a group, as the renderer reads it.
+    for (const place of places) {
+      const { node, named, group } = place
+      if (!named) continue
+      for (const setting of node.settings ?? [])
+        for (const source of node.from ?? []) {
+          const option = builderFunctions
+            .find((x) => x.name === source.split(".")[0])
+            ?.options.find((o) => o.name === setting)
+          if (!option) continue
+          const values =
+            option.type.kind === "values"
+              ? option.type.values
+              : option.type.kind === "flag"
+                ? [true]
+                : []
+          for (const value of values) {
+            const one = { [setting]: value }
+            made.push({
+              change: "setting",
+              instance: {
+                ...writing(base, place),
+                settings: {
+                  [named]: group
+                    ? Object.fromEntries(
+                        (base.repeats?.[group] ?? []).map((k) => [k, one]),
+                      )
+                    : one,
+                },
+              },
+            })
+          }
+        }
+    }
+    made.push({ change: "annotate", annotate: ANNOTATE, instance: base })
+    for (const m of made)
       anatomyCases.push({
         builder: b.name,
-        instance,
-        expected: renderAnatomy(
-          manifest as unknown as Manifest,
-          b.name,
-          instance,
-        ),
+        ...m,
+        expected: renderAnatomy(manifest as unknown as Manifest, b.name, {
+          ...m.instance,
+          ...(m.annotate
+            ? {
+                annotate: (address: string) =>
+                  Object.fromEntries(
+                    Object.entries(ANNOTATE).map(([k, v]) => [
+                      k,
+                      v.replace("{address}", address),
+                    ]),
+                  ),
+              }
+            : {}),
+        }),
       })
-    }
   }
 } finally {
   console.warn = silent

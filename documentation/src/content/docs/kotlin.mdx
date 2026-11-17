@@ -110,6 +110,19 @@ An option in the middle of the list needs the ones before it, as `null` when the
 
 The documentation on each builder function, the options with their defaults and a link to the component page, comes from the same manifest, so IntelliJ shows it in Quick Documentation on `Lt.button(…)` from the sources jar.
 
+### In a design tool
+
+A builder function with an anatomy in the manifest knows the markup it belongs in: the elements, which attributes each takes from the builder functions, and the holes a template fills. `Anatomies.render` writes that markup on the server, as `renderAnatomy()` in `@lo-tek/interfaces/anatomy` does, so a design tool on the JVM can build pages from real components:
+
+```kotlin
+val anatomy = Lotek.manifest.builders.first { it.name == "tabs" }.anatomy!!
+var tabs = Anatomies.created(anatomy, "c1")
+tabs = Anatomies.withItem(anatomy, tabs, "tab", "claim")
+val html = Anatomies.render(Lotek.manifest, "tabs", tabs)
+```
+
+`created` gives the component as a tool creates it on a drop, `withItem` inserts a tab, a row or an option without changing the keys of the others, and `variants` gives every alternative and optional part. With `annotate` on the instance, every element gets attributes from its address, such as an id Datastar keeps it by. The markup is the same as from TypeScript, character for character, for every component as created and with every change a tool makes.
+
 ## kotlinx.html
 
 `io.github.markusaugust:lo-tek-kotlinx-html` has one extension, `lt(…)`, which puts the attributes from the builder functions on a tag, and one function per web component, such as `ltField { … }` for `<lt-field>`, since kotlinx.html knows only the elements in HTML. It is a separate package, so the main package does not bring kotlinx.html to those who do not use it.

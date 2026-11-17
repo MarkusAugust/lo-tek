@@ -95,13 +95,104 @@ data class Manifest(
                 description = b["description"]?.str("$at.description"),
                 example = b["example"]?.str("$at.example"),
                 docs = b["docs"]?.str("$at.docs"),
-                anatomy = b["anatomy"]?.obj("$at.anatomy"),
+                anatomy = b["anatomy"]?.let { anatomy(it.obj("$at.anatomy"), "$at.anatomy") },
                 parts =
                     b["parts"]?.obj("$at.parts")?.mapValues { (field, p) ->
                         val path = "$at.parts.$field"
                         val part = p.obj(path)
                         BuilderPart(element = part["element"].str("$path.element"), part = part["part"].str("$path.part"))
                     } ?: emptyMap(),
+            )
+
+        private fun anatomy(a: Map<String, Any?>, at: String): Anatomy {
+            val nodes = a["nodes"] as? List<*> ?: wrong("$at.nodes", "a list")
+            if (nodes.size != 1) wrong("$at.nodes", "a list with one root")
+            return Anatomy(
+                holes =
+                    a["holes"].obj("$at.holes").mapValues { (name, h) ->
+                        val path = "$at.holes.$name"
+                        val hole = h.obj(path)
+                        AnatomyHoleDeclaration(
+                            description = hole["description"].str("$path.description"),
+                            content = hole["content"]?.let { enumOf<HoleContent>(it.str("$path.content"), "$path.content") },
+                            kind = hole["kind"]?.let { enumOf<HoleKind>(it.str("$path.kind"), "$path.kind") },
+                            per = hole["per"]?.strings("$path.per") ?: emptyList(),
+                            optional = hole["optional"] == true,
+                            example = hole["example"]?.str("$path.example"),
+                            values = hole["values"]?.strings("$path.values"),
+                        )
+                    },
+                options =
+                    (a["options"]?.obj("$at.options") ?: emptyMap()).mapValues { (name, o) ->
+                        val path = "$at.options.$name"
+                        val option = o.obj(path)
+                        when {
+                            "hole" in option -> AnatomyOption.Hole(option["hole"].str("$path.hole"))
+                            "repeat" in option -> AnatomyOption.Repeat(option["repeat"].str("$path.repeat"))
+                            "count" in option -> AnatomyOption.Count(option["count"].str("$path.count"))
+                            "tool" in option -> AnatomyOption.Tool(option["tool"].str("$path.tool"))
+                            "choice" in option ->
+                                AnatomyOption.Choice(option["choice"].str("$path.choice"), option["alternative"].str("$path.alternative"))
+                            else -> wrong(path, "a hole, a repeat, a count, a tool or a choice")
+                        }
+                    },
+                repeats =
+                    (a["repeats"]?.obj("$at.repeats") ?: emptyMap()).mapValues { (group, r) ->
+                        val path = "$at.repeats.$group"
+                        val repeat = r.obj(path)
+                        AnatomyRepeat(min = repeat["min"].num("$path.min").toInt(), description = repeat["description"].str("$path.description"))
+                    },
+                root = child(nodes[0], "$at.nodes[0]"),
+            )
+        }
+
+        private fun hole(h: Map<String, Any?>, at: String) = AnatomyHole(hole = h["hole"].str("$at.hole"), value = h["value"]?.str("$at.value"))
+
+        private fun child(value: Any?, at: String): AnatomyChild {
+            val c = value.obj(at)
+            return when {
+                "hole" in c -> hole(c, at)
+                "oneOf" in c ->
+                    AnatomyChoice(
+                        name = c["name"].str("$at.name"),
+                        description = c["description"].str("$at.description"),
+                        oneOf =
+                            c["oneOf"].obj("$at.oneOf").mapValues { (name, n) ->
+                                child(n, "$at.oneOf.$name") as? AnatomyNode ?: wrong("$at.oneOf.$name", "a node")
+                            },
+                        repeat = c["repeat"]?.str("$at.repeat"),
+                    )
+                "tag" in c -> node(c, at)
+                else -> wrong(at, "a node, a hole or a choice")
+            }
+        }
+
+        private fun node(n: Map<String, Any?>, at: String) =
+            AnatomyNode(
+                tags = (n["tag"] as? String)?.let { listOf(it) } ?: n["tag"].strings("$at.tag"),
+                from = n["from"]?.strings("$at.from") ?: emptyList(),
+                attributes =
+                    (n["attributes"]?.obj("$at.attributes") ?: emptyMap()).mapValues { (name, v) ->
+                        val path = "$at.attributes.$name"
+                        if (v is String) AnatomyAttribute.Fixed(v) else hole(v.obj(path), path)
+                    },
+                children = (n["children"] as? List<*> ?: emptyList<Any?>()).mapIndexed { i, c -> child(c, "$at.children[$i]") },
+                options =
+                    (n["options"]?.obj("$at.options") ?: emptyMap()).mapValues { (builder, o) ->
+                        o.obj("$at.options.$builder").mapValues { (option, v) ->
+                            // A value that is a hole is read at the node's place; any other is passed as it is.
+                            if (v is Map<*, *> && "hole" in v) hole(v.obj("$at.options.$builder.$option"), "$at.options.$builder.$option") else v
+                        }
+                    },
+                settings = n["settings"]?.strings("$at.settings") ?: emptyList(),
+                name = n["name"]?.str("$at.name"),
+                description = n["description"]?.str("$at.description"),
+                optional = n["optional"] == true,
+                wrapper = n["wrapper"] == true,
+                created = n["created"] == true,
+                requires = n["requires"]?.str("$at.requires"),
+                whenOption = n["when"]?.str("$at.when"),
+                repeat = n["repeat"]?.str("$at.repeat"),
             )
 
         private fun optionType(t: Map<String, Any?>, at: String): OptionType =
@@ -389,14 +480,11 @@ data class Builder(
      */
     val parts: Map<String, BuilderPart> = emptyMap(),
     /**
-     * The markup the function belongs in, as the manifest's JSON: maps,
-     * lists, strings and booleans. `renderAnatomy()` in
-     * `@lo-tek/interfaces/anatomy` writes it, and `manifest/anatomy-cases.json`
-     * holds what it writes, for a renderer here to give the same. `null` for
-     * a function that is only a source in another's anatomy, and in a
-     * manifest from before 0.46.
+     * The markup the function belongs in, which [Anatomies.render] writes.
+     * `null` for a function that is only a source in another's anatomy,
+     * and in a manifest from before 0.46.
      */
-    val anatomy: Map<String, Any?>? = null,
+    val anatomy: Anatomy? = null,
 )
 
 /** A part of a frame component, as `control` in `lt-field`. Its selector is in [Manifest.elements]. */
@@ -530,3 +618,166 @@ data class ClassAttribute(
     val flag: Boolean,
     val description: String?,
 )
+
+/**
+ * The markup a builder function belongs in: the elements, where each
+ * one's attributes come from, and the holes the template fills. A design
+ * tool builds a component from it, and [Anatomies.render] writes it, as
+ * `renderAnatomy()` does in `@lo-tek/interfaces/anatomy`. There is one
+ * [root], so the component is one box in a layout. The rules are the ones
+ * on the types in `vocabulary/types.ts` in the npm package.
+ */
+data class Anatomy(
+    /** What each hole holds, by name. */
+    val holes: Map<String, AnatomyHoleDeclaration>,
+    /** The options of the builder function the panel does not show, and where each gets its value. */
+    val options: Map<String, AnatomyOption> = emptyMap(),
+    /** The groups that repeat, with how few items each may have. */
+    val repeats: Map<String, AnatomyRepeat> = emptyMap(),
+    /** The one element the component is, `nodes[0]` in the manifest. */
+    val root: AnatomyChild,
+)
+
+/** A group that repeats, as the tabs in `lt-tabs`, with how few items it may have. */
+data class AnatomyRepeat(
+    val min: Int,
+    val description: String,
+)
+
+/**
+ * What a hole holds, declared once for the anatomy, so a tool knows what
+ * to ask for and what may be dropped there. A hole among the children has
+ * [content]; a hole in an attribute has [kind].
+ */
+data class AnatomyHoleDeclaration(
+    val description: String,
+    val content: HoleContent? = null,
+    /**
+     * What an attribute hole holds. An [HoleKind.ID] hole the instance
+     * leaves empty gets `<instance id>-<hole>`, and `-<key>` for each group
+     * in [per], so the same component gets the same ids on every render.
+     * A [HoleKind.FLAG] writes the attribute bare when it is on, and leaves
+     * it out when it is off.
+     */
+    val kind: HoleKind? = null,
+    /**
+     * The groups the hole has a value for each item in, outermost first, as
+     * a tab's title per `tab`. Empty when the hole has one value for the
+     * whole component.
+     */
+    val per: List<String> = emptyList(),
+    /**
+     * Without a value, the attribute is left out. Without it, an attribute
+     * hole without a value is an error. An empty text is a value.
+     */
+    val optional: Boolean = false,
+    /** What a tool fills in on a new component, so it is correct as created. */
+    val example: String? = null,
+    /** The values an attribute hole can take, as `true` and `false` for `aria-pressed`. */
+    val values: List<String>? = null,
+)
+
+/** What a hole among the children takes: [TEXT] is text, [FREE] other elements too, and is where a tool drops them. */
+enum class HoleContent { TEXT, FREE }
+
+/** What an attribute hole holds. */
+enum class HoleKind { TEXT, ID, NAME, VALUE, URL, FLAG }
+
+/** What can stand among the children of a node. */
+sealed interface AnatomyChild
+
+/** An attribute no builder function writes: a fixed value, or an [AnatomyHole]. */
+sealed interface AnatomyAttribute {
+    data class Fixed(val value: String) : AnatomyAttribute
+}
+
+/**
+ * A place the template fills, among the children of a node or in an
+ * attribute, by the name it is declared under in [Anatomy.holes]. [value]
+ * is, in an attribute with a flag hole, the value written when the flag is
+ * on, as `true` for `aria-hidden`; without it, the attribute is bare.
+ */
+data class AnatomyHole(
+    val hole: String,
+    val value: String? = null,
+) : AnatomyChild, AnatomyAttribute
+
+/**
+ * A place with alternatives the designer chooses between, as a plain or a
+ * sortable column heading. The first in [oneOf] is the one a tool creates.
+ * With [repeat], each item in the group chooses for itself.
+ */
+data class AnatomyChoice(
+    val name: String,
+    val description: String,
+    val oneOf: Map<String, AnatomyNode>,
+    val repeat: String? = null,
+) : AnatomyChild
+
+/**
+ * One element in an anatomy.
+ *
+ * [from] is where its attributes come from, in order: a builder function
+ * (`button`), a set in its answer (`field.control`), or a class the
+ * function carries (`checkbox.row`, in [Builder.classes]). The attributes
+ * merge in that order: a later value wins, `class` is joined, and a flag is
+ * written bare. Then [attributes] are written over them.
+ *
+ * The first node that names a builder function calls it, as does a node
+ * with [options] for it, with what the designer set under [settings] and
+ * then [options], and the nodes inside use the same answer; a node outside
+ * calls it anew. The anatomy's own builder function takes the instance's
+ * options and the bound ones, and is called where a node first uses it.
+ */
+data class AnatomyNode(
+    /** The tags to choose from, the first being the one to write. One for most nodes. */
+    val tags: List<String>,
+    val from: List<String> = emptyList(),
+    val attributes: Map<String, AnatomyAttribute> = emptyMap(),
+    val children: List<AnatomyChild> = emptyList(),
+    /**
+     * Options for a builder function, by its name. The node calls the
+     * function anew with them, even when a node above has called it, and
+     * they win over the designer's. A value that is an [AnatomyHole] is
+     * read at the node's place; any other is the manifest's JSON.
+     */
+    val options: Map<String, Map<String, Any?>> = emptyMap(),
+    /** The options of the builder functions the node calls that the designer sets here. Requires a [name]. */
+    val settings: List<String> = emptyList(),
+    /** What a tool shows, and what the instance uses for its parts, tag and settings. Unique in an anatomy. */
+    val name: String? = null,
+    val description: String? = null,
+    /** The component works without the node. */
+    val optional: Boolean = false,
+    /** Optional, and the children stay when it is left out. */
+    val wrapper: Boolean = false,
+    /** An optional node that is there when a tool creates the component. */
+    val created: Boolean = false,
+    /** An optional node that can only be there with the named one, as the subtitle with the header. */
+    val requires: String? = null,
+    /** `when` in the manifest: the node is there exactly when this option of the anatomy's own builder function is on. */
+    val whenOption: String? = null,
+    /** The node is written once for each item in the group, and nodes in the same group repeat together. */
+    val repeat: String? = null,
+) : AnatomyChild
+
+/**
+ * Where an option of the anatomy's own builder function gets its value,
+ * so a tool does not show it in the panel.
+ */
+sealed interface AnatomyOption {
+    /** The value of a hole. */
+    data class Hole(val hole: String) : AnatomyOption
+
+    /** The keys of the items in a group. */
+    data class Repeat(val repeat: String) : AnatomyOption
+
+    /** The number of items in a group. */
+    data class Count(val count: String) : AnatomyOption
+
+    /** The tool itself, with what it does. */
+    data class Tool(val tool: String) : AnatomyOption
+
+    /** On exactly when the choice takes the alternative, as `disabled` with a disabled link. */
+    data class Choice(val choice: String, val alternative: String) : AnatomyOption
+}

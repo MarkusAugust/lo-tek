@@ -216,6 +216,85 @@ class ManifestReaderTest {
             OptionType.TextList -> mapOf("kind" to "textList")
         }
 
+    /** The anatomy written back as the manifest's JSON, so a field the reader drops is missing from it. */
+    private fun anatomyJson(a: Anatomy): Map<String, Any?> =
+        buildMap {
+            put(
+                "holes",
+                a.holes.mapValues { (_, h) ->
+                    buildMap {
+                        put("description", h.description)
+                        h.content?.let { put("content", it.name.lowercase()) }
+                        h.kind?.let { put("kind", it.name.lowercase()) }
+                        if (h.per.isNotEmpty()) put("per", h.per)
+                        if (h.optional) put("optional", true)
+                        h.example?.let { put("example", it) }
+                        h.values?.let { put("values", it) }
+                    }
+                },
+            )
+            if (a.options.isNotEmpty()) {
+                put(
+                    "options",
+                    a.options.mapValues { (_, o) ->
+                        when (o) {
+                            is AnatomyOption.Hole -> mapOf("hole" to o.hole)
+                            is AnatomyOption.Repeat -> mapOf("repeat" to o.repeat)
+                            is AnatomyOption.Count -> mapOf("count" to o.count)
+                            is AnatomyOption.Tool -> mapOf("tool" to o.tool)
+                            is AnatomyOption.Choice -> mapOf("choice" to o.choice, "alternative" to o.alternative)
+                        }
+                    },
+                )
+            }
+            if (a.repeats.isNotEmpty()) put("repeats", a.repeats.mapValues { (_, r) -> mapOf("min" to r.min.toDouble(), "description" to r.description) })
+            put("nodes", listOf(childJson(a.root)))
+        }
+
+    private fun childJson(c: AnatomyChild): Map<String, Any?> =
+        when (c) {
+            is AnatomyHole -> holeJson(c)
+            is AnatomyChoice ->
+                buildMap {
+                    put("name", c.name)
+                    put("description", c.description)
+                    put("oneOf", c.oneOf.mapValues { (_, n) -> childJson(n) })
+                    c.repeat?.let { put("repeat", it) }
+                }
+            is AnatomyNode ->
+                buildMap {
+                    put("tag", c.tags.singleOrNull() ?: c.tags)
+                    if (c.from.isNotEmpty()) put("from", c.from)
+                    if (c.attributes.isNotEmpty()) {
+                        put(
+                            "attributes",
+                            c.attributes.mapValues { (_, v) ->
+                                when (v) {
+                                    is AnatomyAttribute.Fixed -> v.value
+                                    is AnatomyHole -> holeJson(v)
+                                }
+                            },
+                        )
+                    }
+                    if (c.children.isNotEmpty()) put("children", c.children.map(::childJson))
+                    if (c.options.isNotEmpty()) put("options", c.options.mapValues { (_, o) -> o.mapValues { (_, v) -> if (v is AnatomyHole) holeJson(v) else v } })
+                    if (c.settings.isNotEmpty()) put("settings", c.settings)
+                    c.name?.let { put("name", it) }
+                    c.description?.let { put("description", it) }
+                    if (c.optional) put("optional", true)
+                    if (c.wrapper) put("wrapper", true)
+                    if (c.created) put("created", true)
+                    c.requires?.let { put("requires", it) }
+                    c.whenOption?.let { put("when", it) }
+                    c.repeat?.let { put("repeat", it) }
+                }
+        }
+
+    private fun holeJson(h: AnatomyHole): Map<String, Any?> = buildMap {
+        put("hole", h.hole)
+        h.value?.let { put("value", it) }
+    }
+
     @Test
     fun `every builder keeps its options and the shape of its answer, in order`() {
         val builders = raw["builders"] as List<*>
@@ -234,11 +313,13 @@ class ManifestReaderTest {
         var withParts = 0
         var described = 0
         var defaults = 0
+        var anatomies = 0
         for ((i, b) in builders.withIndex()) {
             val expected = b.map()
             val read = Lotek.manifest.builders[i]
             known(b, "name", "description", "example", "docs", "parts", "options", "returns", "table", "classes", "anatomy", at = read.name)
-            assertEquals(b.map()["anatomy"], read.anatomy, "${read.name} anatomy")
+            assertEquals(b.map()["anatomy"], read.anatomy?.let(::anatomyJson), "${read.name} anatomy")
+            if (read.anatomy != null) anatomies += 1
             assertEquals(expected["classes"] ?: emptyMap<String, String>(), read.classes, "${read.name} classes")
             assertEquals(listOf(expected["description"], expected["example"], expected["docs"]), listOf(read.description, read.example, read.docs), "${read.name} documentation")
             assertEquals(
@@ -268,6 +349,7 @@ class ManifestReaderTest {
             if (group != null) assertEquals(group.keys.toList(), (read.returns as Returns.Group).fields.keys.toList(), "${read.name} the order of the fields")
         }
         assertTrue(options > 0, "No builder function had options, so the comparison said nothing.")
+        assertTrue(anatomies > 30, "Only $anatomies builder functions had an anatomy, so the comparison said little.")
         assertTrue(withClasses > 0, "No builder function had classes for its parts, so that branch of the reader is untested.")
         assertTrue(withParts > 0, "No builder function had parts, so that branch of the reader is untested.")
         assertEquals(builders.size, described, "every builder function has a description in the manifest")
@@ -392,8 +474,12 @@ class ManifestReaderTest {
         assertContains(error("""{"schemaVersion": 1, "version": "0", "elements": {}, "classes": []}"""), "classes should have been an object")
         // Without tokens the manifest is from before 0.34 and is read; with the wrong shape it throws.
         assertContains(error("""{"schemaVersion": 1, "version": "0", "elements": {}, "classes": {}, "builders": [], "tokens": 3}"""), "tokens should have been an object")
+        // The kind of a hole in an anatomy.
+        assertContains(error(text.replaceFirst("\"kind\": \"id\"", "\"kind\": \"identity\"")), "\"identity\"")
+        // A child that is neither a node, a hole nor a choice.
+        assertContains(error(text.replaceFirst(Regex("(\"children\": \\[\\s*\\{\\s*)\"hole\": "), "$1\"pit\": ")), "a node, a hole or a choice")
         // The type of an option; the first "kind": "flag" in the file can be
-        // a hole in an anatomy, which is read as JSON.
+        // a hole in an anatomy, which has kinds of its own.
         assertContains(
             error(text.replaceFirst(Regex("(\"type\": \\{\\s*\"kind\": \")flag\""), "$1flagg\"")),
             "\"flagg\"",
