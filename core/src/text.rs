@@ -45,6 +45,16 @@ pub fn is_name_char(c: u16) -> bool {
     is_ascii_letter(c) || is_digit(c) || c == b'-' as u16
 }
 
+/// Whether a tag name, as it is written, is a component in a framework and
+/// not HTML: `<Label>` is a component, `<INPUT>` is HTML in capitals.
+pub fn is_component_name(written: &[u16]) -> bool {
+    let upper = |c: &u16| (b'A' as u16..=b'Z' as u16).contains(c);
+    written.first().is_some_and(upper)
+        && !written
+            .iter()
+            .all(|c| upper(c) || !(b'a' as u16..=b'z' as u16).contains(c))
+}
+
 pub fn ascii_lower(c: u16) -> u16 {
     if (b'A' as u16..=b'Z' as u16).contains(&c) {
         c + 32

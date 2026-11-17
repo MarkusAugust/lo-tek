@@ -95,6 +95,17 @@ pub struct ClassAttribute {
     pub flag: bool,
 }
 
+/// A tag a class can be on, like `<button>` for `lt-button`. `tag` is `*`
+/// for any. `attributes` are the ones the tag must have, with the values it
+/// may have there, like `type` on an input. `requires` are the ones it must
+/// have with a value of the template's own, like `href` on a link.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Tag {
+    pub tag: String,
+    pub attributes: Vec<(String, Vec<String>)>,
+    pub requires: Vec<String>,
+}
+
 #[derive(Clone, Debug)]
 pub struct Class {
     pub name: String,
@@ -106,6 +117,9 @@ pub struct Class {
     pub named: Option<Named>,
     /// The texts the stylesheet shows on it.
     pub texts: Vec<CssText>,
+    /// The tags the class can be on, the first being the one to write. Empty
+    /// in a manifest from before the field, and then nothing is checked.
+    pub tags: Vec<Tag>,
 }
 
 /// Everything the spell check checks against, read from one manifest.
@@ -171,7 +185,8 @@ pub struct Finding {
     pub rule: &'static str,
 }
 
-/// The names of the rules, in the order they appear in the documentation.
+/// The names of the rules. A parity fixture in `parity/` must trigger each one,
+/// which `scripts/check-core.ts` requires.
 pub const RULES: &[&str] = &[
     "unknown-element",
     "unknown-attribute",
@@ -180,6 +195,7 @@ pub const RULES: &[&str] = &[
     "not-a-number",
     "unknown-class",
     "invalid-class-value",
+    "class-on-wrong-tag",
     "disabled-with-href",
     "field-without-control",
     "part-repeated",

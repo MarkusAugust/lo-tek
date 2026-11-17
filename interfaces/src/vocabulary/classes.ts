@@ -20,6 +20,11 @@ export const classes: Classes = {
         "content": "free"
       }
     },
+    "tags": [
+      {
+        "tag": "details"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -36,6 +41,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/accordion/",
     "content": "free",
     "partOf": "lt-accordion",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-alert": {
@@ -52,6 +62,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {
       "data-color": {
         "values": [
@@ -70,6 +85,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/alert/",
     "content": "text",
     "partOf": "lt-alert",
+    "tags": [
+      {
+        "tag": "p"
+      }
+    ],
     "attributes": {}
   },
   "lt-avatar": {
@@ -86,6 +106,14 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "span"
+      },
+      {
+        "tag": "button"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -122,6 +150,11 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "ul"
+      }
+    ],
     "attributes": {}
   },
   "lt-badge": {
@@ -130,6 +163,11 @@ export const classes: Classes = {
     "description": "Compact status badge. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/badge/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {
       "data-color": {
         "values": [
@@ -162,6 +200,11 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "ol"
+      }
+    ],
     "attributes": {}
   },
   "lt-button": {
@@ -170,6 +213,41 @@ export const classes: Classes = {
     "description": "A button for actions. CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/button/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "button"
+      },
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      },
+      {
+        "tag": "a",
+        "attributes": {
+          "role": [
+            "link"
+          ],
+          "tabindex": [
+            "0"
+          ],
+          "aria-disabled": [
+            "true"
+          ]
+        }
+      },
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "submit",
+            "button",
+            "reset"
+          ]
+        }
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -195,6 +273,26 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      },
+      {
+        "tag": "article"
+      },
+      {
+        "tag": "section"
+      },
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      },
+      {
+        "tag": "button"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -215,6 +313,23 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/card/",
     "content": "text",
     "partOf": "lt-card",
+    "tags": [
+      {
+        "tag": "h2"
+      },
+      {
+        "tag": "h3"
+      },
+      {
+        "tag": "h4"
+      },
+      {
+        "tag": "h5"
+      },
+      {
+        "tag": "h6"
+      }
+    ],
     "attributes": {}
   },
   "lt-checkbox": {
@@ -223,6 +338,16 @@ export const classes: Classes = {
     "description": "A checkbox for a choice that stands on its own. CSS component with two classes and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/checkbox/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "checkbox"
+          ]
+        }
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -252,6 +377,11 @@ export const classes: Classes = {
         "content": "text"
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-divider": {
@@ -260,6 +390,11 @@ export const classes: Classes = {
     "description": "A line between parts of the content. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/divider/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "hr"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -276,6 +411,14 @@ export const classes: Classes = {
     "description": "Error message below a form field. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/error-text/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "p"
+      },
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -312,6 +455,11 @@ export const classes: Classes = {
       }
     },
     "name": {},
+    "tags": [
+      {
+        "tag": "fieldset"
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -345,6 +493,11 @@ export const classes: Classes = {
         ]
       }
     ],
+    "tags": [
+      {
+        "tag": "legend"
+      }
+    ],
     "attributes": {
       "data-required": {
         "values": [
@@ -364,6 +517,16 @@ export const classes: Classes = {
     "description": "A field for uploading files. A CSS component with two classes and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/file-upload/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "file"
+          ]
+        }
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -395,6 +558,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "ul"
+      }
+    ],
     "attributes": {}
   },
   "lt-heading": {
@@ -403,6 +571,26 @@ export const classes: Classes = {
     "description": "Headings in six sizes, independent of level. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/heading/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "h1"
+      },
+      {
+        "tag": "h2"
+      },
+      {
+        "tag": "h3"
+      },
+      {
+        "tag": "h4"
+      },
+      {
+        "tag": "h5"
+      },
+      {
+        "tag": "h6"
+      }
+    ],
     "attributes": {
       "data-size": {
         "values": [
@@ -422,6 +610,14 @@ export const classes: Classes = {
     "description": "Explanatory text below a form field. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/help-text/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "p"
+      },
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -439,6 +635,11 @@ export const classes: Classes = {
     "description": "An icon from the app's own set, as large as the text around it. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/icon/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "svg"
+      }
+    ],
     "attributes": {}
   },
   "lt-input": {
@@ -447,6 +648,11 @@ export const classes: Classes = {
     "description": "A text field for forms, with states for valid and invalid. CSS component.",
     "link": "https://lo-tek.sobernetics.no/components/input/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input"
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -486,6 +692,11 @@ export const classes: Classes = {
         ]
       }
     ],
+    "tags": [
+      {
+        "tag": "label"
+      }
+    ],
     "attributes": {
       "data-required": {
         "values": [
@@ -505,6 +716,28 @@ export const classes: Classes = {
     "description": "Link style for navigation in running text. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/link/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      },
+      {
+        "tag": "a",
+        "attributes": {
+          "role": [
+            "link"
+          ],
+          "tabindex": [
+            "0"
+          ],
+          "aria-disabled": [
+            "true"
+          ]
+        }
+      }
+    ],
     "attributes": {}
   },
   "lt-list": {
@@ -521,6 +754,14 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "ul"
+      },
+      {
+        "tag": "ol"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -558,6 +799,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "ul"
+      }
+    ],
     "attributes": {}
   },
   "lt-pagination__gap": {
@@ -567,6 +813,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/pagination/",
     "content": "text",
     "partOf": "lt-pagination",
+    "tags": [
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {}
   },
   "lt-paragraph": {
@@ -575,6 +826,11 @@ export const classes: Classes = {
     "description": "Body text and lead paragraphs with a limited line length. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/paragraph/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "p"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -597,6 +853,11 @@ export const classes: Classes = {
     "description": "A progress bar for something that has an end. CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/progress/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "progress"
+      }
+    ],
     "attributes": {
       "data-color": {
         "values": [
@@ -613,6 +874,16 @@ export const classes: Classes = {
     "description": "Radio buttons for one choice among several. A CSS component with two classes and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/radio/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "radio"
+          ]
+        }
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -642,6 +913,11 @@ export const classes: Classes = {
         "content": "text"
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-search": {
@@ -650,6 +926,16 @@ export const classes: Classes = {
     "description": "A search field with a magnifying glass. A CSS component with two classes and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/search/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "search"
+          ]
+        }
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -685,6 +971,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "form"
+      }
+    ],
     "attributes": {}
   },
   "lt-select": {
@@ -693,6 +984,11 @@ export const classes: Classes = {
     "description": "A dropdown list. CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/select/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "select"
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -715,6 +1011,11 @@ export const classes: Classes = {
     "description": "A placeholder that shows the shape of content being loaded. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/skeleton/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -731,6 +1032,14 @@ export const classes: Classes = {
     "description": "A link that skips past the menu to the main content. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/skip-link/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      }
+    ],
     "attributes": {}
   },
   "lt-spinner": {
@@ -739,6 +1048,11 @@ export const classes: Classes = {
     "description": "A wait indicator for something in progress. CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/spinner/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {
       "data-size": {
         "values": [
@@ -755,6 +1069,11 @@ export const classes: Classes = {
     "description": "Text only screen readers get. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/sr-only/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "*"
+      }
+    ],
     "attributes": {}
   },
   "lt-steps": {
@@ -780,6 +1099,11 @@ export const classes: Classes = {
         "siblingsBefore": true
       }
     ],
+    "tags": [
+      {
+        "tag": "ol"
+      }
+    ],
     "attributes": {}
   },
   "lt-switch": {
@@ -788,6 +1112,16 @@ export const classes: Classes = {
     "description": "A switch for a setting that takes effect immediately. CSS component with two classes and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/switch/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "checkbox"
+          ]
+        }
+      }
+    ],
     "attributes": {}
   },
   "lt-switch-row": {
@@ -809,6 +1143,11 @@ export const classes: Classes = {
         "content": "text"
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-table": {
@@ -845,6 +1184,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "table"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -865,6 +1209,17 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/table/",
     "content": "text",
     "partOf": "lt-table",
+    "tags": [
+      {
+        "tag": "button"
+      },
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      }
+    ],
     "attributes": {}
   },
   "lt-table-scroll": {
@@ -880,6 +1235,11 @@ export const classes: Classes = {
         "content": "free"
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-tag": {
@@ -888,6 +1248,17 @@ export const classes: Classes = {
     "description": "A tag for topics and filters. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/tag/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "span"
+      },
+      {
+        "tag": "button"
+      },
+      {
+        "tag": "li"
+      }
+    ],
     "attributes": {
       "data-variant": {
         "values": [
@@ -907,6 +1278,11 @@ export const classes: Classes = {
     "description": "A multi-line text field. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/textarea/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "textarea"
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [
@@ -944,6 +1320,11 @@ export const classes: Classes = {
       }
     },
     "name": {},
+    "tags": [
+      {
+        "tag": "fieldset"
+      }
+    ],
     "attributes": {}
   },
   "lt-toggle-group__option": {
@@ -953,6 +1334,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/toggle-group/",
     "content": "free",
     "partOf": "lt-toggle-group",
+    "tags": [
+      {
+        "tag": "label"
+      }
+    ],
     "attributes": {}
   },
   "lt-tooltip": {
@@ -973,6 +1359,11 @@ export const classes: Classes = {
         "content": "text"
       }
     },
+    "tags": [
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {}
   },
   "lt-tooltip__bubble": {
@@ -982,6 +1373,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/tooltip/",
     "content": "text",
     "partOf": "lt-tooltip",
+    "tags": [
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {}
   },
   "lt-dialog": {
@@ -1022,6 +1418,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "dialog"
+      }
+    ],
     "attributes": {
       "data-color": {
         "values": [
@@ -1042,6 +1443,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "free",
     "partOf": "lt-dialog",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-dialog__title": {
@@ -1051,6 +1457,26 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "text",
     "partOf": "lt-dialog",
+    "tags": [
+      {
+        "tag": "h1"
+      },
+      {
+        "tag": "h2"
+      },
+      {
+        "tag": "h3"
+      },
+      {
+        "tag": "h4"
+      },
+      {
+        "tag": "h5"
+      },
+      {
+        "tag": "h6"
+      }
+    ],
     "attributes": {}
   },
   "lt-dialog__footer": {
@@ -1060,6 +1486,14 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "free",
     "partOf": "lt-dialog",
+    "tags": [
+      {
+        "tag": "form"
+      },
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-dialog__header": {
@@ -1082,6 +1516,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-dialog__subtitle": {
@@ -1091,6 +1530,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/dialog/",
     "content": "text",
     "partOf": "lt-dialog",
+    "tags": [
+      {
+        "tag": "p"
+      }
+    ],
     "attributes": {}
   },
   "lt-error-summary": {
@@ -1117,6 +1561,11 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "lt-error-summary"
+      }
+    ],
     "attributes": {}
   },
   "lt-error-summary__title": {
@@ -1126,6 +1575,26 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/error-summary/",
     "content": "text",
     "partOf": "lt-error-summary",
+    "tags": [
+      {
+        "tag": "h1"
+      },
+      {
+        "tag": "h2"
+      },
+      {
+        "tag": "h3"
+      },
+      {
+        "tag": "h4"
+      },
+      {
+        "tag": "h5"
+      },
+      {
+        "tag": "h6"
+      }
+    ],
     "attributes": {}
   },
   "lt-popover": {
@@ -1134,6 +1603,14 @@ export const classes: Classes = {
     "description": "Panel that hangs below a button and closes itself. Frame component.",
     "link": "https://lo-tek.sobernetics.no/components/popover/",
     "content": "free",
+    "tags": [
+      {
+        "tag": "ul"
+      },
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-session-timeout": {
@@ -1181,6 +1658,11 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "lt-session-timeout"
+      }
+    ],
     "attributes": {}
   },
   "lt-session-timeout__dialog": {
@@ -1218,6 +1700,11 @@ export const classes: Classes = {
         "content": "parts"
       }
     },
+    "tags": [
+      {
+        "tag": "dialog"
+      }
+    ],
     "attributes": {}
   },
   "lt-session-timeout__title": {
@@ -1227,6 +1714,26 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
     "content": "text",
     "partOf": "lt-session-timeout",
+    "tags": [
+      {
+        "tag": "h1"
+      },
+      {
+        "tag": "h2"
+      },
+      {
+        "tag": "h3"
+      },
+      {
+        "tag": "h4"
+      },
+      {
+        "tag": "h5"
+      },
+      {
+        "tag": "h6"
+      }
+    ],
     "attributes": {}
   },
   "lt-session-timeout__text": {
@@ -1236,6 +1743,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
     "content": "text",
     "partOf": "lt-session-timeout",
+    "tags": [
+      {
+        "tag": "p"
+      }
+    ],
     "attributes": {}
   },
   "lt-session-timeout__count": {
@@ -1245,6 +1757,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/session-timeout/",
     "content": "none",
     "partOf": "lt-session-timeout",
+    "tags": [
+      {
+        "tag": "span"
+      }
+    ],
     "attributes": {}
   },
   "lt-session-timeout__actions": {
@@ -1262,6 +1779,11 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "form"
+      }
+    ],
     "attributes": {}
   },
   "lt-suggestion__list": {
@@ -1279,6 +1801,11 @@ export const classes: Classes = {
         "optional": true
       }
     },
+    "tags": [
+      {
+        "tag": "ul"
+      }
+    ],
     "attributes": {}
   },
   "lt-suggestion__option": {
@@ -1288,6 +1815,11 @@ export const classes: Classes = {
     "link": "https://lo-tek.sobernetics.no/components/suggestion/",
     "content": "text",
     "partOf": "lt-suggestion__list",
+    "tags": [
+      {
+        "tag": "li"
+      }
+    ],
     "attributes": {}
   },
   "lt-suggestion__value": {
@@ -1296,6 +1828,16 @@ export const classes: Classes = {
     "description": "Field with a suggestion list that narrows as the user types. Frame component.",
     "link": "https://lo-tek.sobernetics.no/components/suggestion/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "hidden"
+          ]
+        }
+      }
+    ],
     "attributes": {}
   },
   "lt-suggestion__empty": {
@@ -1304,6 +1846,11 @@ export const classes: Classes = {
     "description": "Field with a suggestion list that narrows as the user types. Frame component.",
     "link": "https://lo-tek.sobernetics.no/components/suggestion/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "p"
+      }
+    ],
     "attributes": {}
   },
   "lt-tabs__list": {
@@ -1320,6 +1867,11 @@ export const classes: Classes = {
         "multiple": true
       }
     },
+    "tags": [
+      {
+        "tag": "ul"
+      }
+    ],
     "attributes": {}
   },
   "lt-tabs__panel": {
@@ -1328,6 +1880,14 @@ export const classes: Classes = {
     "description": "Tab list of links to their panels. Frame component.",
     "link": "https://lo-tek.sobernetics.no/components/tabs/",
     "content": "free",
+    "tags": [
+      {
+        "tag": "section"
+      },
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-term": {
@@ -1336,6 +1896,14 @@ export const classes: Classes = {
     "description": "A word in the text that shows its entry from a glossary on the same page, in a card by the word. Frame component.",
     "link": "https://lo-tek.sobernetics.no/components/term/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "a",
+        "requires": [
+          "href"
+        ]
+      }
+    ],
     "attributes": {}
   },
   "lt-term__entry": {
@@ -1357,6 +1925,11 @@ export const classes: Classes = {
         "content": "free"
       }
     },
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-connection-status": {
@@ -1365,6 +1938,11 @@ export const classes: Classes = {
     "description": "Tells the user when the connection to the server is gone. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/connection-status/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "lt-connection-status"
+      }
+    ],
     "attributes": {}
   },
   "lt-connection-status__bar": {
@@ -1373,6 +1951,11 @@ export const classes: Classes = {
     "description": "Tells the user when the connection to the server is gone. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/connection-status/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-toast": {
@@ -1381,6 +1964,11 @@ export const classes: Classes = {
     "description": "A queue of short messages in the corner of the screen. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/toast/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "lt-toast"
+      }
+    ],
     "attributes": {}
   },
   "lt-toast__message": {
@@ -1389,6 +1977,11 @@ export const classes: Classes = {
     "description": "A queue of short messages in the corner of the screen. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/toast/",
     "content": "free",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-toast__close": {
@@ -1397,6 +1990,11 @@ export const classes: Classes = {
     "description": "A queue of short messages in the corner of the screen. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/toast/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "button"
+      }
+    ],
     "attributes": {}
   },
   "lt-theme-control": {
@@ -1405,6 +2003,16 @@ export const classes: Classes = {
     "description": "Change colours, shape and size in LO-TEK without losing the changes on the next upgrade.",
     "link": "https://lo-tek.sobernetics.no/customising/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "radio"
+          ]
+        }
+      }
+    ],
     "attributes": {}
   }
 }

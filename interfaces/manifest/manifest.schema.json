@@ -94,8 +94,16 @@
                 }
               }
             }
+          },
+          "removed": {
+            "type": "object",
+            "description": "Attributes removed from the element, with what applies instead. lotek check reports them with the text, so a template from an older version is told what to write.",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "classes": {
@@ -160,6 +168,45 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "siblingsBefore": {
+                  "const": true,
+                  "description": "The attribute is on a child of the element with the class, and the text is shown on the children before it, as \"Completed \" is on the steps before the one with aria-current=\"step\" in lt-steps."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "tags": {
+            "type": "array",
+            "description": "The tags the class can be on, the first being the one to write. lotek check reports the class on any other. Added after schemaVersion 1, so a fragment from lotek takeover written before it has none.",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["tag"],
+              "properties": {
+                "tag": {
+                  "type": "string",
+                  "description": "The tag name, or * for any."
+                },
+                "attributes": {
+                  "type": "object",
+                  "description": "Attributes the tag must have, with the values it may have there, as type on an input.",
+                  "additionalProperties": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "requires": {
+                  "type": "array",
+                  "description": "Attributes the tag must have, with a value of the template's own, as href on a link.",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  }
                 }
               },
               "additionalProperties": false
@@ -215,7 +262,8 @@
               ]
             }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "builders": {
@@ -280,7 +328,8 @@
                   "type": "string",
                   "description": "For an option with a closed list: the value that gives the same answer as leaving the option out, read from the answers. The description says the same."
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
           "returns": {
@@ -325,7 +374,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "tokens": {
@@ -410,6 +460,7 @@
       "additionalProperties": false
     }
   },
+  "additionalProperties": false,
   "$defs": {
     "elementAttribute": {
       "oneOf": [

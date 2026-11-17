@@ -177,6 +177,17 @@ describe("sortable columns", () => {
     expect(tableSort.isDirection("none")).toBe(false)
   })
 
+  it("gives a sorting link the class alone", () => {
+    // The page: a link that sorts on the next page load gets the class
+    // alone, since type="button" means nothing on <a>.
+    expect(tableSort({ link: true }).button).toEqual({
+      class: "lt-table__sort",
+    })
+    expect(tableSort({ link: true, direction: "ascending" }).header).toEqual({
+      "aria-sort": "ascending",
+    })
+  })
+
   it("has no accessibility violations", async () => {
     await waitForPaint()
     await expectNoAccessibilityViolations()

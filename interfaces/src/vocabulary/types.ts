@@ -123,6 +123,18 @@ export type ClassAttribute = {
   flag?: true
 }
 
+/**
+ * A tag a class can be on. `tag` is the tag name, or `*` for any.
+ * `attributes` are the ones the tag must have, with the values it may have
+ * there, as `type` on an input. `requires` are the ones it must have with a
+ * value of the template's own, as `href` on a link.
+ */
+export type Tag = {
+  tag: string
+  attributes?: Record<string, readonly string[]>
+  requires?: readonly string[]
+}
+
 export type ClassInfo = {
   /** The path of the component page, such as `button`. */
   component: string
@@ -143,6 +155,8 @@ export type ClassInfo = {
   name?: Name
   /** The texts the stylesheet shows on it. */
   texts?: readonly CssText[]
+  /** The tags the class can be on, the first being the one to write. */
+  tags?: readonly Tag[]
   attributes: Record<string, ClassAttribute>
 }
 

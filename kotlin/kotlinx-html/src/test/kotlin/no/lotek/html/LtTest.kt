@@ -43,7 +43,7 @@ class LtTest {
             body {
                 form(action = "/jobs", method = FormMethod.post) {
                     val summary = Lt.errorSummary(count = if (invalid) 1 else 0, id = "errors")
-                    div { lt(summary.host)
+                    ltErrorSummary { lt(summary.host)
                         h2 { lt(summary.title); +"Fix 1 error" }
                         ul { li { +"The fixer's address is missing @" } }
                     }

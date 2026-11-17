@@ -47,10 +47,24 @@ class ManifestReaderTest {
         var partOf = 0
         var named = 0
         var texts = 0
+        var tags = 0
         for ((name, c) in classes) {
             val read = Lotek.manifest.classes.getValue(name)
             val expected = c.map()
-            known(c, "component", "title", "description", "link", "content", "partOf", "parts", "name", "texts", "attributes", at = name)
+            known(c, "component", "title", "description", "link", "content", "partOf", "parts", "name", "texts", "tags", "attributes", at = name)
+            assertEquals(
+                expected["tags"] ?: emptyList<Any?>(),
+                read.tags.map { t ->
+                    buildMap {
+                        put("tag", t.tag)
+                        if (t.attributes.isNotEmpty()) put("attributes", t.attributes)
+                        if (t.requires.isNotEmpty()) put("requires", t.requires)
+                    }
+                },
+                "$name tags",
+            )
+            tags += read.tags.size
+            (expected["tags"] as? List<*>)?.forEach { known(it, "tag", "attributes", "requires", at = "$name tags") }
             assertEquals(nameJson(read.named), expected["name"], "$name name")
             assertEquals(
                 expected["texts"] ?: emptyList<Any?>(),
@@ -99,6 +113,7 @@ class ManifestReaderTest {
         assertTrue(attributes > 0, "No class had attributes, so the comparison said nothing.")
         assertTrue(parts > 0 && partOf > 0, "Found $parts parts and $partOf classes with partOf, so the comparison said nothing.")
         assertTrue(named > 0 && texts > 0, "Found $named classes with name and $texts texts, so those branches in the reader are untested.")
+        assertTrue(tags > 0, "No class had tags, so the reader of them is untested.")
     }
 
     @Test

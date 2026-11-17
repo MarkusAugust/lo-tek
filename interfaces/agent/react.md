@@ -62,44 +62,44 @@ The default variant has no attribute.
 
 ### CSS components (no JavaScript)
 
-| Class | Stylesheet | Attributes |
-| --- | --- | --- |
-| `lt-accordion`<br>`lt-accordion__content` | `@lo-tek/interfaces/accordion.css` | `data-variant`: plain |
-| `lt-alert`<br>`lt-alert__title` | `@lo-tek/interfaces/alert.css` | `data-color`: info, success, warning, danger |
-| `lt-avatar`<br>`lt-avatar-stack` | `@lo-tek/interfaces/avatar.css` | `data-variant`: square<br>`data-size`: small, large |
-| `lt-badge` | `@lo-tek/interfaces/badge.css` | `data-color`: success, warning, danger, neutral |
-| `lt-breadcrumbs` | `@lo-tek/interfaces/breadcrumbs.css` | none |
-| `lt-button` | `@lo-tek/interfaces/button.css` | `data-variant`: secondary, ghost, danger |
-| `lt-card`<br>`lt-card__title` | `@lo-tek/interfaces/card.css` | `data-variant`: filled<br>`data-interactive` (flag) |
-| `lt-checkbox`<br>`lt-checkbox-row` | `@lo-tek/interfaces/checkbox.css` | `data-state`: invalid, success |
-| `lt-divider` | `@lo-tek/interfaces/divider.css` | `data-variant`: subtle, strong |
-| `lt-error-text` | `@lo-tek/interfaces/error-text.css` | `data-variant`: warning |
-| `lt-fieldset`<br>`lt-legend` | `@lo-tek/interfaces/fieldset.css` | `data-state`: invalid, success<br>`data-required`: symbol, text<br>`data-optional` (flag) |
-| `lt-file-upload`<br>`lt-file-upload-list` | `@lo-tek/interfaces/file-upload.css` | `data-state`: invalid, success |
-| `lt-heading` | `@lo-tek/interfaces/heading.css` | `data-size`: xs, s, m, xl, mega |
-| `lt-help-text` | `@lo-tek/interfaces/help-text.css` | `data-variant`: strong, success, warning |
-| `lt-icon` | `@lo-tek/interfaces/icon.css` | none |
-| `lt-input` | `@lo-tek/interfaces/input.css` | `data-state`: invalid, success<br>`data-variant`: date, datetime-local, time |
-| `lt-label` | `@lo-tek/interfaces/label.css` | `data-required`: symbol, text<br>`data-optional` (flag) |
-| `lt-link` | `@lo-tek/interfaces/link.css` | none |
-| `lt-list` | `@lo-tek/interfaces/list.css` | `data-variant`: plain, divided |
-| `lt-pagination`<br>`lt-pagination__gap` | `@lo-tek/interfaces/pagination.css` | none |
-| `lt-paragraph` | `@lo-tek/interfaces/paragraph.css` | `data-variant`: lead<br>`data-size`: small, large |
-| `lt-progress` | `@lo-tek/interfaces/progress.css` | `data-color`: success, warning, danger |
-| `lt-radio`<br>`lt-radio-row` | `@lo-tek/interfaces/radio.css` | `data-state`: invalid, success |
-| `lt-search`<br>`lt-search-row` | `@lo-tek/interfaces/search.css` | `data-state`: invalid, success |
-| `lt-select` | `@lo-tek/interfaces/select.css` | `data-state`: invalid, success<br>`data-picker`: styled |
-| `lt-skeleton` | `@lo-tek/interfaces/skeleton.css` | `data-variant`: text, circle |
-| `lt-skip-link` | `@lo-tek/interfaces/skip-link.css` | none |
-| `lt-spinner` | `@lo-tek/interfaces/spinner.css` | `data-size`: small, large |
-| `lt-sr-only` | `@lo-tek/interfaces/sr-only.css` | none |
-| `lt-steps` | `@lo-tek/interfaces/steps.css` | none |
-| `lt-switch`<br>`lt-switch-row` | `@lo-tek/interfaces/switch.css` | none |
-| `lt-table`<br>`lt-table__sort`<br>`lt-table-scroll` | `@lo-tek/interfaces/table.css` | `data-variant`: striped<br>`data-hoverable` (flag) |
-| `lt-tag` | `@lo-tek/interfaces/tag.css` | `data-variant`: filled<br>`data-selectable` (flag) |
-| `lt-textarea` | `@lo-tek/interfaces/textarea.css` | `data-state`: invalid, success |
-| `lt-toggle-group`<br>`lt-toggle-group__option` | `@lo-tek/interfaces/toggle-group.css` | none |
-| `lt-tooltip`<br>`lt-tooltip__bubble` | `@lo-tek/interfaces/tooltip.css` | none |
+| Class | On | Stylesheet | Attributes |
+| --- | --- | --- | --- |
+| `lt-accordion`<br>`lt-accordion__content` | `<details>`<br>`<div>` | `@lo-tek/interfaces/accordion.css` | `data-variant`: plain |
+| `lt-alert`<br>`lt-alert__title` | `<div>`<br>`<p>` | `@lo-tek/interfaces/alert.css` | `data-color`: info, success, warning, danger |
+| `lt-avatar`<br>`lt-avatar-stack` | `<span>`, `<button>`<br>`<ul>` | `@lo-tek/interfaces/avatar.css` | `data-variant`: square<br>`data-size`: small, large |
+| `lt-badge` | `<span>` | `@lo-tek/interfaces/badge.css` | `data-color`: success, warning, danger, neutral |
+| `lt-breadcrumbs` | `<ol>` | `@lo-tek/interfaces/breadcrumbs.css` | none |
+| `lt-button` | `<button>`, `<a href>`, `<a role="link" tabindex="0" aria-disabled="true">`, `<input type="submit">` | `@lo-tek/interfaces/button.css` | `data-variant`: secondary, ghost, danger |
+| `lt-card`<br>`lt-card__title` | `<div>`, `<article>`, `<section>`, `<a href>`, `<button>`<br>`<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` | `@lo-tek/interfaces/card.css` | `data-variant`: filled<br>`data-interactive` (flag) |
+| `lt-checkbox`<br>`lt-checkbox-row` | `<input type="checkbox">`<br>`<div>` | `@lo-tek/interfaces/checkbox.css` | `data-state`: invalid, success |
+| `lt-divider` | `<hr>` | `@lo-tek/interfaces/divider.css` | `data-variant`: subtle, strong |
+| `lt-error-text` | `<p>`, `<span>` | `@lo-tek/interfaces/error-text.css` | `data-variant`: warning |
+| `lt-fieldset`<br>`lt-legend` | `<fieldset>`<br>`<legend>` | `@lo-tek/interfaces/fieldset.css` | `data-state`: invalid, success<br>`data-required`: symbol, text<br>`data-optional` (flag) |
+| `lt-file-upload`<br>`lt-file-upload-list` | `<input type="file">`<br>`<ul>` | `@lo-tek/interfaces/file-upload.css` | `data-state`: invalid, success |
+| `lt-heading` | `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` | `@lo-tek/interfaces/heading.css` | `data-size`: xs, s, m, xl, mega |
+| `lt-help-text` | `<p>`, `<span>` | `@lo-tek/interfaces/help-text.css` | `data-variant`: strong, success, warning |
+| `lt-icon` | `<svg>` | `@lo-tek/interfaces/icon.css` | none |
+| `lt-input` | `<input>` | `@lo-tek/interfaces/input.css` | `data-state`: invalid, success<br>`data-variant`: date, datetime-local, time |
+| `lt-label` | `<label>` | `@lo-tek/interfaces/label.css` | `data-required`: symbol, text<br>`data-optional` (flag) |
+| `lt-link` | `<a href>`, `<a role="link" tabindex="0" aria-disabled="true">` | `@lo-tek/interfaces/link.css` | none |
+| `lt-list` | `<ul>`, `<ol>` | `@lo-tek/interfaces/list.css` | `data-variant`: plain, divided |
+| `lt-pagination`<br>`lt-pagination__gap` | `<ul>`<br>`<span>` | `@lo-tek/interfaces/pagination.css` | none |
+| `lt-paragraph` | `<p>` | `@lo-tek/interfaces/paragraph.css` | `data-variant`: lead<br>`data-size`: small, large |
+| `lt-progress` | `<progress>` | `@lo-tek/interfaces/progress.css` | `data-color`: success, warning, danger |
+| `lt-radio`<br>`lt-radio-row` | `<input type="radio">`<br>`<div>` | `@lo-tek/interfaces/radio.css` | `data-state`: invalid, success |
+| `lt-search`<br>`lt-search-row` | `<input type="search">`<br>`<form>` | `@lo-tek/interfaces/search.css` | `data-state`: invalid, success |
+| `lt-select` | `<select>` | `@lo-tek/interfaces/select.css` | `data-state`: invalid, success<br>`data-picker`: styled |
+| `lt-skeleton` | `<div>` | `@lo-tek/interfaces/skeleton.css` | `data-variant`: text, circle |
+| `lt-skip-link` | `<a href>` | `@lo-tek/interfaces/skip-link.css` | none |
+| `lt-spinner` | `<span>` | `@lo-tek/interfaces/spinner.css` | `data-size`: small, large |
+| `lt-sr-only` | any tag | `@lo-tek/interfaces/sr-only.css` | none |
+| `lt-steps` | `<ol>` | `@lo-tek/interfaces/steps.css` | none |
+| `lt-switch`<br>`lt-switch-row` | `<input type="checkbox">`<br>`<div>` | `@lo-tek/interfaces/switch.css` | none |
+| `lt-table`<br>`lt-table__sort`<br>`lt-table-scroll` | `<table>`<br>`<button>`, `<a href>`<br>`<div>` | `@lo-tek/interfaces/table.css` | `data-variant`: striped<br>`data-hoverable` (flag) |
+| `lt-tag` | `<span>`, `<button>`, `<li>` | `@lo-tek/interfaces/tag.css` | `data-variant`: filled<br>`data-selectable` (flag) |
+| `lt-textarea` | `<textarea>` | `@lo-tek/interfaces/textarea.css` | `data-state`: invalid, success |
+| `lt-toggle-group`<br>`lt-toggle-group__option` | `<fieldset>`<br>`<label>` | `@lo-tek/interfaces/toggle-group.css` | none |
+| `lt-tooltip`<br>`lt-tooltip__bubble` | `<span>`<br>`<span>` | `@lo-tek/interfaces/tooltip.css` | none |
 
 There is also `lt-theme-control`, a class on a radio button that lets the user
 choose a theme. It is in `tokens.css`, and is described under Tokens.
@@ -275,15 +275,15 @@ Three rules apply to all of them:
 | Element | Category | Stylesheet | Registration | Attributes | Events | Classes inside |
 | --- | --- | --- | --- | --- | --- | --- |
 | `<lt-field>` | frame | `@lo-tek/interfaces/field.css` | `defineLtField()` from `@lo-tek/interfaces/field` | `disabled` (flag)<br>`optional` (flag)<br>`described-by` (text) | none | none |
-| `<lt-tabs>` | frame | `@lo-tek/interfaces/tabs.css` | `defineLtTabs()` from `@lo-tek/interfaces/tabs` | `server-controlled` (flag)<br>`activation`: manual, automatic | `tab-select` (index) | `lt-tabs__list`<br>`lt-tabs__panel` |
-| `<lt-error-summary>` | frame | `@lo-tek/interfaces/error-summary.css` | `defineLtErrorSummary()` from `@lo-tek/interfaces/error-summary` | `data-autofocus`: false, true<br>`hidden` (flag) | none | `lt-error-summary`<br>`lt-error-summary__title` |
-| `<lt-popover>` | frame | `@lo-tek/interfaces/popover.css` | `defineLtPopover()` from `@lo-tek/interfaces/popover` | `open` (flag)<br>`placement`: bottom-start, bottom-end, top-start, top-end<br>`server-controlled` (flag) | `popover-toggle` (open) | `lt-popover` |
-| `<lt-term>` | frame | `@lo-tek/interfaces/term.css` | `defineLtTerm()` from `@lo-tek/interfaces/term` | none | none | `lt-term`<br>`lt-term__entry` |
-| `<lt-suggestion>` | frame | `@lo-tek/interfaces/suggestion.css` | `defineLtSuggestion()` from `@lo-tek/interfaces/suggestion` | `prefiltered` (flag)<br>`count-none` (text)<br>`count-zero` (text)<br>`count-one` (text)<br>`count-two` (text)<br>`count-few` (text)<br>`count-many` (text)<br>`count-other` (text)<br>`server-controlled` (flag) | `suggestion-select` (value, label) | `lt-suggestion__list`<br>`lt-suggestion__option`<br>`lt-suggestion__value`<br>`lt-suggestion__empty` |
-| `<lt-dialog>` | frame | `@lo-tek/interfaces/dialog.css` | `defineLtDialog()` from `@lo-tek/interfaces/dialog` | `open` (flag)<br>`server-controlled` (flag) | `dialog-toggle` (open, returnValue) | `lt-dialog` (`data-color`: brand, info, success, warning, danger)<br>`lt-dialog__body`<br>`lt-dialog__title`<br>`lt-dialog__footer`<br>`lt-dialog__header`<br>`lt-dialog__subtitle` |
-| `<lt-toast>` | standalone | `@lo-tek/interfaces/toast.css` | `defineLtToast()` from `@lo-tek/interfaces/toast` | `duration` (number)<br>`close-label` (text) | `toast-dismiss` | `lt-toast`<br>`lt-toast__message`<br>`lt-toast__close` |
-| `<lt-session-timeout>` | frame | `@lo-tek/interfaces/session-timeout.css` | `defineLtSessionTimeout()` from `@lo-tek/interfaces/session-timeout` | `warn-at` (number)<br>`expires-at` (number)<br>`activity-interval` (number) | `session-warn`<br>`session-extend`<br>`session-logout`<br>`session-expired`<br>`session-activity` | `lt-session-timeout`<br>`lt-session-timeout__dialog`<br>`lt-session-timeout__title`<br>`lt-session-timeout__text`<br>`lt-session-timeout__count`<br>`lt-session-timeout__actions` |
-| `<lt-connection-status>` | standalone | `@lo-tek/interfaces/connection-status.css` | `defineLtConnectionStatus()` from `@lo-tek/interfaces/connection-status` | `offline-text` (text)<br>`online-text` (text) | `connection-lost`<br>`connection-restored` | `lt-connection-status`<br>`lt-connection-status__bar` |
+| `<lt-tabs>` | frame | `@lo-tek/interfaces/tabs.css` | `defineLtTabs()` from `@lo-tek/interfaces/tabs` | `server-controlled` (flag)<br>`activation`: manual, automatic | `tab-select` (index) | `lt-tabs__list` on `<ul>`<br>`lt-tabs__panel` on `<section>`, `<div>` |
+| `<lt-error-summary>` | frame | `@lo-tek/interfaces/error-summary.css` | `defineLtErrorSummary()` from `@lo-tek/interfaces/error-summary` | `data-autofocus`: false, true<br>`hidden` (flag) | none | `lt-error-summary` on `<lt-error-summary>`<br>`lt-error-summary__title` on `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` |
+| `<lt-popover>` | frame | `@lo-tek/interfaces/popover.css` | `defineLtPopover()` from `@lo-tek/interfaces/popover` | `open` (flag)<br>`placement`: bottom-start, bottom-end, top-start, top-end<br>`server-controlled` (flag) | `popover-toggle` (open) | `lt-popover` on `<ul>`, `<div>` |
+| `<lt-term>` | frame | `@lo-tek/interfaces/term.css` | `defineLtTerm()` from `@lo-tek/interfaces/term` | none | none | `lt-term` on `<a href>`<br>`lt-term__entry` on `<div>` |
+| `<lt-suggestion>` | frame | `@lo-tek/interfaces/suggestion.css` | `defineLtSuggestion()` from `@lo-tek/interfaces/suggestion` | `prefiltered` (flag)<br>`count-none` (text)<br>`count-zero` (text)<br>`count-one` (text)<br>`count-two` (text)<br>`count-few` (text)<br>`count-many` (text)<br>`count-other` (text)<br>`server-controlled` (flag) | `suggestion-select` (value, label) | `lt-suggestion__list` on `<ul>`<br>`lt-suggestion__option` on `<li>`<br>`lt-suggestion__value` on `<input type="hidden">`<br>`lt-suggestion__empty` on `<p>` |
+| `<lt-dialog>` | frame | `@lo-tek/interfaces/dialog.css` | `defineLtDialog()` from `@lo-tek/interfaces/dialog` | `open` (flag)<br>`server-controlled` (flag) | `dialog-toggle` (open, returnValue) | `lt-dialog` on `<dialog>` (`data-color`: brand, info, success, warning, danger)<br>`lt-dialog__body` on `<div>`<br>`lt-dialog__title` on `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>`<br>`lt-dialog__footer` on `<form>`, `<div>`<br>`lt-dialog__header` on `<div>`<br>`lt-dialog__subtitle` on `<p>` |
+| `<lt-toast>` | standalone | `@lo-tek/interfaces/toast.css` | `defineLtToast()` from `@lo-tek/interfaces/toast` | `duration` (number)<br>`close-label` (text) | `toast-dismiss` | `lt-toast` on `<lt-toast>`<br>`lt-toast__message` on `<div>`<br>`lt-toast__close` on `<button>` |
+| `<lt-session-timeout>` | frame | `@lo-tek/interfaces/session-timeout.css` | `defineLtSessionTimeout()` from `@lo-tek/interfaces/session-timeout` | `warn-at` (number)<br>`expires-at` (number)<br>`activity-interval` (number) | `session-warn`<br>`session-extend`<br>`session-logout`<br>`session-expired`<br>`session-activity` | `lt-session-timeout` on `<lt-session-timeout>`<br>`lt-session-timeout__dialog` on `<dialog>`<br>`lt-session-timeout__title` on `<h1>`, `<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>`<br>`lt-session-timeout__text` on `<p>`<br>`lt-session-timeout__count` on `<span>`<br>`lt-session-timeout__actions` on `<form>` |
+| `<lt-connection-status>` | standalone | `@lo-tek/interfaces/connection-status.css` | `defineLtConnectionStatus()` from `@lo-tek/interfaces/connection-status` | `offline-text` (text)<br>`online-text` (text) | `connection-lost`<br>`connection-restored` | `lt-connection-status` on `<lt-connection-status>`<br>`lt-connection-status__bar` on `<div>` |
 
 None of them uses shadow DOM. The content is in plain DOM, so `querySelector`,
 `FormData` and ordinary CSS work straight into it.

@@ -7,6 +7,7 @@ import {
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
+import { onItsTags } from "../../../testing/markup"
 import { defineLtToast, type LtToast, showToast } from "./lt-toast"
 import { toast as ltToast } from "./toast"
 
@@ -51,6 +52,17 @@ describe("lt-toast", () => {
     // The close button is always there. A message that only disappears by
     // itself is gone before a slow reader gets to it.
     expect(close.getAttribute("aria-label")).toBe("Close message")
+  })
+
+  it("writes the message and the close button on the tags the manifest names", async () => {
+    const toast = await paint()
+    const message = toast.show("The floor plans have been uploaded")
+    const close = message.querySelector(".lt-toast__close") as HTMLElement
+
+    // No page shows these, since the component writes them, so the component
+    // is the witness that `tags` in the manifest is right.
+    expect(onItsTags(message, "lt-toast__message")).toBe(true)
+    expect(onItsTags(close, "lt-toast__close")).toBe(true)
   })
 
   it("removes the message when the close button is pressed", async () => {

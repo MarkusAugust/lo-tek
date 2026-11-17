@@ -13,11 +13,14 @@
  *   - `manifest/files.json`: the rulebooks and the component files the
  *     command line reads from the package.
  *
- * Nothing here is written by hand. The options and their types are read by
- * the TypeScript compiler from the signatures in `src/lt.ts`, in
- * `builder-functions.ts`, and the results come from calling the functions. A
- * new builder function, option or variant ends up in the manifest on the
- * next build. `bun run build` rewrites the files before it checks anything,
+ * The builder functions are not written by hand. The options and their
+ * types are read by the TypeScript compiler from the signatures in
+ * `src/lt.ts`, in `builder-functions.ts`, and the results come from calling
+ * the functions. A new builder function, option or variant ends up in the
+ * manifest on the next build. What the code cannot say is written once, in
+ * `metadata.ts`: the parts, the content and the tags of a class, and which
+ * part each set from a builder function fills (`BUILDER_PARTS`). The
+ * generators stop when that table and the code disagree. `bun run build` rewrites the files before it checks anything,
  * so an out-of-date file on disk does not stop the build; it is the CI step
  * that checks nothing is ungenerated that fails a change where the files
  * have not been regenerated and committed.

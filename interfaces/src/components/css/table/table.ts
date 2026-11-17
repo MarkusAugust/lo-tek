@@ -62,6 +62,12 @@ export type TableSortOptions = {
    * not sorted by this column, and the header gets no `aria-sort`.
    */
   direction?: TableSortDirection
+  /**
+   * The button is a link, `<a href="?sort=…">`, so the server sorts on the
+   * next page load and the column sorts without JavaScript. The link gets
+   * the class alone, since `type="button"` means nothing on `<a>`.
+   */
+  link?: boolean
 }
 
 export type TableSortAttributes = {
@@ -70,7 +76,8 @@ export type TableSortAttributes = {
   }
   button: {
     class: typeof TABLE_SORT_CLASS
-    type: "button"
+    /** Absent with `link`. */
+    type?: "button"
   }
 }
 
@@ -92,9 +99,12 @@ export type TableSortAttributes = {
  * ```
  */
 export const tableSort = Object.assign(
-  ({ direction }: TableSortOptions = {}): TableSortAttributes => ({
+  ({ direction, link }: TableSortOptions = {}): TableSortAttributes => ({
     header: attributes({ "aria-sort": direction }),
-    button: attributes({ class: TABLE_SORT_CLASS, type: "button" as const }),
+    button: attributes({
+      class: TABLE_SORT_CLASS,
+      type: link ? undefined : ("button" as const),
+    }),
   }),
   {
     // The list sits next to it, as `tableSortDirections`, and not on the

@@ -911,7 +911,7 @@ mod tests {
         // The change replaces the whole document, and the finding is gone.
         server.handle(&notification(
             "textDocument/didChange",
-            r#"{"textDocument":{"uri":"file:///a.html","version":2},"contentChanges":[{"text":"<b class=\"lt-button\"></b>"}]}"#,
+            r#"{"textDocument":{"uri":"file:///a.html","version":2},"contentChanges":[{"text":"<button class=\"lt-button\"></button>"}]}"#,
         ));
         let sent = server.take();
         assert!(sent[0]
@@ -1277,7 +1277,7 @@ mod tests {
             server.handle(&notification(
                 if version == 1 { "textDocument/didOpen" } else { "textDocument/didChange" },
                 &format!(
-                    r#"{{"textDocument":{{"uri":"file:///a.html","version":{version},"text":"<b class=\"{text}\"></b>"}},"contentChanges":[{{"text":"<b class=\"{text}\"></b>"}}]}}"#
+                    r#"{{"textDocument":{{"uri":"file:///a.html","version":{version},"text":"<button class=\"{text}\"></button>"}},"contentChanges":[{{"text":"<button class=\"{text}\"></button>"}}]}}"#
                 ),
             ));
         }

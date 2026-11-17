@@ -13,5 +13,7 @@
     <span class="lt-tag" data-selectable="${valg.valgbar}">${valg.navn}</span>
   @endfor
   <button class="lt-button" data-variant="${if (soknad.utkast) "secondary" else null}" type="submit">Send</button>
+  <label><input class="lt-checkbox" type="${kind}" name="extra"> Extra</label>
+  <a class="lt-button" href="${url}">Back</a>
   <button class="lt-button" data-variant="secundary" type="button">Avbryt</button>
 </form>

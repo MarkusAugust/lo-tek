@@ -164,6 +164,46 @@ fn css_texts(value: &Json, path: &str) -> Result<Vec<CssText>, String> {
         .collect()
 }
 
+/// `tags` on a class: `[{tag, attributes?, requires?}]`.
+fn tags(value: &Json, path: &str) -> Result<Vec<Tag>, String> {
+    let Some(list) = value.get("tags") else {
+        return Ok(Vec::new());
+    };
+    let path = format!("{path}.tags");
+    list.as_array()
+        .ok_or_else(|| format!("{path} must be an array."))?
+        .iter()
+        .enumerate()
+        .map(|(i, t)| {
+            let at = format!("{path}[{i}]");
+            Ok(Tag {
+                tag: text(field(t, "tag", &at)?, &format!("{at}.tag"))?,
+                attributes: match t.get("attributes") {
+                    None => Vec::new(),
+                    Some(a) => entries(a, &format!("{at}.attributes"))?
+                        .iter()
+                        .map(|(name, values)| {
+                            let path = format!("{at}.attributes.{name}");
+                            let values = texts(values, &path)?;
+                            // A tag no value satisfies could never be right,
+                            // and the message names the first value.
+                            if values.is_empty() {
+                                return Err(format!("{path} must list at least one value."));
+                            }
+                            Ok((name.clone(), values))
+                        })
+                        .collect::<Result<_, String>>()?,
+                },
+                requires: t
+                    .get("requires")
+                    .map(|r| texts(r, &format!("{at}.requires")))
+                    .transpose()?
+                    .unwrap_or_default(),
+            })
+        })
+        .collect()
+}
+
 /// Every `after` names a part of the same element.
 fn check_named(parts: &[Part], own: Option<&Named>, path: &str) -> Result<(), String> {
     let names = parts
@@ -342,6 +382,7 @@ fn from_value(root: &Json) -> Result<Vocabulary, String> {
             },
             named: named(class, &path)?,
             texts: css_texts(class, &path)?,
+            tags: tags(class, &path)?,
         });
     }
 

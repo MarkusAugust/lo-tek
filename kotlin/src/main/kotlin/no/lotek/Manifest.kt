@@ -218,6 +218,16 @@ data class Manifest(
                             siblingsBefore = text["siblingsBefore"] == true,
                         )
                     },
+                tags =
+                    (c["tags"] as? List<*> ?: emptyList<Any?>()).mapIndexed { i, t ->
+                        val path = "$at.tags[$i]"
+                        val tag = t.obj(path)
+                        ClassTag(
+                            tag = tag["tag"].str("$path.tag"),
+                            attributes = (tag["attributes"]?.obj("$path.attributes") ?: emptyMap()).mapValues { (name, values) -> values.strings("$path.attributes.$name") },
+                            requires = tag["requires"]?.strings("$path.requires") ?: emptyList(),
+                        )
+                    },
                 attributes =
                     c["attributes"].obj("$at.attributes").mapValues { (attr, a) ->
                         val path = "$at.attributes.$attr"
@@ -480,6 +490,23 @@ data class ManifestClass(
     val named: Name? = null,
     /** The texts the stylesheet shows on it. */
     val texts: List<CssText> = emptyList(),
+    /** The tags the class can be on, the first being the one to write. Empty in a manifest from before 0.46. */
+    val tags: List<ClassTag> = emptyList(),
+)
+
+/**
+ * A tag a class can be on, like `<button>` for `lt-button`. [tag] is `*`
+ * for any. [attributes] are the ones the tag must have, with the values it
+ * may have there, like `type` on an input. [requires] are the ones it must
+ * have with a value of the template's own, like `href` on a link.
+ *
+ * Not `Tag`: kotlinx.html has one, and the recipes import both packages with
+ * a star, so the name would be ambiguous in every app that follows them.
+ */
+data class ClassTag(
+    val tag: String,
+    val attributes: Map<String, List<String>> = emptyMap(),
+    val requires: List<String> = emptyList(),
 )
 
 /**

@@ -808,6 +808,7 @@ fn find_class<'a>(vocabulary: &'a Vocabulary, name: &[u16]) -> Option<&'a Class>
 
 fn check_classes(
     vocabulary: &Vocabulary,
+    tag: &[u16],
     attributes: &[ReadAttribute],
     conditional: bool,
     cache: &mut Cache,
@@ -833,6 +834,17 @@ fn check_classes(
         }
         if let Some(info) = find_class(vocabulary, token) {
             present.push(info);
+            if let Some(message) = wrong_tag(vocabulary, info, tag, attributes) {
+                findings.push(Finding {
+                    start,
+                    end: start + token.len(),
+                    severity: Severity::Error,
+                    link: info.link.clone(),
+                    message,
+                    fix: None,
+                    rule: "class-on-wrong-tag",
+                });
+            }
             continue;
         }
         let meant = closest(token, &name, Some(cache));
@@ -976,6 +988,148 @@ fn check_classes(
     findings
 }
 
+/// `class-on-wrong-tag`: what is wrong when the class is on a tag its
+/// `tags` do not allow, or on one that lacks an attribute it requires. A
+/// class without `tags`, from a manifest before the field, is not checked.
+fn wrong_tag(
+    vocabulary: &Vocabulary,
+    info: &Class,
+    tag: &[u16],
+    attributes: &[ReadAttribute],
+) -> Option<String> {
+    // A component renders a tag of its own, which is not in the source.
+    if info.tags.is_empty() || is_component_name(tag) {
+        return None;
+    }
+    let tag = lowercase(tag);
+    // A custom element that is not LO-TEK's can be one of its components
+    // registered under another name, as defineLtToast("my-toast") does, or
+    // a component in Blade or Vue. What it is, the core cannot tell.
+    let own = starts_at(&tag, 0, "lt-") || vocabulary.elements.iter().any(|e| equals(&tag, &e.tag));
+    if tag.contains(&(b'-' as u16)) && !own {
+        return None;
+    }
+    // `<component :is="…">` in Vue becomes whatever tag `is` names.
+    if equals(&tag, "component") && attribute(attributes, "is").is_some() {
+        return None;
+    }
+    let same: Vec<&Tag> = info
+        .tags
+        .iter()
+        .filter(|t| t.tag == "*" || equals(&tag, &t.tag))
+        .collect();
+    // How a tag is written in a message: `<input type="checkbox">`, `<a href>`.
+    let written = |t: &Tag, class: bool| {
+        let mut out = format!("<{}", t.tag);
+        if class {
+            out.push_str(&format!(" class=\"{}\"", info.name));
+        }
+        for (name, values) in &t.attributes {
+            out.push_str(&format!(" {name}=\"{}\"", values[0]));
+        }
+        // In the markup to write, a required attribute gets a value to fill
+        // in, so the suggestion passes the rule.
+        for name in &t.requires {
+            out.push_str(&if class {
+                format!(" {name}=\"…\"")
+            } else {
+                format!(" {name}")
+            });
+        }
+        out.push('>');
+        out
+    };
+    let alternatives = || {
+        let all: Vec<String> = info.tags.iter().map(|t| written(t, false)).collect();
+        match all.split_last() {
+            Some((last, [])) => last.clone(),
+            Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+            None => String::new(),
+        }
+    };
+    let write = format!("Write {}.", written(&info.tags[0], true));
+    let shown = lossy(&tag);
+    if same.is_empty() {
+        return Some(format!(
+            "{} is on <{shown}>, and belongs on {}. {write}",
+            info.name,
+            alternatives()
+        ));
+    }
+    // A value bound by a framework, or written by the template, is not known
+    // here, and only the tag is judged.
+    fn unlike<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<&'a str> {
+        t.attributes.iter().find_map(|(name, values)| {
+            let has = attribute(attributes, name).is_some_and(|a| match a.value.as_deref() {
+                _ if !equals(&a.name, name) => true,
+                Some(v) if is_templated_value(v) => true,
+                Some(v) => values.iter().any(|w| equals(&lowercase(v), w)),
+                None => false,
+            });
+            (!has).then_some(name.as_str())
+        })
+    }
+    fn missing<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<&'a String> {
+        t.requires
+            .iter()
+            .find(|name| attribute(attributes, name).is_none())
+    }
+    // A spread can give any attribute, so only the tag is judged: `{...props}`
+    // in JSX and Svelte, `v-bind` in Vue, `x-bind` in Alpine, `@attributes`
+    // in Razor, `th:attr` in Thymeleaf, and `data-attr` with an object in
+    // Datastar.
+    let spread = attributes.iter().any(|a| {
+        a.name.first() == Some(&(b'{' as u16))
+            || ["v-bind", "x-bind", "@attributes", "th:attr", "data-attr"]
+                .iter()
+                .any(|n| equals(&a.name, n))
+    });
+    if spread
+        || same
+            .iter()
+            .any(|t| unlike(t, attributes).is_none() && missing(t, attributes).is_none())
+    {
+        return None;
+    }
+    // Of the variants of this tag, the one the markup comes closest to, as
+    // the disabled link with role="link" is closer to <a role="link"
+    // tabindex="0" aria-disabled="true"> than to <a href>. On a tie, the first.
+    let met = |t: &Tag| {
+        t.attributes
+            .iter()
+            .filter(|(name, _)| attribute(attributes, name).is_some())
+            .count()
+            + t.requires
+                .iter()
+                .filter(|name| attribute(attributes, name).is_some())
+                .count()
+    };
+    let closest = same
+        .iter()
+        .copied()
+        .rev()
+        .max_by_key(|t| met(t))
+        .unwrap_or(same[0]);
+    if let Some(name) = unlike(closest, attributes) {
+        let actual = attributes
+            .iter()
+            .find(|a| equals(&a.name, name))
+            .and_then(|a| a.value.as_deref())
+            .map(|v| format!(" {name}=\"{}\"", lossy(v)))
+            .unwrap_or_default();
+        return Some(format!(
+            "{} is on <{shown}{actual}>, and belongs on {}. {write}",
+            info.name,
+            alternatives()
+        ));
+    }
+    let name = missing(closest, attributes)?;
+    Some(format!(
+        "{} is on <{shown}> without {name}. Give it {name}.",
+        info.name
+    ))
+}
+
 /// A disabled link that still has `href`.
 ///
 /// `aria-disabled` tells the screen reader, and the style turns off the mouse
@@ -1104,6 +1258,7 @@ pub fn diagnose_visible(source: Utf16, vocabulary: &Vocabulary, page: bool) -> V
             i += 1;
             continue;
         };
+        let tag = &source[i + 1..name_end];
         i = name_end;
         let Some(end) = tag_end(&source, name_end) else {
             continue;
@@ -1115,6 +1270,7 @@ pub fn diagnose_visible(source: Utf16, vocabulary: &Vocabulary, page: bool) -> V
         let attributes = read_attributes(b, name_end);
         findings.extend(check_classes(
             vocabulary,
+            tag,
             &attributes,
             has_condition(b, name_end, &attributes),
             &mut cache,

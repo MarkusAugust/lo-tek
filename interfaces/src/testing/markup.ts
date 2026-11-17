@@ -1,3 +1,5 @@
+import { classes } from "../vocabulary/classes"
+
 /**
  * Turns an attribute set from an `lt` builder function into HTML.
  *
@@ -44,4 +46,21 @@ export function wiredName(element: Element): string {
   const label = element.getAttribute("aria-label")
   if (label !== null) return label.trim()
   return element.localName === "a" ? text(element) : ""
+}
+
+/**
+ * Whether an element the component wrote is on one of the tags the manifest
+ * gives its class, read from `classes.ts`. For the classes no page shows,
+ * since the component writes them itself: the component is then the witness
+ * that `tags` is right. A class without `tags` is never on one.
+ */
+export function onItsTags(element: Element, className: string): boolean {
+  return (classes[className]?.tags ?? []).some(
+    (t) =>
+      (t.tag === "*" || element.localName === t.tag) &&
+      Object.entries(t.attributes ?? {}).every(([name, values]) =>
+        values.includes(element.getAttribute(name) ?? ""),
+      ) &&
+      (t.requires ?? []).every((name) => element.hasAttribute(name)),
+  )
 }

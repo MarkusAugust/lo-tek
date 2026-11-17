@@ -24,6 +24,11 @@ import {
   snippets,
 } from "../../interfaces/scripts/generate-vocabulary"
 import {
+  allBlocks,
+  RECIPES,
+  type RecipePage,
+} from "../../interfaces/scripts/recipes"
+import {
   type Finding,
   loadCore,
 } from "../../interfaces/src/diagnostics/core.js"
@@ -71,11 +76,64 @@ type Case = {
   maxMs?: number
   /** Check as a whole page, with the wiring rules. */
   page?: boolean
+  /** The rule the finding must have. */
+  rule?: string
+  /** The page the finding must link to. */
+  link?: string
 }
 
 const FIELD_OK = `<lt-field id="f"><label for="handle">Handle</label><input class="lt-input" name="handle" id="handle"></lt-field>`
 
 const cases: Case[] = [
+  {
+    name: "a button class on a <div>",
+    html: `<div class="lt-button">Order</div>`,
+    count: 1,
+    rule: "class-on-wrong-tag",
+    mentions: [
+      "lt-button is on <div>",
+      '<button>, <a href>, <a role="link" tabindex="0" aria-disabled="true"> or <input type="submit">',
+      'Write <button class="lt-button">',
+    ],
+    severity: "error",
+    covers: "lt-button",
+    link: "https://lo-tek.sobernetics.no/components/button/",
+  },
+  {
+    name: "a checkbox class on a text field",
+    html: `<input class="lt-checkbox" type="text" id="a"><label for="a">A</label>`,
+    count: 1,
+    rule: "class-on-wrong-tag",
+    mentions: [
+      'lt-checkbox is on <input type="text">',
+      '<input type="checkbox">',
+      'Write <input class="lt-checkbox" type="checkbox">',
+    ],
+    covers: "lt-checkbox",
+  },
+  {
+    name: "a heading class on a paragraph names every level",
+    html: `<p class="lt-heading">Orders</p>`,
+    count: 1,
+    rule: "class-on-wrong-tag",
+    mentions: ["<h1>, <h2>, <h3>, <h4>, <h5> or <h6>"],
+  },
+  {
+    name: "a button class on a link without href",
+    html: `<a class="lt-button">Jobs</a>`,
+    count: 1,
+    rule: "class-on-wrong-tag",
+    mentions: ["lt-button is on <a> without href", "Give it href"],
+    covers: "lt-button",
+  },
+  {
+    name: "a button class on a button, and on a link with href, also a bound one",
+    html: `<button class="lt-button">Order</button>
+<a class="lt-button" href="/jobs">Jobs</a>
+<a class="lt-button" :href="url">Jobs</a>
+<a class="lt-button" th:href="@{/jobs}">Jobs</a>`,
+    count: 0,
+  },
   {
     name: "a button with only an icon and no name",
     html: `<button class="lt-button"><svg class="lt-icon" aria-hidden="true"><path d="M0 0"/></svg><span aria-hidden="true">x</span></button>`,
@@ -717,7 +775,7 @@ const cases: Case[] = [
   },
   {
     name: "two classes taking the same attribute give one finding",
-    html: `<input class="lt-input lt-search" data-state="failed">`,
+    html: `<input class="lt-input lt-search" type="search" data-state="failed">`,
     count: 1,
   },
   {
@@ -1505,6 +1563,10 @@ for (const c of cases) {
   for (const m of c.notMentions ?? [])
     if (first.message.includes(m))
       fail(`the message mentions "${m}": ${first.message}`)
+  if (c.rule && first.rule !== c.rule)
+    fail(`expected the rule ${c.rule}, got ${first.rule}`)
+  if (c.link && first.link !== c.link)
+    fail(`expected the link ${c.link}, got ${first.link}`)
   if (c.severity && first.severity !== c.severity)
     fail(`expected ${c.severity}, got ${first.severity}`)
   if (c.covers) {
@@ -1541,6 +1603,67 @@ for (const c of cases) {
         )
     }
   }
+}
+
+/*
+ * The pages are the witness for `tags`. Every HTML block on every page,
+ * the examples and the tabs, must be clean of class-on-wrong-tag, and every
+ * class must have tags and appear on a page: a row nobody shows is a
+ * promise nothing holds it to. The three classes a component writes itself
+ * are held to the component instead, in its browser test.
+ */
+const WRITTEN_BY_THE_COMPONENT = new Set([
+  "lt-toast__message",
+  "lt-toast__close",
+  "lt-connection-status__bar",
+])
+const pages = (
+  JSON.parse(readFileSync(RECIPES, "utf8")) as { pages: RecipePage[] }
+).pages
+const markupOn = (page: RecipePage) => [
+  ...page.examples.map((e) => e.code),
+  ...allBlocks(page, "html"),
+]
+const wrongTags = () =>
+  pages.flatMap((page) =>
+    markupOn(page).flatMap((html) =>
+      core
+        .diagnoseMarkup(html)
+        .filter((f) => f.rule === "class-on-wrong-tag")
+        .map((f) => `${page.path}: ${f.message}`),
+    ),
+  )
+findings.push(...wrongTags())
+const shown = new Set(
+  pages
+    .flatMap(markupOn)
+    .flatMap((html) => [...html.matchAll(/\bclass="([^"]*)"/g)])
+    .flatMap((m) => m[1].split(/\s+/)),
+)
+for (const [name, info] of Object.entries(classes)) {
+  if (!info.tags?.length) findings.push(`${name} has no tags in metadata.ts`)
+  else if (!shown.has(name) && !WRITTEN_BY_THE_COMPONENT.has(name))
+    findings.push(
+      `${name} appears on no page, so nothing holds its tags to the markup`,
+    )
+}
+// The guard itself: with lt-button allowed only on <div>, the button page
+// must give findings.
+{
+  const manifest = JSON.parse(
+    readFileSync(
+      new URL("../../interfaces/manifest/manifest.json", import.meta.url),
+      "utf8",
+    ),
+  )
+  const real = JSON.stringify(manifest)
+  manifest.classes["lt-button"].tags = [{ tag: "div" }]
+  core.loadManifest(JSON.stringify(manifest))
+  if (wrongTags().length === 0)
+    findings.push(
+      "with lt-button allowed only on <div>, no page gave class-on-wrong-tag, so the witness sees nothing",
+    )
+  core.loadManifest(real)
 }
 
 const elapsed = performance.now() - started
