@@ -773,6 +773,173 @@ for (const b of manifest.builders) {
   }
 }
 
+/*
+ * The anatomies agree with the rest of the manifest. Each rule is proved on
+ * a broken anatomy first, so a rule that sees nothing cannot pass.
+ */
+type Json = Record<string, unknown>
+const FORM_CONTROLS = new Set(["input", "select", "textarea"])
+
+function disagreements(name: string, anatomy: Json): string[] {
+  const found: string[] = []
+  const names = new Map<string, number>()
+  const holes = (anatomy.holes ?? {}) as Record<string, Json>
+  const visit = (value: unknown, around: string | undefined) => {
+    if (value === null || typeof value !== "object") return
+    const node = value as Json
+    if (typeof node.name === "string")
+      names.set(node.name, (names.get(node.name) ?? 0) + 1)
+    if (node.oneOf) {
+      for (const alternative of Object.values(node.oneOf as Json))
+        visit(alternative, around)
+      return
+    }
+    if (typeof node.hole === "string") {
+      const declared = holes[node.hole]
+      if (!declared)
+        found.push(`${name}: the hole ${node.hole} is not declared`)
+      else if (around === "parts")
+        found.push(
+          `${name}: the hole ${node.hole} stands right in an element that takes only its parts`,
+        )
+      else if (around === "none" && declared.content === "text")
+        found.push(
+          `${name}: the hole ${node.hole} puts text in an element that takes none`,
+        )
+      else if (around === "text" && declared.content === "free")
+        found.push(
+          `${name}: the hole ${node.hole} takes free content, and the element around it takes text`,
+        )
+      return
+    }
+    if (typeof node.tag !== "string" && !Array.isArray(node.tag)) return
+    const tags = (Array.isArray(node.tag) ? node.tag : [node.tag]) as string[]
+    // The classes the node gets, from the builder functions it takes from.
+    let classes: string[] = []
+    const warn = console.warn
+    console.warn = () => {}
+    try {
+      const html = renderAnatomy(
+        {
+          ...manifest,
+          builders: manifest.builders.map((b) =>
+            b.name === name
+              ? {
+                  ...b,
+                  anatomy: {
+                    holes: anatomy.holes,
+                    nodes: [{ ...node, children: [] }],
+                  } as never,
+                }
+              : b,
+          ),
+        },
+        name,
+        {
+          id: "x",
+          holes: Object.fromEntries(
+            Object.entries(holes).map(([h, d]) => [
+              h,
+              d.kind === "flag" ? false : "x",
+            ]),
+          ) as Record<string, string>,
+        },
+      )
+      classes = (html.match(/^<[^>]*\bclass="([^"]*)"/)?.[1] ?? "")
+        .split(/\s+/)
+        .filter((c) => c.startsWith("lt-"))
+    } catch {
+      // A node alone can lack what its anatomy gives it; it then has no class.
+    } finally {
+      console.warn = warn
+    }
+    for (const className of classes) {
+      const info = manifest.classes[className]
+      for (const tag of tags)
+        if (
+          info?.tags &&
+          !info.tags.some((t) => t.tag === "*" || t.tag === tag)
+        )
+          found.push(
+            `${name}: <${tag}> has ${className}, which belongs on ${info.tags.map((t) => t.tag).join(", ")}`,
+          )
+    }
+    if (tags.some((t) => FORM_CONTROLS.has(t))) {
+      const attributes = (node.attributes ?? {}) as Record<
+        string,
+        Json | string
+      >
+      const type = attributes.type
+      const isHidden =
+        classes.includes("lt-suggestion__value") || type === "hidden"
+      const isButton =
+        typeof type === "string" && ["submit", "button", "reset"].includes(type)
+      const nameHole = attributes.name
+      if (
+        !isHidden &&
+        !isButton &&
+        !(
+          typeof nameHole === "object" &&
+          holes[(nameHole as Json).hole as string]?.kind === "name"
+        )
+      )
+        found.push(
+          `${name}: <${tags[0]}> has no name hole, so the form sends nothing`,
+        )
+    }
+    const content = classes
+      .map((c) => manifest.classes[c]?.content)
+      .find(Boolean)
+    // What an element with a class takes holds for the holes right in it;
+    // an element without one is a part, which the class's parts describe.
+    for (const child of (node.children ?? []) as unknown[])
+      visit(child, content)
+  }
+  for (const node of (anatomy.nodes ?? []) as unknown[]) visit(node, undefined)
+  for (const [node, count] of names)
+    if (count > 1)
+      found.push(`${name}: the name ${node} is used ${count} times`)
+  return found
+}
+
+// The rules themselves, each on a broken anatomy.
+for (const [broken, anatomy] of [
+  [
+    "a name used twice",
+    {
+      holes: {},
+      nodes: [
+        { tag: "div", name: "a", children: [{ tag: "span", name: "a" }] },
+      ],
+    },
+  ],
+  [
+    "a hole not declared",
+    { holes: {}, nodes: [{ tag: "span", children: [{ hole: "x" }] }] },
+  ],
+  [
+    "a class on the wrong tag",
+    { holes: {}, nodes: [{ tag: "div", from: ["button"] }] },
+  ],
+  [
+    "a control without a name",
+    { holes: {}, nodes: [{ tag: "input", from: ["input"] }] },
+  ],
+  [
+    "free content in a text element",
+    {
+      holes: { x: { description: "x", content: "free" } },
+      nodes: [{ tag: "button", from: ["button"], children: [{ hole: "x" }] }],
+    },
+  ],
+] as const)
+  if (disagreements("button", anatomy as unknown as Json).length === 0)
+    errors.push(`the agreement rules do not see ${broken}`)
+
+for (const b of manifest.builders)
+  if (b.anatomy)
+    errors.push(...disagreements(b.name, b.anatomy as unknown as Json))
+
 if (errors.length) {
   console.error(`✗ The anatomies:\n  ${errors.join("\n  ")}`)
   process.exit(1)
