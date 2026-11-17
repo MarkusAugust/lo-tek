@@ -24,6 +24,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Fixed
+
+- **`manifest.json` matches `manifest.schema.json`.** The schema forbade
+  `siblingsBefore` on the texts of a class, which `lt-steps` has, and did not
+  describe `removed` on the elements. The build now checks the manifest
+  against the schema, and the schema no longer lets an undescribed field
+  through on the manifest, an element, a class, a builder function or an
+  option. A reader that validates against the schema can trust it.
+
 ## 0.45.0 (2026-11-16)
 
 ### Breaking

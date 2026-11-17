@@ -94,8 +94,16 @@
                 }
               }
             }
+          },
+          "removed": {
+            "type": "object",
+            "description": "Attributes removed from the element, with what applies instead. lotek check reports them with the text, so a template from an older version is told what to write.",
+            "additionalProperties": {
+              "type": "string"
+            }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "classes": {
@@ -160,6 +168,10 @@
                   "items": {
                     "type": "string"
                   }
+                },
+                "siblingsBefore": {
+                  "const": true,
+                  "description": "The attribute is on a child of the element with the class, and the text is shown on the children before it, as \"Completed \" is on the steps before the one with aria-current=\"step\" in lt-steps."
                 }
               },
               "additionalProperties": false
@@ -215,7 +227,8 @@
               ]
             }
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "builders": {
@@ -280,7 +293,8 @@
                   "type": "string",
                   "description": "For an option with a closed list: the value that gives the same answer as leaving the option out, read from the answers. The description says the same."
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
           "returns": {
@@ -325,7 +339,8 @@
               }
             ]
           }
-        }
+        },
+        "additionalProperties": false
       }
     },
     "tokens": {
@@ -410,6 +425,7 @@
       "additionalProperties": false
     }
   },
+  "additionalProperties": false,
   "$defs": {
     "elementAttribute": {
       "oneOf": [
