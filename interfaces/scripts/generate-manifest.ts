@@ -1055,21 +1055,20 @@ const freeHoles = builderFunctions.flatMap((b) =>
 )
 const paths = [
   ...freeHoles.map((h) => [{ builder: h.builder, hole: h.hole }]),
-  ...freeHoles
-    .flatMap((outer) =>
-      freeHoles
-        // Only a host that may itself stand in the outer hole.
-        .filter(
-          (inner) =>
-            canDrop(manifest as unknown as Manifest, inner.builder, [
-              { builder: outer.builder, hole: outer.hole },
-            ]).ok,
-        )
-        .map((inner) => [
-          { builder: outer.builder, hole: outer.hole },
-          { builder: inner.builder, hole: inner.hole },
-        ]),
-    ),
+  ...freeHoles.flatMap((outer) =>
+    freeHoles
+      // Only a host that may itself stand in the outer hole.
+      .filter(
+        (inner) =>
+          canDrop(manifest as unknown as Manifest, inner.builder, [
+            { builder: outer.builder, hole: outer.hole },
+          ]).ok,
+      )
+      .map((inner) => [
+        { builder: outer.builder, hole: outer.hole },
+        { builder: inner.builder, hole: inner.hole },
+      ]),
+  ),
 ]
 const drops = paths.flatMap((path) =>
   builderFunctions
