@@ -357,6 +357,7 @@
     "manifest/manifest.schema.json",
     "src/*.ts",
     "src/diagnostics",
+    "src/anatomy",
     "src/jsx",
     "src/tokens",
     "src/components",
