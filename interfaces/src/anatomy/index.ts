@@ -171,6 +171,10 @@ class Writer {
     let found: unknown = value
     for (const group of groups) {
       if (found === null || typeof found !== "object") break
+      if (keys[group] === undefined)
+        throw new Error(
+          `renderAnatomy: ${this.builder} reads a value per ${group} outside ${group}.`,
+        )
       found = (found as Record<string, unknown>)[keys[group]]
     }
     return found as T | undefined
@@ -439,4 +443,73 @@ export function renderAnatomy(
   if (!anatomy)
     throw new Error(`renderAnatomy: lt.${name} has no anatomy in the manifest.`)
   return new Writer(manifest, name, anatomy, instance).start(anatomy.nodes[0])
+}
+
+/**
+ * A new component, as a tool creates it on a drop: the fewest items each
+ * group may have, keyed `<group>1`, `<group>2` and so on, and every hole
+ * filled with the example its declaration gives, for each item it is per.
+ * Optional nodes are there when they are `created`, and every choice takes
+ * its first alternative. `renderAnatomy()` writes it as correct markup.
+ */
+export function createdInstance(anatomy: Anatomy, id: string): AnatomyInstance {
+  const repeats: Record<string, string[]> = {}
+  for (const [group, { min }] of Object.entries(anatomy.repeats ?? {}))
+    repeats[group] = Array.from({ length: min }, (_, i) => `${group}${i + 1}`)
+  const perItem = (per: readonly string[], value: string): Keyed<string> =>
+    per.length === 0
+      ? value
+      : Object.fromEntries(
+          (repeats[per[0]] ?? []).map((key) => [
+            key,
+            perItem(per.slice(1), value),
+          ]),
+        )
+  const holes: Record<string, Keyed<string>> = {}
+  const content: Record<string, Keyed<string>> = {}
+  for (const [name, hole] of Object.entries(anatomy.holes)) {
+    if (hole.example === undefined) continue
+    const value = perItem(hole.per ?? [], hole.example)
+    if (hole.content === "free") content[name] = value
+    else holes[name] = value
+  }
+  return { id, repeats, holes, content }
+}
+
+/**
+ * The instance with an item inserted in a group, at `at` (first when left
+ * out), its holes filled with the examples, as a tool inserts a tab or a
+ * row. The other items keep their keys, so their ids stay as they were.
+ */
+export function withItem(
+  anatomy: Anatomy,
+  instance: AnatomyInstance,
+  group: string,
+  key: string,
+  at = 0,
+): AnatomyInstance {
+  const keys = [...(instance.repeats?.[group] ?? [])]
+  keys.splice(at, 0, key)
+  const repeats = { ...instance.repeats, [group]: keys }
+  // Sets the example at the new key, and at every key of the groups around it.
+  const filled = (
+    value: Keyed<string> | undefined,
+    per: readonly string[],
+    example: string,
+  ): Keyed<string> => {
+    if (per.length === 0) return value ?? example
+    const level = { ...((value as Record<string, Keyed<string>>) ?? {}) }
+    for (const k of repeats[per[0]] ?? [])
+      if (per[0] !== group || k === key || level[k] !== undefined)
+        level[k] = filled(level[k], per.slice(1), example)
+    return level
+  }
+  const holes = { ...instance.holes } as Record<string, Keyed<string>>
+  const content = { ...instance.content } as Record<string, Keyed<string>>
+  for (const [name, hole] of Object.entries(anatomy.holes)) {
+    if (hole.example === undefined || !hole.per?.includes(group)) continue
+    const target = hole.content === "free" ? content : holes
+    target[name] = filled(target[name], hole.per, hole.example)
+  }
+  return { ...instance, repeats, holes, content }
 }

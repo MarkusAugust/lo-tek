@@ -95,6 +95,7 @@ data class Manifest(
                 description = b["description"]?.str("$at.description"),
                 example = b["example"]?.str("$at.example"),
                 docs = b["docs"]?.str("$at.docs"),
+                anatomy = b["anatomy"]?.obj("$at.anatomy"),
                 parts =
                     b["parts"]?.obj("$at.parts")?.mapValues { (field, p) ->
                         val path = "$at.parts.$field"
@@ -387,6 +388,15 @@ data class Builder(
      * part is not here.
      */
     val parts: Map<String, BuilderPart> = emptyMap(),
+    /**
+     * The markup the function belongs in, as the manifest's JSON: maps,
+     * lists, strings and booleans. `renderAnatomy()` in
+     * `@lo-tek/interfaces/anatomy` writes it, and `manifest/anatomy-cases.json`
+     * holds what it writes, for a renderer here to give the same. `null` for
+     * a function that is only a source in another's anatomy, and in a
+     * manifest from before 0.46.
+     */
+    val anatomy: Map<String, Any?>? = null,
 )
 
 /** A part of a frame component, as `control` in `lt-field`. Its selector is in [Manifest.elements]. */

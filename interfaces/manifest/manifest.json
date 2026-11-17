@@ -2821,6 +2821,11 @@
           "initials": {
             "description": "The person's initials.",
             "content": "text",
+            "example": "DP"
+          },
+          "person-initials": {
+            "description": "A person's initials in the stack.",
+            "content": "text",
             "per": [
               "person"
             ],
@@ -2882,7 +2887,7 @@
                         },
                         "children": [
                           {
-                            "hole": "initials"
+                            "hole": "person-initials"
                           }
                         ]
                       }

@@ -384,7 +384,7 @@ const cases: Case[] = [
       id: "a",
       choices: { kind: "stack" },
       repeats: { person: ["dp", "nv"] },
-      holes: { initials: { dp: "DP", nv: "NV" }, beside: true },
+      holes: { "person-initials": { dp: "DP", nv: "NV" }, beside: true },
       options: { size: "small" },
     },
     expected: `<ul class="lt-avatar-stack"><li><span class="lt-avatar" data-size="small" aria-hidden="true">DP</span></li><li><span class="lt-avatar" data-size="small" aria-hidden="true">NV</span></li></ul>`,

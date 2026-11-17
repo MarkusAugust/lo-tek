@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest"
 
 import manifest from "../../manifest/manifest.json"
 import type { Anatomy, Manifest } from "../vocabulary/types"
-import { type AnatomyInstance, renderAnatomy } from "./index"
+import {
+  type AnatomyInstance,
+  createdInstance,
+  renderAnatomy,
+  withItem,
+} from "./index"
 
 /*
  * The browser's own HTML parser is the witness the core cannot be: it
@@ -61,30 +66,12 @@ function parsed(html: string): string[] {
   return out
 }
 
-/** The component as a tool creates it, with every example filled in. */
+/** The component as created, with one item in a group that may have none. */
 function created(anatomy: Anatomy): AnatomyInstance {
-  const repeats: Record<string, string[]> = {}
+  let instance = createdInstance(anatomy, "c1")
   for (const [group, { min }] of Object.entries(anatomy.repeats ?? {}))
-    repeats[group] = Array.from(
-      { length: Math.max(min, 1) },
-      (_, i) => `${group}${i + 1}`,
-    )
-  const perItem = (per: readonly string[], value: string): unknown =>
-    per.length === 0
-      ? value
-      : Object.fromEntries(
-          repeats[per[0]].map((key) => [key, perItem(per.slice(1), value)]),
-        )
-  const holes: Record<string, unknown> = {}
-  const content: Record<string, unknown> = {}
-  for (const [name, hole] of Object.entries(anatomy.holes)) {
-    if (hole.example === undefined) continue
-    ;(hole.content === "free" ? content : holes)[name] = perItem(
-      hole.per ?? [],
-      hole.example,
-    )
-  }
-  return { id: "c1", repeats, holes, content } as AnatomyInstance
+    if (min === 0) instance = withItem(anatomy, instance, group, `${group}1`)
+  return instance
 }
 
 /** Every choice with its alternatives, and every optional node's name. */

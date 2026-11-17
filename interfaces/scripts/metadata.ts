@@ -1263,6 +1263,11 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
       initials: {
         description: "The person's initials.",
         content: "text",
+        example: "DP",
+      },
+      "person-initials": {
+        description: "A person's initials in the stack.",
+        content: "text",
         per: ["person"],
         example: "DP",
       },
@@ -1298,7 +1303,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                     attributes: {
                       "aria-hidden": { hole: "beside", value: "true" },
                     },
-                    children: [{ hole: "initials" }],
+                    children: [{ hole: "person-initials" }],
                   },
                 ],
               },

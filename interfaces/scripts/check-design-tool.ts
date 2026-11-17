@@ -30,7 +30,11 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { renderAnatomy } from "../src/anatomy/index.js"
+import {
+  createdInstance,
+  renderAnatomy,
+  withItem,
+} from "../src/anatomy/index.js"
 import { loadCore } from "../src/diagnostics/core.js"
 import type { Manifest } from "../src/vocabulary/types.js"
 
@@ -56,45 +60,9 @@ const page = (body: string) =>
 const findings = (html: string) =>
   core.diagnosePage(page(html)).map((f) => `${f.rule}: ${f.message}`)
 
-/**
- * A new component, as the tool creates it on a drop: an id for it, keys
- * for the fewest items each group may have, and every declared hole filled
- * with the example the anatomy gives, for each item it is per. The tool
- * invents nothing but the keys, which are its own.
- */
-function created(
-  anatomy: Loose,
-  id: string,
-  first: Record<string, string> = {},
-): Loose {
-  const repeats: Record<string, string[]> = {}
-  for (const [group, { min }] of Object.entries(anatomy.repeats ?? {}) as [
-    string,
-    Loose,
-  ][])
-    repeats[group] = [
-      ...(first[group] ? [first[group]] : []),
-      ...Array.from({ length: min }, (_, i) => `${group}${i + 1}`),
-    ]
-  const perItem = (per: string[], value: unknown): unknown =>
-    per.length === 0
-      ? value
-      : Object.fromEntries(
-          repeats[per[0]].map((key) => [key, perItem(per.slice(1), value)]),
-        )
-  const holes: Record<string, unknown> = {}
-  const content: Record<string, unknown> = {}
-  for (const [name, hole] of Object.entries(anatomy.holes ?? {}) as [
-    string,
-    Loose,
-  ][]) {
-    if (hole.example === undefined) continue
-    const value = perItem(hole.per ?? [], hole.example)
-    if (hole.content === "free") content[name] = value
-    else holes[name] = value
-  }
-  return { id, repeats, holes, content }
-}
+/** A new component, as the tool creates it: with the package's own function. */
+const created = (anatomy: Loose, id: string): Loose =>
+  createdInstance(anatomy, id)
 
 // 1. Palette.
 const sources = new Set<string>()
@@ -283,7 +251,7 @@ for (const b of palette) {
     const base = created(anatomy, "c1")
     const before = renderAnatomy(manifest, b.name, base)
     // The tool fills the new item as it fills a new component.
-    const inserted = created(anatomy, "c1", { [group]: "inserted" })
+    const inserted = withItem(anatomy, base, group, "inserted")
     let after = ""
     try {
       after = renderAnatomy(manifest, b.name, inserted)
