@@ -62,13 +62,20 @@ const findings = (html: string) =>
  * with the example the anatomy gives, for each item it is per. The tool
  * invents nothing but the keys, which are its own.
  */
-function created(anatomy: Loose, id: string): Loose {
+function created(
+  anatomy: Loose,
+  id: string,
+  first: Record<string, string> = {},
+): Loose {
   const repeats: Record<string, string[]> = {}
   for (const [group, { min }] of Object.entries(anatomy.repeats ?? {}) as [
     string,
     Loose,
   ][])
-    repeats[group] = Array.from({ length: min }, (_, i) => `${group}${i + 1}`)
+    repeats[group] = [
+      ...(first[group] ? [first[group]] : []),
+      ...Array.from({ length: min }, (_, i) => `${group}${i + 1}`),
+    ]
   const perItem = (per: string[], value: unknown): unknown =>
     per.length === 0
       ? value
@@ -275,8 +282,8 @@ for (const b of palette) {
   for (const group of Object.keys(anatomy.repeats ?? {})) {
     const base = created(anatomy, "c1")
     const before = renderAnatomy(manifest, b.name, base)
-    const inserted = created(anatomy, "c1")
-    inserted.repeats[group] = ["inserted", ...inserted.repeats[group]]
+    // The tool fills the new item as it fills a new component.
+    const inserted = created(anatomy, "c1", { [group]: "inserted" })
     let after = ""
     try {
       after = renderAnatomy(manifest, b.name, inserted)

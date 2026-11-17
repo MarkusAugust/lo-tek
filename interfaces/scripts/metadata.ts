@@ -922,6 +922,12 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                 settings: ["type"],
                 attributes: { name: { hole: "name" } },
               },
+              file: {
+                tag: "input",
+                from: ["fileUpload", "field.control"],
+                settings: ["multiple", "accept"],
+                attributes: { name: { hole: "name" } },
+              },
               textarea: {
                 tag: "textarea",
                 from: ["textarea", "field.control"],
@@ -1299,6 +1305,269 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
             ],
           },
         },
+      },
+    ],
+  },
+  radio: {
+    holes: {
+      legend: {
+        description: "What the group asks.",
+        content: "text",
+        example: "Lease length",
+      },
+      name: {
+        ...nameHole,
+        description:
+          "The name the form sends the picked value under, the same for every option.",
+      },
+      control: {
+        description: "The id an option's label points at.",
+        kind: "id",
+        per: ["option"],
+      },
+      value: {
+        description: "What an option sends.",
+        kind: "value",
+        per: ["option"],
+        example: "1",
+      },
+      label: {
+        description: "What an option says.",
+        content: "text",
+        per: ["option"],
+        example: "One month",
+      },
+      checked: {
+        description: "The option is picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+      disabled: {
+        description: "The option cannot be picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+    },
+    // One option is no choice.
+    repeats: { option: { min: 2, description: "The options." } },
+    nodes: [
+      {
+        tag: "fieldset",
+        from: ["fieldset"],
+        name: "group",
+        description: "The group, and its state.",
+        settings: ["state", "disabled"],
+        children: [
+          {
+            tag: "legend",
+            from: ["legend"],
+            name: "legend",
+            description: "The question.",
+            settings: ["required", "optional"],
+            children: [{ hole: "legend" }],
+          },
+          {
+            tag: "div",
+            from: ["radio.row"],
+            repeat: "option",
+            children: [
+              {
+                tag: "input",
+                from: ["radio"],
+                attributes: {
+                  id: { hole: "control" },
+                  name: { hole: "name" },
+                  value: { hole: "value" },
+                  checked: { hole: "checked" },
+                  disabled: { hole: "disabled" },
+                },
+              },
+              {
+                tag: "label",
+                from: ["label"],
+                attributes: { for: { hole: "control" } },
+                children: [{ hole: "label" }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  fieldset: {
+    holes: {
+      legend: {
+        description: "What the fields have in common.",
+        content: "text",
+        example: "Address",
+      },
+      content: { description: "The fields.", content: "free" },
+    },
+    nodes: [
+      {
+        tag: "fieldset",
+        from: ["fieldset"],
+        children: [
+          {
+            tag: "legend",
+            from: ["legend"],
+            name: "legend",
+            description: "What the fields have in common.",
+            settings: ["required", "optional"],
+            children: [{ hole: "legend" }],
+          },
+          { hole: "content" },
+        ],
+      },
+    ],
+  },
+  switch: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the switch turns on.",
+        content: "text",
+        example: "Auto-renew",
+      },
+      checked: { description: "The switch is on.", kind: "flag" },
+      disabled: { description: "The switch cannot be changed.", kind: "flag" },
+    },
+    nodes: [
+      {
+        tag: "div",
+        from: ["switch.row"],
+        children: [
+          {
+            tag: "input",
+            from: ["switch"],
+            attributes: {
+              id: { hole: "control" },
+              name: { hole: "name" },
+              checked: { hole: "checked" },
+              disabled: { hole: "disabled" },
+            },
+          },
+          {
+            tag: "label",
+            from: ["label"],
+            attributes: { for: { hole: "control" } },
+            children: [{ hole: "label" }],
+          },
+        ],
+      },
+    ],
+  },
+  search: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: { ...nameHole, example: "q" },
+      label: {
+        description: "What is searched, for screen readers.",
+        content: "text",
+        example: "Search breakers",
+      },
+      placeholder: {
+        description: "A hint in the empty field.",
+        kind: "text",
+        optional: true,
+        example: "Search breakers",
+      },
+      button: {
+        description: "What the button says.",
+        content: "text",
+        example: "Search",
+      },
+    },
+    nodes: [
+      {
+        tag: "form",
+        from: ["search.row"],
+        attributes: { role: "search" },
+        children: [
+          // The button says what the field is for, so the label is for
+          // screen readers.
+          {
+            tag: "label",
+            from: ["label", "srOnly"],
+            attributes: { for: { hole: "control" } },
+            children: [{ hole: "label" }],
+          },
+          {
+            tag: "input",
+            from: ["search"],
+            attributes: {
+              id: { hole: "control" },
+              name: { hole: "name" },
+              placeholder: { hole: "placeholder" },
+            },
+          },
+          {
+            tag: "button",
+            from: ["button"],
+            attributes: { type: "submit" },
+            children: [{ hole: "button" }],
+          },
+        ],
+      },
+    ],
+  },
+  toggleGroup: {
+    holes: {
+      legend: {
+        description: "What the group chooses, for screen readers.",
+        content: "text",
+        example: "View",
+      },
+      name: {
+        ...nameHole,
+        description:
+          "The name the form sends the picked value under, the same for every option.",
+        example: "view",
+      },
+      value: {
+        description: "What an option sends.",
+        kind: "value",
+        per: ["option"],
+        example: "all",
+      },
+      label: {
+        description: "What an option says.",
+        content: "text",
+        per: ["option"],
+        example: "All",
+      },
+      checked: {
+        description: "The option is picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+    },
+    repeats: { option: { min: 2, description: "The options." } },
+    nodes: [
+      {
+        tag: "fieldset",
+        from: ["toggleGroup"],
+        children: [
+          { tag: "legend", from: ["srOnly"], children: [{ hole: "legend" }] },
+          {
+            tag: "label",
+            from: ["toggleGroup.option"],
+            repeat: "option",
+            children: [
+              {
+                tag: "input",
+                attributes: {
+                  type: "radio",
+                  name: { hole: "name" },
+                  value: { hole: "value" },
+                  checked: { hole: "checked" },
+                },
+              },
+              { hole: "label" },
+            ],
+          },
+        ],
       },
     ],
   },

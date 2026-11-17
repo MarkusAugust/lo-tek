@@ -388,6 +388,92 @@ const cases: Case[] = [
     },
     expected: `<ul class="lt-avatar-stack"><li><span class="lt-avatar" data-size="small" aria-hidden="true">DP</span></li><li><span class="lt-avatar" data-size="small" aria-hidden="true">NV</span></li></ul>`,
   },
+  {
+    builder: "radio",
+    instance: {
+      id: "lease",
+      repeats: { option: ["1", "6"] },
+      settings: { legend: { required: "symbol" } },
+      holes: {
+        legend: "Lease length",
+        name: "lease",
+        control: { "1": "lease-1", "6": "lease-6" },
+        value: { "1": "1", "6": "6" },
+        label: { "1": "One month", "6": "Six months" },
+        checked: { "1": true },
+      },
+    },
+    expected: `<fieldset class="lt-fieldset"><legend class="lt-legend" data-required="symbol">Lease length</legend><div class="lt-radio-row"><input class="lt-radio" type="radio" id="lease-1" name="lease" value="1" checked><label class="lt-label" for="lease-1">One month</label></div><div class="lt-radio-row"><input class="lt-radio" type="radio" id="lease-6" name="lease" value="6"><label class="lt-label" for="lease-6">Six months</label></div></fieldset>`,
+  },
+  {
+    builder: "fieldset",
+    instance: {
+      id: "crew",
+      settings: { legend: { required: "symbol" } },
+      holes: { legend: "Who takes the job?" },
+      content: { content: "<p>The fields.</p>" },
+    },
+    expected: `<fieldset class="lt-fieldset"><legend class="lt-legend" data-required="symbol">Who takes the job?</legend><p>The fields.</p></fieldset>`,
+  },
+  {
+    builder: "switch",
+    instance: {
+      id: "renew",
+      holes: {
+        control: "auto-renew",
+        name: "auto-renew",
+        label: "Auto-renew",
+        checked: true,
+      },
+    },
+    expected: `<div class="lt-switch-row"><input class="lt-switch" type="checkbox" role="switch" id="auto-renew" name="auto-renew" checked><label class="lt-label" for="auto-renew">Auto-renew</label></div>`,
+  },
+  {
+    builder: "search",
+    instance: {
+      id: "s",
+      holes: {
+        control: "search",
+        name: "q",
+        label: "Search breakers",
+        placeholder: "Search breakers",
+        button: "Search",
+      },
+    },
+    expected: `<form class="lt-search-row" role="search"><label class="lt-label lt-sr-only" for="search">Search breakers</label><input class="lt-input lt-search" type="search" id="search" name="q" placeholder="Search breakers"><button class="lt-button" type="submit">Search</button></form>`,
+  },
+  {
+    builder: "toggleGroup",
+    instance: {
+      id: "v",
+      repeats: { option: ["dry", "all"] },
+      holes: {
+        legend: "View",
+        name: "view",
+        value: { dry: "dry", all: "all" },
+        label: { dry: " Dry", all: " All" },
+        checked: { dry: true },
+      },
+    },
+    expected: `<fieldset class="lt-toggle-group"><legend class="lt-sr-only">View</legend><label class="lt-toggle-group__option"><input type="radio" name="view" value="dry" checked> Dry</label><label class="lt-toggle-group__option"><input type="radio" name="view" value="all"> All</label></fieldset>`,
+  },
+  // The file upload page's field, in the field's <div>, with the name the form sends.
+  {
+    builder: "field",
+    instance: {
+      id: "fw",
+      options: { help: true },
+      choices: { control: "file" },
+      settings: { control: { multiple: true, accept: ".bin" } },
+      holes: {
+        control: "firmware",
+        name: "firmware",
+        label: "Upload firmware",
+        help: "Deck firmware (.bin, up to 64 MB). Dump it before I open anything.",
+      },
+    },
+    expected: `<div><label class="lt-label" for="firmware">Upload firmware</label><input class="lt-file-upload" type="file" id="firmware" multiple accept=".bin" aria-describedby="firmware-help" name="firmware"><p class="lt-help-text" id="firmware-help">Deck firmware (.bin, up to 64 MB). Dump it before I open anything.</p></div>`,
+  },
 ]
 
 /**
