@@ -42,7 +42,7 @@ Plain CSS on an ordinary `<input type="checkbox">`, so the keyboard, `FormData` 
 import { lt } from "@lo-tek/interfaces/react"
 
 <div className={lt.checkbox.row}>
-  <input {...lt.checkbox()} id="seasonal" />
+  <input {...lt.checkbox()} id="seasonal" name="seasonal" />
   <label {...lt.label()} htmlFor="seasonal">I accept that floors below 12 are seasonal.</label>
 </div>
 ```
@@ -79,22 +79,22 @@ import no.lotek.html.lt
 fun FlowContent.leaseTerms() {
     div {
         lt(Lt.checkbox.row)
-        input { lt(Lt.checkbox()); id = "seasonal" }
+        input { lt(Lt.checkbox()); id = "seasonal"; name = "seasonal" }
         label { lt(Lt.label()); htmlFor = "seasonal"; +"I accept that floors below 12 are seasonal." }
     }
     div {
         lt(Lt.checkbox.row)
-        input { lt(Lt.checkbox()); id = "vacancies"; checked = true }
+        input { lt(Lt.checkbox()); id = "vacancies"; name = "vacancies"; checked = true }
         label { lt(Lt.label()); htmlFor = "vacancies"; +"Tell me when a dry floor comes free" }
     }
     div {
         lt(Lt.checkbox.row)
-        input { lt(Lt.checkbox(state = FieldState.INVALID)); id = "confirm" }
+        input { lt(Lt.checkbox(state = FieldState.INVALID)); id = "confirm"; name = "confirm" }
         label { lt(Lt.label()); htmlFor = "confirm"; +"I confirm that I have read the lease" }
     }
     div {
         lt(Lt.checkbox.row)
-        input { lt(Lt.checkbox()); id = "deposit"; checked = true; disabled = true }
+        input { lt(Lt.checkbox()); id = "deposit"; name = "deposit"; checked = true; disabled = true }
         label { lt(Lt.label()); htmlFor = "deposit"; +"The deposit is paid" }
     }
 }

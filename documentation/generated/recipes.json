@@ -1245,7 +1245,7 @@
             {
               "lang": "tsx",
               "meta": null,
-              "code": "import { lt } from \"@lo-tek/interfaces/react\"\n\n<div className={lt.checkbox.row}>\n  <input {...lt.checkbox()} id=\"seasonal\" />\n  <label {...lt.label()} htmlFor=\"seasonal\">I accept that floors below 12 are seasonal.</label>\n</div>"
+              "code": "import { lt } from \"@lo-tek/interfaces/react\"\n\n<div className={lt.checkbox.row}>\n  <input {...lt.checkbox()} id=\"seasonal\" name=\"seasonal\" />\n  <label {...lt.label()} htmlFor=\"seasonal\">I accept that floors below 12 are seasonal.</label>\n</div>"
             },
             {
               "lang": "ts",
@@ -1257,7 +1257,7 @@
             {
               "lang": "kotlin",
               "meta": null,
-              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\n\nfun FlowContent.leaseTerms() {\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox()); id = \"seasonal\" }\n        label { lt(Lt.label()); htmlFor = \"seasonal\"; +\"I accept that floors below 12 are seasonal.\" }\n    }\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox()); id = \"vacancies\"; checked = true }\n        label { lt(Lt.label()); htmlFor = \"vacancies\"; +\"Tell me when a dry floor comes free\" }\n    }\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox(state = FieldState.INVALID)); id = \"confirm\" }\n        label { lt(Lt.label()); htmlFor = \"confirm\"; +\"I confirm that I have read the lease\" }\n    }\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox()); id = \"deposit\"; checked = true; disabled = true }\n        label { lt(Lt.label()); htmlFor = \"deposit\"; +\"The deposit is paid\" }\n    }\n}"
+              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\n\nfun FlowContent.leaseTerms() {\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox()); id = \"seasonal\"; name = \"seasonal\" }\n        label { lt(Lt.label()); htmlFor = \"seasonal\"; +\"I accept that floors below 12 are seasonal.\" }\n    }\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox()); id = \"vacancies\"; name = \"vacancies\"; checked = true }\n        label { lt(Lt.label()); htmlFor = \"vacancies\"; +\"Tell me when a dry floor comes free\" }\n    }\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox(state = FieldState.INVALID)); id = \"confirm\"; name = \"confirm\" }\n        label { lt(Lt.label()); htmlFor = \"confirm\"; +\"I confirm that I have read the lease\" }\n    }\n    div {\n        lt(Lt.checkbox.row)\n        input { lt(Lt.checkbox()); id = \"deposit\"; name = \"deposit\"; checked = true; disabled = true }\n        label { lt(Lt.label()); htmlFor = \"deposit\"; +\"The deposit is paid\" }\n    }\n}"
             }
           ],
           "setup": {
