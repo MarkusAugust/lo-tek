@@ -316,15 +316,7 @@ impl Dom {
         let cased = elements
             .iter()
             .enumerate()
-            .filter(|(_, e)| {
-                // `<Label>` is a component; `<INPUT>` is HTML in capitals.
-                let written = &source[e.name_start..e.name_end];
-                let upper = |c: &u16| (b'A' as u16..=b'Z' as u16).contains(c);
-                written.first().is_some_and(upper)
-                    && !written
-                        .iter()
-                        .all(|c| upper(c) || !(b'a' as u16..=b'z' as u16).contains(c))
-            })
+            .filter(|(_, e)| is_component_name(&source[e.name_start..e.name_end]))
             .map(|(i, _)| i + 1)
             .collect();
         let mut dom = Dom {

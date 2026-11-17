@@ -234,6 +234,16 @@ export const classes: Classes = {
     "description": "A checkbox for a choice that stands on its own. CSS component with two classes and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/checkbox/",
     "content": "none",
+    "tags": [
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "checkbox"
+          ]
+        }
+      }
+    ],
     "attributes": {
       "data-state": {
         "values": [

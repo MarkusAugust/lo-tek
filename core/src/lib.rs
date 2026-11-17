@@ -602,6 +602,129 @@ mod tests {
     }
 
     #[test]
+    fn a_checkbox_class_on_a_text_field() {
+        let found = diagnose_markup(
+            &utf16(r#"<input class="lt-checkbox" type="text" id="a"><label for="a">A</label>"#),
+            &manifest::for_tests(),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].rule, "class-on-wrong-tag");
+    }
+
+    #[test]
+    fn a_checkbox_class_on_a_checkbox_and_on_an_input_without_type() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        let right =
+            markup(r#"<input class="lt-checkbox" type="checkbox" id="a"><label for="a">A</label>"#);
+        assert!(right.is_empty(), "{right:?}");
+        // Without type, HTML makes it a text field.
+        let bare = markup(r#"<input class="lt-checkbox" id="a"><label for="a">A</label>"#);
+        assert_eq!(bare.len(), 1, "{bare:?}");
+        assert_eq!(bare[0].rule, "class-on-wrong-tag");
+    }
+
+    #[test]
+    fn a_class_on_a_component_is_not_judged() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for html in [
+            r#"<Card class="lt-button">Order</Card>"#,
+            r#"<Link class="lt-button">Order</Link>"#,
+        ] {
+            let found = markup(html);
+            assert!(found.is_empty(), "{html}: {found:?}");
+        }
+    }
+
+    #[test]
+    fn a_class_on_a_custom_element_that_is_not_lotek() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        let foreign = markup(r#"<my-button class="lt-button">Order</my-button>"#);
+        assert!(foreign.is_empty(), "{foreign:?}");
+        let own = markup(
+            r#"<lt-field class="lt-button"><label for="a">A</label><input id="a"></lt-field>"#,
+        );
+        assert_eq!(
+            own.iter()
+                .filter(|f| f.rule == "class-on-wrong-tag")
+                .count(),
+            1,
+            "{own:?}"
+        );
+    }
+
+    #[test]
+    fn a_class_on_a_dynamic_component_in_vue() {
+        let found = diagnose_markup(
+            &utf16(r#"<component :is="tag" class="lt-button">Order</component>"#),
+            &manifest::for_tests(),
+        );
+        assert!(found.is_empty(), "{found:?}");
+    }
+
+    #[test]
+    fn a_bound_type_is_not_judged_but_the_tag_is() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for input in [
+            r#"<input class="lt-checkbox" :type="kind" id="a">"#,
+            r#"<input class="lt-checkbox" v-bind:type="kind" id="a">"#,
+            r#"<input class="lt-checkbox" type={kind} id="a">"#,
+            r#"<input class="lt-checkbox" type="{{ .Kind }}" id="a">"#,
+            r#"<input class="lt-checkbox" th:type="${kind}" id="a">"#,
+            r#"<input class="lt-checkbox" data-attr:type="$kind" id="a">"#,
+        ] {
+            let found = markup(&format!(r#"{input}<label for="a">A</label>"#));
+            assert!(found.is_empty(), "{input}: {found:?}");
+        }
+        let tag = markup(r#"<div class="lt-checkbox" :type="kind"></div>"#);
+        assert_eq!(tag.len(), 1, "{tag:?}");
+    }
+
+    #[test]
+    fn a_spread_can_give_the_type() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for input in [
+            r#"<input class="lt-checkbox" {...props} id="a">"#,
+            r#"<input class="lt-checkbox" v-bind="attrs" id="a">"#,
+            r#"<input class="lt-checkbox" x-bind="attrs" id="a">"#,
+        ] {
+            let found = markup(&format!(r#"{input}<label for="a">A</label>"#));
+            assert!(found.is_empty(), "{input}: {found:?}");
+        }
+        let tag = markup(r#"<div class="lt-checkbox" {...props}></div>"#);
+        assert_eq!(tag.len(), 1, "{tag:?}");
+    }
+
+    #[test]
+    fn class_values_the_core_does_not_read_are_left_alone() {
+        // Regression: none of these reach the rule. `className` is not
+        // read as a class, which is a known blind spot shared with
+        // unknown-class; `motion.div` is not a tag to the core; a class
+        // from an expression is not known.
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for html in [
+            r#"<div className="lt-button">Order</div>"#,
+            r#"<motion.div class="lt-button">Order</motion.div>"#,
+            r#"<div class={classes}>Order</div>"#,
+            r#"<div class="lt-button {{ .Extra }}">Order</div>"#,
+        ] {
+            let found = markup(html);
+            assert!(found.is_empty(), "{html}: {found:?}");
+        }
+    }
+
+    #[test]
+    fn a_taken_over_class_on_the_wrong_tag() {
+        let fragment = r#"{"schemaVersion": 1, "version": "0", "classes": {"app-button": {"title": "Button", "link": "https://lo-tek.sobernetics.no/components/button/", "attributes": {}, "tags": [{"tag": "button"}]}}}"#;
+        let vocabulary = manifest::with_fragments(&manifest::test_text(), &[fragment]).unwrap();
+        let found = diagnose_markup(
+            &utf16(r#"<div class="app-button">Order</div>"#),
+            &vocabulary,
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].rule, "class-on-wrong-tag");
+    }
+
+    #[test]
     fn a_flag_on_a_class_takes_no_value() {
         let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
         assert!(markup(r#"<label class="lt-label" data-optional>Navn</label>"#).is_empty());

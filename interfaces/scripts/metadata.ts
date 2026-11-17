@@ -979,7 +979,7 @@ export const classDocs: Record<string, ClassDoc> = {
     },
   },
   "lt-card__title": { content: "text", partOf: "lt-card" },
-  "lt-checkbox": { content: "none" },
+  "lt-checkbox": { content: "none", tags: [{ tag: "input" }] },
   "lt-checkbox-row": row("input[type='checkbox']", "The checkbox"),
   "lt-divider": { content: "none" },
   "lt-error-text": { content: "text" },

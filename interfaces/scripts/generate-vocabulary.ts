@@ -40,8 +40,9 @@ import type {
   ClassInfo,
   CssText,
   Elements,
+  Tag,
 } from "../src/vocabulary/types.js"
-import { flagsFor, readBuilderFunctions } from "./builder-functions.js"
+import { flagsFor, readBuilderFunctions, setsOf } from "./builder-functions.js"
 import {
   compoundsOf,
   isText,
@@ -864,6 +865,43 @@ export function classesData(): Classes {
       found[name].attributes[attribute] ??= { values: [], flag: true }
 
   /*
+   * The `type` a class on an input must have, read from the builder
+   * function, as `type="checkbox"` from `lt.checkbox()`. `metadata.ts` only
+   * says the tag, so the two cannot disagree. A builder function with a
+   * `type` option of its own, as `lt.input()`, leaves the type to the
+   * template, and `type="color"` stays valid on an lt-input.
+   */
+  const inputTypes = new Map<string, string>()
+  for (const builder of readBuilderFunctions()) {
+    if (builder.options.some((o) => o.name === "type")) continue
+    const build = (lt as Record<string, unknown>)[builder.name]
+    if (typeof build !== "function") continue
+    const answer = (build as (options: Record<string, unknown>) => unknown)({
+      id: "x",
+      titleId: "x",
+      keys: [],
+      label: "x",
+    })
+    for (const [, set] of setsOf(answer)) {
+      if (typeof set.type !== "string") continue
+      for (const name of String(set.class ?? "").split(/\s+/))
+        if (name) inputTypes.set(name, set.type)
+    }
+  }
+  const withTypes = (name: string, tags: readonly Tag[] | undefined) =>
+    tags?.map((t) =>
+      t.tag === "input" && !t.attributes?.type && inputTypes.has(name)
+        ? {
+            ...t,
+            attributes: {
+              ...t.attributes,
+              type: [inputTypes.get(name) as string],
+            },
+          }
+        : t,
+    )
+
+  /*
    * The content and the parts, from the table in `metadata.ts`. Every class
    * in the CSS must be there, and no others: a new class without a row stops
    * the generator with its name, and a row for a class that is gone from the
@@ -896,7 +934,7 @@ export function classesData(): Classes {
       ...(parts ? { parts } : {}),
       ...(named ? { name: named } : {}),
       ...(info.texts ? { texts: info.texts } : {}),
-      ...(tags ? { tags } : {}),
+      ...(tags ? { tags: withTypes(name, tags) } : {}),
       attributes: info.attributes,
     }
   }

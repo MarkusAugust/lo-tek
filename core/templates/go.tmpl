@@ -7,7 +7,7 @@
     <p class="lt-error-text">{{.Feil.Epost}}</p>
   </lt-field>
   {{range .Valg}}
-    <label class="lt-checkbox"><input type="checkbox" name="valg" value="{{.Verdi}}" {{if .Valgt}}checked{{end}}> {{.Navn}}</label>
+    <label><input class="lt-checkbox" type="checkbox" name="valg" value="{{.Verdi}}" {{if .Valgt}}checked{{end}}> {{.Navn}}</label>
   {{end}}
   <button class="lt-button" data-variant="{{.Variant}}" type="submit">Send</button>
   <div class="lt-fiedl">Ekstra</div>

@@ -834,7 +834,7 @@ fn check_classes(
         }
         if let Some(info) = find_class(vocabulary, token) {
             present.push(info);
-            if let Some(message) = wrong_tag(info, tag, attributes) {
+            if let Some(message) = wrong_tag(vocabulary, info, tag, attributes) {
                 findings.push(Finding {
                     start,
                     end: start + token.len(),
@@ -991,11 +991,28 @@ fn check_classes(
 /// `class-on-wrong-tag`: what is wrong when the class is on a tag its
 /// `tags` do not allow, or on one that lacks an attribute it requires. A
 /// class without `tags`, from a manifest before the field, is not checked.
-fn wrong_tag(info: &Class, tag: &[u16], attributes: &[ReadAttribute]) -> Option<String> {
-    if info.tags.is_empty() {
+fn wrong_tag(
+    vocabulary: &Vocabulary,
+    info: &Class,
+    tag: &[u16],
+    attributes: &[ReadAttribute],
+) -> Option<String> {
+    // A component renders a tag of its own, which is not in the source.
+    if info.tags.is_empty() || is_component_name(tag) {
         return None;
     }
     let tag = lowercase(tag);
+    // A custom element that is not LO-TEK's can be one of its components
+    // registered under another name, as defineLtToast("my-toast") does, or
+    // a component in Blade or Vue. What it is, the core cannot tell.
+    let own = starts_at(&tag, 0, "lt-") || vocabulary.elements.iter().any(|e| equals(&tag, &e.tag));
+    if tag.contains(&(b'-' as u16)) && !own {
+        return None;
+    }
+    // `<component :is="…">` in Vue becomes whatever tag `is` names.
+    if equals(&tag, "component") && attribute(attributes, "is").is_some() {
+        return None;
+    }
     let same: Vec<&Tag> = info
         .tags
         .iter()
@@ -1004,20 +1021,50 @@ fn wrong_tag(info: &Class, tag: &[u16], attributes: &[ReadAttribute]) -> Option<
     if same.is_empty() {
         return Some(format!("{} is on the wrong tag.", info.name));
     }
+    // The first attribute the tag must have with one of its values, and does not.
+    fn unlike<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<(&'a str, &'a [String])> {
+        t.attributes.iter().find_map(|(name, values)| {
+            // A value bound by a framework, or written by the template, is
+            // not known here, and only the tag is judged.
+            let has = attribute(attributes, name).is_some_and(|a| match a.value.as_deref() {
+                _ if !equals(&a.name, name) => true,
+                Some(v) if is_templated_value(v) => true,
+                Some(v) => values.iter().any(|w| equals(&lowercase(v), w)),
+                None => false,
+            });
+            (!has).then_some((name.as_str(), values.as_slice()))
+        })
+    }
     fn missing<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<&'a String> {
         t.requires
             .iter()
             .find(|name| attribute(attributes, name).is_none())
     }
-    if same.iter().any(|t| missing(t, attributes).is_none()) {
+    // A spread can give any attribute, so only the tag is judged: `{...props}`
+    // in JSX and Svelte, `v-bind` in Vue, `x-bind` in Alpine, `@attributes`
+    // in Razor.
+    let spread = attributes.iter().any(|a| {
+        a.name.first() == Some(&(b'{' as u16))
+            || ["v-bind", "x-bind", "@attributes"]
+                .iter()
+                .any(|n| equals(&a.name, n))
+    });
+    if spread
+        || same
+            .iter()
+            .any(|t| unlike(t, attributes).is_none() && missing(t, attributes).is_none())
+    {
         return None;
     }
+    let shown = lossy(&tag);
+    if let Some((name, values)) = unlike(same[0], attributes) {
+        return Some(format!(
+            "{} is on <{shown}> without {name}=\"{}\".",
+            info.name, values[0]
+        ));
+    }
     let name = missing(same[0], attributes)?;
-    Some(format!(
-        "{} is on <{}> without {name}.",
-        info.name,
-        lossy(&tag)
-    ))
+    Some(format!("{} is on <{shown}> without {name}.", info.name))
 }
 
 /// A disabled link that still has `href`.
