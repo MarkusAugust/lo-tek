@@ -26,7 +26,7 @@ class ManifestReaderTest {
     @Suppress("UNCHECKED_CAST")
     private val schema = Json.parse(File(System.getProperty("manifest")).resolveSibling("manifest.schema.json").readText()) as Map<String, Any?>
 
-    private fun definition(name: String) = schema["\$defs"].map()[name]?.map() ?: error("The schema has no definition $name.")
+    private fun definition(name: String) = schema["\$defs"].map()[name]?.map() ?: error("The schema has no definition $name. The definitions got their names after 0.45.0, so the test needs a package packed from the repository: bun --filter @lo-tek/interfaces pack, and ./gradlew test -Plotek.package=../interfaces.")
 
     private fun Map<String, Any?>.field(name: String) = this["properties"].map()[name]?.map() ?: error("The schema has no field $name there.")
 

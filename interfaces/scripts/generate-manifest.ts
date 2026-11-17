@@ -125,7 +125,11 @@ export type Input = {
   classes: Classes
   /** The builder functions as the TypeScript compiler reads them from `lt`. */
   builders: Base[]
-  /** The builder functions themselves, by name, to call. */
+  /**
+   * The builder functions themselves, by name, to call. Each takes options
+   * of its own type, so here they take ones nobody can make, and `buildCases()`
+   * is the one place that hands them what the cases say.
+   */
   lt: Record<string, (options: never) => unknown>
   /** `BUILDER_PARTS` in `metadata.ts`. */
   parts: Record<string, Record<string, BuilderPart | null>>
@@ -327,9 +331,7 @@ function buildCases(
   const cases: Case[] = []
   silently(() => {
     for (const b of builderFunctions) {
-      const build = (lt as unknown as Record<string, (o: unknown) => unknown>)[
-        b.name
-      ]
+      const build = lt[b.name] as (options: unknown) => unknown
       for (const options of combinations(b.options)) {
         try {
           cases.push({ builder: b.name, options, expected: build(options) })
@@ -627,9 +629,9 @@ function fillIn(
         .flatMap((t) => setsOf(t.expected))
         .flatMap(([, set]) => String(set.class ?? "").split(/\s+/)),
     )
-    const strings = Object.entries(
-      lt[b.name as keyof typeof lt] as unknown as Record<string, unknown>,
-    ).filter((entry): entry is [string, string] => typeof entry[1] === "string")
+    const strings = Object.entries(lt[b.name]).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    )
     // Every class is `lt-`, so a string constant on a builder function that is
     // not one is a mistake, and it stops here rather than vanishing from the
     // manifest without a word.
@@ -697,7 +699,7 @@ function fillIn(
   const kebab = (name: string) =>
     name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
   const linkOf = (className: string): string | undefined =>
-    (classes as Record<string, { link?: string }>)[className]?.link
+    classes[className]?.link
   for (const b of builderFunctions) {
     const name = `lt-${kebab(b.name)}`
     const answer = cases.find((t) => t.builder === b.name && t.expected)
@@ -705,10 +707,7 @@ function fillIn(
       .flatMap(([, set]) => String(set.class ?? "").split(/\s+/))
       .map(linkOf)
       .find(Boolean)
-    const link =
-      (elements as Record<string, { link?: string }>)[name]?.link ??
-      linkOf(name) ??
-      fromAnswer
+    const link = elements[name]?.link ?? linkOf(name) ?? fromAnswer
     if (!link)
       throw new Error(
         `lt.${b.name} has no page: no element or class called ${name}, and no class in its answer with a link.`,
@@ -747,9 +746,7 @@ function fillIn(
     for (const field of sets) {
       const target = listed[field]
       if (!target) continue
-      const element = (
-        elements as Record<string, { parts?: Record<string, unknown> }>
-      )[target.element]
+      const element = elements[target.element]
       if (!element?.parts?.[target.part])
         throw new Error(
           `BUILDER_PARTS says lt.${b.name}().${field} fills ${target.element}'s ${target.part}, and that part does not exist.`,
@@ -1177,8 +1174,8 @@ function dropsOf(manifest: Manifest, builderFunctions: BuilderFunction[]) {
   )
 }
 
-/** The four files in `manifest/`, by their path in the package. */
-export function files(input: Input = fromPackage()): Record<string, string> {
+/** The four files, with what the last line of a run counts. */
+function generated(input: Input) {
   const { version } = input
   // A copy, since the builder functions are filled in below and the input is
   // the caller's.
@@ -1203,7 +1200,7 @@ export function files(input: Input = fromPackage()): Record<string, string> {
       files,
     })),
   }
-  return {
+  const files: Record<string, string> = {
     "manifest/manifest.json": `${JSON.stringify(manifest, null, 2)}\n`,
     "manifest/build-cases.json": `${JSON.stringify({ version, cases })}\n`,
     "manifest/anatomy-cases.json": `${JSON.stringify({
@@ -1213,17 +1210,21 @@ export function files(input: Input = fromPackage()): Record<string, string> {
     })}\n`,
     "manifest/files.json": `${JSON.stringify(list, null, 2)}\n`,
   }
+  return { files, manifest, cases }
+}
+
+/** The four files in `manifest/`, by their path in the package. */
+export function files(input: Input = fromPackage()): Record<string, string> {
+  return generated(input).files
 }
 
 if (import.meta.main) {
-  const written = files()
-  for (const [path, content] of Object.entries(written)) {
+  const { files, manifest, cases } = generated(fromPackage())
+  for (const [path, content] of Object.entries(files)) {
     mkdirSync(dirname(join(ROOT, path)), { recursive: true })
     writeFileSync(join(ROOT, path), content)
   }
-  const manifest = JSON.parse(written["manifest/manifest.json"])
-  const { cases } = JSON.parse(written["manifest/build-cases.json"])
   console.log(
-    `✓ The manifest: ${manifest.builders.length} builder functions, ${Object.keys(manifest.elements).length} elements, ${Object.keys(manifest.classes).length} classes, ${cases.length} build cases, ${Object.values<object>(manifest.tokens.components).reduce((n, v) => n + Object.keys(v).length, 0)} component variables.`,
+    `✓ The manifest: ${manifest.builders.length} builder functions, ${Object.keys(manifest.elements).length} elements, ${Object.keys(manifest.classes).length} classes, ${cases.length} build cases, ${Object.values(manifest.tokens.components).reduce((n, v) => n + Object.keys(v).length, 0)} component variables.`,
   )
 }

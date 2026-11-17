@@ -104,7 +104,8 @@ for (const [className, { attributes }] of Object.entries(manifest.classes)) {
     const defaultValue = flag ? undefined : allowed.default
     const bare = witnessed.has(key(className, attribute))
     for (const value of flag ? [undefined] : values) {
-      if (value === defaultValue) continue
+      // A flag has no default: without this, it was skipped as one.
+      if (!flag && value === defaultValue) continue
       valueCount += 1
       const k = key(className, attribute, value)
       if (bare || witnessed.has(k)) continue

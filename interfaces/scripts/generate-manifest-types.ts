@@ -10,8 +10,9 @@
  * letter, and the schema itself becomes `Manifest`. A `description` becomes
  * the comment on the type or the field.
  *
- * It knows the keywords the schema uses, and stops on any other, so a
- * constraint is never silently left out of the types. What TypeScript cannot
+ * It knows the keywords the schema uses, and stops on any other, and on one
+ * that stands beside the keyword that decides the type, so a constraint is
+ * never silently left out of the types. What TypeScript cannot
  * say is left to the schema: `minItems`, `minimum`, `minProperties`,
  * `format`, and whether an object takes other fields than its own. A list
  * with as many `minItems` as `maxItems` is a tuple, and every list is
@@ -62,7 +63,12 @@ const typeName = (definition: string) =>
 
 const WIDTH = 78
 
-/** A description as a comment, wrapped, with its paragraphs kept. */
+/**
+ * A description as a comment, wrapped, with its paragraphs kept. A word that
+ * starts with `@`, as the name of the package, never begins a line: there
+ * TypeScript and the editors read it as a tag, and the text after it is cut
+ * off. The word before it comes down with it.
+ */
 function comment(description: unknown, indent: string): string {
   if (typeof description !== "string") return ""
   const lines = description.split("\n").flatMap((paragraph) => {
@@ -70,10 +76,20 @@ function comment(description: unknown, indent: string): string {
     let line = ""
     for (const word of paragraph.split(" ")) {
       if (line && indent.length + 3 + line.length + 1 + word.length > WIDTH) {
-        out.push(line)
-        line = word
+        const before = word.startsWith("@") ? line.lastIndexOf(" ") : -1
+        if (before > 0) {
+          out.push(line.slice(0, before))
+          line = `${line.slice(before + 1)} ${word}`
+        } else {
+          out.push(line)
+          line = word
+        }
       } else line = line ? `${line} ${word}` : word
     }
+    if ([...out, line].some((written) => written.startsWith("@")))
+      throw new Error(
+        `A description has a line that starts with @, which a comment reads as a tag: "${paragraph.slice(0, 60)}"`,
+      )
     return [...out, line]
   })
   // `*/` in a description would end the comment.
@@ -87,6 +103,24 @@ function comment(description: unknown, indent: string): string {
 export function manifestTypes(schema: Schema): string {
   const definitions = (schema.$defs ?? {}) as Record<string, Schema>
 
+  /**
+   * The keyword that decides the type stands with only the ones that belong
+   * to it. Another one beside it, as `properties` next to a `oneOf`, would
+   * be left out of the type without a word.
+   */
+  const alone = (
+    node: Schema,
+    at: string,
+    what: string,
+    companions: string[],
+  ) => {
+    for (const keyword of Object.keys(node))
+      if (SHAPING.includes(keyword) && ![what, ...companions].includes(keyword))
+        throw new Error(
+          `${at}: "${keyword}" stands beside ${what}, and the types would leave it out. Write it inside, or as a definition of its own.`,
+        )
+  }
+
   const typeOf = (node: Schema, at: string, indent: string): string => {
     for (const keyword of Object.keys(node))
       if (!KNOWN.has(keyword))
@@ -94,31 +128,45 @@ export function manifestTypes(schema: Schema): string {
           `${at}: the keyword "${keyword}" is not one generate-manifest-types.ts knows. Teach it what the keyword means for the type, or that it is left to the schema.`,
         )
     if (typeof node.$ref === "string") {
+      alone(node, at, "$ref", [])
       const definition = node.$ref.replace("#/$defs/", "")
-      if (!(definition in definitions))
+      // Its own, so `constructor` is not found on every object.
+      if (!Object.keys(definitions).includes(definition))
         throw new Error(`${at}: ${node.$ref} is not in $defs`)
       return typeName(definition)
     }
-    if ("const" in node) return JSON.stringify(node.const)
-    if (Array.isArray(node.enum))
+    if ("const" in node) {
+      alone(node, at, "const", [])
+      return JSON.stringify(node.const)
+    }
+    if (Array.isArray(node.enum)) {
+      alone(node, at, "enum", [])
       return node.enum.map((value) => JSON.stringify(value)).join(" | ")
-    if (Array.isArray(node.oneOf))
+    }
+    if (Array.isArray(node.oneOf)) {
+      alone(node, at, "oneOf", [])
       return node.oneOf
         .map((alternative, i) =>
           typeOf(alternative, `${at}, oneOf ${i}`, indent),
         )
         .join(" | ")
-    if (Array.isArray(node.type))
+    }
+    if (Array.isArray(node.type)) {
+      alone(node, at, "type", [])
       return node.type.map((type) => typeOf({ type }, at, indent)).join(" | ")
+    }
     switch (node.type) {
       case "string":
       case "boolean":
       case "null":
+        alone(node, at, "type", [])
         return node.type
       case "integer":
       case "number":
+        alone(node, at, "type", [])
         return "number"
       case "array": {
+        alone(node, at, "type", ["items", "minItems", "maxItems"])
         if (!node.items) throw new Error(`${at}: a list without items`)
         const item = typeOf(node.items as Schema, `${at}, items`, indent)
         if (node.minItems !== undefined && node.minItems === node.maxItems)
@@ -130,10 +178,16 @@ export function manifestTypes(schema: Schema): string {
         return `readonly ${item.includes(" ") ? `(${item})` : item}[]`
       }
       case "object": {
+        alone(node, at, "type", [
+          "properties",
+          "required",
+          "additionalProperties",
+        ])
         const others = node.additionalProperties
         if (!node.properties) {
           if (node.required)
             throw new Error(`${at}: required without properties`)
+          if (others === false) return "Record<string, never>"
           return others && typeof others === "object"
             ? `Record<string, ${typeOf(others as Schema, `${at}, each`, indent)}>`
             : "Record<string, unknown>"

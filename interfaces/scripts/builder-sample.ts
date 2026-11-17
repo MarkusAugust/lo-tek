@@ -10,6 +10,11 @@ import type { OptionType } from "./builder-functions.js"
  * `titleId`, and one that would otherwise make a random id warns without
  * `id`. `page-setup.ts` and `check-server-import.ts` call every builder
  * function with them, and `generate-vocabulary.ts` does to read its classes.
+ *
+ * So a change here can change `classes.ts`, the editor files and the
+ * manifest: the classes, the flags and the input types are what the
+ * functions answer to exactly these. `check:vocabulary` and `check:manifest`
+ * show it as files out of date.
  */
 export const SAMPLE = {
   id: "x",

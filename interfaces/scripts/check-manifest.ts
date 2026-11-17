@@ -10,18 +10,11 @@
  * Run with: bun scripts/check-manifest.ts, or as part of `bun run build`.
  */
 
-import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
 import { files, ROOT } from "./generate-manifest"
+import { outOfDate } from "./on-disk"
 
-const findings: string[] = []
 const generated = files()
-for (const [path, content] of Object.entries(generated)) {
-  const file = join(ROOT, path)
-  if (!existsSync(file)) findings.push(`${path} is missing`)
-  else if (readFileSync(file, "utf8") !== content)
-    findings.push(`${path} is out of date`)
-}
+const findings = outOfDate(ROOT, generated)
 
 if (findings.length > 0) {
   console.error("✗ The manifest is not what the generator writes:\n")
