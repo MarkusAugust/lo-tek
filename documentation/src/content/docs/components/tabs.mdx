@@ -38,7 +38,7 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     ```html
     <!-- The links point to the panels. The component writes the roles, the
          selection and `hidden`. Without JavaScript this is a table of contents. -->
-    <lt-tabs id="claim-tabs">
+    <lt-tabs>
       <ul class="lt-tabs__list" aria-label="Parts of the claim">
         <li><a href="#claim">Claim</a></li>
         <li><a href="#attachments">Attachments</a></li>
@@ -220,7 +220,6 @@ The exception is React: there `lt.tabs()` from `@lo-tek/interfaces/react` writes
     ) {
         val tabs = Lt.tabs(id = "claim-tabs", keys = parts.map { it.key }, label = "Parts of the claim")
         ltTabs {
-            id = "claim-tabs"
             ul {
                 lt(tabs.list)
                 parts.zip(tabs.tabs).forEach { (part, tab) -> li { a { lt(tab); +part.title } } }

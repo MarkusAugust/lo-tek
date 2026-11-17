@@ -185,7 +185,8 @@ pub struct Finding {
     pub rule: &'static str,
 }
 
-/// The names of the rules, in the order they appear in the documentation.
+/// The names of the rules. A parity fixture in `parity/` must trigger each one,
+/// which `scripts/check-core.ts` requires.
 pub const RULES: &[&str] = &[
     "unknown-element",
     "unknown-attribute",

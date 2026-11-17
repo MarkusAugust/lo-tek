@@ -1240,7 +1240,7 @@
         {
           "section": "How to use it",
           "recipe": true,
-          "code": "\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"seasonal\" />\n<label class=\"lt-label\" for=\"seasonal\">I accept that floors below 12 are seasonal.</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"vacancies\" checked />\n<label class=\"lt-label\" for=\"vacancies\">Tell me when a dry floor comes free</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"confirm\" data-state=\"invalid\" aria-invalid=\"true\" />\n<label class=\"lt-label\" for=\"confirm\">I confirm that I have read the lease</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"deposit\" checked disabled />\n<label class=\"lt-label\" for=\"deposit\">The deposit is paid</label>\n</div>\n",
+          "code": "\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"seasonal\" name=\"seasonal\" />\n<label class=\"lt-label\" for=\"seasonal\">I accept that floors below 12 are seasonal.</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"vacancies\" name=\"vacancies\" checked />\n<label class=\"lt-label\" for=\"vacancies\">Tell me when a dry floor comes free</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"confirm\" name=\"confirm\" data-state=\"invalid\" aria-invalid=\"true\" />\n<label class=\"lt-label\" for=\"confirm\">I confirm that I have read the lease</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"deposit\" name=\"deposit\" checked disabled />\n<label class=\"lt-label\" for=\"deposit\">The deposit is paid</label>\n</div>\n",
           "ts": [
             {
               "lang": "tsx",
@@ -5521,7 +5521,7 @@
             {
               "lang": "html",
               "meta": null,
-              "code": "<!-- The links point to the panels. The component writes the roles, the\n     selection and `hidden`. Without JavaScript this is a table of contents. -->\n<lt-tabs id=\"claim-tabs\">\n  <ul class=\"lt-tabs__list\" aria-label=\"Parts of the claim\">\n    <li><a href=\"#claim\">Claim</a></li>\n    <li><a href=\"#attachments\">Attachments</a></li>\n  </ul>\n  <section class=\"lt-tabs__panel\" id=\"claim\">\n    <h2>Claim</h2>\n    <p>Claim AV-2079-0481 was filed on 4 March 2079.</p>\n  </section>\n  <section class=\"lt-tabs__panel\" id=\"attachments\">\n    <h2>Attachments</h2>\n    <p>Three attachments have been received. The death certificate arrived on 6 March.</p>\n  </section>\n</lt-tabs>\n\n<!-- Once for the whole app, in the page template. Not once per component. -->\n<script type=\"module\">\n  import { defineLtTabs } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/frame/tabs/lt-tabs.js\"\n\n  defineLtTabs()\n</script>"
+              "code": "<!-- The links point to the panels. The component writes the roles, the\n     selection and `hidden`. Without JavaScript this is a table of contents. -->\n<lt-tabs>\n  <ul class=\"lt-tabs__list\" aria-label=\"Parts of the claim\">\n    <li><a href=\"#claim\">Claim</a></li>\n    <li><a href=\"#attachments\">Attachments</a></li>\n  </ul>\n  <section class=\"lt-tabs__panel\" id=\"claim\">\n    <h2>Claim</h2>\n    <p>Claim AV-2079-0481 was filed on 4 March 2079.</p>\n  </section>\n  <section class=\"lt-tabs__panel\" id=\"attachments\">\n    <h2>Attachments</h2>\n    <p>Three attachments have been received. The death certificate arrived on 6 March.</p>\n  </section>\n</lt-tabs>\n\n<!-- Once for the whole app, in the page template. Not once per component. -->\n<script type=\"module\">\n  import { defineLtTabs } from\n    \"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/components/frame/tabs/lt-tabs.js\"\n\n  defineLtTabs()\n</script>"
             }
           ],
           "setup": {
@@ -5614,7 +5614,7 @@
             {
               "lang": "kotlin",
               "meta": null,
-              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\nimport no.lotek.html.ltTabs\n\ndata class Part(val key: String, val title: String, val text: String)\n\nfun FlowContent.claimTabs(\n    parts: List<Part> = listOf(\n        Part(\"claim\", \"Claim\", \"Claim AV-2079-0481 was filed on 4 March 2079.\"),\n        Part(\"attachments\", \"Attachments\", \"Three attachments have been received. The death certificate arrived on 6 March.\"),\n    ),\n) {\n    val tabs = Lt.tabs(id = \"claim-tabs\", keys = parts.map { it.key }, label = \"Parts of the claim\")\n    ltTabs {\n        id = \"claim-tabs\"\n        ul {\n            lt(tabs.list)\n            parts.zip(tabs.tabs).forEach { (part, tab) -> li { a { lt(tab); +part.title } } }\n        }\n        for ((i, part) in parts.withIndex()) {\n            section {\n                lt(tabs.panels[i])\n                h2 { lt(tabs.headings[i]); +part.title }\n                p { +part.text }\n            }\n        }\n    }\n}"
+              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\nimport no.lotek.html.ltTabs\n\ndata class Part(val key: String, val title: String, val text: String)\n\nfun FlowContent.claimTabs(\n    parts: List<Part> = listOf(\n        Part(\"claim\", \"Claim\", \"Claim AV-2079-0481 was filed on 4 March 2079.\"),\n        Part(\"attachments\", \"Attachments\", \"Three attachments have been received. The death certificate arrived on 6 March.\"),\n    ),\n) {\n    val tabs = Lt.tabs(id = \"claim-tabs\", keys = parts.map { it.key }, label = \"Parts of the claim\")\n    ltTabs {\n        ul {\n            lt(tabs.list)\n            parts.zip(tabs.tabs).forEach { (part, tab) -> li { a { lt(tab); +part.title } } }\n        }\n        for ((i, part) in parts.withIndex()) {\n            section {\n                lt(tabs.panels[i])\n                h2 { lt(tabs.headings[i]); +part.title }\n                p { +part.text }\n            }\n        }\n    }\n}"
             },
             {
               "lang": "kotlin",
@@ -8867,6 +8867,8 @@
         "@Language(\"HTML\")",
         "lt-field",
         "for",
+        "lt-button",
+        "<div>",
         "lotek check",
         "<!-- lotek-ignore-next rule-name -->",
         "lotek lsp",

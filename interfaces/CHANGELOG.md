@@ -24,6 +24,25 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **`lotek check` reports a class on a tag it does not belong on,** with
+  the rule `class-on-wrong-tag`: `<div class="lt-button">`, which is not a
+  button to the keyboard or the screen reader, `<input class="lt-checkbox">`
+  without `type="checkbox"`, and an `lt-button` or `lt-link` on an `<a>`
+  without `href`. The message says where the class belongs and what to
+  write. The rule leaves alone a component (`<Card>`), a custom element that
+  is not LO-TEK's, and a type that is bound or comes from the template.
+  Markup that passed before can fail now: every finding is an element that
+  did not do what its class promised.
+- **Every class in the manifest has `tags`:** the tags it can be on, with
+  the attributes a tag must have, such as `type` on an input, and the ones
+  it requires a value for, such as `href` on a link. The first is the one to
+  write. The rulebooks show them in the class tables.
+- **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
+  without `type="button"`, for a column the server sorts on the next page
+  load.
+
 ### Fixed
 
 - **`manifest.json` matches `manifest.schema.json`.** The schema forbade

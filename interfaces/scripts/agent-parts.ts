@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url"
 import { lt } from "../src/index.js"
 import { classes } from "../src/vocabulary/classes.js"
 import { elements } from "../src/vocabulary/elements.js"
+import type { Tag } from "../src/vocabulary/types.js"
 import { readBuilderFunctions } from "./builder-functions.js"
 import { FAMILIES, ROLES, roleToCss } from "./color-contract.js"
 import { buildBundledCss, bundledSize } from "./css-bundle.js"
@@ -119,7 +120,25 @@ export function registration(component: string): string {
 
 type ClassRow = {
   classNames: string[]
+  tags: string[]
   attributes: string[]
+}
+
+/**
+ * The tags a class can be on, as `lotek check` writes them in a message:
+ * `<input type="checkbox">`, `<a href>`. `*` is any tag.
+ */
+export function tagsLabel(tags: readonly Tag[] | undefined): string {
+  return (tags ?? [])
+    .map((t) => {
+      if (t.tag === "*") return "any tag"
+      const attributes = Object.entries(t.attributes ?? {}).map(
+        ([name, values]) => ` ${name}="${values[0]}"`,
+      )
+      const requires = (t.requires ?? []).map((name) => ` ${name}`)
+      return `\`<${t.tag}${attributes.join("")}${requires.join("")}>\``
+    })
+    .join(", ")
 }
 
 /** The components that are only CSS, with their classes and attributes. */
@@ -129,8 +148,13 @@ function cssComponents(): Map<string, ClassRow> {
   for (const [className, info] of Object.entries(classes)) {
     if (CATEGORY.get(info.component) !== "css") continue
 
-    const row = map.get(info.component) ?? { classNames: [], attributes: [] }
+    const row = map.get(info.component) ?? {
+      classNames: [],
+      tags: [],
+      attributes: [],
+    }
     row.classNames.push(className)
+    row.tags.push(tagsLabel(info.tags))
 
     for (const [name, a] of Object.entries(info.attributes ?? {})) {
       row.attributes.push(attributeLabel(name, a))
@@ -156,14 +180,15 @@ export function cssTable(stylesheet: (component: string) => string): string {
   const rows = [...cssComponents()].sort(([a], [b]) => a.localeCompare(b))
 
   return [
-    "| Class | Stylesheet | Attributes |",
-    "| --- | --- | --- |",
+    "| Class | On | Stylesheet | Attributes |",
+    "| --- | --- | --- | --- |",
     ...rows.map(([name, row]) => {
       const classNames = row.classNames
         .map((className) => `\`${className}\``)
         .join("<br>")
+      const tags = row.tags.join("<br>")
       const attributes = row.attributes.join("<br>") || "none"
-      return `| ${classNames} | \`${stylesheet(name)}\` | ${attributes} |`
+      return `| ${classNames} | ${tags} | \`${stylesheet(name)}\` | ${attributes} |`
     }),
   ].join("\n")
 }
@@ -193,9 +218,8 @@ function classesUnder(component: string): string {
       const attributes = Object.entries(info.attributes ?? {}).map(
         ([name, a]) => attributeLabel(name, a),
       )
-      return attributes.length > 0
-        ? `\`${className}\` (${attributes.join("; ")})`
-        : `\`${className}\``
+      const on = `\`${className}\` on ${tagsLabel(info.tags)}`
+      return attributes.length > 0 ? `${on} (${attributes.join("; ")})` : on
     })
 
   return found.join("<br>") || "none"

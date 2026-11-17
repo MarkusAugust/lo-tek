@@ -13,22 +13,22 @@ Plain CSS on an ordinary `<input type="checkbox">`, so the keyboard, `FormData` 
 <Example recipe
   styles={["checkbox", "label"]} layout="stack" maxWidth="28rem" code={`
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="seasonal" />
+  <input class="lt-checkbox" type="checkbox" id="seasonal" name="seasonal" />
   <label class="lt-label" for="seasonal">I accept that floors below 12 are seasonal.</label>
 </div>
 
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="vacancies" checked />
+  <input class="lt-checkbox" type="checkbox" id="vacancies" name="vacancies" checked />
   <label class="lt-label" for="vacancies">Tell me when a dry floor comes free</label>
 </div>
 
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="confirm" data-state="invalid" aria-invalid="true" />
+  <input class="lt-checkbox" type="checkbox" id="confirm" name="confirm" data-state="invalid" aria-invalid="true" />
   <label class="lt-label" for="confirm">I confirm that I have read the lease</label>
 </div>
 
 <div class="lt-checkbox-row">
-  <input class="lt-checkbox" type="checkbox" id="deposit" checked disabled />
+  <input class="lt-checkbox" type="checkbox" id="deposit" name="deposit" checked disabled />
   <label class="lt-label" for="deposit">The deposit is paid</label>
 </div>
 `}>
