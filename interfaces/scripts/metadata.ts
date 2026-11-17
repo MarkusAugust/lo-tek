@@ -870,6 +870,7 @@ export type ClassDoc = {
 /** A row in a form: the control and the label side by side. */
 const row = (control: string, what: string): ClassDoc => ({
   content: "parts",
+  tags: [{ tag: "div" }],
   parts: {
     control: {
       selector: control,
@@ -888,6 +889,7 @@ const row = (control: string, what: string): ClassDoc => ({
 export const classDocs: Record<string, ClassDoc> = {
   "lt-accordion": {
     content: "parts",
+    tags: [{ tag: "details" }],
     parts: {
       summary: {
         selector: "summary",
@@ -902,9 +904,14 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-accordion__content": { content: "free", partOf: "lt-accordion" },
+  "lt-accordion__content": {
+    content: "free",
+    partOf: "lt-accordion",
+    tags: [{ tag: "div" }],
+  },
   "lt-alert": {
     content: "free",
+    tags: [{ tag: "div" }],
     parts: {
       title: {
         selector: ".lt-alert__title",
@@ -914,9 +921,14 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-alert__title": { content: "text", partOf: "lt-alert" },
+  "lt-alert__title": {
+    content: "text",
+    partOf: "lt-alert",
+    tags: [{ tag: "p" }],
+  },
   "lt-avatar": {
     content: "free",
+    tags: [{ tag: "span" }, { tag: "button" }],
     parts: {
       image: {
         selector: "img",
@@ -929,6 +941,7 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-avatar-stack": {
     content: "parts",
+    tags: [{ tag: "ul" }],
     parts: {
       item: {
         selector: "li",
@@ -944,9 +957,10 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-badge": { content: "text" },
+  "lt-badge": { content: "text", tags: [{ tag: "span" }] },
   "lt-breadcrumbs": {
     content: "parts",
+    tags: [{ tag: "ol" }],
     parts: {
       item: {
         selector: "li",
@@ -965,10 +979,28 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-button": {
     content: "text",
-    tags: [{ tag: "button" }, { tag: "a", requires: ["href"] }],
+    tags: [
+      { tag: "button" },
+      { tag: "a", requires: ["href"] },
+      {
+        tag: "a",
+        attributes: {
+          role: ["link"],
+          tabindex: ["0"],
+          "aria-disabled": ["true"],
+        },
+      },
+    ],
   },
   "lt-card": {
     content: "free",
+    tags: [
+      { tag: "div" },
+      { tag: "article" },
+      { tag: "section" },
+      { tag: "a", requires: ["href"] },
+      { tag: "button" },
+    ],
     parts: {
       title: {
         selector: ".lt-card__title",
@@ -978,13 +1010,24 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-card__title": { content: "text", partOf: "lt-card" },
+  "lt-card__title": {
+    content: "text",
+    partOf: "lt-card",
+    tags: [
+      { tag: "h2" },
+      { tag: "h3" },
+      { tag: "h4" },
+      { tag: "h5" },
+      { tag: "h6" },
+    ],
+  },
   "lt-checkbox": { content: "none", tags: [{ tag: "input" }] },
   "lt-checkbox-row": row("input[type='checkbox']", "The checkbox"),
-  "lt-divider": { content: "none" },
-  "lt-error-text": { content: "text" },
+  "lt-divider": { content: "none", tags: [{ tag: "hr" }] },
+  "lt-error-text": { content: "text", tags: [{ tag: "p" }, { tag: "span" }] },
   "lt-fieldset": {
     content: "free",
+    tags: [{ tag: "fieldset" }],
     // The legend names the group; WAI-ARIA demands no name for a group.
     name: {},
     parts: {
@@ -1010,10 +1053,15 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-legend": { content: "text", partOf: "lt-fieldset" },
-  "lt-file-upload": { content: "none" },
+  "lt-legend": {
+    content: "text",
+    partOf: "lt-fieldset",
+    tags: [{ tag: "legend" }],
+  },
+  "lt-file-upload": { content: "none", tags: [{ tag: "input" }] },
   "lt-file-upload-list": {
     content: "parts",
+    tags: [{ tag: "ul" }],
     parts: {
       item: {
         selector: "li",
@@ -1042,13 +1090,27 @@ export const classDocs: Record<string, ClassDoc> = {
       { tag: "h6" },
     ],
   },
-  "lt-help-text": { content: "text" },
-  "lt-icon": { content: "none" },
-  "lt-input": { content: "none" },
-  "lt-label": { content: "text" },
-  "lt-link": { content: "text" },
+  "lt-help-text": { content: "text", tags: [{ tag: "p" }, { tag: "span" }] },
+  "lt-icon": { content: "none", tags: [{ tag: "svg" }] },
+  "lt-input": { content: "none", tags: [{ tag: "input" }] },
+  "lt-label": { content: "text", tags: [{ tag: "label" }] },
+  "lt-link": {
+    content: "text",
+    tags: [
+      { tag: "a", requires: ["href"] },
+      {
+        tag: "a",
+        attributes: {
+          role: ["link"],
+          tabindex: ["0"],
+          "aria-disabled": ["true"],
+        },
+      },
+    ],
+  },
   "lt-list": {
     content: "parts",
+    tags: [{ tag: "ul" }, { tag: "ol" }],
     parts: {
       item: {
         selector: "li",
@@ -1060,6 +1122,7 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-pagination": {
     content: "parts",
+    tags: [{ tag: "ul" }],
     parts: {
       item: {
         selector: "li",
@@ -1083,14 +1146,19 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-pagination__gap": { content: "text", partOf: "lt-pagination" },
-  "lt-paragraph": { content: "text" },
-  "lt-progress": { content: "none" },
-  "lt-radio": { content: "none" },
+  "lt-pagination__gap": {
+    content: "text",
+    partOf: "lt-pagination",
+    tags: [{ tag: "span" }],
+  },
+  "lt-paragraph": { content: "text", tags: [{ tag: "p" }] },
+  "lt-progress": { content: "none", tags: [{ tag: "progress" }] },
+  "lt-radio": { content: "none", tags: [{ tag: "input" }] },
   "lt-radio-row": row("input[type='radio']", "The radio button"),
-  "lt-search": { content: "none" },
+  "lt-search": { content: "none", tags: [{ tag: "input" }] },
   "lt-search-row": {
     content: "parts",
+    tags: [{ tag: "form" }],
     parts: {
       label: {
         selector: "label",
@@ -1112,13 +1180,14 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-select": { content: "none" },
-  "lt-skeleton": { content: "none" },
-  "lt-skip-link": { content: "text" },
-  "lt-spinner": { content: "none" },
+  "lt-select": { content: "none", tags: [{ tag: "select" }] },
+  "lt-skeleton": { content: "none", tags: [{ tag: "div" }] },
+  "lt-skip-link": { content: "text", tags: [{ tag: "a", requires: ["href"] }] },
+  "lt-spinner": { content: "none", tags: [{ tag: "span" }] },
   "lt-sr-only": { content: "text", tags: [{ tag: "*" }] },
   "lt-steps": {
     content: "parts",
+    tags: [{ tag: "ol" }],
     parts: {
       step: {
         selector: "li",
@@ -1129,10 +1198,11 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-switch": { content: "none" },
+  "lt-switch": { content: "none", tags: [{ tag: "input" }] },
   "lt-switch-row": row("input[role='switch']", "The switch"),
   "lt-table": {
     content: "parts",
+    tags: [{ tag: "table" }],
     parts: {
       caption: {
         selector: "> caption",
@@ -1164,9 +1234,14 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-table__sort": { content: "text", partOf: "lt-table" },
+  "lt-table__sort": {
+    content: "text",
+    partOf: "lt-table",
+    tags: [{ tag: "button" }, { tag: "a", requires: ["href"] }],
+  },
   "lt-table-scroll": {
     content: "parts",
+    tags: [{ tag: "div" }],
     parts: {
       table: {
         selector: ".lt-table",
@@ -1175,10 +1250,14 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-tag": { content: "text" },
-  "lt-textarea": { content: "none" },
+  "lt-tag": {
+    content: "text",
+    tags: [{ tag: "span" }, { tag: "button" }, { tag: "li" }],
+  },
+  "lt-textarea": { content: "none", tags: [{ tag: "textarea" }] },
   "lt-toggle-group": {
     content: "parts",
+    tags: [{ tag: "fieldset" }],
     name: {},
     parts: {
       legend: {
@@ -1203,9 +1282,14 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-toggle-group__option": { content: "free", partOf: "lt-toggle-group" },
+  "lt-toggle-group__option": {
+    content: "free",
+    partOf: "lt-toggle-group",
+    tags: [{ tag: "label" }],
+  },
   "lt-tooltip": {
     content: "parts",
+    tags: [{ tag: "span" }],
     parts: {
       trigger: {
         selector: "[aria-describedby]",
@@ -1220,10 +1304,15 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-tooltip__bubble": { content: "text", partOf: "lt-tooltip" },
+  "lt-tooltip__bubble": {
+    content: "text",
+    partOf: "lt-tooltip",
+    tags: [{ tag: "span" }],
+  },
 
   "lt-dialog": {
     content: "free",
+    tags: [{ tag: "dialog" }],
     parts: {
       header: {
         selector: ".lt-dialog__header",
@@ -1262,6 +1351,7 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-dialog__header": {
     content: "parts",
+    tags: [{ tag: "div" }],
     partOf: "lt-dialog",
     parts: {
       title: {
@@ -1277,12 +1367,36 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-dialog__title": { content: "text", partOf: "lt-dialog" },
-  "lt-dialog__subtitle": { content: "text", partOf: "lt-dialog" },
-  "lt-dialog__body": { content: "free", partOf: "lt-dialog" },
-  "lt-dialog__footer": { content: "free", partOf: "lt-dialog" },
+  "lt-dialog__title": {
+    content: "text",
+    partOf: "lt-dialog",
+    tags: [
+      { tag: "h1" },
+      { tag: "h2" },
+      { tag: "h3" },
+      { tag: "h4" },
+      { tag: "h5" },
+      { tag: "h6" },
+    ],
+  },
+  "lt-dialog__subtitle": {
+    content: "text",
+    partOf: "lt-dialog",
+    tags: [{ tag: "p" }],
+  },
+  "lt-dialog__body": {
+    content: "free",
+    partOf: "lt-dialog",
+    tags: [{ tag: "div" }],
+  },
+  "lt-dialog__footer": {
+    content: "free",
+    partOf: "lt-dialog",
+    tags: [{ tag: "form" }, { tag: "div" }],
+  },
   "lt-error-summary": {
     content: "parts",
+    tags: [{ tag: "lt-error-summary" }],
     parts: {
       title: {
         selector: ".lt-error-summary__title",
@@ -1303,11 +1417,23 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-error-summary__title": { content: "text", partOf: "lt-error-summary" },
-  "lt-popover": { content: "free" },
-  "lt-term": { content: "text" },
+  "lt-error-summary__title": {
+    content: "text",
+    partOf: "lt-error-summary",
+    tags: [
+      { tag: "h1" },
+      { tag: "h2" },
+      { tag: "h3" },
+      { tag: "h4" },
+      { tag: "h5" },
+      { tag: "h6" },
+    ],
+  },
+  "lt-popover": { content: "free", tags: [{ tag: "ul" }, { tag: "div" }] },
+  "lt-term": { content: "text", tags: [{ tag: "a", requires: ["href"] }] },
   "lt-term__entry": {
     content: "parts",
+    tags: [{ tag: "div" }],
     parts: {
       term: {
         selector: "dt",
@@ -1324,6 +1450,7 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-session-timeout": {
     content: "parts",
+    tags: [{ tag: "lt-session-timeout" }],
     parts: {
       dialog: {
         selector: ".lt-session-timeout__dialog",
@@ -1368,6 +1495,7 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-session-timeout__dialog": {
     content: "parts",
+    tags: [{ tag: "dialog" }],
     partOf: "lt-session-timeout",
     parts: {
       title: {
@@ -1400,15 +1528,29 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-session-timeout__title": {
     content: "text",
+    tags: [
+      { tag: "h1" },
+      { tag: "h2" },
+      { tag: "h3" },
+      { tag: "h4" },
+      { tag: "h5" },
+      { tag: "h6" },
+    ],
     partOf: "lt-session-timeout",
   },
-  "lt-session-timeout__text": { content: "text", partOf: "lt-session-timeout" },
+  "lt-session-timeout__text": {
+    content: "text",
+    partOf: "lt-session-timeout",
+    tags: [{ tag: "p" }],
+  },
   "lt-session-timeout__count": {
     content: "none",
+    tags: [{ tag: "span" }],
     partOf: "lt-session-timeout",
   },
   "lt-session-timeout__actions": {
     content: "parts",
+    tags: [{ tag: "form" }],
     partOf: "lt-session-timeout",
     parts: {
       button: {
@@ -1421,6 +1563,7 @@ export const classDocs: Record<string, ClassDoc> = {
   },
   "lt-suggestion__list": {
     content: "parts",
+    tags: [{ tag: "ul" }],
     parts: {
       option: {
         selector: "[role='option'], .lt-suggestion__option, > li:not([role])",
@@ -1432,11 +1575,16 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-suggestion__option": { content: "text", partOf: "lt-suggestion__list" },
-  "lt-suggestion__empty": { content: "text" },
-  "lt-suggestion__value": { content: "none" },
+  "lt-suggestion__option": {
+    content: "text",
+    partOf: "lt-suggestion__list",
+    tags: [{ tag: "li" }],
+  },
+  "lt-suggestion__empty": { content: "text", tags: [{ tag: "p" }] },
+  "lt-suggestion__value": { content: "none", tags: [{ tag: "input" }] },
   "lt-tabs__list": {
     content: "free",
+    tags: [{ tag: "ul" }],
     parts: {
       tab: {
         selector: "a[role='tab'][href^='#'], a[href^='#']:not([role])",
@@ -1447,14 +1595,23 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-tabs__panel": { content: "free" },
+  "lt-tabs__panel": {
+    content: "free",
+    tags: [{ tag: "section" }, { tag: "div" }],
+  },
 
   // The classes the components set on the nodes they create themselves have
   // content but no parent: nobody writes them in markup, so no part matches them.
-  "lt-connection-status": { content: "none" },
+  "lt-connection-status": {
+    content: "none",
+    tags: [{ tag: "lt-connection-status" }],
+  },
   "lt-connection-status__bar": { content: "text", tags: [{ tag: "div" }] },
-  "lt-toast": { content: "none" },
+  "lt-toast": { content: "none", tags: [{ tag: "lt-toast" }] },
   "lt-toast__message": { content: "free", tags: [{ tag: "div" }] },
   "lt-toast__close": { content: "text", tags: [{ tag: "button" }] },
-  "lt-theme-control": { content: "none" },
+  "lt-theme-control": {
+    content: "none",
+    tags: [{ tag: "input", attributes: { type: ["radio"] } }],
+  },
 }

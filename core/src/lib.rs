@@ -946,7 +946,7 @@ mod tests {
 
         // The state on lt-search is styled on lt-input, on the same element.
         assert!(found(
-            r#"<input class="lt-search lt-input" data-state="invalid" aria-label="Search">"#
+            r#"<input class="lt-search lt-input" type="search" data-state="invalid" aria-label="Search">"#
         )
         .is_empty());
         // A flag is styled by a selector that asks whether it is present.

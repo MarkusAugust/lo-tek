@@ -24,6 +24,11 @@ import {
   snippets,
 } from "../../interfaces/scripts/generate-vocabulary"
 import {
+  allBlocks,
+  RECIPES,
+  type RecipePage,
+} from "../../interfaces/scripts/recipes"
+import {
   type Finding,
   loadCore,
 } from "../../interfaces/src/diagnostics/core.js"
@@ -87,7 +92,7 @@ const cases: Case[] = [
     rule: "class-on-wrong-tag",
     mentions: [
       "lt-button is on <div>",
-      "<button> or <a href>",
+      '<button>, <a href> or <a role="link" tabindex="0" aria-disabled="true">',
       'Write <button class="lt-button">',
     ],
     severity: "error",
@@ -770,7 +775,7 @@ const cases: Case[] = [
   },
   {
     name: "two classes taking the same attribute give one finding",
-    html: `<input class="lt-input lt-search" data-state="failed">`,
+    html: `<input class="lt-input lt-search" type="search" data-state="failed">`,
     count: 1,
   },
   {
@@ -1598,6 +1603,67 @@ for (const c of cases) {
         )
     }
   }
+}
+
+/*
+ * The pages are the witness for `tags`. Every HTML block on every page,
+ * the examples and the tabs, must be clean of class-on-wrong-tag, and every
+ * class must have tags and appear on a page: a row nobody shows is a
+ * promise nothing holds it to. The three classes a component writes itself
+ * are held to the component instead, in its browser test.
+ */
+const WRITTEN_BY_THE_COMPONENT = new Set([
+  "lt-toast__message",
+  "lt-toast__close",
+  "lt-connection-status__bar",
+])
+const pages = (
+  JSON.parse(readFileSync(RECIPES, "utf8")) as { pages: RecipePage[] }
+).pages
+const markupOn = (page: RecipePage) => [
+  ...page.examples.map((e) => e.code),
+  ...allBlocks(page, "html"),
+]
+const wrongTags = () =>
+  pages.flatMap((page) =>
+    markupOn(page).flatMap((html) =>
+      core
+        .diagnoseMarkup(html)
+        .filter((f) => f.rule === "class-on-wrong-tag")
+        .map((f) => `${page.path}: ${f.message}`),
+    ),
+  )
+findings.push(...wrongTags())
+const shown = new Set(
+  pages
+    .flatMap(markupOn)
+    .flatMap((html) => [...html.matchAll(/\bclass="([^"]*)"/g)])
+    .flatMap((m) => m[1].split(/\s+/)),
+)
+for (const [name, info] of Object.entries(classes)) {
+  if (!info.tags?.length) findings.push(`${name} has no tags in metadata.ts`)
+  else if (!shown.has(name) && !WRITTEN_BY_THE_COMPONENT.has(name))
+    findings.push(
+      `${name} appears on no page, so nothing holds its tags to the markup`,
+    )
+}
+// The guard itself: with lt-button allowed only on <div>, the button page
+// must give findings.
+{
+  const manifest = JSON.parse(
+    readFileSync(
+      new URL("../../interfaces/manifest/manifest.json", import.meta.url),
+      "utf8",
+    ),
+  )
+  const real = JSON.stringify(manifest)
+  manifest.classes["lt-button"].tags = [{ tag: "div" }]
+  core.loadManifest(JSON.stringify(manifest))
+  if (wrongTags().length === 0)
+    findings.push(
+      "with lt-button allowed only on <div>, no page gave class-on-wrong-tag, so the witness sees nothing",
+    )
+  core.loadManifest(real)
 }
 
 const elapsed = performance.now() - started

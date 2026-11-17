@@ -1,5 +1,13 @@
 {
-  "markup": [],
+  "markup": [
+    {
+      "start": 230,
+      "end": 246,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/components/error-summary/",
+      "message": "lt-error-summary is on <div>, and belongs on <lt-error-summary>. Write <lt-error-summary class=\"lt-error-summary\">."
+    }
+  ],
   "page": [
     {
       "start": 12,
@@ -21,6 +29,13 @@
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The error text is not wired to any field: it has no id, so no aria-describedby can point at it. A screen reader does not announce it together with the field. Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it."
+    },
+    {
+      "start": 230,
+      "end": 246,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/components/error-summary/",
+      "message": "lt-error-summary is on <div>, and belongs on <lt-error-summary>. Write <lt-error-summary class=\"lt-error-summary\">."
     },
     {
       "start": 301,

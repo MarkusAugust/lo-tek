@@ -866,14 +866,15 @@ export function classesData(): Classes {
 
   /*
    * The `type` a class on an input must have, read from the builder
-   * function, as `type="checkbox"` from `lt.checkbox()`. `metadata.ts` only
-   * says the tag, so the two cannot disagree. A builder function with a
-   * `type` option of its own, as `lt.input()`, leaves the type to the
-   * template, and `type="color"` stays valid on an lt-input.
+   * functions, as `type="checkbox"` from `lt.checkbox()`. `metadata.ts` only
+   * says the tag, so the two cannot disagree. A class gets a type only when
+   * every builder function that writes it agrees: `lt-input` is written
+   * with `type="search"` by `lt.search()` and `type="text"` by
+   * `lt.suggestion()`, and `lt.input()` takes the type as an option, so the
+   * type of an lt-input is the template's, and `type="color"` stays valid.
    */
-  const inputTypes = new Map<string, string>()
+  const typesOf = new Map<string, Set<string>>()
   for (const builder of readBuilderFunctions()) {
-    if (builder.options.some((o) => o.name === "type")) continue
     const build = (lt as Record<string, unknown>)[builder.name]
     if (typeof build !== "function") continue
     const answer = (build as (options: Record<string, unknown>) => unknown)({
@@ -882,12 +883,22 @@ export function classesData(): Classes {
       keys: [],
       label: "x",
     })
-    for (const [, set] of setsOf(answer)) {
-      if (typeof set.type !== "string") continue
-      for (const name of String(set.class ?? "").split(/\s+/))
-        if (name) inputTypes.set(name, set.type)
-    }
+    const own = builder.options.some((o) => o.name === "type")
+    for (const [, set] of setsOf(answer))
+      for (const name of String(set.class ?? "").split(/\s+/)) {
+        if (!name) continue
+        const types = typesOf.get(name) ?? new Set<string>()
+        // A type option makes the type the template's: it counts as a second one.
+        if (own) types.add("")
+        types.add(typeof set.type === "string" ? set.type : "")
+        typesOf.set(name, types)
+      }
   }
+  const inputTypes = new Map(
+    [...typesOf]
+      .filter(([, types]) => types.size === 1 && !types.has(""))
+      .map(([name, types]) => [name, [...types][0]]),
+  )
   const withTypes = (name: string, tags: readonly Tag[] | undefined) =>
     tags?.map((t) =>
       t.tag === "input" && !t.attributes?.type && inputTypes.has(name)
