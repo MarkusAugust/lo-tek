@@ -194,9 +194,9 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
     <lt-dialog id="confirm" open>
       <!-- Escape is a close request, reported with `cancel`, and it keeps
            the job. A close the server makes gives no `cancel`. -->
-      <dialog class="lt-dialog" open
+      <dialog class="lt-dialog" open aria-labelledby="confirm-title"
               data-on:cancel="@post('/jobs/222-0481/keep')">
-        <h2>Cancel job 222-0481?</h2>
+        <h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2>
         <div class="lt-dialog__body">
           <p>The crew keeps the advance. This cannot be undone.</p>
         </div>

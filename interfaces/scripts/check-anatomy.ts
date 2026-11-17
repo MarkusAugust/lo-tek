@@ -13,6 +13,7 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { type AnatomyInstance, renderAnatomy } from "../src/anatomy/index.js"
 import type { Manifest } from "../src/vocabulary/types.js"
+import { allBlocks, type RecipePage, recipePage } from "./recipes.js"
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url))
 const manifest = (await Bun.file(
@@ -600,6 +601,176 @@ for (const c of cases) {
     errors.push(
       `${c.builder}: the anatomy gives\n    ${written || "(nothing)"}\n  and the page has\n    ${c.expected}`,
     )
+}
+
+/*
+ * The page is the witness for the structure. What an anatomy writes,
+ * reduced to the elements with a LO-TEK class and LO-TEK's own elements,
+ * must stand in an example on the component page with the same elements
+ * inside the same ones. Elements without a class, as a <div> around a
+ * field, do not count, and their children take their place. Every
+ * alternative of every choice is tried, so a structure only a choice
+ * reaches is held to the page too.
+ */
+type Tree = { name: string; children: Tree[] }
+
+const VOID_TAGS = new Set([
+  "area",
+  "br",
+  "col",
+  "embed",
+  "hr",
+  "img",
+  "input",
+  "link",
+  "meta",
+  "source",
+  "track",
+  "wbr",
+])
+
+/** The elements with a LO-TEK class or tag, as nested trees: "tag.class". */
+function reduced(html: string): Tree[] {
+  const root: Tree = { name: "", children: [] }
+  const stack: { tag: string; tree: Tree; kept: boolean }[] = [
+    { tag: "", tree: root, kept: true },
+  ]
+  const clean = html.replace(/<!--[\s\S]*?-->/g, "")
+  for (const m of clean.matchAll(/<(\/?)([a-zA-Z][\w-]*)([^>]*?)(\/?)>/g)) {
+    const [, closing, rawTag, attributes, selfClosing] = m
+    const tag = rawTag.toLowerCase()
+    if (closing) {
+      const at = stack.map((e) => e.tag).lastIndexOf(tag)
+      if (at > 0) stack.length = at
+      continue
+    }
+    const classes = (attributes.match(/\bclass="([^"]*)"/)?.[1] ?? "")
+      .split(/\s+/)
+      .filter((c) => c.startsWith("lt-"))
+      .sort()
+    const kept = tag.startsWith("lt-") || classes.length > 0
+    const parent = [...stack].reverse().find((e) => e.kept)?.tree ?? root
+    const tree: Tree = { name: [tag, ...classes].join("."), children: [] }
+    if (kept) parent.children.push(tree)
+    if (!VOID_TAGS.has(tag) && !selfClosing)
+      stack.push({ tag, tree: kept ? tree : parent, kept })
+  }
+  return root.children
+}
+
+/** Every element in the trees, with the trees under it. */
+const everything = (trees: Tree[]): Tree[] =>
+  trees.flatMap((t) => [t, ...everything(t.children)])
+
+/** Whether `want` stands in `have`: same name, its children inside, in order. */
+function embeds(want: Tree, have: Tree): boolean {
+  if (want.name !== have.name) return false
+  let from = 0
+  const below = everything(have.children)
+  for (const child of want.children) {
+    const at = below.slice(from).findIndex((t) => embeds(child, t))
+    if (at < 0) return false
+    from += at + 1
+  }
+  return true
+}
+
+/** Whether every tree stands in one example, in order. */
+const onPage = (want: Tree[], examples: string[]) =>
+  examples.some((html) => {
+    const all = everything(reduced(html))
+    let from = 0
+    for (const tree of want) {
+      const at = all.slice(from).findIndex((t) => embeds(tree, t))
+      if (at < 0) return false
+      from += at + 1
+    }
+    return true
+  })
+
+// The guard itself: a dialog with its title moved out is not on the page.
+{
+  const examples = [
+    `<dialog class="lt-dialog"><h2 class="lt-dialog__title">A</h2></dialog>`,
+  ]
+  if (
+    !onPage(
+      reduced(
+        `<dialog class="lt-dialog"><h2 class="lt-dialog__title">A</h2></dialog>`,
+      ),
+      examples,
+    )
+  )
+    errors.push("the page guard does not find a dialog that is on the page")
+  if (
+    onPage(
+      reduced(
+        `<h2 class="lt-dialog__title">A</h2><dialog class="lt-dialog"></dialog>`,
+      ),
+      examples,
+    )
+  )
+    errors.push("the page guard finds a dialog with its title moved out")
+}
+
+/** The examples on the page a builder function is documented on. */
+function examplesFor(docs: string | undefined): string[] {
+  const slug = docs?.match(/\/components\/([^/]+)\/?$/)?.[1]
+  if (!slug) return []
+  const page: RecipePage = recipePage(slug)
+  return [
+    ...page.examples.map((e) => e.code),
+    ...allBlocks(page, "html"),
+    ...allBlocks(page, "tsx"),
+    ...allBlocks(page, "astro"),
+  ]
+}
+
+for (const b of manifest.builders) {
+  if (!b.anatomy) continue
+  // The builder function's page, and the pages of the builder functions
+  // its anatomy takes from, as the file upload's for the field.
+  const sources = new Set(
+    (JSON.stringify(b.anatomy).match(/"from":\[[^\]]*\]/g) ?? []).flatMap(
+      (list) => [...list.matchAll(/"([A-Za-z]+)[."]/g)].map((m) => m[1]),
+    ),
+  )
+  const examples = [b.name, ...sources]
+    .filter((name) => name !== "from")
+    .flatMap((name) =>
+      examplesFor(manifest.builders.find((x) => x.name === name)?.docs),
+    )
+  // Every alternative of every choice in the anatomy.
+  const choicesIn = (value: unknown): [string, string][] => {
+    if (value === null || typeof value !== "object") return []
+    const node = value as { name?: string; oneOf?: Record<string, unknown> }
+    const own: [string, string][] = node.oneOf
+      ? Object.keys(node.oneOf).map((a) => [node.name ?? "", a])
+      : []
+    return [...own, ...Object.values(value).flatMap(choicesIn)]
+  }
+  const choices = choicesIn(b.anatomy)
+  for (const [choice, alternative] of [["", ""], ...choices]) {
+    const holes: Record<string, unknown> = {}
+    for (const [name, hole] of Object.entries(b.anatomy.holes))
+      if (hole.example !== undefined && hole.content !== "free")
+        holes[name] = hole.example
+    const instance = {
+      id: "c1",
+      holes: holes as Record<string, string>,
+      ...(choice ? { choices: { [choice]: alternative } } : {}),
+    }
+    let html = ""
+    try {
+      html = renderAnatomy(manifest, b.name, instance)
+    } catch {
+      continue
+    }
+    if (!onPage(reduced(html), examples))
+      errors.push(
+        `${b.name}${choice ? ` with ${choice} = ${alternative}` : ""}: the structure is in no example on its page:\n    ${html}`,
+      )
+  }
 }
 
 if (errors.length) {

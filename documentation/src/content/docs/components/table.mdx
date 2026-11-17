@@ -182,6 +182,26 @@ Without `direction` the cell gets no `aria-sort`. `lt.tableSort.isDirection()` c
 
 The sorting itself is up to you. In React the app keeps the column and the direction in state and redraws the rows. If the server sends HTML, in Datastar or a template, it sorts and writes `aria-sort` on the right header. Without JavaScript the button can be a link, `<a class="lt-table__sort" href="?sort=recovered&direction=ascending">`, and the server sorts on the next page load. The link gets the class alone, since `type="button"` means nothing on `<a>`: `lt.tableSort({ link: true }).button` gives that.
 
+<Example styles={["table"]} layout="stack" maxWidth="30rem" code={`
+<table class="lt-table">
+  <caption>Recovery orders</caption>
+  <thead>
+    <tr>
+      <th scope="col">Reference</th>
+      <th scope="col" aria-sort="ascending">
+        <a class="lt-table__sort" href="?sort=recovered&direction=descending">Recovered</a>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th scope="row">LR-2079-0112</th>
+      <td>4 March</td>
+    </tr>
+  </tbody>
+</table>
+`} />
+
 If you redraw the table after a click, put focus back on the button the user pressed. Otherwise it ends up on `<body>`. [List with filters](../../patterns/list/) does this in its demo.
 
 ## Wide tables
