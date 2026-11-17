@@ -1419,6 +1419,11 @@ export const classes: Classes = {
     "description": "Tells the user when the connection to the server is gone. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/connection-status/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-toast": {
@@ -1435,6 +1440,11 @@ export const classes: Classes = {
     "description": "A queue of short messages in the corner of the screen. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/toast/",
     "content": "free",
+    "tags": [
+      {
+        "tag": "div"
+      }
+    ],
     "attributes": {}
   },
   "lt-toast__close": {
@@ -1443,6 +1453,11 @@ export const classes: Classes = {
     "description": "A queue of short messages in the corner of the screen. Standalone component.",
     "link": "https://lo-tek.sobernetics.no/components/toast/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "button"
+      }
+    ],
     "attributes": {}
   },
   "lt-theme-control": {

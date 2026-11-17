@@ -1452,9 +1452,9 @@ export const classDocs: Record<string, ClassDoc> = {
   // The classes the components set on the nodes they create themselves have
   // content but no parent: nobody writes them in markup, so no part matches them.
   "lt-connection-status": { content: "none" },
-  "lt-connection-status__bar": { content: "text" },
+  "lt-connection-status__bar": { content: "text", tags: [{ tag: "div" }] },
   "lt-toast": { content: "none" },
-  "lt-toast__message": { content: "free" },
-  "lt-toast__close": { content: "text" },
+  "lt-toast__message": { content: "free", tags: [{ tag: "div" }] },
+  "lt-toast__close": { content: "text", tags: [{ tag: "button" }] },
   "lt-theme-control": { content: "none" },
 }

@@ -7,7 +7,7 @@ import {
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
-import { attr } from "../../../testing/markup"
+import { attr, onItsTags } from "../../../testing/markup"
 import { connectionStatus } from "./connection-status"
 import {
   defineLtConnectionStatus,
@@ -92,6 +92,19 @@ describe("lt-connection-status", () => {
     await waitForPaint()
     expect(bar.textContent).toContain("No connection")
     fresh.remove()
+  })
+
+  it("writes the bar on a tag the manifest names", async () => {
+    const status = document.querySelector(
+      "lt-connection-status",
+    ) as LtConnectionStatus
+    status.reportFailure()
+    await waitForPaint()
+
+    // No page shows the bar, since the component writes it, so the component
+    // is the witness that `tags` in the manifest is right.
+    const bar = findBar() as HTMLElement
+    expect(onItsTags(bar, "lt-connection-status__bar")).toBe(true)
   })
 
   it("keeps a role the server wrote", () => {
