@@ -474,15 +474,18 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
 const columnHeading = (
   name: string,
   hole: string,
+  sort: string,
   repeat?: string,
 ): AnatomyChoice => ({
   name,
+  description: "How the column is sorted, if at all.",
   ...(repeat ? { repeat } : {}),
   oneOf: {
     plain: { tag: "th", attributes: { scope: "col" }, children: [{ hole }] },
     sortable: {
       tag: "th",
       from: ["tableSort.header"],
+      settings: ["direction"],
       attributes: { scope: "col" },
       children: [
         { tag: "button", from: ["tableSort.button"], children: [{ hole }] },
@@ -492,12 +495,13 @@ const columnHeading = (
       tag: "th",
       from: ["tableSort.header"],
       options: { tableSort: { link: true } },
+      settings: ["direction"],
       attributes: { scope: "col" },
       children: [
         {
           tag: "a",
           from: ["tableSort.button"],
-          attributes: { href: { hole: "sort", kind: "url" } },
+          attributes: { href: { hole: sort } },
           children: [{ hole }],
         },
       ],
@@ -505,16 +509,50 @@ const columnHeading = (
   },
 })
 
+/** A form control's name: the key the server reads its value by. */
+const nameHole = {
+  description: "The name the form sends the value under.",
+  kind: "name",
+  example: "answer",
+} as const
+
 /**
  * The markup each builder function belongs in, written once here from the
- * component page. `check-anatomy.ts` holds each to the page and to the core.
- * See `Anatomy` in `src/vocabulary/types.ts`.
+ * component page. `check-anatomy.ts` holds each to the page, and
+ * `check-design-tool.ts` to what a design tool must do with it. See
+ * `Anatomy` in `src/vocabulary/types.ts`.
  */
 export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
   button: {
-    nodes: [{ tag: "button", from: ["button"], children: [{ hole: "label" }] }],
+    holes: {
+      label: {
+        description: "What the button does.",
+        content: "text",
+        example: "Order the job",
+      },
+      disabled: { description: "The button cannot be pressed.", kind: "flag" },
+    },
+    nodes: [
+      {
+        tag: "button",
+        from: ["button"],
+        attributes: { disabled: { hole: "disabled" } },
+        children: [{ hole: "label" }],
+      },
+    ],
   },
   checkbox: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the box says yes to.",
+        content: "text",
+        example: "I accept the terms",
+      },
+      checked: { description: "The box is ticked.", kind: "flag" },
+      disabled: { description: "The box cannot be changed.", kind: "flag" },
+    },
     nodes: [
       {
         tag: "div",
@@ -524,14 +562,16 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
             tag: "input",
             from: ["checkbox"],
             attributes: {
-              id: { hole: "control", kind: "id" },
-              name: { hole: "name", kind: "name" },
+              id: { hole: "control" },
+              name: { hole: "name" },
+              checked: { hole: "checked" },
+              disabled: { hole: "disabled" },
             },
           },
           {
             tag: "label",
             from: ["label"],
-            attributes: { for: { hole: "control", kind: "idref" } },
+            attributes: { for: { hole: "control" } },
             children: [{ hole: "label" }],
           },
         ],
@@ -539,12 +579,40 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   dialog: {
-    options: { titleId: { hole: "title-id", kind: "id" } },
+    holes: {
+      "title-id": {
+        description: "The id the dialog takes its name from.",
+        kind: "id",
+      },
+      title: {
+        description: "What the dialog asks or says.",
+        content: "text",
+        example: "Cancel the job?",
+      },
+      subtitle: {
+        description: "A line below the title.",
+        content: "text",
+        example: "Job 222-0481",
+      },
+      body: {
+        description: "The content.",
+        content: "free",
+        example: "<p>This cannot be undone.</p>",
+      },
+      footer: { description: "The buttons at the bottom.", content: "free" },
+    },
+    options: {
+      titleId: { hole: "title-id" },
+      open: {
+        tool: "The server opens and closes the dialog, through <lt-dialog>.",
+      },
+    },
     nodes: [
       {
         tag: "lt-dialog",
         from: ["dialog.host"],
         name: "host",
+        description: "Lets the server open the dialog.",
         wrapper: true,
         created: true,
         children: [
@@ -556,6 +624,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                 tag: "div",
                 from: ["dialog.header"],
                 name: "header",
+                description: "A header that can carry a colour and a subtitle.",
                 wrapper: true,
                 children: [
                   {
@@ -567,7 +636,9 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                     tag: "p",
                     from: ["dialog.subtitle"],
                     name: "subtitle",
+                    description: "A line below the title.",
                     optional: true,
+                    requires: "header",
                     children: [{ hole: "subtitle" }],
                   },
                 ],
@@ -576,6 +647,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                 tag: "div",
                 from: ["dialog.body"],
                 name: "body",
+                description: "The content, which scrolls when it is long.",
                 optional: true,
                 created: true,
                 children: [{ hole: "body" }],
@@ -585,6 +657,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                 from: ["dialog.footer"],
                 attributes: { method: "dialog" },
                 name: "footer",
+                description: "The row of buttons at the bottom.",
                 optional: true,
                 created: true,
                 children: [{ hole: "footer" }],
@@ -596,13 +669,33 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   tabs: {
+    holes: {
+      tabs: { description: "The start of the panels' ids.", kind: "id" },
+      label: {
+        description: "What the tabs choose between.",
+        content: "text",
+        example: "Sections",
+      },
+      title: {
+        description: "The tab's name, and its panel's heading.",
+        content: "text",
+        per: ["tab"],
+        example: "Section",
+      },
+      panel: {
+        description: "What the tab shows.",
+        content: "free",
+        per: ["tab"],
+        example: "<p>Text.</p>",
+      },
+    },
     options: {
-      id: { hole: "tabs", kind: "id" },
+      id: { hole: "tabs" },
       keys: { repeat: "tab" },
-      label: { hole: "label", kind: "text" },
+      label: { hole: "label" },
     },
     // One tab is no choice.
-    repeats: { tab: { min: 2 } },
+    repeats: { tab: { min: 2, description: "The tabs." } },
     nodes: [
       {
         tag: "lt-tabs",
@@ -633,6 +726,9 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                 // The level follows the page the tabs are on.
                 tag: ["h2", "h3", "h4", "h5", "h6"],
                 from: ["tabs.headings"],
+                name: "heading",
+                description:
+                  "The panel's heading, at the level the page needs.",
                 children: [{ hole: "title" }],
               },
               { hole: "panel" },
@@ -643,19 +739,69 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   table: {
-    repeats: { column: { min: 1 }, row: { min: 1 } },
+    holes: {
+      region: {
+        description: "The name of the box that scrolls.",
+        kind: "text",
+        example: "Table",
+      },
+      caption: {
+        description: "The table's name.",
+        content: "text",
+        example: "Table",
+      },
+      "row-heading": {
+        description: "The heading over the rows' names.",
+        content: "text",
+        example: "Name",
+      },
+      heading: {
+        description: "A column's heading.",
+        content: "text",
+        per: ["column"],
+        example: "Column",
+      },
+      "row-sort": {
+        description: "The address that sorts by the rows' names.",
+        kind: "url",
+        example: "?sort=name",
+      },
+      sort: {
+        description: "The address that sorts by the column.",
+        kind: "url",
+        per: ["column"],
+        example: "?sort=column",
+      },
+      "row-name": {
+        description: "A row's name.",
+        content: "text",
+        per: ["row"],
+        example: "Row",
+      },
+      cell: {
+        description: "A cell.",
+        content: "text",
+        per: ["row", "column"],
+        example: "Value",
+      },
+    },
+    repeats: {
+      column: { min: 1, description: "The columns after the rows' names." },
+      row: { min: 1, description: "The rows." },
+    },
     nodes: [
       {
         tag: "div",
         from: ["table.scroll"],
         name: "scroll",
+        description: "A box that lets a wide table scroll.",
         wrapper: true,
         // Not optional once the box is there: without tabindex no keyboard
         // reaches what is beyond the edge, and the region needs a name.
         attributes: {
           tabindex: "0",
           role: "region",
-          "aria-label": { hole: "region", kind: "text" },
+          "aria-label": { hole: "region" },
         },
         children: [
           {
@@ -670,8 +816,8 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                   {
                     tag: "tr",
                     children: [
-                      columnHeading("row-heading", "row-heading"),
-                      columnHeading("heading", "heading", "column"),
+                      columnHeading("row-heading", "row-heading", "row-sort"),
+                      columnHeading("heading", "heading", "sort", "column"),
                     ],
                   },
                 ],
@@ -704,43 +850,114 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   field: {
-    options: { id: { hole: "control", kind: "id" } },
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the field asks for.",
+        content: "text",
+        example: "Email",
+      },
+      help: {
+        description: "Help to fill it in.",
+        content: "text",
+        example: "We never share it.",
+      },
+      error: {
+        description: "What is wrong.",
+        content: "text",
+        example: "Enter an email address.",
+      },
+      "option-value": {
+        description:
+          "What an option sends. Without it, the option sends its text.",
+        kind: "value",
+        per: ["option"],
+        optional: true,
+      },
+      "option-selected": {
+        description: "The option is the one picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+      "option-label": {
+        description: "What an option says.",
+        content: "text",
+        per: ["option"],
+        example: "Option",
+      },
+    },
+    options: {
+      id: { hole: "control" },
+      helpId: {
+        tool: "Left out: the id of the help text is made from the field's.",
+      },
+      errorId: {
+        tool: "Left out: the id of the error text is made from the field's.",
+      },
+      describedBy: {
+        tool: "Left out: the help and error texts are wired by the field.",
+      },
+    },
+    repeats: { option: { min: 1, description: "The options in a select." } },
     nodes: [
-      { tag: "label", from: ["field.label"], children: [{ hole: "label" }] },
       {
-        // The control gets type from its own builder function, and the
-        // state from field.control: given to both, aria-invalid came twice.
-        name: "control",
-        oneOf: {
-          input: {
-            tag: "input",
-            from: ["input", "field.control"],
-            attributes: { name: { hole: "name", kind: "name" } },
+        // One root, so the field is one box in a layout.
+        tag: "div",
+        children: [
+          {
+            tag: "label",
+            from: ["field.label"],
+            children: [{ hole: "label" }],
           },
-          textarea: {
-            tag: "textarea",
-            from: ["textarea", "field.control"],
-            attributes: { name: { hole: "name", kind: "name" } },
+          {
+            // The control gets type from its own builder function, and the
+            // state from field.control: given to both, aria-invalid came twice.
+            name: "control",
+            description: "What the user writes or picks in.",
+            oneOf: {
+              input: {
+                tag: "input",
+                from: ["input", "field.control"],
+                settings: ["type"],
+                attributes: { name: { hole: "name" } },
+              },
+              textarea: {
+                tag: "textarea",
+                from: ["textarea", "field.control"],
+                attributes: { name: { hole: "name" } },
+              },
+              select: {
+                tag: "select",
+                from: ["select", "field.control"],
+                attributes: { name: { hole: "name" } },
+                children: [
+                  {
+                    tag: "option",
+                    repeat: "option",
+                    attributes: {
+                      value: { hole: "option-value" },
+                      selected: { hole: "option-selected" },
+                    },
+                    children: [{ hole: "option-label" }],
+                  },
+                ],
+              },
+            },
           },
-          select: {
-            tag: "select",
-            from: ["select", "field.control"],
-            attributes: { name: { hole: "name", kind: "name" } },
-            children: [{ hole: "options" }],
+          {
+            tag: "p",
+            from: ["helpText", "field.help"],
+            when: "help",
+            children: [{ hole: "help" }],
           },
-        },
-      },
-      {
-        tag: "p",
-        from: ["helpText", "field.help"],
-        when: "help",
-        children: [{ hole: "help" }],
-      },
-      {
-        tag: "p",
-        from: ["errorText", "field.error"],
-        when: "error",
-        children: [{ hole: "error" }],
+          {
+            tag: "p",
+            from: ["errorText", "field.error"],
+            when: "error",
+            children: [{ hole: "error" }],
+          },
+        ],
       },
     ],
   },

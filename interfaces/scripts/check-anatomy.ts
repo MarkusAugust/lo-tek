@@ -29,12 +29,13 @@ type Case = {
 const cases: Case[] = [
   {
     builder: "button",
-    instance: { holes: { label: "Order the job" } },
+    instance: { id: "order", holes: { label: "Order the job" } },
     expected: `<button class="lt-button">Order the job</button>`,
   },
   {
     builder: "checkbox",
     instance: {
+      id: "lease",
       holes: {
         control: "seasonal",
         name: "seasonal",
@@ -49,21 +50,48 @@ const cases: Case[] = [
   {
     builder: "dialog",
     instance: {
-      holes: { "title-id": "confirm-title", title: "Cancel job 222-0481?" },
+      id: "confirm",
+      holes: { title: "Cancel job 222-0481?" },
       content: {
         body: "<p>The crew keeps the advance. This cannot be undone.</p>",
       },
     },
-    expected: `<lt-dialog><dialog class="lt-dialog" aria-labelledby="confirm-title"><h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2><div class="lt-dialog__body"><p>The crew keeps the advance. This cannot be undone.</p></div><form class="lt-dialog__footer" method="dialog"></form></dialog></lt-dialog>`,
+    expected: `<lt-dialog><dialog class="lt-dialog" aria-labelledby="confirm-title-id"><h2 class="lt-dialog__title" id="confirm-title-id">Cancel job 222-0481?</h2><div class="lt-dialog__body"><p>The crew keeps the advance. This cannot be undone.</p></div><form class="lt-dialog__footer" method="dialog"></form></dialog></lt-dialog>`,
   },
   // The smallest: the title alone, and the dialog the app opens itself.
   {
     builder: "dialog",
     instance: {
+      id: "confirm",
       holes: { "title-id": "confirm-title", title: "Cancel job 222-0481?" },
       parts: { host: false, body: false, footer: false },
     },
     expected: `<dialog class="lt-dialog" aria-labelledby="confirm-title"><h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2></dialog>`,
+  },
+  // With the header and the subtitle, as the page shows them.
+  {
+    builder: "dialog",
+    instance: {
+      id: "job",
+      holes: {
+        "title-id": "job-title",
+        title: "Recover the courier's bag",
+        subtitle: "Clean, before the deadline",
+      },
+      parts: { host: false, header: true, subtitle: true, footer: false },
+      content: { body: "<p>The bag is in Kabuki.</p>" },
+    },
+    expected: `<dialog class="lt-dialog" aria-labelledby="job-title"><div class="lt-dialog__header"><h2 class="lt-dialog__title" id="job-title">Recover the courier's bag</h2><p class="lt-dialog__subtitle">Clean, before the deadline</p></div><div class="lt-dialog__body"><p>The bag is in Kabuki.</p></div></dialog>`,
+  },
+  // The page says the subtitle belongs in the header: without it, it goes.
+  {
+    builder: "dialog",
+    instance: {
+      id: "job",
+      holes: { "title-id": "job-title", title: "A", subtitle: "B" },
+      parts: { host: false, subtitle: true, body: false, footer: false },
+    },
+    expected: `<dialog class="lt-dialog" aria-labelledby="job-title"><h2 class="lt-dialog__title" id="job-title">A</h2></dialog>`,
   },
   // The tabs as the Kotlin recipe on the page renders them: the panels get
   // their ids from the id and the keys, and the heading in each panel says
@@ -71,17 +99,18 @@ const cases: Case[] = [
   {
     builder: "tabs",
     instance: {
+      id: "claim",
+      repeats: { tab: ["claim", "attachments"] },
       holes: {
         tabs: "claim-tabs",
         label: "Parts of the claim",
-        title: ["Claim", "Attachments"],
+        title: { claim: "Claim", attachments: "Attachments" },
       },
-      repeats: { tab: ["claim", "attachments"] },
       content: {
-        panel: [
-          "<p>Claim AV-2079-0481 was filed on 4 March 2079.</p>",
-          "<p>Three attachments have been received.</p>",
-        ],
+        panel: {
+          claim: "<p>Claim AV-2079-0481 was filed on 4 March 2079.</p>",
+          attachments: "<p>Three attachments have been received.</p>",
+        },
       },
     },
     expected: `<lt-tabs><ul class="lt-tabs__list" aria-label="Parts of the claim"><li><a href="#claim-tabs-claim">Claim</a></li><li><a href="#claim-tabs-attachments">Attachments</a></li></ul><section id="claim-tabs-claim" class="lt-tabs__panel"><h2 id="claim-tabs-claim-heading">Claim</h2><p>Claim AV-2079-0481 was filed on 4 March 2079.</p></section><section id="claim-tabs-attachments" class="lt-tabs__panel"><h2 id="claim-tabs-attachments-heading">Attachments</h2><p>Three attachments have been received.</p></section></lt-tabs>`,
@@ -91,18 +120,22 @@ const cases: Case[] = [
   {
     builder: "table",
     instance: {
-      repeats: { column: 2, row: 2 },
-      choices: { "row-heading": "sortable", heading: ["sortable", "plain"] },
-      settings: { heading: [{ direction: "descending" }, {}] },
+      id: "orders",
+      repeats: { column: ["recovered", "offer"], row: ["0113", "0112"] },
+      choices: {
+        "row-heading": "sortable",
+        heading: { recovered: "sortable", offer: "plain" },
+      },
+      settings: { heading: { recovered: { direction: "descending" } } },
       holes: {
         caption: "Recovery orders",
         "row-heading": "Reference",
-        heading: ["Recovered", "Offer"],
-        "row-name": ["LR-2079-0113", "LR-2079-0112"],
-        cell: [
-          ["4 April", "EB 2,750"],
-          ["4 March", "EB 7,150"],
-        ],
+        heading: { recovered: "Recovered", offer: "Offer" },
+        "row-name": { "0113": "LR-2079-0113", "0112": "LR-2079-0112" },
+        cell: {
+          "0113": { recovered: "4 April", offer: "EB 2,750" },
+          "0112": { recovered: "4 March", offer: "EB 7,150" },
+        },
       },
     },
     expected: `<table class="lt-table"><caption>Recovery orders</caption><thead><tr><th scope="col"><button class="lt-table__sort" type="button">Reference</button></th><th aria-sort="descending" scope="col"><button class="lt-table__sort" type="button">Recovered</button></th><th scope="col">Offer</th></tr></thead><tbody><tr><th scope="row">LR-2079-0113</th><td>4 April</td><td>EB 2,750</td></tr><tr><th scope="row">LR-2079-0112</th><td>4 March</td><td>EB 7,150</td></tr></tbody></table>`,
@@ -112,26 +145,29 @@ const cases: Case[] = [
   {
     builder: "table",
     instance: {
+      id: "orders",
       parts: { scroll: true },
-      repeats: { column: 1, row: 1 },
-      choices: { heading: ["link"] },
+      repeats: { column: ["recovered"], row: ["0113"] },
+      choices: { heading: { recovered: "link" } },
       holes: {
         region: "Recovery orders",
         caption: "Recovery orders",
         "row-heading": "Reference",
-        heading: ["Recovered"],
-        sort: ["?sort=recovered"],
-        "row-name": ["LR-2079-0113"],
-        cell: [["4 April"]],
+        heading: { recovered: "Recovered" },
+        sort: { recovered: "?sort=recovered" },
+        "row-name": { "0113": "LR-2079-0113" },
+        cell: { "0113": { recovered: "4 April" } },
       },
     },
     expected: `<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Recovery orders"><table class="lt-table"><caption>Recovery orders</caption><thead><tr><th scope="col">Reference</th><th scope="col"><a class="lt-table__sort" href="?sort=recovered">Recovered</a></th></tr></thead><tbody><tr><th scope="row">LR-2079-0113</th><td>4 April</td></tr></tbody></table></div>`,
   },
-  // The field from the help text page, without the page's inputmode: the
-  // builder function writes type, and the name the form sends.
+  // The field from the help text page, in the <div> that makes it one box,
+  // without the page's inputmode: the builder function writes type, and the
+  // name the form sends.
   {
     builder: "field",
     instance: {
+      id: "budget",
       options: { help: true },
       holes: {
         control: "budget",
@@ -140,13 +176,14 @@ const cases: Case[] = [
         help: "In EB, without the code. The crew sees it.",
       },
     },
-    expected: `<label class="lt-label" for="budget">Budget</label><input class="lt-input" type="text" id="budget" aria-describedby="budget-help" name="budget"><p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p>`,
+    expected: `<div><label class="lt-label" for="budget">Budget</label><input class="lt-input" type="text" id="budget" aria-describedby="budget-help" name="budget"><p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p></div>`,
   },
   // An invalid field with a text area, as the field page lists what the
   // wiring must be: aria-invalid, and aria-describedby on both texts.
   {
     builder: "field",
     instance: {
+      id: "fixer",
       options: { help: true, error: true, invalid: true },
       choices: { control: "textarea" },
       holes: {
@@ -157,21 +194,31 @@ const cases: Case[] = [
         error: "Enter a valid address.",
       },
     },
-    expected: `<label class="lt-label" for="fixer">Fixer's address</label><textarea class="lt-textarea" id="fixer" name="fixer" aria-invalid="true" aria-describedby="fixer-help fixer-error" data-state="invalid"></textarea><p class="lt-help-text" id="fixer-help">The board writes to the fixer, never to the crew.</p><p class="lt-error-text" id="fixer-error">Enter a valid address.</p>`,
+    expected: `<div><label class="lt-label" for="fixer">Fixer's address</label><textarea class="lt-textarea" id="fixer" name="fixer" aria-invalid="true" aria-describedby="fixer-help fixer-error" data-state="invalid"></textarea><p class="lt-help-text" id="fixer-help">The board writes to the fixer, never to the crew.</p><p class="lt-error-text" id="fixer-error">Enter a valid address.</p></div>`,
   },
-  // With the header and the subtitle, as the page shows them.
+  // A select, with the options the page has: a placeholder that sends
+  // nothing, and options that send their text.
   {
-    builder: "dialog",
+    builder: "field",
     instance: {
+      id: "building",
+      choices: { control: "select" },
+      repeats: { option: ["choose", "breakwater", "saltline", "lantern"] },
       holes: {
-        "title-id": "job-title",
-        title: "Recover the courier's bag",
-        subtitle: "Clean, before the deadline",
+        control: "building",
+        name: "building",
+        label: "Building",
+        "option-value": { choose: "" },
+        "option-selected": { saltline: true },
+        "option-label": {
+          choose: "Choose a building",
+          breakwater: "Breakwater House",
+          saltline: "Saltline Tower",
+          lantern: "The Lantern Block",
+        },
       },
-      parts: { host: false, header: true, subtitle: true, footer: false },
-      content: { body: "<p>The bag is in Kabuki.</p>" },
     },
-    expected: `<dialog class="lt-dialog" aria-labelledby="job-title"><div class="lt-dialog__header"><h2 class="lt-dialog__title" id="job-title">Recover the courier's bag</h2><p class="lt-dialog__subtitle">Clean, before the deadline</p></div><div class="lt-dialog__body"><p>The bag is in Kabuki.</p></div></dialog>`,
+    expected: `<div><label class="lt-label" for="building">Building</label><select class="lt-select" id="building" name="building"><option value="">Choose a building</option><option>Breakwater House</option><option selected>Saltline Tower</option><option>The Lantern Block</option></select></div>`,
   },
 ]
 
