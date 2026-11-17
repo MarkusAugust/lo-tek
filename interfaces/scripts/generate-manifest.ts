@@ -50,6 +50,7 @@ import {
 } from "../src/tokens/tokens.js"
 import { classes } from "../src/vocabulary/classes.js"
 import { elements } from "../src/vocabulary/elements.js"
+import type { Anatomy } from "../src/vocabulary/types.js"
 import {
   type BuilderFunction as Base,
   type Option,
@@ -57,7 +58,11 @@ import {
   readBuilderFunctions,
   setsOf,
 } from "./builder-functions.js"
-import { BUILDER_PARTS, type BuilderPart } from "./metadata.js"
+import {
+  BUILDER_ANATOMIES,
+  BUILDER_PARTS,
+  type BuilderPart,
+} from "./metadata.js"
 
 const PACKAGE = fileURLToPath(new URL("..", import.meta.url))
 const OUT = `${PACKAGE}manifest/`
@@ -67,6 +72,7 @@ const version: string = JSON.parse(
 ).version
 
 type BuilderFunction = Base & {
+  anatomy?: Anatomy
   /** The page the builder function is documented on. */
   docs?: string
   parts?: Record<string, BuilderPart>
@@ -535,6 +541,18 @@ for (const b of builderFunctions) {
   }
   if (Object.keys(parts).length) b.parts = parts
 }
+
+/*
+ * The anatomy each builder function belongs in, from `BUILDER_ANATOMIES` in
+ * `metadata.ts`. A name there that is no builder function stops the build.
+ */
+for (const name of Object.keys(BUILDER_ANATOMIES))
+  if (!builderFunctions.some((b) => b.name === name))
+    throw new Error(
+      `BUILDER_ANATOMIES has ${name}, and lt has no builder function by that name.`,
+    )
+for (const b of builderFunctions)
+  if (BUILDER_ANATOMIES[b.name]) b.anatomy = BUILDER_ANATOMIES[b.name]
 
 /*
  * The description of a class attribute is the description of the option with

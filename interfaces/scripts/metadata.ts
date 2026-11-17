@@ -58,7 +58,12 @@ import type { LtConnectionStatus } from "../src/components/standalone/connection
 import { LT_CONNECTION_STATUS_TAG } from "../src/components/standalone/connection-status/lt-connection-status.js"
 import type { LtToast } from "../src/components/standalone/toast/lt-toast.js"
 import { LT_TOAST_TAG } from "../src/components/standalone/toast/lt-toast.js"
-import type { DefaultText, Name, Tag } from "../src/vocabulary/types.js"
+import type {
+  Anatomy,
+  DefaultText,
+  Name,
+  Tag,
+} from "../src/vocabulary/types.js"
 
 /** An allowed value, with what it means. */
 export type ValueDoc = { name: string; description: string }
@@ -461,6 +466,41 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
 }
 
 /** Where a set from a builder function goes: a part of a frame component. */
+/**
+ * The markup each builder function belongs in, written once here from the
+ * component page. `check-anatomy.ts` holds each to the page and to the core.
+ * See `Anatomy` in `src/vocabulary/types.ts`.
+ */
+export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
+  button: {
+    nodes: [{ tag: "button", from: ["button"], children: [{ hole: "label" }] }],
+  },
+  checkbox: {
+    nodes: [
+      {
+        tag: "div",
+        from: ["checkbox.row"],
+        children: [
+          {
+            tag: "input",
+            from: ["checkbox"],
+            attributes: {
+              id: { hole: "control", kind: "id" },
+              name: { hole: "name", kind: "name" },
+            },
+          },
+          {
+            tag: "label",
+            from: ["label"],
+            attributes: { for: { hole: "control", kind: "idref" } },
+            children: [{ hole: "label" }],
+          },
+        ],
+      },
+    ],
+  },
+}
+
 export type BuilderPart = { element: string; part: string }
 
 /**

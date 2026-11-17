@@ -2837,7 +2837,22 @@
           }
         }
       },
-      "docs": "https://lo-tek.sobernetics.no/components/button/"
+      "docs": "https://lo-tek.sobernetics.no/components/button/",
+      "anatomy": {
+        "nodes": [
+          {
+            "tag": "button",
+            "from": [
+              "button"
+            ],
+            "children": [
+              {
+                "hole": "label"
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "card",
@@ -2949,7 +2964,52 @@
       "classes": {
         "row": "lt-checkbox-row"
       },
-      "docs": "https://lo-tek.sobernetics.no/components/checkbox/"
+      "docs": "https://lo-tek.sobernetics.no/components/checkbox/",
+      "anatomy": {
+        "nodes": [
+          {
+            "tag": "div",
+            "from": [
+              "checkbox.row"
+            ],
+            "children": [
+              {
+                "tag": "input",
+                "from": [
+                  "checkbox"
+                ],
+                "attributes": {
+                  "id": {
+                    "hole": "control",
+                    "kind": "id"
+                  },
+                  "name": {
+                    "hole": "name",
+                    "kind": "name"
+                  }
+                }
+              },
+              {
+                "tag": "label",
+                "from": [
+                  "label"
+                ],
+                "attributes": {
+                  "for": {
+                    "hole": "control",
+                    "kind": "idref"
+                  }
+                },
+                "children": [
+                  {
+                    "hole": "label"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "connectionStatus",

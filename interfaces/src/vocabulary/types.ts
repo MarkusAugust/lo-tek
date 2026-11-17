@@ -239,6 +239,46 @@ export type Builder = {
    * that have one.
    */
   classes?: Record<string, string>
+  /** The markup the builder function belongs in. See `Anatomy`. */
+  anatomy?: Anatomy
+}
+
+/**
+ * A place in the markup the template fills: text or other content where it
+ * stands among the children.
+ */
+export type AnatomyHole = { hole: string }
+
+/**
+ * One element in an anatomy. `from` is where its attributes come from, in
+ * order: a builder function (`"button"`), a set in its answer
+ * (`"field.control"`), or a class on it (`"checkbox.row"`).
+ */
+export type AnatomyNode = {
+  tag: string
+  from?: readonly string[]
+  /**
+   * Attributes no builder function writes: a fixed value, or a hole the
+   * template fills. A hole of kind `id` and the `idref` holes with the same
+   * name get the same value, as `id` on a control and `for` on its label.
+   */
+  attributes?: Record<string, string | AnatomyAttributeHole>
+  children?: readonly (AnatomyNode | AnatomyHole)[]
+}
+
+/** What an attribute hole holds, so a tool knows what to ask for. */
+export type AnatomyAttributeHole = {
+  hole: string
+  kind: "text" | "id" | "idref" | "name" | "value" | "url"
+}
+
+/**
+ * The markup a builder function belongs in: the elements, which attributes
+ * each takes from the builder functions, and the holes the template fills.
+ * A design tool builds a component from it, and `renderAnatomy()` writes it.
+ */
+export type Anatomy = {
+  nodes: readonly (AnatomyNode | AnatomyHole)[]
 }
 
 /**
