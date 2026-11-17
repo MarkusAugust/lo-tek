@@ -623,6 +623,25 @@ mod tests {
     }
 
     #[test]
+    fn nesting_in_a_template_condition() {
+        // Each branch writes its own; only one is written.
+        assert!(
+            nesting(r#"{% if a %}<a href="/a">{% else %}<a href="/b">{% endif %}Jobs</a>"#)
+                .is_empty()
+        );
+        assert!(nesting(
+            r#"<form th:if="${a}" action="/a"><form th:unless="${a}" action="/b"></form>"#
+        )
+        .is_empty());
+        assert!(nesting(r#"<template><form><form></form></form></template>"#).is_empty());
+        // A bound value on the outer is no condition.
+        assert_eq!(
+            nesting(r#"<a href="{{ url }}"><button>x</button></a>"#),
+            ["button"]
+        );
+    }
+
+    #[test]
     fn what_html_allows_in_a_link_or_a_button() {
         // Not interactive: an <a> without href in a button, a hidden input, an
         // image without usemap, and a <details> elsewhere.

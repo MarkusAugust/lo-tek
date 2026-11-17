@@ -1403,7 +1403,7 @@ pub fn diagnose_visible(source: Utf16, vocabulary: &Vocabulary, page: bool) -> V
         || nested
     {
         let nodes = crate::references::tree(&source);
-        findings.extend(crate::nesting::check_nesting(&nodes));
+        findings.extend(crate::nesting::check_nesting(&source, &nodes));
         if ours {
             findings.extend(crate::parts::check_parts(&source, vocabulary, &nodes));
             findings.extend(crate::wiring::check_wiring(

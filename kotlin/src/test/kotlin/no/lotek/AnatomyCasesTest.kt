@@ -101,6 +101,23 @@ class AnatomyCasesTest {
     }
 
     @Test
+    fun `a path a tool cannot build is an IllegalArgumentException`() {
+        // A hole that lets only some in, and a host with a hole of its own that it does not let in.
+        val builders = Lotek.manifest.builders.filter { it.anatomy != null }
+        val (outer, hole) =
+            builders.firstNotNullOf { b -> b.anatomy!!.holes.entries.firstOrNull { it.value.only != null }?.let { b.name to it.key } }
+        val only = Lotek.manifest.builders.first { it.name == outer }.anatomy!!.holes.getValue(hole).only!!
+        val host =
+            builders.first { b -> b.name !in only.builders && b.anatomy!!.page == null && b.anatomy!!.holes.values.any { it.content == HoleContent.FREE } }
+        val inner = host.anatomy!!.holes.entries.first { it.value.content == HoleContent.FREE }.key
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                Anatomies.canDrop(Lotek.manifest, "button", listOf(DropPlace(outer, hole), DropPlace(host.name, inner)))
+            }
+        assertTrue(error.message!!.startsWith("Anatomies.canDrop: ${host.name} cannot stand in $outer.$hole"), error.message)
+    }
+
+    @Test
     fun `answers every drop as TypeScript does`() {
         @Suppress("UNCHECKED_CAST")
         val drops = (Json.parse(File(System.getProperty("anatomyCases")).readText()) as Map<String, Any?>)["drops"] as List<Map<String, Any?>>

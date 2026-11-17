@@ -136,13 +136,20 @@ object Anatomies {
      * Whether a design tool may drop the component [name] at the end of
      * [path], the holes it stands in, outermost first; an empty path is the
      * page. Throws [IllegalArgumentException] for a component without an
-     * anatomy, or a place that is not a hole that takes other elements.
+     * anatomy, a place that is not a hole that takes other elements, or a
+     * path a tool cannot build, where a host could not have been dropped.
      */
     fun canDrop(manifest: Manifest, name: String, path: List<DropPlace>): DropAnswer {
         fun anatomyOf(builder: String) =
             manifest.builders.firstOrNull { it.name == builder }?.anatomy
                 ?: throw IllegalArgumentException("Anatomies.canDrop: Lt.$builder has no anatomy in the manifest.")
         val anatomy = anatomyOf(name)
+        // Each host must be one a tool can drop where it stands.
+        for (i in 1 until path.size) {
+            require(canDrop(manifest, path[i].builder, path.subList(0, i)) == DropAnswer.Yes) {
+                "Anatomies.canDrop: ${path[i].builder} cannot stand in ${path[i - 1].builder}.${path[i - 1].hole}, so nothing is dropped inside it there."
+            }
+        }
         val declarations =
             path.map { (builder, hole) ->
                 anatomyOf(builder).holes[hole]?.takeIf { it.content == HoleContent.FREE }

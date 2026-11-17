@@ -393,13 +393,13 @@ for (const host of palette) {
     if (declaration.content !== "free") continue
     let yes = 0
     let lotek = 0
+    const base = opened(anatomy)
     for (const dropped of palette) {
       const where = `${dropped.name} in ${host.name}.${hole}`
       const answer = canDrop(manifest, dropped.name, [
         { builder: host.name, hole },
       ])
       drops += 1
-      const base = opened(anatomy)
       // One copy for each item the hole is per, each with ids of its own.
       const per: string[] = declaration.per ?? []
       const fill = (level: number, keys: string[]): Keyed<string> =>
@@ -421,9 +421,10 @@ for (const host of palette) {
         content: { ...base.content, [hole]: inner },
       })
       // The first copy must be in the markup, or the drop tested nothing.
-      let first: Keyed<string> = inner
-      while (typeof first !== "string") first = Object.values(first)[0]
-      if (!html.includes(first))
+      let first: Keyed<string> | undefined = inner
+      while (first !== undefined && typeof first !== "string")
+        first = Object.values(first)[0]
+      if (first === undefined || !html.includes(first))
         fail("9. drop", `${where}: the hole is not written`)
       const found = findings(html)
       if (answer.ok) {
@@ -433,7 +434,11 @@ for (const host of palette) {
       }
       if (!answer.why)
         fail("9. drop", `${where}: the manifest says no without saying why`)
-      if (answer.by === "html" && found.length === 0)
+      // The rule must be the one for what HTML forbids, not any finding.
+      if (
+        answer.by === "html" &&
+        !found.some((f) => f.startsWith("invalid-nesting:"))
+      )
         fail(
           "9. drop",
           `${where}: the manifest says HTML forbids it, and lotek check does not report it`,

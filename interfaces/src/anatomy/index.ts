@@ -596,7 +596,8 @@ export type DropPlace = { builder: string; hole: string }
  * `path`, the holes it stands in, outermost first; an empty path is the
  * page. A no says why, and `by` says whose rule it is: `html` is what HTML
  * forbids, which `lotek check` reports in markup too, and `lotek` is
- * LO-TEK's own choice, which only a tool keeps to.
+ * LO-TEK's own choice, which only a tool keeps to. Throws for a path a tool
+ * cannot build, where a host could not have been dropped.
  */
 export function canDrop(
   manifest: Manifest,
@@ -610,6 +611,12 @@ export function canDrop(
     return anatomy
   }
   const anatomy = anatomyOf(name)
+  // Each host must be one a tool can drop where it stands.
+  for (let i = 1; i < path.length; i++)
+    if (!canDrop(manifest, path[i].builder, path.slice(0, i)).ok)
+      throw new Error(
+        `canDrop: ${path[i].builder} cannot stand in ${path[i - 1].builder}.${path[i - 1].hole}, so nothing is dropped inside it there.`,
+      )
   const declarations = path.map(({ builder, hole }) => {
     const declaration = anatomyOf(builder).holes[hole]
     if (declaration?.content !== "free")

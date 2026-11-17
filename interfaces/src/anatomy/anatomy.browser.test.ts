@@ -116,6 +116,36 @@ describe("the anatomies", () => {
       }
     })
 
+  it("refuse a path a tool cannot build", () => {
+    // A hole that lets only some in, and a host with a hole of its own that
+    // it does not let in.
+    const m = manifest as unknown as Manifest
+    const holes = (b: (typeof builders)[number]) =>
+      Object.entries((b.anatomy as Anatomy).holes)
+    const outer = builders.flatMap((b) =>
+      holes(b).flatMap(([hole, h]) =>
+        h.only ? [{ b, hole, only: h.only }] : [],
+      ),
+    )[0]
+    expect(outer, "a hole that lets only some in").toBeDefined()
+    const host = builders.flatMap((b) =>
+      !outer.only.builders.includes(b.name) && !(b.anatomy as Anatomy).page
+        ? holes(b).flatMap(([hole, h]) =>
+            h.content === "free" ? [{ b, hole }] : [],
+          )
+        : [],
+    )[0]
+    expect(host, "a host it does not let in").toBeDefined()
+    expect(() =>
+      canDrop(m, "button", [
+        { builder: outer.b.name, hole: outer.hole },
+        { builder: host.b.name, hole: host.hole },
+      ]),
+    ).toThrow(
+      `canDrop: ${host.b.name} cannot stand in ${outer.b.name}.${outer.hole}`,
+    )
+  })
+
   for (const host of builders)
     for (const [hole, declaration] of Object.entries(
       (host.anatomy as Anatomy).holes,
