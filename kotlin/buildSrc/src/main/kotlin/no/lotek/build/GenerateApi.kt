@@ -510,8 +510,9 @@ class Generator(manifest: Map<String, Any?>) {
 
     private fun dispatchFile(): String {
         val out = StringBuilder(header).append("package no.lotek\n\n")
-        out.append("/**\n * Calls a builder function with options read from JSON. Used by the tests that\n")
-        out.append(" * compare every build case with the result from TypeScript.\n */\n")
+        out.append("/**\n * Calls a builder function by name, with options read from JSON. Used by\n")
+        out.append(" * `Anatomies`, which calls the builder functions an anatomy names, and by the\n")
+        out.append(" * tests that compare every build case with the result from TypeScript.\n */\n")
         out.append("internal object Dispatch {\n")
         out.append("    val names: List<String> = listOf(${builders.joinToString(", ") { literal(it["name"] as String) }})\n\n")
         out.append("    /** The class constants, by builder function and part, for the test against the manifest. */\n")

@@ -77,6 +77,13 @@ the one `lotekManifest` writes for a project that has taken over components.
 The IntelliJ plugin gets the classes for completion from here.
 `ManifestReaderTest` requires that nothing from the JSON is lost on the way.
 
+The anatomies are in the manifest too: the markup a builder function belongs in.
+`Anatomies.render` writes it as `renderAnatomy()` does in TypeScript, calling the
+builder functions through the generated `Dispatch`, and `Anatomies.created`,
+`withItem` and `variants` make the instances a design tool makes. `AnatomyCasesTest`
+requires the same markup and the same instances as every case in
+`../interfaces/manifest/anatomy-cases.json`.
+
 ## kotlinx.html
 
 `kotlinx-html/` is a separate package, `lo-tek-kotlinx-html`, with the extension
@@ -141,7 +148,8 @@ different version from `gradle.properties`, and `bun run prepare-version` sets
 both.
 
 The expected results for the tests are not part of the npm package, and are read from the repository:
-`../interfaces/manifest/build-cases.json` and `../core/parity/`.
+`../interfaces/manifest/build-cases.json`, `../interfaces/manifest/anatomy-cases.json`
+and `../core/parity/`.
 
 `ParityTest` requires the findings on the JVM to be identical to the expected results in
 `../core/parity/`, the same expected results `core/scripts/check-core.ts`
