@@ -2988,7 +2988,106 @@
           "options": {}
         }
       },
-      "docs": "https://lo-tek.sobernetics.no/components/breadcrumbs/"
+      "docs": "https://lo-tek.sobernetics.no/components/breadcrumbs/",
+      "anatomy": {
+        "holes": {
+          "label": {
+            "description": "What the trail is, for screen readers.",
+            "kind": "text",
+            "example": "You are here"
+          },
+          "href": {
+            "description": "Where a step goes.",
+            "kind": "url",
+            "per": [
+              "step"
+            ],
+            "example": "#"
+          },
+          "text": {
+            "description": "A step's name.",
+            "content": "text",
+            "per": [
+              "step"
+            ],
+            "example": "Home"
+          },
+          "current-href": {
+            "description": "The address of the page the reader is on.",
+            "kind": "url",
+            "example": "#"
+          },
+          "current": {
+            "description": "The name of the page the reader is on.",
+            "content": "text",
+            "example": "This page"
+          }
+        },
+        "repeats": {
+          "step": {
+            "min": 1,
+            "description": "The steps before the page the reader is on."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "nav",
+            "attributes": {
+              "aria-label": {
+                "hole": "label"
+              }
+            },
+            "children": [
+              {
+                "tag": "ol",
+                "from": [
+                  "breadcrumbs"
+                ],
+                "children": [
+                  {
+                    "tag": "li",
+                    "repeat": "step",
+                    "children": [
+                      {
+                        "tag": "a",
+                        "attributes": {
+                          "href": {
+                            "hole": "href"
+                          }
+                        },
+                        "children": [
+                          {
+                            "hole": "text"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "li",
+                    "children": [
+                      {
+                        "tag": "a",
+                        "attributes": {
+                          "href": {
+                            "hole": "current-href"
+                          },
+                          "aria-current": "page"
+                        },
+                        "children": [
+                          {
+                            "hole": "current"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "button",
@@ -3365,7 +3464,18 @@
           }
         }
       },
-      "docs": "https://lo-tek.sobernetics.no/components/connection-status/"
+      "docs": "https://lo-tek.sobernetics.no/components/connection-status/",
+      "anatomy": {
+        "holes": {},
+        "nodes": [
+          {
+            "tag": "lt-connection-status",
+            "from": [
+              "connectionStatus"
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "dialog",
@@ -3859,6 +3969,100 @@
           "element": "lt-error-summary",
           "part": "title"
         }
+      },
+      "anatomy": {
+        "holes": {
+          "summary": {
+            "description": "The id of the box.",
+            "kind": "id"
+          },
+          "title": {
+            "description": "What the box says above the errors.",
+            "content": "text",
+            "example": "There is a problem"
+          },
+          "target": {
+            "description": "The field an error is about, as #id.",
+            "kind": "url",
+            "per": [
+              "error"
+            ],
+            "example": "#"
+          },
+          "message": {
+            "description": "The error.",
+            "content": "text",
+            "per": [
+              "error"
+            ],
+            "example": "Enter an email address"
+          }
+        },
+        "options": {
+          "id": {
+            "hole": "summary"
+          },
+          "count": {
+            "count": "error"
+          },
+          "titleId": {
+            "tool": "Left out: made from the box's id."
+          }
+        },
+        "repeats": {
+          "error": {
+            "min": 0,
+            "description": "The errors, each a link to its field."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "lt-error-summary",
+            "from": [
+              "errorSummary.host"
+            ],
+            "children": [
+              {
+                "tag": "h2",
+                "from": [
+                  "errorSummary.title"
+                ],
+                "children": [
+                  {
+                    "hole": "title"
+                  }
+                ]
+              },
+              {
+                "tag": "ul",
+                "from": [
+                  "list"
+                ],
+                "children": [
+                  {
+                    "tag": "li",
+                    "repeat": "error",
+                    "children": [
+                      {
+                        "tag": "a",
+                        "attributes": {
+                          "href": {
+                            "hole": "target"
+                          }
+                        },
+                        "children": [
+                          {
+                            "hole": "message"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -5019,7 +5223,217 @@
       "classes": {
         "gap": "lt-pagination__gap"
       },
-      "docs": "https://lo-tek.sobernetics.no/components/pagination/"
+      "docs": "https://lo-tek.sobernetics.no/components/pagination/",
+      "anatomy": {
+        "holes": {
+          "label": {
+            "description": "What the pages are, for screen readers.",
+            "kind": "text",
+            "example": "Pagination"
+          },
+          "href": {
+            "description": "Where a page link goes.",
+            "kind": "url",
+            "per": [
+              "page"
+            ],
+            "example": "#"
+          },
+          "number": {
+            "description": "A page's number.",
+            "content": "text",
+            "per": [
+              "page"
+            ],
+            "example": "1"
+          },
+          "name": {
+            "description": "A page's name for screen readers.",
+            "kind": "text",
+            "per": [
+              "page"
+            ],
+            "example": "Page 1"
+          },
+          "previous": {
+            "description": "What the link to the previous page says.",
+            "content": "text",
+            "example": "Previous"
+          },
+          "previous-name": {
+            "description": "The previous page's name for screen readers.",
+            "kind": "text",
+            "example": "Previous page"
+          },
+          "next": {
+            "description": "What the link to the next page says.",
+            "content": "text",
+            "example": "Next"
+          },
+          "next-name": {
+            "description": "The next page's name for screen readers.",
+            "kind": "text",
+            "example": "Next page"
+          },
+          "gap": {
+            "description": "What stands for the pages left out.",
+            "content": "text",
+            "example": "…"
+          },
+          "previous-href": {
+            "description": "Where the previous page is.",
+            "kind": "url",
+            "example": "#"
+          },
+          "next-href": {
+            "description": "Where the next page is.",
+            "kind": "url",
+            "example": "#"
+          }
+        },
+        "repeats": {
+          "page": {
+            "min": 1,
+            "description": "The pages, the current one and the gaps."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "nav",
+            "attributes": {
+              "aria-label": {
+                "hole": "label"
+              }
+            },
+            "children": [
+              {
+                "tag": "ul",
+                "from": [
+                  "pagination"
+                ],
+                "children": [
+                  {
+                    "tag": "li",
+                    "name": "previous",
+                    "description": "A link to the previous page.",
+                    "optional": true,
+                    "created": true,
+                    "children": [
+                      {
+                        "tag": "a",
+                        "attributes": {
+                          "href": {
+                            "hole": "previous-href"
+                          },
+                          "aria-label": {
+                            "hole": "previous-name"
+                          }
+                        },
+                        "children": [
+                          {
+                            "hole": "previous"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "name": "page",
+                    "description": "A page, the page the reader is on, or a gap.",
+                    "repeat": "page",
+                    "oneOf": {
+                      "link": {
+                        "tag": "li",
+                        "children": [
+                          {
+                            "tag": "a",
+                            "attributes": {
+                              "href": {
+                                "hole": "href"
+                              },
+                              "aria-label": {
+                                "hole": "name"
+                              }
+                            },
+                            "children": [
+                              {
+                                "hole": "number"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "current": {
+                        "tag": "li",
+                        "children": [
+                          {
+                            "tag": "a",
+                            "attributes": {
+                              "href": {
+                                "hole": "href"
+                              },
+                              "aria-label": {
+                                "hole": "name"
+                              },
+                              "aria-current": "page"
+                            },
+                            "children": [
+                              {
+                                "hole": "number"
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "gap": {
+                        "tag": "li",
+                        "children": [
+                          {
+                            "tag": "span",
+                            "from": [
+                              "pagination.gap"
+                            ],
+                            "children": [
+                              {
+                                "hole": "gap"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "tag": "li",
+                    "name": "next",
+                    "description": "A link to the next page.",
+                    "optional": true,
+                    "created": true,
+                    "children": [
+                      {
+                        "tag": "a",
+                        "attributes": {
+                          "href": {
+                            "hole": "next-href"
+                          },
+                          "aria-label": {
+                            "hole": "next-name"
+                          }
+                        },
+                        "children": [
+                          {
+                            "hole": "next"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "paragraph",
@@ -5251,6 +5665,84 @@
           "element": "lt-popover",
           "part": "panel"
         }
+      },
+      "anatomy": {
+        "holes": {
+          "panel": {
+            "description": "The id of the panel the button opens.",
+            "kind": "id"
+          },
+          "label": {
+            "description": "What the button says.",
+            "content": "text",
+            "example": "Actions"
+          },
+          "item": {
+            "description": "An item in the panel.",
+            "content": "free",
+            "per": [
+              "item"
+            ],
+            "example": "<button class=\"lt-button\" data-variant=\"ghost\">Action</button>"
+          }
+        },
+        "options": {
+          "id": {
+            "hole": "panel"
+          },
+          "open": {
+            "tool": "The server opens and closes the panel."
+          }
+        },
+        "repeats": {
+          "item": {
+            "min": 1,
+            "description": "The items in the panel."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "lt-popover",
+            "from": [
+              "popover.host"
+            ],
+            "children": [
+              {
+                "tag": "button",
+                "from": [
+                  "button",
+                  "popover.trigger"
+                ],
+                "name": "button",
+                "settings": [
+                  "variant"
+                ],
+                "children": [
+                  {
+                    "hole": "label"
+                  }
+                ]
+              },
+              {
+                "tag": "ul",
+                "from": [
+                  "popover.panel"
+                ],
+                "children": [
+                  {
+                    "tag": "li",
+                    "repeat": "item",
+                    "children": [
+                      {
+                        "hole": "item"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -6075,6 +6567,132 @@
           "element": "lt-session-timeout",
           "part": "button"
         }
+      },
+      "anatomy": {
+        "holes": {
+          "title-id": {
+            "description": "The id the dialog takes its name from.",
+            "kind": "id"
+          },
+          "title": {
+            "description": "What the dialog says.",
+            "content": "text",
+            "example": "Your session is ending"
+          },
+          "before": {
+            "description": "The text before the time left.",
+            "content": "text",
+            "example": "Your session ends in "
+          },
+          "after": {
+            "description": "The text after the time left.",
+            "content": "text",
+            "example": "."
+          },
+          "extend": {
+            "description": "What the button that keeps the session says.",
+            "content": "text",
+            "example": "Stay signed in"
+          },
+          "logout": {
+            "description": "What the button that ends it says.",
+            "content": "text",
+            "example": "Sign out"
+          }
+        },
+        "options": {
+          "titleId": {
+            "hole": "title-id"
+          },
+          "expiresAt": {
+            "tool": "The server says when the session ends."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "lt-session-timeout",
+            "from": [
+              "sessionTimeout.host"
+            ],
+            "children": [
+              {
+                "tag": "dialog",
+                "from": [
+                  "sessionTimeout.dialog"
+                ],
+                "children": [
+                  {
+                    "tag": "h2",
+                    "from": [
+                      "sessionTimeout.title"
+                    ],
+                    "children": [
+                      {
+                        "hole": "title"
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "p",
+                    "from": [
+                      "sessionTimeout.text"
+                    ],
+                    "children": [
+                      {
+                        "hole": "before"
+                      },
+                      {
+                        "tag": "span",
+                        "from": [
+                          "sessionTimeout.count"
+                        ]
+                      },
+                      {
+                        "hole": "after"
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "span",
+                    "from": [
+                      "sessionTimeout.live"
+                    ]
+                  },
+                  {
+                    "tag": "form",
+                    "from": [
+                      "sessionTimeout.actions"
+                    ],
+                    "children": [
+                      {
+                        "tag": "button",
+                        "from": [
+                          "sessionTimeout.extend"
+                        ],
+                        "children": [
+                          {
+                            "hole": "extend"
+                          }
+                        ]
+                      },
+                      {
+                        "tag": "button",
+                        "from": [
+                          "sessionTimeout.logout"
+                        ],
+                        "children": [
+                          {
+                            "hole": "logout"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -6321,7 +6939,97 @@
           "options": {}
         }
       },
-      "docs": "https://lo-tek.sobernetics.no/components/steps/"
+      "docs": "https://lo-tek.sobernetics.no/components/steps/",
+      "anatomy": {
+        "holes": {
+          "label": {
+            "description": "What the steps are, for screen readers.",
+            "kind": "text",
+            "example": "Order"
+          },
+          "href": {
+            "description": "Where a done step goes.",
+            "kind": "url",
+            "per": [
+              "step"
+            ],
+            "example": "#"
+          },
+          "text": {
+            "description": "A step's name.",
+            "content": "text",
+            "per": [
+              "step"
+            ],
+            "example": "Step"
+          }
+        },
+        "repeats": {
+          "step": {
+            "min": 2,
+            "description": "The steps."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "ol",
+            "from": [
+              "steps"
+            ],
+            "attributes": {
+              "aria-label": {
+                "hole": "label"
+              }
+            },
+            "children": [
+              {
+                "name": "step",
+                "description": "Done, the current step, or still to come.",
+                "repeat": "step",
+                "oneOf": {
+                  "todo": {
+                    "tag": "li",
+                    "children": [
+                      {
+                        "hole": "text"
+                      }
+                    ]
+                  },
+                  "done": {
+                    "tag": "li",
+                    "children": [
+                      {
+                        "tag": "a",
+                        "attributes": {
+                          "href": {
+                            "hole": "href"
+                          }
+                        },
+                        "children": [
+                          {
+                            "hole": "text"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "current": {
+                    "tag": "li",
+                    "attributes": {
+                      "aria-current": "step"
+                    },
+                    "children": [
+                      {
+                        "hole": "text"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "suggestion",
@@ -6517,6 +7225,171 @@
           "element": "lt-suggestion",
           "part": "value"
         }
+      },
+      "anatomy": {
+        "holes": {
+          "control": {
+            "description": "The id of the field.",
+            "kind": "id"
+          },
+          "name": {
+            "description": "The name the form sends the value under.",
+            "kind": "name",
+            "example": "answer"
+          },
+          "label": {
+            "description": "What the field asks for.",
+            "content": "text",
+            "example": "Breaker"
+          },
+          "option": {
+            "description": "A suggestion.",
+            "content": "text",
+            "per": [
+              "option"
+            ],
+            "example": "Crowbar"
+          },
+          "empty": {
+            "description": "What the list says when nothing matches.",
+            "content": "text",
+            "example": "No matches"
+          },
+          "help": {
+            "description": "Help to fill it in.",
+            "content": "text",
+            "example": "Start typing a name."
+          },
+          "error": {
+            "description": "What is wrong.",
+            "content": "text",
+            "example": "Choose a breaker from the list."
+          }
+        },
+        "options": {
+          "id": {
+            "hole": "control"
+          },
+          "keys": {
+            "repeat": "option"
+          },
+          "activeIndex": {
+            "tool": "The component moves the active option."
+          },
+          "open": {
+            "tool": "The component opens and closes the list."
+          },
+          "pending": {
+            "tool": "The server says while it is fetching."
+          },
+          "helpId": {
+            "tool": "Left out: made from the field's id."
+          },
+          "errorId": {
+            "tool": "Left out: made from the field's id."
+          },
+          "describedBy": {
+            "tool": "Left out: the help and error texts are wired by the component."
+          }
+        },
+        "repeats": {
+          "option": {
+            "min": 0,
+            "description": "The suggestions the server sends."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "lt-suggestion",
+            "children": [
+              {
+                "tag": "label",
+                "from": [
+                  "suggestion.label"
+                ],
+                "children": [
+                  {
+                    "hole": "label"
+                  }
+                ]
+              },
+              {
+                "tag": "input",
+                "from": [
+                  "suggestion.control"
+                ],
+                "attributes": {
+                  "name": {
+                    "hole": "name"
+                  }
+                }
+              },
+              {
+                "tag": "ul",
+                "from": [
+                  "suggestion.list"
+                ],
+                "children": [
+                  {
+                    "tag": "li",
+                    "from": [
+                      "suggestion.options"
+                    ],
+                    "repeat": "option",
+                    "children": [
+                      {
+                        "hole": "option"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "tag": "p",
+                "from": [
+                  "suggestion.empty"
+                ],
+                "children": [
+                  {
+                    "hole": "empty"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "from": [
+                  "suggestion.status"
+                ]
+              },
+              {
+                "tag": "p",
+                "from": [
+                  "helpText",
+                  "suggestion.help"
+                ],
+                "when": "help",
+                "children": [
+                  {
+                    "hole": "help"
+                  }
+                ]
+              },
+              {
+                "tag": "p",
+                "from": [
+                  "errorText",
+                  "suggestion.error"
+                ],
+                "when": "error",
+                "children": [
+                  {
+                    "hole": "error"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -7414,6 +8287,83 @@
           "element": "lt-term",
           "part": "word"
         }
+      },
+      "anatomy": {
+        "holes": {
+          "entry": {
+            "description": "The id the word in the text points at.",
+            "kind": "id",
+            "per": [
+              "entry"
+            ]
+          },
+          "word": {
+            "description": "The word.",
+            "content": "text",
+            "per": [
+              "entry"
+            ],
+            "example": "Act of God"
+          },
+          "meaning": {
+            "description": "What the word means.",
+            "content": "text",
+            "per": [
+              "entry"
+            ],
+            "example": "A cause the policy does not cover."
+          }
+        },
+        "options": {
+          "id": {
+            "tool": "Each entry calls lt.term() with its own id."
+          }
+        },
+        "repeats": {
+          "entry": {
+            "min": 1,
+            "description": "The words the glossary explains."
+          }
+        },
+        "nodes": [
+          {
+            "tag": "dl",
+            "children": [
+              {
+                "tag": "div",
+                "from": [
+                  "term.entry"
+                ],
+                "options": {
+                  "term": {
+                    "id": {
+                      "hole": "entry"
+                    }
+                  }
+                },
+                "repeat": "entry",
+                "children": [
+                  {
+                    "tag": "dt",
+                    "children": [
+                      {
+                        "hole": "word"
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "dd",
+                    "children": [
+                      {
+                        "hole": "meaning"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     },
     {
@@ -7539,7 +8489,18 @@
           }
         }
       },
-      "docs": "https://lo-tek.sobernetics.no/components/toast/"
+      "docs": "https://lo-tek.sobernetics.no/components/toast/",
+      "anatomy": {
+        "holes": {},
+        "nodes": [
+          {
+            "tag": "lt-toast",
+            "from": [
+              "toast.host"
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "toggleGroup",
@@ -7674,7 +8635,73 @@
       "classes": {
         "bubble": "lt-tooltip__bubble"
       },
-      "docs": "https://lo-tek.sobernetics.no/components/tooltip/"
+      "docs": "https://lo-tek.sobernetics.no/components/tooltip/",
+      "anatomy": {
+        "holes": {
+          "bubble": {
+            "description": "The id the button points at.",
+            "kind": "id"
+          },
+          "label": {
+            "description": "What the button does.",
+            "content": "text",
+            "example": "Appraise"
+          },
+          "tip": {
+            "description": "The hint.",
+            "content": "text",
+            "example": "All chrome is appraised at street value"
+          }
+        },
+        "nodes": [
+          {
+            "tag": "span",
+            "from": [
+              "tooltip"
+            ],
+            "children": [
+              {
+                "tag": "button",
+                "from": [
+                  "button"
+                ],
+                "name": "button",
+                "settings": [
+                  "variant"
+                ],
+                "attributes": {
+                  "type": "button",
+                  "aria-describedby": {
+                    "hole": "bubble"
+                  }
+                },
+                "children": [
+                  {
+                    "hole": "label"
+                  }
+                ]
+              },
+              {
+                "tag": "span",
+                "from": [
+                  "tooltip.bubble"
+                ],
+                "attributes": {
+                  "role": "tooltip",
+                  "id": {
+                    "hole": "bubble"
+                  }
+                },
+                "children": [
+                  {
+                    "hole": "tip"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     }
   ],
   "tokens": {

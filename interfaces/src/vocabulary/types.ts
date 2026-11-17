@@ -314,11 +314,11 @@ export type AnatomyChild = AnatomyNode | AnatomyHole | AnatomyChoice
  * `false` and `undefined` are left out, and `true` and `""` are written bare. Then
  * `attributes` are written over them.
  *
- * The first node that names a builder function calls it, with `options`
- * and then what the designer set under `settings`, and the nodes inside
- * use the same answer; a node outside calls it anew. The anatomy's own
- * builder function is called once, at the top, with the instance's
- * options and the bound ones.
+ * The first node that names a builder function calls it, as does a node
+ * with `options` for it, with what the designer set under `settings` and
+ * then `options`, and the nodes inside use the same answer; a node outside
+ * calls it anew. The anatomy's own builder function takes the instance's
+ * options and the bound ones, and is called where a node first uses it.
  */
 export type AnatomyNode = {
   /** The tag, or the tags to choose from, the first being the one to write. */
@@ -328,10 +328,12 @@ export type AnatomyNode = {
   attributes?: Record<string, string | AnatomyHole>
   children?: readonly AnatomyChild[]
   /**
-   * Options for a builder function the node is the first to call, by its
-   * name, as `{ tableSort: { link: true } }`. They win over the designer's.
+   * Options for a builder function, by its name, as `{ tableSort: { link:
+   * true } }`. The node calls the function anew with them, even when a node
+   * above has called it, and they win over the designer's. A value can be a
+   * hole, read at the node's place, as the id of each glossary entry.
    */
-  options?: Record<string, Record<string, unknown>>
+  options?: Record<string, Record<string, unknown | AnatomyHole>>
   /**
    * The options of the builder functions the node calls that the designer
    * sets here, as the direction of a sorted column. Requires a name.

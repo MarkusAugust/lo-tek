@@ -928,7 +928,7 @@
         },
         "options": {
           "type": "object",
-          "description": "Options for a builder function the node is the first to call, by its name. They win over the designer's.",
+          "description": "Options for a builder function, by its name. The node calls the function anew with them, and they win over the designer's. A value can be a hole, read at the node's place.",
           "additionalProperties": {
             "type": "object"
           }

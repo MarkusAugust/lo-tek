@@ -110,7 +110,6 @@ type Place = {
 }
 
 class Writer {
-  private own: Answer
   private options: Record<string, unknown>
 
   constructor(
@@ -135,7 +134,6 @@ class Writer {
             this.firstAlternative(from.choice)) === from.alternative
     }
     this.options = { ...instance.options, ...bound }
-    this.own = call(builder, this.options)
   }
 
   /** The first alternative of the named choice, the one a tool creates. */
@@ -207,7 +205,7 @@ class Writer {
     return this.write(child, {
       address: "0",
       keys: {},
-      answers: new Map([[this.builder, this.own]]),
+      answers: new Map(),
     })
   }
 
@@ -309,11 +307,23 @@ class Writer {
     const answers = new Map(place.answers)
     for (const source of node.from ?? []) {
       const builder = source.split(".")[0]
-      if (!answers.has(builder))
-        answers.set(
-          builder,
-          call(builder, { ...settings, ...node.options?.[builder] }),
-        )
+      const fixed = node.options?.[builder]
+      if (answers.has(builder) && !fixed) continue
+      // The anatomy's own builder function, unless the node calls it anew,
+      // takes the instance's options and the bound ones.
+      if (builder === this.builder && !fixed) {
+        answers.set(builder, call(builder, this.options))
+        continue
+      }
+      const options = Object.fromEntries(
+        Object.entries(fixed ?? {}).map(([option, value]) => [
+          option,
+          value !== null && typeof value === "object" && "hole" in value
+            ? this.attribute((value as AnatomyHole).hole, place.keys)
+            : value,
+        ]),
+      )
+      answers.set(builder, call(builder, { ...settings, ...options }))
     }
 
     const attributes: Record<string, string | true> = {}

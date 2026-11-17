@@ -474,6 +474,86 @@ const cases: Case[] = [
     },
     expected: `<div><label class="lt-label" for="firmware">Upload firmware</label><input class="lt-file-upload" type="file" id="firmware" multiple accept=".bin" aria-describedby="firmware-help" name="firmware"><p class="lt-help-text" id="firmware-help">Deck firmware (.bin, up to 64 MB). Dump it before I open anything.</p></div>`,
   },
+  {
+    builder: "breadcrumbs",
+    instance: {
+      id: "b",
+      repeats: { step: ["home", "claims"] },
+      holes: {
+        label: "You are here",
+        href: { home: "#", claims: "#" },
+        text: { home: "Home", claims: "My claims" },
+        "current-href": "#",
+        current: "Claim AV-2079-0481",
+      },
+    },
+    expected: `<nav aria-label="You are here"><ol class="lt-breadcrumbs"><li><a href="#">Home</a></li><li><a href="#">My claims</a></li><li><a href="#" aria-current="page">Claim AV-2079-0481</a></li></ol></nav>`,
+  },
+  {
+    builder: "pagination",
+    instance: {
+      id: "p",
+      repeats: { page: ["1", "2", "3", "gap", "9"] },
+      choices: { page: { "2": "current", gap: "gap" } },
+      holes: {
+        label: "Pagination",
+        href: { "1": "#", "2": "#", "3": "#", "9": "#" },
+        name: { "1": "Page 1", "2": "Page 2", "3": "Page 3", "9": "Page 9" },
+        number: { "1": "1", "2": "2", "3": "3", "9": "9" },
+        gap: "…",
+        "previous-href": "#",
+        previous: "Previous",
+        "previous-name": "Previous page",
+        "next-href": "#",
+        next: "Next",
+        "next-name": "Next page",
+      },
+    },
+    expected: `<nav aria-label="Pagination"><ul class="lt-pagination"><li><a href="#" aria-label="Previous page">Previous</a></li><li><a href="#" aria-label="Page 1">1</a></li><li><a href="#" aria-label="Page 2" aria-current="page">2</a></li><li><a href="#" aria-label="Page 3">3</a></li><li><span class="lt-pagination__gap">…</span></li><li><a href="#" aria-label="Page 9">9</a></li><li><a href="#" aria-label="Next page">Next</a></li></ul></nav>`,
+  },
+  {
+    builder: "steps",
+    instance: {
+      id: "s",
+      repeats: { step: ["site", "survey", "walls", "payment"] },
+      choices: { step: { site: "done", survey: "done", walls: "current" } },
+      holes: {
+        label: "Order",
+        href: { site: "#", survey: "#" },
+        text: {
+          site: "Site",
+          survey: "Survey",
+          walls: "Walls",
+          payment: "Payment",
+        },
+      },
+    },
+    expected: `<ol class="lt-steps" aria-label="Order"><li><a href="#">Site</a></li><li><a href="#">Survey</a></li><li aria-current="step">Walls</li><li>Payment</li></ol>`,
+  },
+  {
+    builder: "tooltip",
+    instance: {
+      id: "t",
+      settings: { button: { variant: "ghost" } },
+      holes: {
+        bubble: "appraise-hint",
+        label: "Appraise",
+        tip: "All chrome is appraised at street value",
+      },
+    },
+    expected: `<span class="lt-tooltip"><button class="lt-button" data-variant="ghost" type="button" aria-describedby="appraise-hint">Appraise</button><span class="lt-tooltip__bubble" role="tooltip" id="appraise-hint">All chrome is appraised at street value</span></span>`,
+  },
+  // The page's own id is the app's.
+  {
+    builder: "toast",
+    instance: { id: "messages" },
+    expected: `<lt-toast class="lt-toast" role="status" aria-live="polite" aria-atomic="false" data-ignore-morph></lt-toast>`,
+  },
+  {
+    builder: "connectionStatus",
+    instance: { id: "c" },
+    expected: `<lt-connection-status class="lt-connection-status" role="status" aria-live="polite" data-ignore-morph></lt-connection-status>`,
+  },
 ]
 
 /**
