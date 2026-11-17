@@ -499,6 +499,63 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
       },
     ],
   },
+  dialog: {
+    options: { titleId: { hole: "title-id", kind: "id" } },
+    nodes: [
+      {
+        tag: "lt-dialog",
+        from: ["dialog.host"],
+        name: "host",
+        wrapper: true,
+        created: true,
+        children: [
+          {
+            tag: "dialog",
+            from: ["dialog.dialog"],
+            children: [
+              {
+                tag: "div",
+                from: ["dialog.header"],
+                name: "header",
+                wrapper: true,
+                children: [
+                  {
+                    tag: "h2",
+                    from: ["dialog.title"],
+                    children: [{ hole: "title" }],
+                  },
+                  {
+                    tag: "p",
+                    from: ["dialog.subtitle"],
+                    name: "subtitle",
+                    optional: true,
+                    children: [{ hole: "subtitle" }],
+                  },
+                ],
+              },
+              {
+                tag: "div",
+                from: ["dialog.body"],
+                name: "body",
+                optional: true,
+                created: true,
+                children: [{ hole: "body" }],
+              },
+              {
+                tag: "form",
+                from: ["dialog.footer"],
+                attributes: { method: "dialog" },
+                name: "footer",
+                optional: true,
+                created: true,
+                children: [{ hole: "footer" }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 }
 
 export type BuilderPart = { element: string; part: string }

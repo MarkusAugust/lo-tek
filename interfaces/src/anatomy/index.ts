@@ -10,11 +10,26 @@
  */
 
 import { lt } from "../lt.js"
-import type { AnatomyHole, AnatomyNode, Manifest } from "../vocabulary/types.js"
+import type {
+  Anatomy,
+  AnatomyHole,
+  AnatomyNode,
+  Manifest,
+} from "../vocabulary/types.js"
 
-/** What the template fills in: the value of each hole, by name. */
+/** What the template fills in. */
 export type AnatomyInstance = {
+  /** The text of each hole, and the value of each attribute hole, by name. */
   holes?: Record<string, string>
+  /** Markup for a hole that takes other elements, by name. Written as it is. */
+  content?: Record<string, string>
+  /**
+   * Whether each optional node is there, by its name. Left out, a node is
+   * there when the anatomy says it is `created`.
+   */
+  parts?: Record<string, boolean>
+  /** Options for the builder function beyond the required ones, as `open`. */
+  options?: Record<string, unknown>
 }
 
 type Answer = Record<string, unknown>
@@ -45,55 +60,92 @@ const isHole = (child: AnatomyNode | AnatomyHole): child is AnatomyHole =>
   "hole" in child
 
 /** Calls a builder function in `lt` by name. */
-function call(name: string): Answer {
+function call(name: string, options?: Record<string, unknown>): Answer {
   const build = (lt as unknown as Record<string, BuilderFunction>)[name]
   if (typeof build !== "function")
     throw new Error(`renderAnatomy: lt has no builder function ${name}.`)
-  return build() as Answer
+  return build(options) as Answer
 }
 
-/**
- * The attributes one source gives: the whole answer of a builder function,
- * a set in it, or a class the function carries, as `checkbox.row`.
- */
-function attributesOf(source: string): Answer {
-  const [name, field] = source.split(".")
-  const answer = call(name)
-  if (field === undefined) return answer
-  if (field in answer) return answer[field] as Answer
-  const constant = (lt as unknown as Record<string, Record<string, unknown>>)[
-    name
-  ][field]
-  if (typeof constant === "string") return { class: constant }
-  throw new Error(`renderAnatomy: ${source} is neither a set nor a class.`)
-}
+class Writer {
+  /** The answers of the builder functions, the anatomy's own first. */
+  private answers = new Map<string, Answer>()
 
-function write(
-  child: AnatomyNode | AnatomyHole,
-  instance: AnatomyInstance,
-): string {
-  if (isHole(child)) return escapeText(instance.holes?.[child.hole] ?? "")
-  const attributes: Record<string, string> = {}
-  for (const source of child.from ?? [])
-    for (const [name, value] of Object.entries(attributesOf(source))) {
-      if (value === undefined || value === false) continue
-      const text = value === true ? "" : String(value)
-      attributes[name] =
-        name === "class" && attributes.class
-          ? `${attributes.class} ${text}`
-          : text
-    }
-  for (const [name, value] of Object.entries(child.attributes ?? {}))
-    attributes[name] =
-      typeof value === "string" ? value : (instance.holes?.[value.hole] ?? "")
-  const written = Object.entries(attributes)
-    .map(([name, value]) =>
-      value === "" ? ` ${name}` : ` ${name}="${escapeAttribute(value)}"`,
+  constructor(
+    builder: string,
+    anatomy: Anatomy,
+    private instance: AnatomyInstance,
+  ) {
+    const required = Object.fromEntries(
+      Object.entries(anatomy.options ?? {}).map(([option, hole]) => [
+        option,
+        instance.holes?.[hole.hole],
+      ]),
     )
-    .join("")
-  if (VOID.has(child.tag)) return `<${child.tag}${written}>`
-  const inner = (child.children ?? []).map((c) => write(c, instance)).join("")
-  return `<${child.tag}${written}>${inner}</${child.tag}>`
+    this.answers.set(
+      builder,
+      call(builder, { ...instance.options, ...required }),
+    )
+  }
+
+  /**
+   * The attributes one source gives: the whole answer of a builder
+   * function, a set in it, or a class the function carries, as
+   * `checkbox.row`.
+   */
+  private attributesOf(source: string): Answer {
+    const [name, field] = source.split(".")
+    let answer = this.answers.get(name)
+    if (!answer) {
+      answer = call(name)
+      this.answers.set(name, answer)
+    }
+    if (field === undefined) return answer
+    if (field in answer) return answer[field] as Answer
+    const constant = (lt as unknown as Record<string, Record<string, unknown>>)[
+      name
+    ][field]
+    if (typeof constant === "string") return { class: constant }
+    throw new Error(`renderAnatomy: ${source} is neither a set nor a class.`)
+  }
+
+  write(child: AnatomyNode | AnatomyHole): string {
+    if (isHole(child))
+      return (
+        this.instance.content?.[child.hole] ??
+        escapeText(this.instance.holes?.[child.hole] ?? "")
+      )
+    const inner = () =>
+      (child.children ?? []).map((c) => this.write(c)).join("")
+    if (child.optional || child.wrapper) {
+      const there =
+        (child.name && this.instance.parts?.[child.name]) ??
+        child.created === true
+      if (!there) return child.wrapper ? inner() : ""
+    }
+    const attributes: Record<string, string> = {}
+    for (const source of child.from ?? [])
+      for (const [name, value] of Object.entries(this.attributesOf(source))) {
+        if (value === undefined || value === false) continue
+        const text = value === true ? "" : String(value)
+        attributes[name] =
+          name === "class" && attributes.class
+            ? `${attributes.class} ${text}`
+            : text
+      }
+    for (const [name, value] of Object.entries(child.attributes ?? {}))
+      attributes[name] =
+        typeof value === "string"
+          ? value
+          : (this.instance.holes?.[value.hole] ?? "")
+    const written = Object.entries(attributes)
+      .map(([name, value]) =>
+        value === "" ? ` ${name}` : ` ${name}="${escapeAttribute(value)}"`,
+      )
+      .join("")
+    if (VOID.has(child.tag)) return `<${child.tag}${written}>`
+    return `<${child.tag}${written}>${inner()}</${child.tag}>`
+  }
 }
 
 /**
@@ -108,5 +160,6 @@ export function renderAnatomy(
   const anatomy = manifest.builders.find((b) => b.name === name)?.anatomy
   if (!anatomy)
     throw new Error(`renderAnatomy: lt.${name} has no anatomy in the manifest.`)
-  return anatomy.nodes.map((n) => write(n, instance)).join("")
+  const writer = new Writer(name, anatomy, instance)
+  return anatomy.nodes.map((n) => writer.write(n)).join("")
 }

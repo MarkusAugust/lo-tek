@@ -347,6 +347,13 @@
             "description": "The markup the builder function belongs in: the elements, which attributes each takes from the builder functions, and the holes the template fills. Added after schemaVersion 1.",
             "required": ["nodes"],
             "properties": {
+              "options": {
+                "type": "object",
+                "description": "The required options of the builder function, each from a hole.",
+                "additionalProperties": {
+                  "$ref": "#/$defs/anatomyAttributeHole"
+                }
+              },
               "nodes": {
                 "$ref": "#/$defs/anatomyChildren"
               }
@@ -473,6 +480,20 @@
   },
   "additionalProperties": false,
   "$defs": {
+    "anatomyAttributeHole": {
+      "type": "object",
+      "description": "A value the template fills in, and what it holds, so a tool knows what to ask for. An id hole and the idref holes with the same name get the same value.",
+      "required": ["hole", "kind"],
+      "properties": {
+        "hole": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": ["text", "id", "idref", "name", "value", "url"]
+        }
+      },
+      "additionalProperties": false
+    },
     "anatomyChildren": {
       "type": "array",
       "items": {
@@ -511,30 +532,29 @@
                       "type": "string"
                     },
                     {
-                      "type": "object",
-                      "required": ["hole", "kind"],
-                      "properties": {
-                        "hole": {
-                          "type": "string"
-                        },
-                        "kind": {
-                          "enum": [
-                            "text",
-                            "id",
-                            "idref",
-                            "name",
-                            "value",
-                            "url"
-                          ]
-                        }
-                      },
-                      "additionalProperties": false
+                      "$ref": "#/$defs/anatomyAttributeHole"
                     }
                   ]
                 }
               },
               "children": {
                 "$ref": "#/$defs/anatomyChildren"
+              },
+              "name": {
+                "type": "string",
+                "description": "The name a tool uses for an optional node."
+              },
+              "optional": {
+                "const": true,
+                "description": "The component works without the node."
+              },
+              "wrapper": {
+                "const": true,
+                "description": "Optional, and the children stay when it is left out."
+              },
+              "created": {
+                "const": true,
+                "description": "An optional node that is there when a tool creates the component."
               }
             },
             "additionalProperties": false

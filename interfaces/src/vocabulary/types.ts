@@ -264,6 +264,17 @@ export type AnatomyNode = {
    */
   attributes?: Record<string, string | AnatomyAttributeHole>
   children?: readonly (AnatomyNode | AnatomyHole)[]
+  /** The name a tool and `renderAnatomy()` use for an optional node. */
+  name?: string
+  /** The component works without the node. Requires `name`. */
+  optional?: true
+  /**
+   * Optional, and the children stay when it is left out, as the header in a
+   * dialog, whose title then stands in the dialog itself. Requires `name`.
+   */
+  wrapper?: true
+  /** An optional node that is there when a tool creates the component. */
+  created?: true
 }
 
 /** What an attribute hole holds, so a tool knows what to ask for. */
@@ -278,6 +289,11 @@ export type AnatomyAttributeHole = {
  * A design tool builds a component from it, and `renderAnatomy()` writes it.
  */
 export type Anatomy = {
+  /**
+   * The required options of the builder function, each from a hole, as the
+   * dialog's `titleId` from the id the heading gets.
+   */
+  options?: Record<string, AnatomyAttributeHole>
   nodes: readonly (AnatomyNode | AnatomyHole)[]
 }
 

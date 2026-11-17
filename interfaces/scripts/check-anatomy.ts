@@ -43,11 +43,55 @@ const cases: Case[] = [
     },
     expected: `<div class="lt-checkbox-row"><input class="lt-checkbox" type="checkbox" id="seasonal" name="seasonal"><label class="lt-label" for="seasonal">I accept that floors below 12 are seasonal.</label></div>`,
   },
+  // The dialog as a tool makes it: in <lt-dialog>, so the server opens it,
+  // with the body and an empty footer. The page's own id and data-on are
+  // the app's, not the component's.
+  {
+    builder: "dialog",
+    instance: {
+      holes: { "title-id": "confirm-title", title: "Cancel job 222-0481?" },
+      content: {
+        body: "<p>The crew keeps the advance. This cannot be undone.</p>",
+      },
+    },
+    expected: `<lt-dialog><dialog class="lt-dialog" aria-labelledby="confirm-title"><h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2><div class="lt-dialog__body"><p>The crew keeps the advance. This cannot be undone.</p></div><form class="lt-dialog__footer" method="dialog"></form></dialog></lt-dialog>`,
+  },
+  // The smallest: the title alone, and the dialog the app opens itself.
+  {
+    builder: "dialog",
+    instance: {
+      holes: { "title-id": "confirm-title", title: "Cancel job 222-0481?" },
+      parts: { host: false, body: false, footer: false },
+    },
+    expected: `<dialog class="lt-dialog" aria-labelledby="confirm-title"><h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2></dialog>`,
+  },
+  // With the header and the subtitle, as the page shows them.
+  {
+    builder: "dialog",
+    instance: {
+      holes: {
+        "title-id": "job-title",
+        title: "Recover the courier's bag",
+        subtitle: "Clean, before the deadline",
+      },
+      parts: { host: false, header: true, subtitle: true, footer: false },
+      content: { body: "<p>The bag is in Kabuki.</p>" },
+    },
+    expected: `<dialog class="lt-dialog" aria-labelledby="job-title"><div class="lt-dialog__header"><h2 class="lt-dialog__title" id="job-title">Recover the courier's bag</h2><p class="lt-dialog__subtitle">Clean, before the deadline</p></div><div class="lt-dialog__body"><p>The bag is in Kabuki.</p></div></dialog>`,
+  },
 ]
 
 const errors: string[] = []
 for (const c of cases) {
-  const written = renderAnatomy(manifest, c.builder, c.instance)
+  let written: string
+  try {
+    written = renderAnatomy(manifest, c.builder, c.instance)
+  } catch (error) {
+    errors.push(
+      `${c.builder}: ${error instanceof Error ? error.message : error}`,
+    )
+    continue
+  }
   if (written !== c.expected)
     errors.push(
       `${c.builder}: the anatomy gives\n    ${written || "(nothing)"}\n  and the page has\n    ${c.expected}`,
