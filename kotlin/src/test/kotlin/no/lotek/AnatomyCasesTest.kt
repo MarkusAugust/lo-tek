@@ -101,6 +101,41 @@ class AnatomyCasesTest {
     }
 
     @Test
+    fun `a path a tool cannot build is an IllegalArgumentException`() {
+        // A hole that lets only some in, and a host with a hole of its own that it does not let in.
+        val builders = Lotek.manifest.builders.filter { it.anatomy != null }
+        val (outer, hole) =
+            builders.firstNotNullOf { b -> b.anatomy!!.holes.entries.firstOrNull { it.value.only != null }?.let { b.name to it.key } }
+        val only = Lotek.manifest.builders.first { it.name == outer }.anatomy!!.holes.getValue(hole).only!!
+        val host =
+            builders.first { b -> b.name !in only.builders && b.anatomy!!.page == null && b.anatomy!!.holes.values.any { it.content == HoleContent.FREE } }
+        val inner = host.anatomy!!.holes.entries.first { it.value.content == HoleContent.FREE }.key
+        val error =
+            assertFailsWith<IllegalArgumentException> {
+                Anatomies.canDrop(Lotek.manifest, "button", listOf(DropPlace(outer, hole), DropPlace(host.name, inner)))
+            }
+        assertTrue(error.message!!.startsWith("Anatomies.canDrop: ${host.name} cannot stand in $outer.$hole"), error.message)
+    }
+
+    @Test
+    fun `answers every drop as TypeScript does`() {
+        @Suppress("UNCHECKED_CAST")
+        val drops = (Json.parse(File(System.getProperty("anatomyCases")).readText()) as Map<String, Any?>)["drops"] as List<Map<String, Any?>>
+        assertTrue(drops.size > 300, "Only ${drops.size} drops, so the comparison said little.")
+        for (drop in drops) {
+            val path = (drop["path"] as List<*>).map { it.map().let { p -> DropPlace(p["builder"] as String, p["hole"] as String) } }
+            val answer = drop["answer"].map()
+            val expected =
+                when {
+                    answer["ok"] == true -> DropAnswer.Yes
+                    answer["by"] == "html" -> DropAnswer.Html(answer["why"] as String)
+                    else -> DropAnswer.Lotek(answer["why"] as String)
+                }
+            assertEquals(expected, Anatomies.canDrop(Lotek.manifest, drop["component"] as String, path), "${drop["component"]} in $path")
+        }
+    }
+
+    @Test
     fun `the cases have every change a tool makes`() {
         assertEquals(setOf("variant", "withItem", "tag", "setting", "annotate"), CASES.map { it["change"] }.toSet())
     }

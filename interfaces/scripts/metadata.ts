@@ -579,6 +579,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   dialog: {
+    page: "A dialog opens over the page, so it stands on the page, not in another component.",
     holes: {
       "title-id": {
         description: "The id the dialog takes its name from.",
@@ -599,7 +600,14 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
         content: "free",
         example: "<p>This cannot be undone.</p>",
       },
-      footer: { description: "The buttons at the bottom.", content: "free" },
+      footer: {
+        description: "The buttons at the bottom.",
+        content: "free",
+        only: {
+          builders: ["button", "link"],
+          why: "The bottom of a dialog holds the buttons that answer it.",
+        },
+      },
     },
     options: {
       titleId: { hole: "title-id" },
@@ -1035,6 +1043,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   skipLink: {
+    page: "A skip link is the first thing on the page, so the keyboard reaches it first.",
     holes: {
       target: {
         description: "Where the main content starts, as #id.",
@@ -1072,7 +1081,7 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     holes: {
       paths: {
         description: "The icon's paths, on a 24 by 24 grid.",
-        content: "free",
+        content: "svg",
         example: '<path d="M12 5v14M5 12h14" />',
       },
     },
@@ -1406,7 +1415,21 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
         content: "text",
         example: "Address",
       },
-      content: { description: "The fields.", content: "free" },
+      content: {
+        description: "The fields.",
+        content: "free",
+        only: {
+          builders: [
+            "field",
+            "checkbox",
+            "radio",
+            "switch",
+            "toggleGroup",
+            "suggestion",
+          ],
+          why: "A fieldset groups fields under one legend.",
+        },
+      },
     },
     nodes: [
       {
@@ -2055,14 +2078,17 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
     ],
   },
   toast: {
+    page: "A toast speaks for the whole page, from one place.",
     holes: {},
     nodes: [{ tag: "lt-toast", from: ["toast.host"] }],
   },
   connectionStatus: {
+    page: "The connection status speaks for the whole page, from one place.",
     holes: {},
     nodes: [{ tag: "lt-connection-status", from: ["connectionStatus"] }],
   },
   sessionTimeout: {
+    page: "The session timeout is a dialog for the whole page.",
     holes: {
       "title-id": {
         description: "The id the dialog takes its name from.",

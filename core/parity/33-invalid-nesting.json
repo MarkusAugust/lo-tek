@@ -1,0 +1,34 @@
+{
+  "markup": [
+    {
+      "start": 23,
+      "end": 27,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+      "message": "<form> is inside another <form>, which HTML does not allow: the browser drops the inner <form>, and its fields send with the outer one."
+    },
+    {
+      "start": 113,
+      "end": 119,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+      "message": "<button> is inside <a>, and nothing interactive may be inside a link or a button: the browser cannot tell which one is clicked, and a screen reader announces only the outer. Put it next to the <a>."
+    }
+  ],
+  "page": [
+    {
+      "start": 23,
+      "end": 27,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+      "message": "<form> is inside another <form>, which HTML does not allow: the browser drops the inner <form>, and its fields send with the outer one."
+    },
+    {
+      "start": 113,
+      "end": 119,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+      "message": "<button> is inside <a>, and nothing interactive may be inside a link or a button: the browser cannot tell which one is clicked, and a screen reader announces only the outer. Put it next to the <a>."
+    }
+  ]
+}

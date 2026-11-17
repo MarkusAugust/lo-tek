@@ -120,6 +120,17 @@ data class Manifest(
                             optional = hole["optional"] == true,
                             example = hole["example"]?.str("$path.example"),
                             values = hole["values"]?.strings("$path.values"),
+                            forbids =
+                                (hole["forbids"] as? List<*> ?: emptyList<Any?>()).mapIndexed { i, f ->
+                                    val at = "$path.forbids[$i]"
+                                    val forbidden = f.obj(at)
+                                    AnatomyForbidden(tags = forbidden["tags"].strings("$at.tags"), why = forbidden["why"].str("$at.why"))
+                                },
+                            only =
+                                hole["only"]?.let {
+                                    val only = it.obj("$path.only")
+                                    AnatomyOnly(builders = only["builders"].strings("$path.only.builders"), why = only["why"].str("$path.only.why"))
+                                },
                         )
                     },
                 options =
@@ -143,6 +154,7 @@ data class Manifest(
                         AnatomyRepeat(min = repeat["min"].num("$path.min").toInt(), description = repeat["description"].str("$path.description"))
                     },
                 root = child(nodes[0], "$at.nodes[0]"),
+                page = a["page"]?.str("$at.page"),
             )
         }
 
@@ -636,6 +648,12 @@ data class Anatomy(
     val repeats: Map<String, AnatomyRepeat> = emptyMap(),
     /** The one element the component is, `nodes[0]` in the manifest. */
     val root: AnatomyChild,
+    /**
+     * The component belongs to the page, not inside another, as a skip link
+     * or a toast, with why. A design tool drops it only on the page. LO-TEK's
+     * own choice: `lotek check` leaves it alone.
+     */
+    val page: String? = null,
 )
 
 /** A group that repeats, as the tabs in `lt-tabs`, with how few items it may have. */
@@ -675,10 +693,38 @@ data class AnatomyHoleDeclaration(
     val example: String? = null,
     /** The values an attribute hole can take, as `true` and `false` for `aria-pressed`. */
     val values: List<String>? = null,
+    /**
+     * In a hole that takes other elements: what HTML forbids there, from the
+     * elements around it. A component that writes one of the tags cannot be
+     * dropped here, and `lotek check` reports it in markup.
+     */
+    val forbids: List<AnatomyForbidden> = emptyList(),
+    /**
+     * In a hole that takes other elements: the components a design tool
+     * drops here, where HTML allows more. LO-TEK's own choice, for the tool
+     * only: `lotek check` leaves other valid HTML alone.
+     */
+    val only: AnatomyOnly? = null,
 )
 
-/** What a hole among the children takes: [TEXT] is text, [FREE] other elements too, and is where a tool drops them. */
-enum class HoleContent { TEXT, FREE }
+/** Tags HTML forbids in a hole, with why. */
+data class AnatomyForbidden(
+    val tags: List<String>,
+    val why: String,
+)
+
+/** The builder functions whose components a design tool drops in a hole, with why. */
+data class AnatomyOnly(
+    val builders: List<String>,
+    val why: String,
+)
+
+/**
+ * What a hole among the children takes: [TEXT] is text, [FREE] other
+ * elements too, and is where a tool drops them, and [SVG] the drawing in an
+ * `<svg>`, as the paths of an icon. [FREE] and [SVG] are written as they are.
+ */
+enum class HoleContent { TEXT, FREE, SVG }
 
 /** What an attribute hole holds. */
 enum class HoleKind { TEXT, ID, NAME, VALUE, URL, FLAG }

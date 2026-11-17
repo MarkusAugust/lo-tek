@@ -259,11 +259,12 @@ export type AnatomyHole = {
  *
  * A hole among the children has `content`, in the same words as the
  * manifest's parts: `text` takes text, `free` takes other elements too and
- * is a drop target. A hole in an attribute has `kind`.
+ * is a drop target, and `svg` takes the drawing in an `<svg>`, written as
+ * it is, as the paths of an icon. A hole in an attribute has `kind`.
  */
 export type AnatomyHoleDeclaration = {
   description: string
-  content?: "text" | "free"
+  content?: "text" | "free" | "svg"
   /**
    * What an attribute hole holds. An `id` hole the instance leaves empty
    * gets `<instance id>-<hole>`, and `-<key>` for each group in `per`, so
@@ -287,7 +288,24 @@ export type AnatomyHoleDeclaration = {
   example?: string
   /** The values an attribute hole can take, as `"true"` and `"false"` for `aria-pressed`. */
   values?: readonly string[]
+  /**
+   * In a hole that takes other elements: what HTML forbids there, from the
+   * elements around it, each with why. A component that writes one of
+   * `tags` cannot be dropped here, and `lotek check` reports it in markup.
+   * Written by the generator.
+   */
+  forbids?: readonly AnatomyForbidden[]
+  /**
+   * In a hole that takes other elements: the components a design tool
+   * drops here, by builder function, where HTML allows more, as the
+   * buttons at the bottom of a dialog. LO-TEK's own choice, with why, for
+   * the tool only: `lotek check` leaves other valid HTML alone.
+   */
+  only?: { builders: readonly string[]; why: string }
 }
+
+/** Elements HTML forbids in a hole, with why. */
+export type AnatomyForbidden = { tags: readonly string[]; why: string }
 
 /**
  * A place with alternatives the designer chooses between, as a plain or a
@@ -388,6 +406,12 @@ export type AnatomyOption =
  */
 export type Anatomy = {
   holes: Record<string, AnatomyHoleDeclaration>
+  /**
+   * The component belongs to the page, not inside another, as a skip link
+   * or a toast, with why. A design tool drops it only on the page. LO-TEK's
+   * own choice: `lotek check` leaves it alone.
+   */
+  page?: string
   /** The options the panel does not show, and where each gets its value. */
   options?: Record<string, AnatomyOption>
   /** The groups that repeat, with how few items each may have. */

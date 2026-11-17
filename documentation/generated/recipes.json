@@ -7962,6 +7962,7 @@
         "created",
         "withItem",
         "variants",
+        "canDrop",
         "annotate",
         "io.github.markusaugust:lo-tek-kotlinx-html",
         "lt(…)",

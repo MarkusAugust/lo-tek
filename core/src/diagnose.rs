@@ -1394,8 +1394,16 @@ pub fn diagnose_visible(source: Utf16, vocabulary: &Vocabulary, page: bool) -> V
             .iter()
             .any(|e| contains_str(&source, &e.tag));
     // `has_tag` and `contains_ci` ignore case: `<LT-FIELD>` is the element too.
-    if ours || contains_ci(&source, "lt-") || has_tag(&source, "button") || has_tag(&source, "a") {
+    // A form inside a form needs the tree as well.
+    let nested = has_tag(&source, "form");
+    if ours
+        || contains_ci(&source, "lt-")
+        || has_tag(&source, "button")
+        || has_tag(&source, "a")
+        || nested
+    {
         let nodes = crate::references::tree(&source);
+        findings.extend(crate::nesting::check_nesting(&source, &nodes));
         if ours {
             findings.extend(crate::parts::check_parts(&source, vocabulary, &nodes));
             findings.extend(crate::wiring::check_wiring(

@@ -67,6 +67,23 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `anatomy-cases.json` now holds every change a tool makes, with how the
   instance was made: an item inserted, a tag, a setting and `annotate`, as
   well as the variants.
+- **`lotek check` reports an element where HTML does not allow it,** with
+  the rule `invalid-nesting`: a `<form>` inside another form, and anything
+  interactive, as a button, a field or a link with `href`, inside a link
+  or a button. The browser drops the inner form, and cannot tell which of
+  two nested controls is clicked. The rule reports only what HTML forbids:
+  valid HTML is never a finding.
+- **A design tool knows what may be dropped where.** `canDrop()` in
+  `@lo-tek/interfaces/anatomy`, and `Anatomies.canDrop` in Kotlin, answer
+  for a component in a hole, with why when the answer is no: what HTML
+  forbids there, from the elements around the hole (`forbids` on the hole
+  in the manifest), or LO-TEK's own choice for a tool, which `lotek check`
+  leaves alone. The bottom of a dialog takes the buttons that answer it, a
+  fieldset takes fields (`only` on the hole), and a dialog, a session
+  timeout, a toast, the connection status and a skip link belong to the
+  page (`page` on the anatomy). The paths of an icon are a hole of their
+  own, `svg`, written as they are and not a place to drop components.
+  `anatomy-cases.json` has every answer, for Kotlin to give the same.
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.

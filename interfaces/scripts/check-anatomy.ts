@@ -832,9 +832,9 @@ function disagreements(name: string, anatomy: Json): string[] {
         found.push(
           `${name}: the hole ${node.hole} puts text in an element that takes none`,
         )
-      else if (around === "text" && declared.content === "free")
+      else if (around === "text" && declared.content !== "text")
         found.push(
-          `${name}: the hole ${node.hole} takes free content, and the element around it takes text`,
+          `${name}: the hole ${node.hole} takes ${declared.content} content, and the element around it takes text`,
         )
       return
     }

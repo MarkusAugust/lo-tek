@@ -440,6 +440,10 @@
                 "items": {
                   "$ref": "#/$defs/anatomyChild"
                 }
+              },
+              "page": {
+                "type": "string",
+                "description": "The component belongs to the page, not inside another, with why. A design tool drops it only on the page. LO-TEK's own choice: lotek check leaves it alone."
               }
             },
             "additionalProperties": false
@@ -791,14 +795,14 @@
     },
     "anatomyHoleDeclaration": {
       "type": "object",
-      "description": "What a hole holds. A hole among the children has content: text takes text, free takes other elements too and is a drop target. A hole in an attribute has kind; an empty id hole gets <instance id>-<hole>, and -<key> for each group in per; a flag is written bare when on and left out when off.",
+      "description": "What a hole holds. A hole among the children has content: text takes text, free takes other elements too and is a drop target, and svg takes the drawing in an <svg>, written as it is. A hole in an attribute has kind; an empty id hole gets <instance id>-<hole>, and -<key> for each group in per; a flag is written bare when on and left out when off.",
       "required": ["description"],
       "properties": {
         "description": {
           "type": "string"
         },
         "content": {
-          "enum": ["text", "free"]
+          "enum": ["text", "free", "svg"]
         },
         "kind": {
           "enum": ["text", "id", "name", "value", "url", "flag"]
@@ -824,6 +828,44 @@
             "type": "string"
           },
           "description": "The values an attribute hole can take."
+        },
+        "forbids": {
+          "type": "array",
+          "description": "In a hole that takes other elements: what HTML forbids there, from the elements around it, each with why. A component that writes one of tags cannot be dropped here, and lotek check reports it in markup.",
+          "items": {
+            "type": "object",
+            "required": ["tags", "why"],
+            "properties": {
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "why": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "only": {
+          "type": "object",
+          "description": "In a hole that takes other elements: the components a design tool drops here, by builder function, where HTML allows more. LO-TEK's own choice, with why, for the tool only: lotek check leaves other valid HTML alone.",
+          "required": ["builders", "why"],
+          "properties": {
+            "builders": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            },
+            "why": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
