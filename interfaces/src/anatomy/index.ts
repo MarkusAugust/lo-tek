@@ -7,8 +7,9 @@
  * functions, so the markup is the same as a template that calls them. This
  * is the reference: a design tool, or a server in another language, must
  * write the same, and `check-anatomy.ts` holds it to the component pages.
- * The rules it follows are written on the types in `vocabulary/types.ts`;
- * what is only here is said here.
+ * The rules it follows are written in `manifest/manifest.schema.json`, and
+ * are the comments on the types in `vocabulary/manifest.ts`, which is
+ * written from it; what is only here is said here.
  */
 
 import { lt } from "../lt.js"

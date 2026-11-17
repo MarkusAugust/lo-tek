@@ -143,6 +143,7 @@ The files in the two tables below are written by a script, and a change made dir
 
 | File | Source |
 | --- | --- |
+| `interfaces/src/vocabulary/manifest.ts`, the types of the manifest | `manifest/manifest.schema.json`, which is written by hand and is where the shape of the manifest is written, in `scripts/generate-manifest-types.ts` |
 | `interfaces/src/tokens/matrix-cells.ts` | `src/tokens/color-contract.json` and the brand colours, computed by the core in `scripts/generate-matrix.ts` |
 | `interfaces/src/tokens/tokens.css` | `src/tokens/tokens.ts` and the colour matrix |
 | `interfaces/src/tailwind/tailwind.css` | the same tokens |

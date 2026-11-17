@@ -1,10 +1,14 @@
 /**
- * Checks that the manifest is what `manifest.schema.json` says it is.
+ * Checks that the manifest is what `manifest.schema.json` says it is, and
+ * that the types in `src/vocabulary/manifest.ts` are the ones
+ * `generate-manifest-types.ts` writes from the schema now.
  *
  * The schema is written by hand and the manifest is generated, so the two
  * drifted without anything saying so: `siblingsBefore` reached the manifest
  * while the schema forbade it. The schema is what a reader in another
- * language trusts, so it is checked on every build.
+ * language trusts, so it is checked on every build. The types are what the
+ * generator of the manifest is compiled against, so the manifest it builds
+ * is held to the schema twice: by `tsc`, and here.
  *
  * Run with: bun run check:manifest-schema, or as part of `bun run build`.
  */
@@ -12,6 +16,7 @@
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import Ajv2020 from "ajv/dist/2020.js"
+import { files } from "./generate-manifest-types"
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url))
 const schema = await Bun.file(
@@ -34,6 +39,14 @@ const problems = (value: unknown) =>
       )
 
 const errors = problems(manifest).map((p) => `manifest.json: ${p}`)
+
+// In the build, `generate` has just written the types, so this finds
+// nothing; run on its own, it says whether the file is out of date.
+for (const [path, content] of Object.entries(files()))
+  if ((await Bun.file(join(ROOT, path)).text()) !== content)
+    errors.push(
+      `${path} is not what the schema gives. Run bun scripts/generate-manifest-types.ts.`,
+    )
 
 /*
  * The guard itself: a field the schema does not describe must be stopped
@@ -65,4 +78,6 @@ if (errors.length) {
   )
   process.exit(1)
 }
-console.log("✓ The manifest matches manifest.schema.json.")
+console.log(
+  "✓ The manifest matches manifest.schema.json, and the types are written from it.",
+)

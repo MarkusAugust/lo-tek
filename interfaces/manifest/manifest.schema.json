@@ -32,461 +32,381 @@
       "type": "object",
       "description": "Every <lt-…> element, with the attributes the component reads.",
       "additionalProperties": {
-        "type": "object",
-        "required": ["link", "attributes"],
-        "properties": {
-          "link": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "description": "What the element does, in one or two sentences."
-          },
-          "attributes": {
-            "type": "object",
-            "additionalProperties": {
-              "$ref": "#/$defs/elementAttribute"
-            }
-          },
-          "parts": {
-            "type": "object",
-            "description": "The parts the element finds in the markup the renderer writes, with the selector it looks for. An empty object when the element creates its own nodes.",
-            "additionalProperties": {
-              "$ref": "#/$defs/part"
-            }
-          },
-          "name": {
-            "$ref": "#/$defs/name"
-          },
-          "texts": {
-            "type": "object",
-            "description": "The texts the element writes itself, by their name in DEFAULT_TEXTS.",
-            "additionalProperties": {
-              "type": "object",
-              "required": ["text", "replacedBy"],
-              "properties": {
-                "text": {
-                  "type": "string"
-                },
-                "replacedBy": {
-                  "type": "array",
-                  "description": "The attributes that replace the text. Any one of them is enough.",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "events": {
-            "type": "object",
-            "description": "The events the element dispatches. All of them bubble and cross shadow boundaries. Absent when the element dispatches nothing.",
-            "additionalProperties": {
-              "type": "object",
-              "properties": {
-                "detail": {
-                  "type": "object",
-                  "description": "The fields in event.detail with their types. Absent when the event has none.",
-                  "additionalProperties": {
-                    "enum": ["boolean", "string", "number"]
-                  }
-                }
-              }
-            }
-          },
-          "removed": {
-            "type": "object",
-            "description": "Attributes removed from the element, with what applies instead. lotek check reports them with the text, so a template from an older version is told what to write.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": false
+        "$ref": "#/$defs/element"
       }
     },
     "classes": {
       "type": "object",
       "description": "Every lt- class, with the component it belongs to and the attributes it takes.",
       "additionalProperties": {
-        "type": "object",
-        "required": [
-          "component",
-          "title",
-          "description",
-          "link",
-          "content",
-          "attributes"
-        ],
-        "properties": {
-          "component": {
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "link": {
-            "type": "string"
-          },
-          "content": {
-            "description": "What the element with the class takes as content, in the same words as the parts: \"text\" is text, \"free\" is anything, \"parts\" is only the parts, and \"none\" is no text, like a control.",
-            "enum": ["text", "free", "parts", "none"]
-          },
-          "partOf": {
-            "type": "string",
-            "description": "The class this one is part of, when it is only a part of another component's markup, like lt-card__title in lt-card. The parent has a part that matches it."
-          },
-          "name": {
-            "$ref": "#/$defs/name"
-          },
-          "texts": {
-            "type": "array",
-            "description": "The texts the stylesheet shows on the element with the class and the attribute, and the CSS variable that replaces each.",
-            "items": {
-              "type": "object",
-              "required": ["variable", "text", "attribute"],
-              "properties": {
-                "variable": {
-                  "type": "string"
-                },
-                "text": {
-                  "type": "string"
-                },
-                "attribute": {
-                  "type": "string"
-                },
-                "value": {
-                  "type": "string"
-                },
-                "unless": {
-                  "type": "array",
-                  "description": "Attributes that keep the text from showing.",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "siblingsBefore": {
-                  "const": true,
-                  "description": "The attribute is on a child of the element with the class, and the text is shown on the children before it, as \"Completed \" is on the steps before the one with aria-current=\"step\" in lt-steps."
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "tags": {
-            "type": "array",
-            "description": "The tags the class can be on, the first being the one to write. lotek check reports the class on any other. Added after schemaVersion 1, so a fragment from lotek takeover written before it has none.",
-            "minItems": 1,
-            "items": {
-              "type": "object",
-              "required": ["tag"],
-              "properties": {
-                "tag": {
-                  "type": "string",
-                  "description": "The tag name, or * for any."
-                },
-                "attributes": {
-                  "type": "object",
-                  "description": "Attributes the tag must have, with the values it may have there, as type on an input.",
-                  "additionalProperties": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "requires": {
-                  "type": "array",
-                  "description": "Attributes the tag must have, with a value of the template's own, as href on a link.",
-                  "minItems": 1,
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "parts": {
-            "type": "object",
-            "description": "The parts the markup consists of, for the classes with a fixed structure, with the selector relative to the element with the class. Absent for the classes without one.",
-            "additionalProperties": {
-              "$ref": "#/$defs/part"
-            }
-          },
-          "attributes": {
-            "type": "object",
-            "additionalProperties": {
-              "description": "An attribute with a closed list of values, or a flag, which is on when it is present.",
-              "oneOf": [
-                {
-                  "type": "object",
-                  "required": ["values"],
-                  "properties": {
-                    "values": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "default": {
-                      "description": "The value its absence means.",
-                      "type": "string"
-                    },
-                    "description": {
-                      "type": "string",
-                      "description": "What the attribute does, taken from the option in the builder function that writes it."
-                    }
-                  },
-                  "additionalProperties": false
-                },
-                {
-                  "type": "object",
-                  "required": ["flag"],
-                  "properties": {
-                    "flag": {
-                      "const": true
-                    },
-                    "description": {
-                      "type": "string",
-                      "description": "What the attribute does, taken from the option in the builder function that writes it."
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              ]
-            }
-          }
-        },
-        "additionalProperties": false
+        "$ref": "#/$defs/manifestClass"
       }
     },
     "builders": {
       "type": "array",
       "description": "Every builder function in lt, with its options and the shape of its result.",
       "items": {
-        "type": "object",
-        "required": ["name", "options", "returns"],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string",
-            "description": "The comment on the builder function, without the code examples and without advice for React: what it is for and what the template has to know. Paragraphs are separated by an empty line. Added after schemaVersion 1 was set, so an older manifest does not have it."
-          },
-          "example": {
-            "type": "string",
-            "description": "The code examples in the comment, in TypeScript."
-          },
-          "docs": {
-            "type": "string",
-            "format": "uri",
-            "description": "The page the builder function is documented on."
-          },
-          "parts": {
-            "type": "object",
-            "description": "Which part of a frame component each set in the result fills, as field.control fills the control of lt-field. The part's selector in elements is what the set may go on. A set that fills no part is left out.",
-            "additionalProperties": {
-              "type": "object",
-              "required": ["element", "part"],
-              "properties": {
-                "element": {
-                  "type": "string"
-                },
-                "part": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "options": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["name", "required", "type"],
-              "properties": {
-                "name": {
-                  "type": "string"
-                },
-                "required": {
-                  "type": "boolean"
-                },
-                "type": {
-                  "$ref": "#/$defs/optionType"
-                },
-                "description": {
-                  "type": "string",
-                  "description": "What the option does, taken from the comment on the option in the type."
-                },
-                "default": {
-                  "type": "string",
-                  "description": "For an option with a closed list: the value that gives the same answer as leaving the option out, read from the answers. The description says the same."
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "returns": {
-            "$ref": "#/$defs/returns"
-          },
-          "classes": {
-            "type": "object",
-            "description": "The classes the builder function carries for the parts the template writes itself, as lt.card.title in TypeScript: the name on the function and the class. Only the parts no set of the function's own answer writes.",
-            "additionalProperties": {
-              "type": "string"
-            }
-          },
-          "anatomy": {
-            "type": "object",
-            "description": "The markup the builder function belongs in: the elements, which attributes each takes from the builder functions, and the holes the template fills. One root, so the component is one box in a layout. Added after schemaVersion 1.",
-            "required": ["holes", "nodes"],
-            "properties": {
-              "holes": {
-                "type": "object",
-                "additionalProperties": {
-                  "$ref": "#/$defs/anatomyHoleDeclaration"
-                }
-              },
-              "options": {
-                "type": "object",
-                "description": "The options the panel does not show, and where each gets its value: a hole, the keys or the number of items in a group, or the tool.",
-                "additionalProperties": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": ["hole"],
-                      "properties": {
-                        "hole": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["repeat"],
-                      "properties": {
-                        "repeat": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["count"],
-                      "properties": {
-                        "count": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["tool"],
-                      "properties": {
-                        "tool": {
-                          "type": "string",
-                          "description": "What the tool does with the option."
-                        }
-                      },
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "object",
-                      "required": ["choice", "alternative"],
-                      "properties": {
-                        "choice": {
-                          "type": "string"
-                        },
-                        "alternative": {
-                          "type": "string"
-                        }
-                      },
-                      "additionalProperties": false
-                    }
-                  ]
-                }
-              },
-              "repeats": {
-                "type": "object",
-                "description": "The groups that repeat, with how few items each may have.",
-                "additionalProperties": {
-                  "type": "object",
-                  "required": ["min", "description"],
-                  "properties": {
-                    "min": {
-                      "type": "integer",
-                      "minimum": 0
-                    },
-                    "description": {
-                      "type": "string"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "nodes": {
-                "type": "array",
-                "minItems": 1,
-                "maxItems": 1,
-                "items": {
-                  "$ref": "#/$defs/anatomyChild"
-                }
-              },
-              "page": {
-                "type": "string",
-                "description": "The component belongs to the page, not inside another, with why. A design tool drops it only on the page. LO-TEK's own choice: lotek check leaves it alone."
-              }
-            },
-            "additionalProperties": false
-          },
-          "table": {
-            "description": "When the options act independently: the base set and what each option adds, derived from the results and checked against every builder case. Another language can build the builder function from it alone.",
-            "oneOf": [
-              {
-                "type": "object",
-                "required": ["kind", "table"],
-                "properties": {
-                  "kind": {
-                    "const": "attributes"
-                  },
-                  "table": {
-                    "$ref": "#/$defs/table"
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": ["kind", "fields"],
-                "properties": {
-                  "kind": {
-                    "const": "group"
-                  },
-                  "fields": {
-                    "type": "object",
-                    "additionalProperties": {
-                      "$ref": "#/$defs/table"
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "additionalProperties": false
+        "$ref": "#/$defs/builder"
       }
     },
     "tokens": {
+      "$ref": "#/$defs/manifestTokens"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "attribute": {
+      "description": "An attribute a component reads: a flag, a text, a number, or one of a closed list of values.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "enum": ["flag", "text", "number"]
+            },
+            "description": {
+              "type": "string",
+              "description": "What the attribute does."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["type", "values"],
+          "properties": {
+            "type": {
+              "const": "values"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": {
+              "type": "string",
+              "description": "What the attribute does."
+            }
+          }
+        }
+      ]
+    },
+    "part": {
+      "description": "A part of an element, or of the markup of a class, such as the control in <lt-field>. Without multiple the first one applies, and without optional the element needs the part.",
       "type": "object",
-      "description": "The tokens a stylesheet outside the package can build on. The colours are given as axes with what they are for, not as values, since a theme can have other values than LO-TEK's own.",
+      "required": ["selector", "description", "content"],
+      "properties": {
+        "selector": {
+          "type": "string",
+          "description": "The CSS selector the element finds the part with, as it is written in the code."
+        },
+        "description": {
+          "type": "string",
+          "description": "What the part is, and how the element recognises it."
+        },
+        "content": {
+          "description": "What the part takes: \"text\" is text and phrasing without interactive elements, \"free\" is anything, \"parts\" is only the other parts in the list, and \"none\" is no text: a control, like a <select> with its <option>s, or an element the component fills.",
+          "enum": ["text", "free", "parts", "none"]
+        },
+        "multiple": {
+          "const": true,
+          "description": "The part can appear more than once."
+        },
+        "unique": {
+          "const": true,
+          "description": "A second part of the same kind is an error, not ordinary content. Without the field the rest can be content, like the buttons in a panel. lotek check reports such a part when it appears more than once."
+        },
+        "optional": {
+          "const": true,
+          "description": "The element works without the part."
+        },
+        "stableId": {
+          "const": true,
+          "description": "The part needs an id from the server: the component never writes one."
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        }
+      },
+      "additionalProperties": false
+    },
+    "name": {
+      "type": "object",
+      "description": "A name LO-TEK demands where WAI-ARIA does not, or one the component gives itself. WAI-ARIA's own demands, by role, are in the core, and lotek check reports an element the markup gives no name (without-name).\n\nEach of them is held to the component by a contract in interfaces/scripts/accessibility/contracts.ts: a mutation that takes the name away must fail in the browsers, and lotek check must report it.",
+      "properties": {
+        "after": {
+          "type": "string",
+          "description": "The part the component points aria-labelledby at when the markup has neither aria-label nor aria-labelledby, such as the heading of a dialog. Then that part's name is enough."
+        },
+        "id": {
+          "const": true,
+          "description": "That part must have an id from the template: the component does not write one."
+        },
+        "component": {
+          "const": true,
+          "description": "The component names it itself, after what the other rules check, such as the list in a suggestion field after the label, and no rule judges its name in the markup."
+        }
+      },
+      "additionalProperties": false
+    },
+    "elementEvent": {
+      "description": "An event an element dispatches, such as dialog-toggle.",
+      "type": "object",
+      "properties": {
+        "detail": {
+          "type": "object",
+          "description": "The fields in event.detail with their types. Absent when the event has none.",
+          "additionalProperties": {
+            "enum": ["boolean", "string", "number"]
+          }
+        }
+      }
+    },
+    "defaultText": {
+      "description": "A text the element writes itself when nobody has given it another, from DEFAULT_TEXTS. lotek check warns when none of the attributes in replacedBy is there on a page in another language than the text's.",
+      "type": "object",
+      "required": ["text", "replacedBy"],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "replacedBy": {
+          "type": "array",
+          "description": "The attributes that replace the text. Any one of them is enough.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "element": {
+      "description": "An <lt-…> element, with the attributes the component reads.",
+      "type": "object",
+      "required": ["link", "attributes"],
+      "properties": {
+        "link": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "description": "What the element does, in one or two sentences."
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/attribute"
+          }
+        },
+        "parts": {
+          "type": "object",
+          "description": "The parts the element finds in the markup the renderer writes, with the selector it looks for. An empty object when the element creates its own nodes.",
+          "additionalProperties": {
+            "$ref": "#/$defs/part"
+          }
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "LO-TEK demands a name for the element itself."
+        },
+        "texts": {
+          "type": "object",
+          "description": "The texts the element writes itself, by their name in DEFAULT_TEXTS.",
+          "additionalProperties": {
+            "$ref": "#/$defs/defaultText"
+          }
+        },
+        "events": {
+          "type": "object",
+          "description": "The events the element dispatches. All of them bubble and cross shadow boundaries. Absent when the element dispatches nothing.",
+          "additionalProperties": {
+            "$ref": "#/$defs/elementEvent"
+          }
+        },
+        "removed": {
+          "type": "object",
+          "description": "Attributes removed from the element, with what applies instead. lotek check reports them with the text, so a template from an older version is told what to write.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cssText": {
+      "description": "A text the stylesheet shows on an element with the class and attribute, with value when the selector requires one, and none of the attributes in unless. variable is the CSS variable that replaces it.",
+      "type": "object",
+      "required": ["variable", "text", "attribute"],
+      "properties": {
+        "variable": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "attribute": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        },
+        "unless": {
+          "type": "array",
+          "description": "Attributes that keep the text from showing.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "siblingsBefore": {
+          "const": true,
+          "description": "The attribute is on a child of the element with the class, and the text is shown on the children before it, as \"Completed \" is on the steps before the one with aria-current=\"step\" in lt-steps."
+        }
+      },
+      "additionalProperties": false
+    },
+    "tag": {
+      "description": "A tag a class can be on.",
+      "type": "object",
+      "required": ["tag"],
+      "properties": {
+        "tag": {
+          "type": "string",
+          "description": "The tag name, or * for any."
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Attributes the tag must have, with the values it may have there, as type on an input.",
+          "additionalProperties": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "requires": {
+          "type": "array",
+          "description": "Attributes the tag must have, with a value of the template's own, as href on a link.",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifestClassAttribute": {
+      "description": "An attribute a class takes, such as data-variant on lt-button: one with a closed list of values, or a flag, which is on when it is present, such as data-interactive on lt-card. The stylesheet only asks whether a flag exists, so it has no values here; in classes.ts it has an empty list.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["values"],
+          "properties": {
+            "values": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "default": {
+              "description": "The value its absence means.",
+              "type": "string"
+            },
+            "description": {
+              "type": "string",
+              "description": "What the attribute does, taken from the option in the builder function that writes it."
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["flag"],
+          "properties": {
+            "flag": {
+              "const": true
+            },
+            "description": {
+              "type": "string",
+              "description": "What the attribute does, taken from the option in the builder function that writes it."
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "manifestClass": {
+      "description": "An lt- class, with the component it belongs to and the attributes it takes.",
+      "type": "object",
+      "required": [
+        "component",
+        "title",
+        "description",
+        "link",
+        "content",
+        "attributes"
+      ],
+      "properties": {
+        "component": {
+          "type": "string",
+          "description": "The path of the component page, such as button."
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "content": {
+          "description": "What the element with the class takes as content, in the same words as the parts: \"text\" is text, \"free\" is anything, \"parts\" is only the parts, and \"none\" is no text, like a control.",
+          "enum": ["text", "free", "parts", "none"]
+        },
+        "partOf": {
+          "type": "string",
+          "description": "The class this one is part of, when it is only a part of another component's markup, like lt-card__title in lt-card. The parent has a part that matches it."
+        },
+        "name": {
+          "$ref": "#/$defs/name",
+          "description": "LO-TEK demands a name for the element with the class."
+        },
+        "texts": {
+          "type": "array",
+          "description": "The texts the stylesheet shows on the element with the class and the attribute, and the CSS variable that replaces each.",
+          "items": {
+            "$ref": "#/$defs/cssText"
+          }
+        },
+        "tags": {
+          "type": "array",
+          "description": "The tags the class can be on, the first being the one to write. lotek check reports the class on any other. Added after schemaVersion 1, so a fragment from lotek takeover written before it has none.",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/tag"
+          }
+        },
+        "parts": {
+          "type": "object",
+          "description": "The parts the markup consists of, for the classes with a fixed structure, with the selector relative to the element with the class. Absent for the classes without one.",
+          "additionalProperties": {
+            "$ref": "#/$defs/part"
+          }
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/manifestClassAttribute"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifestTokens": {
+      "type": "object",
+      "description": "The tokens a stylesheet outside the package can build on. The colours are given as axes with what they are for, not as values, since a theme can have other values than LO-TEK's own. components is the component variables per component, with the fallback in the stylesheet as the value.",
       "required": [
         "spacing",
         "breakpoints",
@@ -564,47 +484,9 @@
         }
       },
       "additionalProperties": false
-    }
-  },
-  "additionalProperties": false,
-  "$defs": {
-    "elementAttribute": {
-      "oneOf": [
-        {
-          "type": "object",
-          "required": ["type"],
-          "properties": {
-            "type": {
-              "enum": ["flag", "text", "number"]
-            },
-            "description": {
-              "type": "string",
-              "description": "What the attribute does."
-            }
-          }
-        },
-        {
-          "type": "object",
-          "required": ["type", "values"],
-          "properties": {
-            "type": {
-              "const": "values"
-            },
-            "values": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            "description": {
-              "type": "string",
-              "description": "What the attribute does."
-            }
-          }
-        }
-      ]
     },
-    "optionType": {
+    "builderOptionType": {
+      "description": "What an option of a builder function takes.",
       "oneOf": [
         {
           "type": "object",
@@ -632,7 +514,8 @@
         }
       ]
     },
-    "returns": {
+    "builderReturns": {
+      "description": "The shape of what a builder function returns.",
       "oneOf": [
         {
           "type": "object",
@@ -672,7 +555,7 @@
               "const": "list"
             },
             "of": {
-              "$ref": "#/$defs/returns"
+              "$ref": "#/$defs/builderReturns"
             },
             "optional": {
               "type": "boolean"
@@ -689,7 +572,7 @@
             "fields": {
               "type": "object",
               "additionalProperties": {
-                "$ref": "#/$defs/returns"
+                "$ref": "#/$defs/builderReturns"
               }
             },
             "optional": {
@@ -699,7 +582,7 @@
         }
       ]
     },
-    "attributes": {
+    "tableAttributes": {
       "type": "object",
       "description": "Attribute name to value. Empty text is a boolean attribute that is on, null removes the attribute, and {name} is the value of the option with that name.",
       "additionalProperties": {
@@ -707,11 +590,12 @@
       }
     },
     "table": {
+      "description": "A base set and what each option adds to it.",
       "type": "object",
       "required": ["base", "options"],
       "properties": {
         "base": {
-          "$ref": "#/$defs/attributes"
+          "$ref": "#/$defs/tableAttributes"
         },
         "options": {
           "type": "object",
@@ -722,101 +606,176 @@
               "cases": {
                 "type": "object",
                 "additionalProperties": {
-                  "$ref": "#/$defs/attributes"
+                  "$ref": "#/$defs/tableAttributes"
                 }
               },
               "template": {
-                "$ref": "#/$defs/attributes"
+                "$ref": "#/$defs/tableAttributes"
               },
               "empty": {
-                "$ref": "#/$defs/attributes"
+                "$ref": "#/$defs/tableAttributes"
               }
             }
           }
         }
       }
     },
-    "part": {
+    "tables": {
+      "description": "When the options act independently: the base set and what each option adds, derived from the results and checked against every builder case. Another language can build the builder function from it alone.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["kind", "table"],
+          "properties": {
+            "kind": {
+              "const": "attributes"
+            },
+            "table": {
+              "$ref": "#/$defs/table"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["kind", "fields"],
+          "properties": {
+            "kind": {
+              "const": "group"
+            },
+            "fields": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/table"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "builder": {
+      "description": "A builder function in lt, such as button, with its options and the shape of its result.",
       "type": "object",
-      "required": ["selector", "description", "content"],
+      "required": ["name", "options", "returns"],
       "properties": {
-        "selector": {
-          "type": "string",
-          "description": "The CSS selector the element finds the part with, as it is written in the code."
+        "name": {
+          "type": "string"
         },
         "description": {
           "type": "string",
-          "description": "What the part is, and how the element recognises it."
+          "description": "The comment on the builder function, without the code examples and without advice for React: what it is for and what the template has to know. Paragraphs are separated by an empty line. Added after schemaVersion 1 was set, so an older manifest does not have it."
         },
-        "content": {
-          "description": "What the part contains: \"text\" is text, \"free\" is anything, \"parts\" is other parts in the list, and \"none\" is no text: a control, like a <select> with its <option>s, or an element the component fills.",
-          "enum": ["text", "free", "parts", "none"]
+        "example": {
+          "type": "string",
+          "description": "The code examples in the comment, in TypeScript."
         },
-        "multiple": {
-          "const": true,
-          "description": "The part can appear more than once."
+        "docs": {
+          "type": "string",
+          "format": "uri",
+          "description": "The page the builder function is documented on."
         },
-        "unique": {
-          "const": true,
-          "description": "A second part of the same kind is an error, not ordinary content. Without the field the rest can be content, like the buttons in a panel. lotek check reports such a part when it appears more than once."
+        "parts": {
+          "type": "object",
+          "description": "Which part of a frame component each set in the result fills, as field.control fills the control of lt-field. The part's selector in elements is what the set may go on. A set that fills no part is left out.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["element", "part"],
+            "properties": {
+              "element": {
+                "type": "string"
+              },
+              "part": {
+                "type": "string"
+              }
+            }
+          }
         },
-        "optional": {
-          "const": true,
-          "description": "The element works without the part."
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "required", "type"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean"
+              },
+              "type": {
+                "$ref": "#/$defs/builderOptionType"
+              },
+              "description": {
+                "type": "string",
+                "description": "What the option does, taken from the comment on the option in the type."
+              },
+              "default": {
+                "type": "string",
+                "description": "For an option with a closed list: the value that gives the same answer as leaving the option out, read from the answers. The description says the same."
+              }
+            },
+            "additionalProperties": false
+          }
         },
-        "stableId": {
-          "const": true,
-          "description": "The part needs an id from the server: the component never writes one."
+        "returns": {
+          "$ref": "#/$defs/builderReturns"
         },
-        "name": {
-          "$ref": "#/$defs/name"
+        "classes": {
+          "type": "object",
+          "description": "The classes the builder function carries for the parts the template writes itself, as lt.card.title in TypeScript: the name on the function and the class. Only the parts no set of the function's own answer writes.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "anatomy": {
+          "$ref": "#/$defs/anatomy"
+        },
+        "table": {
+          "$ref": "#/$defs/tables"
         }
       },
       "additionalProperties": false
     },
-    "name": {
+    "anatomyHole": {
       "type": "object",
-      "description": "A name LO-TEK demands where WAI-ARIA does not, or one the component gives itself. lotek check reports an element the markup gives no name.",
+      "description": "A place among the children of a node, or in an attribute, that the template fills, by the name it is declared under in the anatomy's holes.",
+      "required": ["hole"],
       "properties": {
-        "after": {
+        "hole": {
+          "type": "string"
+        },
+        "value": {
           "type": "string",
-          "description": "The part the component points aria-labelledby at when the markup has neither aria-label nor aria-labelledby."
-        },
-        "id": {
-          "const": true,
-          "description": "That part must have an id from the template: the component does not write one."
-        },
-        "component": {
-          "const": true,
-          "description": "The component names it itself, and no rule judges its name in the markup."
+          "description": "In an attribute with a flag hole: the value written when the flag is on, as \"true\" for aria-hidden. Without it, the attribute is bare."
         }
       },
       "additionalProperties": false
     },
     "anatomyHoleDeclaration": {
       "type": "object",
-      "description": "What a hole holds. A hole among the children has content: text takes text, free takes other elements too and is a drop target, and svg takes the drawing in an <svg>, written as it is. A hole in an attribute has kind; an empty id hole gets <instance id>-<hole>, and -<key> for each group in per; a flag is written bare when on and left out when off.",
+      "description": "What a hole holds, declared once for the anatomy, so a tool knows what to ask for and what may be dropped there. A hole among the children has content, and a hole in an attribute has kind.",
       "required": ["description"],
       "properties": {
         "description": {
           "type": "string"
         },
         "content": {
-          "enum": ["text", "free", "svg"]
+          "enum": ["text", "free", "svg"],
+          "description": "In the same words as the parts: text takes text, free takes other elements too and is a drop target, and svg takes the drawing in an <svg>, written as it is, as the paths of an icon."
         },
         "kind": {
-          "enum": ["text", "id", "name", "value", "url", "flag"]
+          "enum": ["text", "id", "name", "value", "url", "flag"],
+          "description": "What an attribute hole holds. An id hole the instance leaves empty gets <instance id>-<hole>, and -<key> for each group in per, so the same component gets the same ids on every render. A flag writes the attribute bare when it is on, and leaves it out when it is off."
         },
         "per": {
           "type": "array",
-          "description": "The groups the hole has a value for each item in, outermost first. Without it, one value for the whole component.",
+          "description": "The groups the hole has a value for each item in, outermost first, as a tab's title per tab, or a cell per row and column. Without it, the hole has one value for the whole component, as the shared name of a radio group.",
           "items": {
             "type": "string"
           }
         },
         "optional": {
           "const": true,
-          "description": "Empty, the attribute is left out. Without it, an empty attribute hole is an error."
+          "description": "Without a value, the attribute is left out. Without optional, an attribute hole without a value is an error. An empty text is a value."
         },
         "example": {
           "type": "string",
@@ -827,31 +786,18 @@
           "items": {
             "type": "string"
           },
-          "description": "The values an attribute hole can take."
+          "description": "The values an attribute hole can take, as \"true\" and \"false\" for aria-pressed."
         },
         "forbids": {
           "type": "array",
-          "description": "In a hole that takes other elements: what HTML forbids there, from the elements around it, each with why. A component that writes one of tags cannot be dropped here, and lotek check reports it in markup.",
+          "description": "In a hole that takes other elements: what HTML forbids there, from the elements around it, each with why. A component that writes one of tags cannot be dropped here, and lotek check reports it in markup. Written by the generator.",
           "items": {
-            "type": "object",
-            "required": ["tags", "why"],
-            "properties": {
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "why": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
+            "$ref": "#/$defs/anatomyForbidden"
           }
         },
         "only": {
           "type": "object",
-          "description": "In a hole that takes other elements: the components a design tool drops here, by builder function, where HTML allows more. LO-TEK's own choice, with why, for the tool only: lotek check leaves other valid HTML alone.",
+          "description": "In a hole that takes other elements: the components a design tool drops here, by builder function, where HTML allows more, as the buttons at the bottom of a dialog. LO-TEK's own choice, with why, for the tool only: lotek check leaves other valid HTML alone.",
           "required": ["builders", "why"],
           "properties": {
             "builders": {
@@ -870,37 +816,26 @@
       },
       "additionalProperties": false
     },
-    "anatomyHole": {
+    "anatomyForbidden": {
+      "description": "Elements HTML forbids in a hole, with why.",
       "type": "object",
-      "description": "A hole, by the name it is declared under.",
-      "required": ["hole"],
+      "required": ["tags", "why"],
       "properties": {
-        "hole": {
-          "type": "string"
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
-        "value": {
-          "type": "string",
-          "description": "In an attribute with a flag hole: the value written when the flag is on. Without it, the attribute is bare."
+        "why": {
+          "type": "string"
         }
       },
       "additionalProperties": false
     },
-    "anatomyChild": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/anatomyHole"
-        },
-        {
-          "$ref": "#/$defs/anatomyNode"
-        },
-        {
-          "$ref": "#/$defs/anatomyChoice"
-        }
-      ]
-    },
     "anatomyChoice": {
       "type": "object",
-      "description": "A place with alternatives the designer chooses between. The first is the one a tool creates. With repeat, each item in the group chooses for itself.",
+      "description": "A place with alternatives the designer chooses between, as a plain or a sortable column heading. The first is the one a tool creates. With repeat, each item in the group chooses for itself.",
       "required": ["name", "description", "oneOf"],
       "properties": {
         "name": {
@@ -922,9 +857,23 @@
       },
       "additionalProperties": false
     },
+    "anatomyChild": {
+      "description": "What can stand among the children of a node.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/anatomyHole"
+        },
+        {
+          "$ref": "#/$defs/anatomyNode"
+        },
+        {
+          "$ref": "#/$defs/anatomyChoice"
+        }
+      ]
+    },
     "anatomyNode": {
       "type": "object",
-      "description": "An element. from is where its attributes come from, in order: a builder function, a set in its answer, or a class the function carries. They merge in that order, a later value winning and class joined; then attributes are written over them. The first node that names a builder function calls it, as does a node with options for it: with the designer's settings first and the anatomy's options over them, so the fixed options win. The nodes inside use the same answer.",
+      "description": "One element in an anatomy.\n\nfrom is where its attributes come from, in order: a builder function (\"button\"), a set in its answer (\"field.control\"), or a class the function carries (\"checkbox.row\", in classes on the builder). The attributes merge in that order: a later value wins, class is joined, false and undefined are left out, and true and \"\" are written bare. Then attributes are written over them.\n\nThe first node that names a builder function calls it, as does a node with options for it, with what the designer set under settings and then options, so the fixed options win, and the nodes inside use the same answer; a node outside calls it anew. The anatomy's own builder function takes the instance's options and the bound ones, and is called where a node first uses it.",
       "required": ["tag"],
       "properties": {
         "tag": {
@@ -970,32 +919,32 @@
         },
         "options": {
           "type": "object",
-          "description": "Options for a builder function, by its name. The node calls the function anew with them, and they win over the designer's. A value can be a hole, read at the node's place.",
+          "description": "Options for a builder function, by its name, as { tableSort: { link: true } }. The node calls the function anew with them, even when a node above has called it, and they win over the designer's. A value can be a hole, read at the node's place, as the id of each glossary entry.",
           "additionalProperties": {
             "type": "object"
           }
         },
         "settings": {
           "type": "array",
-          "description": "The options of the builder functions the node calls that the designer sets here.",
+          "description": "The options of the builder functions the node calls that the designer sets here, as the direction of a sorted column. Requires a name.",
           "items": {
             "type": "string"
           }
         },
         "name": {
           "type": "string",
-          "description": "What a tool shows, and what the instance uses for parts, tag and settings. Unique in an anatomy."
+          "description": "The node's name: what a tool shows, and what the instance uses for its parts, tag and settings. Names are unique in an anatomy."
         },
         "description": {
           "type": "string"
         },
         "optional": {
           "const": true,
-          "description": "The component works without the node."
+          "description": "The component works without the node. Requires name."
         },
         "wrapper": {
           "const": true,
-          "description": "Optional, and the children stay when it is left out."
+          "description": "Optional, and the children stay when it is left out. Requires name."
         },
         "created": {
           "const": true,
@@ -1003,15 +952,126 @@
         },
         "requires": {
           "type": "string",
-          "description": "An optional node that can only be there with the named one."
+          "description": "An optional node that can only be there with the named one, as the subtitle with the header."
         },
         "when": {
           "type": "string",
-          "description": "The node is there exactly when this option of the anatomy's own builder function is on."
+          "description": "The node is there exactly when this option of the anatomy's own builder function is on, as the help text with help in lt.field()."
         },
         "repeat": {
           "type": "string",
-          "description": "The group the node is written once for each item of. Nodes in the same group repeat together, and a set that is a list gives each item its own."
+          "description": "The node is written once for each item in the group, as a tab. Nodes in the same group repeat together, and a set that is a list gives each item its own, as tabs.tabs."
+        }
+      },
+      "additionalProperties": false
+    },
+    "anatomyOption": {
+      "description": "Where an option of the anatomy's own builder function gets its value, so the tool knows not to show it in the panel: a hole, the keys or the number of items in a group, an alternative of a choice, or the tool itself, with what it does.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["hole"],
+          "properties": {
+            "hole": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["repeat"],
+          "properties": {
+            "repeat": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["count"],
+          "properties": {
+            "count": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["tool"],
+          "properties": {
+            "tool": {
+              "type": "string",
+              "description": "What the tool does with the option."
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["choice", "alternative"],
+          "properties": {
+            "choice": {
+              "type": "string"
+            },
+            "alternative": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "On exactly when the choice takes the alternative, as disabled with a disabled link."
+        }
+      ]
+    },
+    "anatomy": {
+      "type": "object",
+      "description": "The markup a builder function belongs in: the elements, which attributes each takes from the builder functions, and the holes the template fills. A design tool builds a component from it, and renderAnatomy() writes it. There is one root, so the component is one box in a layout. Added after schemaVersion 1.",
+      "required": ["holes", "nodes"],
+      "properties": {
+        "holes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/anatomyHoleDeclaration"
+          }
+        },
+        "options": {
+          "type": "object",
+          "description": "The options the panel does not show, and where each gets its value: a hole, the keys or the number of items in a group, or the tool.",
+          "additionalProperties": {
+            "$ref": "#/$defs/anatomyOption"
+          }
+        },
+        "repeats": {
+          "type": "object",
+          "description": "The groups that repeat, with how few items each may have.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["min", "description"],
+            "properties": {
+              "min": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "nodes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/anatomyChild"
+          }
+        },
+        "page": {
+          "type": "string",
+          "description": "The component belongs to the page, not inside another, as a skip link or a toast, with why. A design tool drops it only on the page. LO-TEK's own choice: lotek check leaves it alone."
         }
       },
       "additionalProperties": false

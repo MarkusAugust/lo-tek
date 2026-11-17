@@ -6,116 +6,56 @@
  * written from (`scripts/generate-manifest.ts`). The core and all the tools
  * read the manifest, not these files, so they are not part of the package's
  * API.
- */
-
-export type Attribute = (
-  | { type: "flag" | "text" | "number" }
-  | { type: "values"; values: readonly string[] }
-) & { description?: string }
-
-/**
- * A part of an element, such as the control in `<lt-field>`. `selector` is
- * the one the component finds the part with, relative to the element.
- * `content` is what the part takes: `text` is text and phrasing without
- * interactive elements, `free` free content, `parts` only the other parts,
- * and `none` no text: the part is a control, such as a `<select>` with its
- * `<option>` elements, or an element the component fills. Without `multiple`
- * the first one applies, and with `unique` another part of the same kind is
- * an error, not ordinary content. Without `optional` the element needs the
- * part.
- */
-export type Part = {
-  selector: string
-  description: string
-  content: "text" | "free" | "parts" | "none"
-  multiple?: true
-  /** Another part of the same kind is an error, not ordinary content. */
-  unique?: true
-  optional?: true
-  /** The part must have an id from the server; the component never writes one. */
-  stableId?: true
-  /** LO-TEK demands a name for the part. */
-  name?: Name
-}
-
-/**
- * A name LO-TEK demands where WAI-ARIA does not, or one the component gives
- * itself. WAI-ARIA's own demands, by role, are in the core, and `lotek check`
- * reports an element the markup gives no name (`without-name`).
  *
- * `after` is the part the component points `aria-labelledby` at when the
- * markup has neither `aria-label` nor `aria-labelledby`, such as the heading
- * of a dialog; then that part's name is enough. With `id` the part must have
- * an id from the template, since the component does not write one. With
- * `component` the component names it itself, after what the other rules
- * check, such as the list in a suggestion field after the label, and no
- * rule judges its name in the markup.
- *
- * Each of them is held to the component by a contract in
- * `interfaces/scripts/accessibility/contracts.ts`: a mutation that takes the name away
- * must fail in the browsers, and `lotek check` must report it.
+ * The shape of the manifest is written in `manifest/manifest.schema.json`,
+ * and `manifest.ts` next to this file is written from it. The vocabulary
+ * has the same shape, so its types are the manifest's, and only what
+ * differs is written here: a flag on a class.
  */
-export type Name = { after?: string; id?: true; component?: true }
 
-/**
- * An event an element dispatches, such as `dialog-toggle`. `detail` is the
- * fields in `event.detail` with their types, and is absent when the event
- * has none.
- */
-export type ElementEvent = {
-  detail?: Record<string, "boolean" | "string" | "number">
-}
+import type { Element, ManifestClass } from "./manifest.js"
 
-export type Element = {
-  link: string
-  description?: string
-  attributes: Record<string, Attribute>
-  /** Empty for the elements that create all of their content themselves. */
-  parts?: Record<string, Part>
-  events?: Record<string, ElementEvent>
-  /** LO-TEK demands a name for the element itself. */
-  name?: Name
-  /** The texts the element writes itself, by their name in `DEFAULT_TEXTS`. */
-  texts?: Record<string, DefaultText>
-  /** Attributes that have been removed, with what applies instead. */
-  removed?: Record<string, string>
-}
-
-/**
- * A text the element writes itself when nobody has given it another, from
- * `DEFAULT_TEXTS`. `replacedBy` is the attributes that replace it; any one
- * of them is enough, and `lotek check` warns when none is there on a page in
- * another language than the text's.
- */
-export type DefaultText = { text: string; replacedBy: readonly string[] }
-
-/**
- * A text the stylesheet shows on an element with the class and `attribute`,
- * with `value` when the selector requires one, and none of the attributes in
- * `unless`. With `siblingsBefore`,
- * the attribute is on a child of the element with the class, and the text
- * is shown on the children before it, as "Completed " is on the steps before
- * the one with `aria-current="step"` in `lt-steps`. `variable` is the CSS
- * variable that replaces it.
- */
-export type CssText = {
-  variable: string
-  text: string
-  attribute: string
-  value?: string
-  unless?: readonly string[]
-  siblingsBefore?: true
-}
+export type {
+  Anatomy,
+  AnatomyChild,
+  AnatomyChoice,
+  AnatomyForbidden,
+  AnatomyHole,
+  AnatomyHoleDeclaration,
+  AnatomyNode,
+  AnatomyOption,
+  Attribute,
+  Builder,
+  BuilderOptionType,
+  BuilderReturns,
+  CssText,
+  DefaultText,
+  Element,
+  ElementEvent,
+  Manifest,
+  ManifestClass,
+  ManifestClassAttribute,
+  ManifestTokens,
+  Name,
+  Part,
+  Table,
+  TableAttributes,
+  Tables,
+  Tag,
+} from "./manifest.js"
 
 /** The content of `elements.ts`: tag to element. */
 export type Elements = Record<string, Element>
 
 /**
- * An attribute a class takes, such as `data-variant` on `lt-button`.
+ * An attribute a class takes, as `classes.ts` has it, such as `data-variant`
+ * on `lt-button`.
  *
  * `flag` is an attribute that works by being present, such as
  * `data-interactive` on `lt-card`. The stylesheet only asks whether it
- * exists, so it has no values.
+ * exists, so its list of values is empty. In the manifest a flag has no
+ * list at all, see `ManifestClassAttribute`; the editors read `classes.ts`,
+ * where every attribute has one.
  */
 export type ClassAttribute = {
   values: readonly string[]
@@ -123,326 +63,10 @@ export type ClassAttribute = {
   flag?: true
 }
 
-/**
- * A tag a class can be on. `tag` is the tag name, or `*` for any.
- * `attributes` are the ones the tag must have, with the values it may have
- * there, as `type` on an input. `requires` are the ones it must have with a
- * value of the template's own, as `href` on a link.
- */
-export type Tag = {
-  tag: string
-  attributes?: Record<string, readonly string[]>
-  requires?: readonly string[]
-}
-
-export type ClassInfo = {
-  /** The path of the component page, such as `button`. */
-  component: string
-  title: string
-  description: string
-  link: string
-  /** What the element with the class takes as content, in the same words as the parts. */
-  content: Part["content"]
-  /**
-   * The class this one is part of, when it is only part of another
-   * component's markup, such as `lt-card__title` in `lt-card`. The parent has
-   * a part that matches it.
-   */
-  partOf?: string
-  /** The parts the markup consists of, for the classes with a fixed structure. */
-  parts?: Record<string, Part>
-  /** LO-TEK demands a name for the element with the class. */
-  name?: Name
-  /** The texts the stylesheet shows on it. */
-  texts?: readonly CssText[]
-  /** The tags the class can be on, the first being the one to write. */
-  tags?: readonly Tag[]
+/** A class as `classes.ts` has it: the manifest's, with the attributes above. */
+export type ClassInfo = Omit<ManifestClass, "attributes"> & {
   attributes: Record<string, ClassAttribute>
 }
 
 /** The content of `classes.ts`: class name to class. */
 export type Classes = Record<string, ClassInfo>
-
-/**
- * The tokens in the manifest: what a stylesheet outside the package can
- * build on. The colours are listed as axes with what they are for, not as
- * values, since a theme can have values other than LO-TEK's defaults.
- * `components` is the component variables per component, with the fallback
- * in the stylesheet as the value.
- */
-export type ManifestTokens = {
-  /** The spacing scale, name to value. */
-  spacing: Record<string, string>
-  breakpoints: Record<string, string>
-  containers: Record<string, string>
-  colors: {
-    /** The families, with what each is for. */
-    families: Record<string, string>
-    /** The roles as they are written in CSS, with what each is for. */
-    roles: Record<string, string>
-    /** The layers only the neutral family has. */
-    layers: Record<string, string>
-    /** Every `--lt-color-*` name the package ships. */
-    tokens: readonly string[]
-  }
-  /** Component to variable name to default value. */
-  components: Record<string, Record<string, string>>
-}
-
-/** What an option of a builder function takes. */
-export type BuilderOptionType =
-  | { kind: "values"; values: readonly string[] }
-  | { kind: "flag" | "text" | "number" | "textList" }
-
-/** The shape of what a builder function returns. */
-export type BuilderReturns = { optional?: boolean } & (
-  | { kind: "attributes" | "text" }
-  | { kind: "values"; values: readonly string[] }
-  | { kind: "list"; of: BuilderReturns }
-  | { kind: "group"; fields: Record<string, BuilderReturns> }
-)
-
-/**
- * A builder function in `lt`, such as `button`, with its options and the
- * shape of its result. `table`, which the generator behind the Kotlin
- * version uses, is left out here.
- */
-export type Builder = {
-  name: string
-  /**
-   * The comment on the function, without the code examples. Missing in a
-   * manifest from before 0.40, where the schema version was already 1.
-   */
-  description?: string
-  /** The code examples in the comment, in TypeScript. */
-  example?: string
-  /** The page the function is documented on. */
-  docs?: string
-  /**
-   * Which part of a frame component each set in the result fills, as
-   * `field.control` fills the control of `<lt-field>`. A set that fills no
-   * part is left out.
-   */
-  parts?: Record<string, { element: string; part: string }>
-  options: {
-    name: string
-    required: boolean
-    type: BuilderOptionType
-    description?: string
-    /** The value that gives the same answer as leaving the option out. */
-    default?: string
-  }[]
-  returns: BuilderReturns
-  /**
-   * The classes for the parts the template writes itself, as `lt.card.title`:
-   * the name on the function and the class. Only on the builder functions
-   * that have one.
-   */
-  classes?: Record<string, string>
-  /** The markup the builder function belongs in. See `Anatomy`. */
-  anatomy?: Anatomy
-}
-
-/**
- * A place among the children of a node that the template fills, by the
- * name it is declared under in `Anatomy.holes`.
- */
-export type AnatomyHole = {
-  hole: string
-  /** In an attribute with a flag hole: the value written when the flag is on, as `"true"` for `aria-hidden`. Without it, the attribute is bare. */
-  value?: string
-}
-
-/**
- * What a hole holds, declared once for the anatomy, so a tool knows what
- * to ask for and what may be dropped there.
- *
- * A hole among the children has `content`, in the same words as the
- * manifest's parts: `text` takes text, `free` takes other elements too and
- * is a drop target, and `svg` takes the drawing in an `<svg>`, written as
- * it is, as the paths of an icon. A hole in an attribute has `kind`.
- */
-export type AnatomyHoleDeclaration = {
-  description: string
-  content?: "text" | "free" | "svg"
-  /**
-   * What an attribute hole holds. An `id` hole the instance leaves empty
-   * gets `<instance id>-<hole>`, and `-<key>` for each group in `per`, so
-   * the same component gets the same ids on every render. A `flag` writes
-   * the attribute bare when it is on, and leaves it out when it is off.
-   */
-  kind?: "text" | "id" | "name" | "value" | "url" | "flag"
-  /**
-   * The groups the hole has a value for each item in, outermost first, as
-   * a tab's title per `tab`, or a cell per `row` and `column`. Without it,
-   * the hole has one value for the whole component, as the shared `name`
-   * of a radio group.
-   */
-  per?: readonly string[]
-  /**
-   * Without a value, the attribute is left out. Without `optional`, an
-   * attribute hole without a value is an error. An empty text is a value.
-   */
-  optional?: true
-  /** What a tool fills in on a new component, so it is correct as created. */
-  example?: string
-  /** The values an attribute hole can take, as `"true"` and `"false"` for `aria-pressed`. */
-  values?: readonly string[]
-  /**
-   * In a hole that takes other elements: what HTML forbids there, from the
-   * elements around it, each with why. A component that writes one of
-   * `tags` cannot be dropped here, and `lotek check` reports it in markup.
-   * Written by the generator.
-   */
-  forbids?: readonly AnatomyForbidden[]
-  /**
-   * In a hole that takes other elements: the components a design tool
-   * drops here, by builder function, where HTML allows more, as the
-   * buttons at the bottom of a dialog. LO-TEK's own choice, with why, for
-   * the tool only: `lotek check` leaves other valid HTML alone.
-   */
-  only?: { builders: readonly string[]; why: string }
-}
-
-/** Elements HTML forbids in a hole, with why. */
-export type AnatomyForbidden = { tags: readonly string[]; why: string }
-
-/**
- * A place with alternatives the designer chooses between, as a plain or a
- * sortable column heading. The first is the one a tool creates. With
- * `repeat`, each item in the group chooses for itself.
- */
-export type AnatomyChoice = {
-  name: string
-  description: string
-  oneOf: Record<string, AnatomyNode>
-  repeat?: string
-}
-
-/** What can stand among the children of a node. */
-export type AnatomyChild = AnatomyNode | AnatomyHole | AnatomyChoice
-
-/**
- * One element in an anatomy.
- *
- * `from` is where its attributes come from, in order: a builder function
- * (`"button"`), a set in its answer (`"field.control"`), or a class the
- * function carries (`"checkbox.row"`, in `classes` on the builder). The
- * attributes merge in that order: a later value wins, `class` is joined,
- * `false` and `undefined` are left out, and `true` and `""` are written bare. Then
- * `attributes` are written over them.
- *
- * The first node that names a builder function calls it, as does a node
- * with `options` for it, with what the designer set under `settings` and
- * then `options`, and the nodes inside use the same answer; a node outside
- * calls it anew. The anatomy's own builder function takes the instance's
- * options and the bound ones, and is called where a node first uses it.
- */
-export type AnatomyNode = {
-  /** The tag, or the tags to choose from, the first being the one to write. */
-  tag: string | readonly string[]
-  from?: readonly string[]
-  /** Attributes no builder function writes: a fixed value, or a hole. */
-  attributes?: Record<string, string | AnatomyHole>
-  children?: readonly AnatomyChild[]
-  /**
-   * Options for a builder function, by its name, as `{ tableSort: { link:
-   * true } }`. The node calls the function anew with them, even when a node
-   * above has called it, and they win over the designer's. A value can be a
-   * hole, read at the node's place, as the id of each glossary entry.
-   */
-  options?: Record<string, Record<string, unknown | AnatomyHole>>
-  /**
-   * The options of the builder functions the node calls that the designer
-   * sets here, as the direction of a sorted column. Requires a name.
-   */
-  settings?: readonly string[]
-  /**
-   * The node's name: what a tool shows, and what the instance uses for its
-   * parts, tag and settings. Names are unique in an anatomy.
-   */
-  name?: string
-  description?: string
-  /** The component works without the node. Requires `name`. */
-  optional?: true
-  /** Optional, and the children stay when it is left out. Requires `name`. */
-  wrapper?: true
-  /** An optional node that is there when a tool creates the component. */
-  created?: true
-  /** An optional node that can only be there with the named one, as the subtitle with the header. */
-  requires?: string
-  /**
-   * The node is there exactly when this option of the anatomy's own builder
-   * function is on, as the help text with `help` in `lt.field()`.
-   */
-  when?: string
-  /**
-   * The node is written once for each item in the group, as a tab. Nodes in
-   * the same group repeat together, and a set that is a list gives each
-   * item its own, as `tabs.tabs`.
-   */
-  repeat?: string
-}
-
-/**
- * Where an option of the anatomy's own builder function gets its value,
- * so the tool knows not to show it in the panel: a hole, the keys or the
- * number of items in a group, an alternative of a choice, or the tool
- * itself, with what it does.
- */
-export type AnatomyOption =
-  | { hole: string }
-  | { repeat: string }
-  | { count: string }
-  | { tool: string }
-  /** On exactly when the choice takes the alternative, as `disabled` with a disabled link. */
-  | { choice: string; alternative: string }
-
-/**
- * The markup a builder function belongs in: the elements, which attributes
- * each takes from the builder functions, and the holes the template fills.
- * A design tool builds a component from it, and `renderAnatomy()` writes it.
- * There is one root, so the component is one box in a layout.
- */
-export type Anatomy = {
-  holes: Record<string, AnatomyHoleDeclaration>
-  /**
-   * The component belongs to the page, not inside another, as a skip link
-   * or a toast, with why. A design tool drops it only on the page. LO-TEK's
-   * own choice: `lotek check` leaves it alone.
-   */
-  page?: string
-  /** The options the panel does not show, and where each gets its value. */
-  options?: Record<string, AnatomyOption>
-  /** The groups that repeat, with how few items each may have. */
-  repeats?: Record<string, { min: number; description: string }>
-  nodes: readonly [AnatomyChild]
-}
-
-/**
- * The shape of `manifest.json`, as `manifest.schema.json` describes it. The
- * elements are the same as in `elements.ts`. A class attribute in the
- * manifest is either a list of values or a flag, and a flag has no values,
- * unlike `classes.ts`, where the flag has an empty list.
- */
-export type Manifest = {
-  schemaVersion: number
-  version: string
-  elements: Elements
-  tokens: ManifestTokens
-  builders: Builder[]
-  classes: Record<
-    string,
-    Omit<ClassInfo, "attributes"> & {
-      attributes: Record<
-        string,
-        {
-          values?: readonly string[]
-          default?: string
-          flag?: true
-          description?: string
-        }
-      >
-    }
-  >
-}

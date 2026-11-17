@@ -78,6 +78,11 @@ import type {
   Classes,
   Elements,
   Manifest,
+  ManifestClass,
+  ManifestClassAttribute,
+  Table,
+  TableAttributes,
+  Tables,
 } from "../src/vocabulary/types.js"
 import {
   type BuilderFunction as Base,
@@ -359,16 +364,8 @@ function buildCases(
  * `{ "aria-labelledby": "{titleId}" }` in `dialog`. A builder function that
  * returns several sets, such as `dialog` and `popover`, gets one table per set.
  */
-type Attributes = Record<string, string | null>
-type TableOption = {
-  cases: Record<string, Attributes>
-  template?: Attributes
-  empty?: Attributes
-}
-type Table = { base: Attributes; options: Record<string, TableOption> }
-type Tables =
-  | { kind: "attributes"; table: Table }
-  | { kind: "group"; fields: Record<string, Table> }
+type Attributes = TableAttributes
+type TableOption = Table["options"][string]
 
 const asText = (values: Record<string, unknown>): Record<string, string> =>
   Object.fromEntries(
@@ -817,8 +814,8 @@ function classEntriesOf(
   }
   const withDescriptions = (
     className: string,
-    attributes: Record<string, object>,
-  ) =>
+    attributes: Record<string, ManifestClassAttribute>,
+  ): Record<string, ManifestClassAttribute> =>
     Object.fromEntries(
       Object.entries(attributes).map(([attribute, value]) => {
         const description = descriptions.get(`${className} ${attribute}`)
@@ -827,7 +824,7 @@ function classEntriesOf(
     )
 
   return Object.fromEntries(
-    Object.entries(classes).map(([name, info]) => [
+    Object.entries(classes).map(([name, info]): [string, ManifestClass] => [
       name,
       {
         ...info,
@@ -835,15 +832,17 @@ function classEntriesOf(
           name,
           // The flags, such as `data-interactive` on `lt-card`, are in
           // `classes.ts` with an empty value list, since the editors read that
-          // file. Here a flag has no values, see `types.ts`. They are derived
+          // file. Here a flag has no values, see the schema. They are derived
           // from the builder function each time the vocabulary is written, see
           // `flagsFor` in builder-functions.ts, so a flag that is gone from the
           // function is gone here too.
           Object.fromEntries(
-            Object.entries(info.attributes).map(([attribute, value]) => [
-              attribute,
-              value.flag ? { flag: true } : value,
-            ]),
+            Object.entries(info.attributes).map(
+              ([attribute, value]): [string, ManifestClassAttribute] => [
+                attribute,
+                value.flag ? { flag: true } : value,
+              ],
+            ),
           ),
         ),
       },
@@ -1034,7 +1033,7 @@ const writing = (base: AnatomyInstance, place: NodePlace): AnatomyInstance => ({
 })
 /** The anatomy cases of every builder function with an anatomy. */
 function anatomyCasesOf(
-  manifest: unknown,
+  manifest: Manifest,
   builderFunctions: BuilderFunction[],
 ): AnatomyCase[] {
   const anatomyCases: AnatomyCase[] = []
@@ -1068,16 +1067,11 @@ function anatomyCasesOf(
           ...writing(base, place),
           tags: { [node.name as string]: tag },
         })
-        const first = renderAnatomy(
-          manifest as unknown as Manifest,
-          b.name,
-          as(node.tag[0]),
-        )
+        const first = renderAnatomy(manifest, b.name, as(node.tag[0]))
         for (const tag of node.tag) {
           if (
             tag !== node.tag[0] &&
-            renderAnatomy(manifest as unknown as Manifest, b.name, as(tag)) ===
-              first
+            renderAnatomy(manifest, b.name, as(tag)) === first
           )
             throw new Error(
               `anatomy-cases: ${b.name} as <${tag}> writes what <${node.tag[0]}> does, so ${node.name} is not written.`,
@@ -1124,7 +1118,7 @@ function anatomyCasesOf(
         anatomyCases.push({
           builder: b.name,
           ...m,
-          expected: renderAnatomy(manifest as unknown as Manifest, b.name, {
+          expected: renderAnatomy(manifest, b.name, {
             ...m.instance,
             ...(m.annotate
               ? {
@@ -1149,7 +1143,7 @@ function anatomyCasesOf(
  * other elements, and in each of those again inside every hole the host
  * may stand in, so a path of two is answered too.
  */
-function dropsOf(manifest: unknown, builderFunctions: BuilderFunction[]) {
+function dropsOf(manifest: Manifest, builderFunctions: BuilderFunction[]) {
   const freeHoles = builderFunctions.flatMap((b) =>
     Object.entries(b.anatomy?.holes ?? {})
       .filter(([, hole]) => hole.content === "free")
@@ -1162,7 +1156,7 @@ function dropsOf(manifest: unknown, builderFunctions: BuilderFunction[]) {
         // Only a host that may itself stand in the outer hole.
         .filter(
           (inner) =>
-            canDrop(manifest as unknown as Manifest, inner.builder, [
+            canDrop(manifest, inner.builder, [
               { builder: outer.builder, hole: outer.hole },
             ]).ok,
         )
@@ -1178,7 +1172,7 @@ function dropsOf(manifest: unknown, builderFunctions: BuilderFunction[]) {
       .map((b) => ({
         component: b.name,
         path,
-        answer: canDrop(manifest as unknown as Manifest, b.name, path),
+        answer: canDrop(manifest, b.name, path),
       })),
   )
 }
@@ -1191,7 +1185,7 @@ export function files(input: Input = fromPackage()): Record<string, string> {
   const builderFunctions: BuilderFunction[] = structuredClone(input.builders)
   const cases = buildCases(builderFunctions, input.lt)
   fillIn(builderFunctions, cases, input)
-  const manifest = {
+  const manifest: Manifest = {
     $schema: "./manifest.schema.json",
     schemaVersion: SCHEMA_VERSION,
     version,
