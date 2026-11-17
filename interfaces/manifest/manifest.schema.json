@@ -539,67 +539,25 @@
             "additionalProperties": false
           },
           {
+            "$ref": "#/$defs/anatomyNode"
+          },
+          {
             "type": "object",
-            "description": "An element. from is where its attributes come from, in order: a builder function, a set in its answer, or a class on it.",
-            "required": ["tag"],
+            "description": "A place with alternatives the designer chooses between. The first is the one a tool creates. With repeat, each item in the group chooses for itself.",
+            "required": ["name", "oneOf"],
             "properties": {
-              "tag": {
-                "description": "The tag, or the tags to choose from, the first being the one to write.",
-                "oneOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              },
-              "from": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "attributes": {
-                "type": "object",
-                "description": "Attributes no builder function writes: a fixed value, or a hole the template fills. An id hole and the idref holes with the same name get the same value.",
-                "additionalProperties": {
-                  "oneOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/anatomyAttributeHole"
-                    }
-                  ]
-                }
-              },
-              "children": {
-                "$ref": "#/$defs/anatomyChildren"
-              },
               "name": {
-                "type": "string",
-                "description": "The name a tool uses for an optional node."
-              },
-              "optional": {
-                "const": true,
-                "description": "The component works without the node."
-              },
-              "wrapper": {
-                "const": true,
-                "description": "Optional, and the children stay when it is left out."
-              },
-              "created": {
-                "const": true,
-                "description": "An optional node that is there when a tool creates the component."
+                "type": "string"
               },
               "repeat": {
-                "type": "string",
-                "description": "The group the node is written once for each item of. Nodes in the same group repeat together, and a set that is a list gives each item its own."
+                "type": "string"
+              },
+              "oneOf": {
+                "type": "object",
+                "minProperties": 2,
+                "additionalProperties": {
+                  "$ref": "#/$defs/anatomyNode"
+                }
               }
             },
             "additionalProperties": false
@@ -828,6 +786,79 @@
         "component": {
           "const": true,
           "description": "The component names it itself, and no rule judges its name in the markup."
+        }
+      },
+      "additionalProperties": false
+    },
+    "anatomyNode": {
+      "type": "object",
+      "description": "An element. from is where its attributes come from, in order: a builder function, a set in its answer, or a class on it.",
+      "required": ["tag"],
+      "properties": {
+        "tag": {
+          "description": "The tag, or the tags to choose from, the first being the one to write.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Attributes no builder function writes: a fixed value, or a hole the template fills. An id hole and the idref holes with the same name get the same value.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/anatomyAttributeHole"
+              }
+            ]
+          }
+        },
+        "children": {
+          "$ref": "#/$defs/anatomyChildren"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name a tool uses for an optional node."
+        },
+        "optional": {
+          "const": true,
+          "description": "The component works without the node."
+        },
+        "wrapper": {
+          "const": true,
+          "description": "Optional, and the children stay when it is left out."
+        },
+        "created": {
+          "const": true,
+          "description": "An optional node that is there when a tool creates the component."
+        },
+        "repeat": {
+          "type": "string",
+          "description": "The group the node is written once for each item of. Nodes in the same group repeat together, and a set that is a list gives each item its own."
+        },
+        "options": {
+          "type": "object",
+          "description": "Options for a builder function the node is the first to call, by its name. The nodes inside use the same answer.",
+          "additionalProperties": {
+            "type": "object"
+          }
         }
       },
       "additionalProperties": false

@@ -86,6 +86,47 @@ const cases: Case[] = [
     },
     expected: `<lt-tabs><ul class="lt-tabs__list" aria-label="Parts of the claim"><li><a href="#claim-tabs-claim">Claim</a></li><li><a href="#claim-tabs-attachments">Attachments</a></li></ul><section id="claim-tabs-claim" class="lt-tabs__panel"><h2 id="claim-tabs-claim-heading">Claim</h2><p>Claim AV-2079-0481 was filed on 4 March 2079.</p></section><section id="claim-tabs-attachments" class="lt-tabs__panel"><h2 id="claim-tabs-attachments-heading">Attachments</h2><p>Three attachments have been received.</p></section></lt-tabs>`,
   },
+  // The sortable table on the page, without data-align. Each column heading
+  // chooses for itself: sorted by a button, or plain.
+  {
+    builder: "table",
+    instance: {
+      repeats: { column: 2, row: 2 },
+      choices: { "row-heading": "sortable", heading: ["sortable", "plain"] },
+      settings: { heading: [{ direction: "descending" }, {}] },
+      holes: {
+        caption: "Recovery orders",
+        "row-heading": "Reference",
+        heading: ["Recovered", "Offer"],
+        "row-name": ["LR-2079-0113", "LR-2079-0112"],
+        cell: [
+          ["4 April", "EB 2,750"],
+          ["4 March", "EB 7,150"],
+        ],
+      },
+    },
+    expected: `<table class="lt-table"><caption>Recovery orders</caption><thead><tr><th scope="col"><button class="lt-table__sort" type="button">Reference</button></th><th aria-sort="descending" scope="col"><button class="lt-table__sort" type="button">Recovered</button></th><th scope="col">Offer</th></tr></thead><tbody><tr><th scope="row">LR-2079-0113</th><td>4 April</td><td>EB 2,750</td></tr><tr><th scope="row">LR-2079-0112</th><td>4 March</td><td>EB 7,150</td></tr></tbody></table>`,
+  },
+  // A wide table in the box that scrolls, sorted by a link without
+  // JavaScript.
+  {
+    builder: "table",
+    instance: {
+      parts: { scroll: true },
+      repeats: { column: 1, row: 1 },
+      choices: { heading: ["link"] },
+      holes: {
+        region: "Recovery orders",
+        caption: "Recovery orders",
+        "row-heading": "Reference",
+        heading: ["Recovered"],
+        sort: ["?sort=recovered"],
+        "row-name": ["LR-2079-0113"],
+        cell: [["4 April"]],
+      },
+    },
+    expected: `<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Recovery orders"><table class="lt-table"><caption>Recovery orders</caption><thead><tr><th scope="col">Reference</th><th scope="col"><a class="lt-table__sort" href="?sort=recovered">Recovered</a></th></tr></thead><tbody><tr><th scope="row">LR-2079-0113</th><td>4 April</td></tr></tbody></table></div>`,
+  },
   // With the header and the subtitle, as the page shows them.
   {
     builder: "dialog",

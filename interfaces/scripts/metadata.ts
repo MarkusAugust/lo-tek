@@ -60,6 +60,7 @@ import type { LtToast } from "../src/components/standalone/toast/lt-toast.js"
 import { LT_TOAST_TAG } from "../src/components/standalone/toast/lt-toast.js"
 import type {
   Anatomy,
+  AnatomyChoice,
   DefaultText,
   Name,
   Tag,
@@ -467,6 +468,44 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
 
 /** Where a set from a builder function goes: a part of a frame component. */
 /**
+ * A column heading in a table: plain, sorted by a button, or sorted by a
+ * link the server answers on the next page load. `hole` is the text.
+ */
+const columnHeading = (
+  name: string,
+  hole: string,
+  repeat?: string,
+): AnatomyChoice => ({
+  name,
+  ...(repeat ? { repeat } : {}),
+  oneOf: {
+    plain: { tag: "th", attributes: { scope: "col" }, children: [{ hole }] },
+    sortable: {
+      tag: "th",
+      from: ["tableSort.header"],
+      attributes: { scope: "col" },
+      children: [
+        { tag: "button", from: ["tableSort.button"], children: [{ hole }] },
+      ],
+    },
+    link: {
+      tag: "th",
+      from: ["tableSort.header"],
+      options: { tableSort: { link: true } },
+      attributes: { scope: "col" },
+      children: [
+        {
+          tag: "a",
+          from: ["tableSort.button"],
+          attributes: { href: { hole: "sort", kind: "url" } },
+          children: [{ hole }],
+        },
+      ],
+    },
+  },
+})
+
+/**
  * The markup each builder function belongs in, written once here from the
  * component page. `check-anatomy.ts` holds each to the page and to the core.
  * See `Anatomy` in `src/vocabulary/types.ts`.
@@ -597,6 +636,67 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
                 children: [{ hole: "title" }],
               },
               { hole: "panel" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  table: {
+    repeats: { column: { min: 1 }, row: { min: 1 } },
+    nodes: [
+      {
+        tag: "div",
+        from: ["table.scroll"],
+        name: "scroll",
+        wrapper: true,
+        // Not optional once the box is there: without tabindex no keyboard
+        // reaches what is beyond the edge, and the region needs a name.
+        attributes: {
+          tabindex: "0",
+          role: "region",
+          "aria-label": { hole: "region", kind: "text" },
+        },
+        children: [
+          {
+            tag: "table",
+            from: ["table"],
+            children: [
+              // The table's name. lotek check reports a table without one.
+              { tag: "caption", children: [{ hole: "caption" }] },
+              {
+                tag: "thead",
+                children: [
+                  {
+                    tag: "tr",
+                    children: [
+                      columnHeading("row-heading", "row-heading"),
+                      columnHeading("heading", "heading", "column"),
+                    ],
+                  },
+                ],
+              },
+              {
+                tag: "tbody",
+                children: [
+                  {
+                    tag: "tr",
+                    repeat: "row",
+                    children: [
+                      {
+                        tag: "th",
+                        attributes: { scope: "row" },
+                        children: [{ hole: "row-name" }],
+                      },
+                      {
+                        tag: "td",
+                        repeat: "column",
+                        children: [{ hole: "cell" }],
+                      },
+                    ],
+                  },
+                ],
+              },
             ],
           },
         ],

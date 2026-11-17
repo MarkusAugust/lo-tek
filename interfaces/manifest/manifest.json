@@ -5536,7 +5536,237 @@
       "classes": {
         "scroll": "lt-table-scroll"
       },
-      "docs": "https://lo-tek.sobernetics.no/components/table/"
+      "docs": "https://lo-tek.sobernetics.no/components/table/",
+      "anatomy": {
+        "repeats": {
+          "column": {
+            "min": 1
+          },
+          "row": {
+            "min": 1
+          }
+        },
+        "nodes": [
+          {
+            "tag": "div",
+            "from": [
+              "table.scroll"
+            ],
+            "name": "scroll",
+            "wrapper": true,
+            "attributes": {
+              "tabindex": "0",
+              "role": "region",
+              "aria-label": {
+                "hole": "region",
+                "kind": "text"
+              }
+            },
+            "children": [
+              {
+                "tag": "table",
+                "from": [
+                  "table"
+                ],
+                "children": [
+                  {
+                    "tag": "caption",
+                    "children": [
+                      {
+                        "hole": "caption"
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "thead",
+                    "children": [
+                      {
+                        "tag": "tr",
+                        "children": [
+                          {
+                            "name": "row-heading",
+                            "oneOf": {
+                              "plain": {
+                                "tag": "th",
+                                "attributes": {
+                                  "scope": "col"
+                                },
+                                "children": [
+                                  {
+                                    "hole": "row-heading"
+                                  }
+                                ]
+                              },
+                              "sortable": {
+                                "tag": "th",
+                                "from": [
+                                  "tableSort.header"
+                                ],
+                                "attributes": {
+                                  "scope": "col"
+                                },
+                                "children": [
+                                  {
+                                    "tag": "button",
+                                    "from": [
+                                      "tableSort.button"
+                                    ],
+                                    "children": [
+                                      {
+                                        "hole": "row-heading"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "link": {
+                                "tag": "th",
+                                "from": [
+                                  "tableSort.header"
+                                ],
+                                "options": {
+                                  "tableSort": {
+                                    "link": true
+                                  }
+                                },
+                                "attributes": {
+                                  "scope": "col"
+                                },
+                                "children": [
+                                  {
+                                    "tag": "a",
+                                    "from": [
+                                      "tableSort.button"
+                                    ],
+                                    "attributes": {
+                                      "href": {
+                                        "hole": "sort",
+                                        "kind": "url"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "hole": "row-heading"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          {
+                            "name": "heading",
+                            "repeat": "column",
+                            "oneOf": {
+                              "plain": {
+                                "tag": "th",
+                                "attributes": {
+                                  "scope": "col"
+                                },
+                                "children": [
+                                  {
+                                    "hole": "heading"
+                                  }
+                                ]
+                              },
+                              "sortable": {
+                                "tag": "th",
+                                "from": [
+                                  "tableSort.header"
+                                ],
+                                "attributes": {
+                                  "scope": "col"
+                                },
+                                "children": [
+                                  {
+                                    "tag": "button",
+                                    "from": [
+                                      "tableSort.button"
+                                    ],
+                                    "children": [
+                                      {
+                                        "hole": "heading"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              },
+                              "link": {
+                                "tag": "th",
+                                "from": [
+                                  "tableSort.header"
+                                ],
+                                "options": {
+                                  "tableSort": {
+                                    "link": true
+                                  }
+                                },
+                                "attributes": {
+                                  "scope": "col"
+                                },
+                                "children": [
+                                  {
+                                    "tag": "a",
+                                    "from": [
+                                      "tableSort.button"
+                                    ],
+                                    "attributes": {
+                                      "href": {
+                                        "hole": "sort",
+                                        "kind": "url"
+                                      }
+                                    },
+                                    "children": [
+                                      {
+                                        "hole": "heading"
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "tbody",
+                    "children": [
+                      {
+                        "tag": "tr",
+                        "repeat": "row",
+                        "children": [
+                          {
+                            "tag": "th",
+                            "attributes": {
+                              "scope": "row"
+                            },
+                            "children": [
+                              {
+                                "hole": "row-name"
+                              }
+                            ]
+                          },
+                          {
+                            "tag": "td",
+                            "repeat": "column",
+                            "children": [
+                              {
+                                "hole": "cell"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
     },
     {
       "name": "tableSort",

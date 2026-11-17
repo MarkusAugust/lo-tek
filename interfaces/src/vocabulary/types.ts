@@ -250,6 +250,20 @@ export type Builder = {
 export type AnatomyHole = { hole: string }
 
 /**
+ * A place with alternatives the designer chooses between, as a plain or a
+ * sortable column heading. The first is the one a tool creates. With
+ * `repeat`, each item in the group chooses for itself.
+ */
+export type AnatomyChoice = {
+  name: string
+  oneOf: Record<string, AnatomyNode>
+  repeat?: string
+}
+
+/** What can stand among the children of a node. */
+export type AnatomyChild = AnatomyNode | AnatomyHole | AnatomyChoice
+
+/**
  * One element in an anatomy. `from` is where its attributes come from, in
  * order: a builder function (`"button"`), a set in its answer
  * (`"field.control"`), or a class on it (`"checkbox.row"`).
@@ -264,7 +278,13 @@ export type AnatomyNode = {
    * name get the same value, as `id` on a control and `for` on its label.
    */
   attributes?: Record<string, string | AnatomyAttributeHole>
-  children?: readonly (AnatomyNode | AnatomyHole)[]
+  children?: readonly AnatomyChild[]
+  /**
+   * Options for a builder function the node is the first to call, by its
+   * name, as `{ tableSort: { link: true } }`. The nodes inside use the same
+   * answer, so a heading cell and its button come from one call.
+   */
+  options?: Record<string, Record<string, unknown>>
   /** The name a tool and `renderAnatomy()` use for an optional node. */
   name?: string
   /** The component works without the node. Requires `name`. */
@@ -304,7 +324,7 @@ export type Anatomy = {
   options?: Record<string, AnatomyAttributeHole | { repeat: string }>
   /** The groups that repeat, with how few items each may have. */
   repeats?: Record<string, { min: number }>
-  nodes: readonly (AnatomyNode | AnatomyHole)[]
+  nodes: readonly AnatomyChild[]
 }
 
 /**
