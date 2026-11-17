@@ -990,6 +990,7 @@ export const classDocs: Record<string, ClassDoc> = {
           "aria-disabled": ["true"],
         },
       },
+      { tag: "input", attributes: { type: ["submit", "button", "reset"] } },
     ],
   },
   "lt-card": {

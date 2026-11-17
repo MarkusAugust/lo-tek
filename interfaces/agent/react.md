@@ -69,7 +69,7 @@ The default variant has no attribute.
 | `lt-avatar`<br>`lt-avatar-stack` | `<span>`, `<button>`<br>`<ul>` | `@lo-tek/interfaces/avatar.css` | `data-variant`: square<br>`data-size`: small, large |
 | `lt-badge` | `<span>` | `@lo-tek/interfaces/badge.css` | `data-color`: success, warning, danger, neutral |
 | `lt-breadcrumbs` | `<ol>` | `@lo-tek/interfaces/breadcrumbs.css` | none |
-| `lt-button` | `<button>`, `<a href>`, `<a role="link" tabindex="0" aria-disabled="true">` | `@lo-tek/interfaces/button.css` | `data-variant`: secondary, ghost, danger |
+| `lt-button` | `<button>`, `<a href>`, `<a role="link" tabindex="0" aria-disabled="true">`, `<input type="submit">` | `@lo-tek/interfaces/button.css` | `data-variant`: secondary, ghost, danger |
 | `lt-card`<br>`lt-card__title` | `<div>`, `<article>`, `<section>`, `<a href>`, `<button>`<br>`<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` | `@lo-tek/interfaces/card.css` | `data-variant`: filled<br>`data-interactive` (flag) |
 | `lt-checkbox`<br>`lt-checkbox-row` | `<input type="checkbox">`<br>`<div>` | `@lo-tek/interfaces/checkbox.css` | `data-state`: invalid, success |
 | `lt-divider` | `<hr>` | `@lo-tek/interfaces/divider.css` | `data-variant`: subtle, strong |

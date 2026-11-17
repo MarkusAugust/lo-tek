@@ -8867,6 +8867,7 @@
         "@Language(\"HTML\")",
         "lt-field",
         "for",
+        "@lo-tek/interfaces",
         "lt-button",
         "<div>",
         "lotek check",

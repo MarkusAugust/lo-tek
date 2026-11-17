@@ -236,6 +236,16 @@ export const classes: Classes = {
             "true"
           ]
         }
+      },
+      {
+        "tag": "input",
+        "attributes": {
+          "type": [
+            "submit",
+            "button",
+            "reset"
+          ]
+        }
       }
     ],
     "attributes": {

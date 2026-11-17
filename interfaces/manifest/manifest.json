@@ -740,6 +740,16 @@
               "true"
             ]
           }
+        },
+        {
+          "tag": "input",
+          "attributes": {
+            "type": [
+              "submit",
+              "button",
+              "reset"
+            ]
+          }
         }
       ],
       "attributes": {

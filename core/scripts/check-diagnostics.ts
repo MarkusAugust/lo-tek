@@ -92,7 +92,7 @@ const cases: Case[] = [
     rule: "class-on-wrong-tag",
     mentions: [
       "lt-button is on <div>",
-      '<button>, <a href> or <a role="link" tabindex="0" aria-disabled="true">',
+      '<button>, <a href>, <a role="link" tabindex="0" aria-disabled="true"> or <input type="submit">',
       'Write <button class="lt-button">',
     ],
     severity: "error",
@@ -928,7 +928,7 @@ cases.push(
   },
   {
     name: "page: a hidden field and a submit button need no label",
-    html: `<input class="lt-input" type="hidden" name="t"><input type="submit" value="Send">`,
+    html: `<input class="lt-input" type="hidden" name="t"><input class="lt-button" type="submit" value="Send">`,
     count: 0,
     page: true,
   },

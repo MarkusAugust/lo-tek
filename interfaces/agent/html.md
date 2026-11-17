@@ -79,7 +79,7 @@ The default variant has no attribute.
 | `lt-avatar`<br>`lt-avatar-stack` | `<span>`, `<button>`<br>`<ul>` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/avatar/avatar.css` | `data-variant`: square<br>`data-size`: small, large |
 | `lt-badge` | `<span>` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/badge/badge.css` | `data-color`: success, warning, danger, neutral |
 | `lt-breadcrumbs` | `<ol>` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/breadcrumbs/breadcrumbs.css` | none |
-| `lt-button` | `<button>`, `<a href>`, `<a role="link" tabindex="0" aria-disabled="true">` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/button/button.css` | `data-variant`: secondary, ghost, danger |
+| `lt-button` | `<button>`, `<a href>`, `<a role="link" tabindex="0" aria-disabled="true">`, `<input type="submit">` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/button/button.css` | `data-variant`: secondary, ghost, danger |
 | `lt-card`<br>`lt-card__title` | `<div>`, `<article>`, `<section>`, `<a href>`, `<button>`<br>`<h2>`, `<h3>`, `<h4>`, `<h5>`, `<h6>` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/card/card.css` | `data-variant`: filled<br>`data-interactive` (flag) |
 | `lt-checkbox`<br>`lt-checkbox-row` | `<input type="checkbox">`<br>`<div>` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/checkbox/checkbox.css` | `data-state`: invalid, success |
 | `lt-divider` | `<hr>` | `https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@0.45.0/src/components/css/divider/divider.css` | `data-variant`: subtle, strong |

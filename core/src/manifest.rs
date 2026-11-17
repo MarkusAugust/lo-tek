@@ -183,10 +183,14 @@ fn tags(value: &Json, path: &str) -> Result<Vec<Tag>, String> {
                     Some(a) => entries(a, &format!("{at}.attributes"))?
                         .iter()
                         .map(|(name, values)| {
-                            Ok((
-                                name.clone(),
-                                texts(values, &format!("{at}.attributes.{name}"))?,
-                            ))
+                            let path = format!("{at}.attributes.{name}");
+                            let values = texts(values, &path)?;
+                            // A tag no value satisfies could never be right,
+                            // and the message names the first value.
+                            if values.is_empty() {
+                                return Err(format!("{path} must list at least one value."));
+                            }
+                            Ok((name.clone(), values))
                         })
                         .collect::<Result<_, String>>()?,
                 },

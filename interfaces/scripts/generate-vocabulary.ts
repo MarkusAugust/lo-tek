@@ -712,6 +712,14 @@ function classesIn(value: unknown): string[] {
   return out
 }
 
+/**
+ * The options every builder function is called with to read its classes:
+ * an id, so the ones that would otherwise make a random one do not warn,
+ * the dialog's own titleId, since the id is on the heading, and a name,
+ * which the tabs require on the list.
+ */
+const BASE_OPTIONS = { id: "x", titleId: "x", keys: [], label: "x" }
+
 export function classesData(): Classes {
   /*
    * The classes from the CSS, before the content and the parts from
@@ -759,10 +767,7 @@ export function classesData(): Classes {
     const build = builder as (options?: Record<string, unknown>) => unknown
     let base: unknown
     try {
-      // An id, so the builder functions that would otherwise create a random
-      // one do not warn. The dialog calls its own titleId, since the id is on
-      // the heading. And a name, which the tabs require on the list.
-      base = build({ id: "x", titleId: "x", keys: [], label: "x" })
+      base = build(BASE_OPTIONS)
     } catch {
       continue
     }
@@ -843,48 +848,35 @@ export function classesData(): Classes {
    * the manifest, so a new flag reached the manifest on the first build but
    * arrived here only on the next, and `check:vocabulary` failed the build in
    * between.
-   */
-  const flags = new Map<string, Set<string>>()
-  for (const builder of readBuilderFunctions()) {
-    const build = (lt as Record<string, unknown>)[builder.name]
-    if (typeof build !== "function") continue
-    // If the builder function throws, generate must stop. A flag that quietly
-    // vanished from classes.ts vanished from the editors and the diagnostics too.
-    const flagged = flagsFor(
-      builder,
-      build as (options: Record<string, unknown>) => unknown,
-      { id: "x", titleId: "x", keys: [], label: "x" },
-      (name) => name in found,
-    )
-    for (const [name, attributes] of flagged)
-      for (const attribute of attributes)
-        flags.set(name, (flags.get(name) ?? new Set()).add(attribute))
-  }
-  for (const [name, attributes] of flags)
-    for (const attribute of [...attributes].sort())
-      found[name].attributes[attribute] ??= { values: [], flag: true }
-
-  /*
-   * The `type` a class on an input must have, read from the builder
-   * functions, as `type="checkbox"` from `lt.checkbox()`. `metadata.ts` only
-   * says the tag, so the two cannot disagree. A class gets a type only when
+   *
+   * The same pass reads the `type` a class on an input must have, as
+   * `type="checkbox"` from `lt.checkbox()`. `metadata.ts` only says the tag,
+   * so the two cannot disagree. A class gets a type only when
    * every builder function that writes it agrees: `lt-input` is written
    * with `type="search"` by `lt.search()` and `type="text"` by
    * `lt.suggestion()`, and `lt.input()` takes the type as an option, so the
    * type of an lt-input is the template's, and `type="color"` stays valid.
    */
+  const flags = new Map<string, Set<string>>()
   const typesOf = new Map<string, Set<string>>()
   for (const builder of readBuilderFunctions()) {
-    const build = (lt as Record<string, unknown>)[builder.name]
+    const build = (lt as Record<string, unknown>)[builder.name] as
+      | ((options: Record<string, unknown>) => unknown)
+      | undefined
     if (typeof build !== "function") continue
-    const answer = (build as (options: Record<string, unknown>) => unknown)({
-      id: "x",
-      titleId: "x",
-      keys: [],
-      label: "x",
-    })
+    // If the builder function throws, generate must stop. A flag that quietly
+    // vanished from classes.ts vanished from the editors and the diagnostics too.
+    const flagged = flagsFor(
+      builder,
+      build,
+      BASE_OPTIONS,
+      (name) => name in found,
+    )
+    for (const [name, attributes] of flagged)
+      for (const attribute of attributes)
+        flags.set(name, (flags.get(name) ?? new Set()).add(attribute))
     const own = builder.options.some((o) => o.name === "type")
-    for (const [, set] of setsOf(answer))
+    for (const [, set] of setsOf(build(BASE_OPTIONS)))
       for (const name of String(set.class ?? "").split(/\s+/)) {
         if (!name) continue
         const types = typesOf.get(name) ?? new Set<string>()
@@ -894,6 +886,10 @@ export function classesData(): Classes {
         typesOf.set(name, types)
       }
   }
+  for (const [name, attributes] of flags)
+    for (const attribute of [...attributes].sort())
+      found[name].attributes[attribute] ??= { values: [], flag: true }
+
   const inputTypes = new Map(
     [...typesOf]
       .filter(([, types]) => types.size === 1 && !types.has(""))

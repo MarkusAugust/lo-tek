@@ -1027,10 +1027,14 @@ fn wrong_tag(
         for (name, values) in &t.attributes {
             out.push_str(&format!(" {name}=\"{}\"", values[0]));
         }
+        // In the markup to write, a required attribute gets a value to fill
+        // in, so the suggestion passes the rule.
         for name in &t.requires {
-            if !class {
-                out.push_str(&format!(" {name}"));
-            }
+            out.push_str(&if class {
+                format!(" {name}=\"…\"")
+            } else {
+                format!(" {name}")
+            });
         }
         out.push('>');
         out
@@ -1072,10 +1076,11 @@ fn wrong_tag(
     }
     // A spread can give any attribute, so only the tag is judged: `{...props}`
     // in JSX and Svelte, `v-bind` in Vue, `x-bind` in Alpine, `@attributes`
-    // in Razor.
+    // in Razor, `th:attr` in Thymeleaf, and `data-attr` with an object in
+    // Datastar.
     let spread = attributes.iter().any(|a| {
         a.name.first() == Some(&(b'{' as u16))
-            || ["v-bind", "x-bind", "@attributes"]
+            || ["v-bind", "x-bind", "@attributes", "th:attr", "data-attr"]
                 .iter()
                 .any(|n| equals(&a.name, n))
     });
@@ -1086,7 +1091,26 @@ fn wrong_tag(
     {
         return None;
     }
-    if let Some(name) = unlike(same[0], attributes) {
+    // Of the variants of this tag, the one the markup comes closest to, as
+    // the disabled link with role="link" is closer to <a role="link"
+    // tabindex="0" aria-disabled="true"> than to <a href>. On a tie, the first.
+    let met = |t: &Tag| {
+        t.attributes
+            .iter()
+            .filter(|(name, _)| attribute(attributes, name).is_some())
+            .count()
+            + t.requires
+                .iter()
+                .filter(|name| attribute(attributes, name).is_some())
+                .count()
+    };
+    let closest = same
+        .iter()
+        .copied()
+        .rev()
+        .max_by_key(|t| met(t))
+        .unwrap_or(same[0]);
+    if let Some(name) = unlike(closest, attributes) {
         let actual = attributes
             .iter()
             .find(|a| equals(&a.name, name))
@@ -1099,7 +1123,7 @@ fn wrong_tag(
             alternatives()
         ));
     }
-    let name = missing(same[0], attributes)?;
+    let name = missing(closest, attributes)?;
     Some(format!(
         "{} is on <{shown}> without {name}. Give it {name}.",
         info.name

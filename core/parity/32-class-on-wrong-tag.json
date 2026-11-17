@@ -5,7 +5,7 @@
       "end": 21,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/button/",
-      "message": "lt-button is on <div>, and belongs on <button>, <a href> or <a role=\"link\" tabindex=\"0\" aria-disabled=\"true\">. Write <button class=\"lt-button\">."
+      "message": "lt-button is on <div>, and belongs on <button>, <a href>, <a role=\"link\" tabindex=\"0\" aria-disabled=\"true\"> or <input type=\"submit\">. Write <button class=\"lt-button\">."
     },
     {
       "start": 53,
@@ -21,7 +21,7 @@
       "end": 21,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/button/",
-      "message": "lt-button is on <div>, and belongs on <button>, <a href> or <a role=\"link\" tabindex=\"0\" aria-disabled=\"true\">. Write <button class=\"lt-button\">."
+      "message": "lt-button is on <div>, and belongs on <button>, <a href>, <a role=\"link\" tabindex=\"0\" aria-disabled=\"true\"> or <input type=\"submit\">. Write <button class=\"lt-button\">."
     },
     {
       "start": 53,

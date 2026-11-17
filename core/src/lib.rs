@@ -738,6 +738,86 @@ mod tests {
     }
 
     #[test]
+    fn a_tag_with_no_allowed_values_is_refused_when_read() {
+        let fragment = r#"{"schemaVersion": 1, "version": "0", "classes": {"app-box": {"title": "Box", "link": "", "attributes": {}, "tags": [{"tag": "input", "attributes": {"type": []}}]}}}"#;
+        let read = manifest::with_fragments(&manifest::test_text(), &[fragment]);
+        let error = read.err().expect("an empty list of values must be refused");
+        assert!(error.contains("app-box"), "{error}");
+    }
+
+    #[test]
+    fn upper_case_attribute_names_are_the_same_attribute() {
+        let found = diagnose_markup(
+            &utf16(r#"<input class="lt-checkbox" TYPE="text" id="a"><label for="a">A</label>"#),
+            &manifest::for_tests(),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+    }
+
+    #[test]
+    fn a_disabled_link_is_told_what_it_lacks_and_not_href() {
+        let found = diagnose_markup(
+            &utf16(r#"<a class="lt-button" role="link" aria-disabled="true">Jobs</a>"#),
+            &manifest::for_tests(),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found[0].message.contains("tabindex"),
+            "{}",
+            found[0].message
+        );
+        assert!(
+            !found[0].message.contains("Give it href"),
+            "{}",
+            found[0].message
+        );
+    }
+
+    #[test]
+    fn the_markup_to_write_passes_the_rule() {
+        let found = diagnose_markup(
+            &utf16(r#"<span class="lt-link">More</span>"#),
+            &manifest::for_tests(),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found[0]
+                .message
+                .contains(r#"Write <a class="lt-link" href="…">"#),
+            "{}",
+            found[0].message
+        );
+    }
+
+    #[test]
+    fn a_button_class_on_an_input_that_is_a_button() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for kind in ["submit", "button", "reset"] {
+            let found = markup(&format!(
+                r#"<input class="lt-button" type="{kind}" value="Send">"#
+            ));
+            assert!(found.is_empty(), "{kind}: {found:?}");
+        }
+        assert_eq!(markup(r#"<input class="lt-button" type="text">"#).len(), 1);
+    }
+
+    #[test]
+    fn attributes_set_in_bulk_can_give_href() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for html in [
+            r#"<a class="lt-button" th:attr="href=@{/jobs}">Jobs</a>"#,
+            r#"<a class="lt-button" data-attr="{href: $url}">Jobs</a>"#,
+        ] {
+            let found = markup(html);
+            assert!(found.is_empty(), "{html}: {found:?}");
+        }
+        assert_eq!(
+            markup(r#"<div class="lt-button" th:attr="href=@{/jobs}">Jobs</div>"#).len(),
+            1
+        );
+    }
+
+    #[test]
     fn a_flag_on_a_class_takes_no_value() {
         let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
         assert!(markup(r#"<label class="lt-label" data-optional>Navn</label>"#).is_empty());
