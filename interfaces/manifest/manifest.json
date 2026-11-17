@@ -5390,6 +5390,14 @@
             ]
           },
           "description": "The direction the column is sorted in. Left out, it means the table is not sorted by this column, and the header gets no `aria-sort`."
+        },
+        {
+          "name": "link",
+          "required": false,
+          "type": {
+            "kind": "flag"
+          },
+          "description": "The button is a link, `<a href=\"?sort=…\">`, so the server sorts on the next page load and the column sorts without JavaScript. The link gets the class alone, since `type=\"button\"` means nothing on `<a>`."
         }
       ],
       "returns": {
@@ -5418,6 +5426,12 @@
                     "aria-sort": "descending"
                   }
                 }
+              },
+              "link": {
+                "cases": {
+                  "false": {},
+                  "true": {}
+                }
               }
             }
           },
@@ -5431,6 +5445,14 @@
                 "cases": {
                   "ascending": {},
                   "descending": {}
+                }
+              },
+              "link": {
+                "cases": {
+                  "false": {},
+                  "true": {
+                    "type": null
+                  }
                 }
               }
             }

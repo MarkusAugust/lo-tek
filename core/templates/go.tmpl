@@ -10,6 +10,8 @@
     <label><input class="lt-checkbox" type="checkbox" name="valg" value="{{.Verdi}}" {{if .Valgt}}checked{{end}}> {{.Navn}}</label>
   {{end}}
   <button class="lt-button" data-variant="{{.Variant}}" type="submit">Send</button>
+  <label><input class="lt-checkbox" type="{{.Kind}}" name="extra"> Extra</label>
+  <a class="lt-button" href="{{.URL}}">Back</a>
   <div class="lt-fiedl">Ekstra</div>
 </form>
 {{end}}

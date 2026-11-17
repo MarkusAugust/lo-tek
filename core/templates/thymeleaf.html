@@ -13,5 +13,7 @@
     <p class="lt-error-text" th:errors="*{epost}">Skriv en gyldig adresse.</p>
   </lt-field>
   <button class="lt-button" type="submit" th:text="#{soknad.send}">Send</button>
+  <label><input class="lt-checkbox" th:type="${kind}" name="extra"> Extra</label>
+  <a class="lt-button" th:href="@{/jobs}">Back</a>
   <button class="lt-buton" data-variant="secondary" type="button">Avbryt</button>
 </form>

@@ -10,6 +10,8 @@
   {
     <span class="lt-badge" data-color="warning">Utkast</span>
   }
+  <label><input class="lt-checkbox" type="@Model.Kind" name="extra"> Extra</label>
+  <a class="lt-button" href="@Model.Url">Back</a>
   <span class="lt-badge" data-color="red">Feil farge</span>
   <button class="lt-button" data-variant="@(Model.Utkast ? "secondary" : null)" type="submit">Send</button>
 </form>
