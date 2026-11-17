@@ -55,7 +55,10 @@ export type AnatomyInstance = {
    * Attributes for every element, from its address: the path of child
    * indexes from the root, with `[key]` after a repeated node and
    * `:alternative` after a choice, as `0/1[claim]/0`. It stays the same
-   * across renders while the anatomy does.
+   * across renders while the anatomy does. An attribute the anatomy gives
+   * the element is kept, so a tool can give every element an id from the
+   * component's id and the address, which is what Datastar and idiomorph
+   * know an element by, and the anatomy's own ids still hold.
    */
   annotate?: (address: string) => Record<string, string>
 }
@@ -378,7 +381,12 @@ class Writer {
       }
       attributes[attribute] = String(given)
     }
-    Object.assign(attributes, this.instance.annotate?.(place.address))
+    // The tool's own attributes never replace the anatomy's: an id the
+    // anatomy gives is the one aria-labelledby and the links point at.
+    for (const [attribute, value] of Object.entries(
+      this.instance.annotate?.(place.address) ?? {},
+    ))
+      if (!(attribute in attributes)) attributes[attribute] = value
 
     const written = Object.entries(attributes)
       .map(([attribute, value]) =>
