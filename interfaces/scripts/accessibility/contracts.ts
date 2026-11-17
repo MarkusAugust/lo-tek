@@ -322,10 +322,7 @@ const tabNames: Contract[] = TAB_NAMES.map((v) => {
           `<a href="#attachments"${linkAttribute}>${v.link}</a>`,
         ],
         ["<h2>Attachments</h2>", v.heading],
-        [
-          '<lt-tabs id="claim-tabs">',
-          `${v.outside ?? ""}<lt-tabs id="claim-tabs">`,
-        ],
+        ["<lt-tabs>", `${v.outside ?? ""}<lt-tabs>`],
       ],
     },
     steps: [
