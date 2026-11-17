@@ -53,7 +53,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `annotate` gives every element attributes from its address, and never
   replaces one the anatomy gives: a tool that writes an id from the
   component's id and the address keeps every element through a Datastar
-  patch, as a browser test shows for every change a designer makes.
+  patch or an idiomorph morph, as a browser test shows for every change a
+  designer makes but one: an id the designer sets is the element's
+  identity, and a new one gives a new element. A class from `annotate` is
+  joined to the anatomy's.
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.

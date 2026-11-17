@@ -56,7 +56,8 @@ export type AnatomyInstance = {
    * indexes from the root, with `[key]` after a repeated node and
    * `:alternative` after a choice, as `0/1[claim]/0`. It stays the same
    * across renders while the anatomy does. An attribute the anatomy gives
-   * the element is kept, so a tool can give every element an id from the
+   * the element is kept, and a class is joined to its, so a tool can give
+   * every element an id from the
    * component's id and the address, which is what Datastar and idiomorph
    * know an element by, and the anatomy's own ids still hold.
    */
@@ -334,7 +335,8 @@ class Writer {
       answers.set(builder, call(builder, { ...own, ...settings, ...options }))
     }
 
-    const attributes: Record<string, string | true> = {}
+    // No prototype, so `in` finds only the attributes written here.
+    const attributes: Record<string, string | true> = Object.create(null)
     for (const source of node.from ?? [])
       for (const [attribute, value] of Object.entries(
         this.attributesOf(source, answers, place),
@@ -382,11 +384,17 @@ class Writer {
       attributes[attribute] = String(given)
     }
     // The tool's own attributes never replace the anatomy's: an id the
-    // anatomy gives is the one aria-labelledby and the links point at.
-    for (const [attribute, value] of Object.entries(
+    // anatomy gives is the one aria-labelledby and the links point at. A
+    // class is joined to the anatomy's, as classes from sources are.
+    for (const [given, value] of Object.entries(
       this.instance.annotate?.(place.address) ?? {},
-    ))
-      if (!(attribute in attributes)) attributes[attribute] = value
+    )) {
+      const attribute = given.toLowerCase()
+      const before = attribute in attributes ? attributes[attribute] : undefined
+      if (attribute === "class" && typeof before === "string")
+        attributes.class = `${before} ${value}`
+      else if (before === undefined) attributes[attribute] = value
+    }
 
     const written = Object.entries(attributes)
       .map(([attribute, value]) =>
