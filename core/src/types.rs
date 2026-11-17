@@ -196,6 +196,7 @@ pub const RULES: &[&str] = &[
     "unknown-class",
     "invalid-class-value",
     "class-on-wrong-tag",
+    "invalid-nesting",
     "disabled-with-href",
     "field-without-control",
     "part-repeated",

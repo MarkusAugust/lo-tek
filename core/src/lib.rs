@@ -31,6 +31,7 @@ pub mod diagnose;
 pub mod json;
 pub mod manifest;
 pub mod names;
+pub mod nesting;
 pub mod parts;
 pub mod references;
 pub mod styles;
@@ -588,6 +589,55 @@ mod tests {
             &manifest::for_tests(),
         );
         assert!(found.is_empty(), "{found:?}");
+    }
+
+    fn nesting(html: &str) -> Vec<String> {
+        diagnose_markup(&utf16(html), &manifest::for_tests())
+            .into_iter()
+            .filter(|f| f.rule == "invalid-nesting")
+            .map(|f| crate::text::lossy(&utf16(html)[f.start..f.end]))
+            .collect()
+    }
+
+    #[test]
+    fn a_form_inside_a_form() {
+        assert_eq!(
+            nesting(r#"<form method="dialog"><form action="/s"><input name="q"></form></form>"#),
+            ["form"]
+        );
+    }
+
+    #[test]
+    fn interactive_content_inside_a_link_or_a_button() {
+        assert_eq!(
+            nesting(r#"<a href="/a"><button>x</button></a>"#),
+            ["button"]
+        );
+        assert_eq!(nesting(r#"<button><a href="/a">x</a></button>"#), ["a"]);
+        assert_eq!(
+            nesting(r#"<button><span tabindex="0">x</span></button>"#),
+            ["span"]
+        );
+        // An <a> is never inside an <a>, with href or without.
+        assert_eq!(nesting(r#"<a href="/a"><a>x</a></a>"#), ["a"]);
+    }
+
+    #[test]
+    fn what_html_allows_in_a_link_or_a_button() {
+        // Not interactive: an <a> without href in a button, a hidden input, an
+        // image without usemap, and a <details> elsewhere.
+        assert!(nesting(
+            r#"<button><a>x</a><input type="hidden" name="t"><img src="a.png" alt=""></button>"#
+        )
+        .is_empty());
+        assert!(
+            nesting(r#"<div><details><summary>x</summary><a href="/a">y</a></details></div>"#)
+                .is_empty()
+        );
+        assert!(
+            nesting(r#"<form><button>Send</button></form><form><input name="q"></form>"#)
+                .is_empty()
+        );
     }
 
     #[test]

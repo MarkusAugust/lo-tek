@@ -86,6 +86,28 @@ const FIELD_OK = `<lt-field id="f"><label for="handle">Handle</label><input clas
 
 const cases: Case[] = [
   {
+    name: "a form inside a form",
+    html: `<form method="dialog"><form action="/search"><input name="q" aria-label="Search"></form></form>`,
+    count: 1,
+    rule: "invalid-nesting",
+    severity: "error",
+    mentions: ["<form>"],
+  },
+  {
+    name: "a button inside a link",
+    html: `<a href="/jobs"><button>Order</button></a>`,
+    count: 1,
+    rule: "invalid-nesting",
+    mentions: ["<button>", "<a>"],
+  },
+  {
+    name: "what HTML allows in a form, a link and a button",
+    html: `<form><button>Send</button></form>
+<button><a>Jobs</a><input type="hidden" name="t"></button>
+<a href="/jobs"><span>Jobs</span></a>`,
+    count: 0,
+  },
+  {
     name: "a button class on a <div>",
     html: `<div class="lt-button">Order</div>`,
     count: 1,

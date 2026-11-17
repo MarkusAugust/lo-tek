@@ -95,7 +95,7 @@ object Anatomies {
             val example = hole.example ?: continue
             val value =
                 if (hole.kind == HoleKind.VALUE && hole.per.isNotEmpty()) perItem(hole.per, { it ?: "" }) else perItem(hole.per, { example })
-            if (hole.content == HoleContent.FREE) content[name] = value else holes[name] = value
+            if (hole.markup) content[name] = value else holes[name] = value
         }
         return AnatomyInstance(id = id, repeats = repeats, holes = holes, content = content)
     }
@@ -126,10 +126,49 @@ object Anatomies {
         for ((name, hole) in anatomy.holes) {
             val example = hole.example ?: continue
             if (group !in hole.per) continue
-            val target = if (hole.content == HoleContent.FREE) content else holes
+            val target = if (hole.markup) content else holes
             target[name] = filled(target[name], hole.per, example)
         }
         return instance.copy(repeats = repeats, holes = holes, content = content)
+    }
+
+    /**
+     * Whether a design tool may drop the component [name] at the end of
+     * [path], the holes it stands in, outermost first; an empty path is the
+     * page. Throws [IllegalArgumentException] for a component without an
+     * anatomy, or a place that is not a hole that takes other elements.
+     */
+    fun canDrop(manifest: Manifest, name: String, path: List<DropPlace>): DropAnswer {
+        fun anatomyOf(builder: String) =
+            manifest.builders.firstOrNull { it.name == builder }?.anatomy
+                ?: throw IllegalArgumentException("Anatomies.canDrop: Lt.$builder has no anatomy in the manifest.")
+        val anatomy = anatomyOf(name)
+        val declarations =
+            path.map { (builder, hole) ->
+                anatomyOf(builder).holes[hole]?.takeIf { it.content == HoleContent.FREE }
+                    ?: throw IllegalArgumentException("Anatomies.canDrop: $builder has no hole $hole that takes other elements.")
+            }
+        // Every tag the component can write, in every alternative.
+        val tags = mutableSetOf<String>()
+
+        fun walk(child: AnatomyChild) {
+            when (child) {
+                is AnatomyHole -> {}
+                is AnatomyChoice -> child.oneOf.values.forEach(::walk)
+                is AnatomyNode -> {
+                    tags += child.tags
+                    child.children.forEach(::walk)
+                }
+            }
+        }
+        walk(anatomy.root)
+        for (declaration in declarations) {
+            for (forbidden in declaration.forbids) if (forbidden.tags.any { it in tags }) return DropAnswer.Html(forbidden.why)
+        }
+        if (path.isNotEmpty() && anatomy.page != null) return DropAnswer.Lotek(anatomy.page)
+        val only = declarations.lastOrNull()?.only
+        if (only != null && name !in only.builders) return DropAnswer.Lotek(only.why)
+        return DropAnswer.Yes
     }
 
     /**
@@ -165,6 +204,28 @@ object Anatomies {
         walk(anatomy.root)
         return out
     }
+}
+
+/** Whether a hole takes markup, other elements or a drawing, written as it is. */
+private val AnatomyHoleDeclaration.markup get() = content == HoleContent.FREE || content == HoleContent.SVG
+
+/** Where a component is dropped: a hole that takes other elements, in a component. */
+data class DropPlace(
+    val builder: String,
+    val hole: String,
+)
+
+/**
+ * Whether a design tool may drop a component somewhere. [Html] is what
+ * HTML forbids, which `lotek check` reports in markup too; [Lotek] is
+ * LO-TEK's own choice, which only a tool keeps to.
+ */
+sealed interface DropAnswer {
+    data object Yes : DropAnswer
+
+    data class Html(val why: String) : DropAnswer
+
+    data class Lotek(val why: String) : DropAnswer
 }
 
 /** Where a node is written. */
@@ -262,7 +323,8 @@ private class Writer(
     private fun write(child: AnatomyChild, place: Place): String {
         if (child is AnatomyHole) {
             val declaration = declared(child.hole)
-            if (declaration.content == HoleContent.FREE) return read(instance.content[child.hole], declaration.per, place.keys) ?: ""
+            // Markup, as other elements or a drawing, is written as it is.
+            if (declaration.markup) return read(instance.content[child.hole], declaration.per, place.keys) ?: ""
             return escapeText(read(instance.holes[child.hole], declaration.per, place.keys) ?: "")
         }
         val repeat =

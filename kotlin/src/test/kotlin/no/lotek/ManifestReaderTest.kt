@@ -230,6 +230,8 @@ class ManifestReaderTest {
                         if (h.optional) put("optional", true)
                         h.example?.let { put("example", it) }
                         h.values?.let { put("values", it) }
+                        if (h.forbids.isNotEmpty()) put("forbids", h.forbids.map { mapOf("tags" to it.tags, "why" to it.why) })
+                        h.only?.let { put("only", mapOf("builders" to it.builders, "why" to it.why)) }
                     }
                 },
             )
@@ -249,6 +251,7 @@ class ManifestReaderTest {
             }
             if (a.repeats.isNotEmpty()) put("repeats", a.repeats.mapValues { (_, r) -> mapOf("min" to r.min.toDouble(), "description" to r.description) })
             put("nodes", listOf(childJson(a.root)))
+            a.page?.let { put("page", it) }
         }
 
     private fun childJson(c: AnatomyChild): Map<String, Any?> =

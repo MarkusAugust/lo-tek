@@ -23,6 +23,14 @@
  *      items already there as they were, so a patch keeps them.
  *   6. Address. The component has one root, and every element the tool
  *      can select has an address that survives a re-render.
+ *   9. Drop. For every component dropped into every hole that takes other
+ *      elements, the manifest says yes, or no and why. A yes is correct
+ *      markup. A no because HTML forbids it is one `lotek check` reports.
+ *      A no that is LO-TEK's own choice is valid HTML, and `lotek check`
+ *      leaves it alone: a developer may write any valid HTML.
+ *
+ * Capabilities 7 and 8, a Datastar patch and a renderer in Kotlin, are
+ * tested in `src/anatomy/patch.browser.test.ts` and `AnatomyCasesTest`.
  *
  * Run with: bun scripts/check-design-tool.ts (after bun run core).
  */
@@ -31,7 +39,10 @@ import { readFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
+  type AnatomyInstance,
+  canDrop,
   createdInstance,
+  type Keyed,
   renderAnatomy,
   withItem,
 } from "../src/anatomy/index.js"
@@ -351,6 +362,97 @@ for (const b of palette) {
       fail("6. address", `${b.name}: <${tag}> has no address`)
 }
 
+// 9. Drop: every component, as created, into every hole that takes other
+// elements, in every component.
+/**
+ * The host as created, with every optional part and every option a node
+ * is there with on, so every hole is written.
+ */
+const opened = (anatomy: Loose): AnatomyInstance => {
+  const parts: Record<string, boolean> = {}
+  const options: Record<string, boolean> = {}
+  const walk = (children: Loose[] = []) => {
+    for (const c of children) {
+      if (c.name && (c.optional || c.wrapper)) parts[c.name] = true
+      if (c.when) options[c.when] = true
+      for (const alternative of Object.values(c.oneOf ?? {}) as Loose[])
+        walk([alternative])
+      walk(c.children)
+    }
+  }
+  walk(anatomy.nodes)
+  return { ...created(anatomy, "c1"), parts, options }
+}
+let drops = 0
+for (const host of palette) {
+  const anatomy = host.anatomy as Loose
+  for (const [hole, declaration] of Object.entries(anatomy.holes ?? {}) as [
+    string,
+    Loose,
+  ][]) {
+    if (declaration.content !== "free") continue
+    let yes = 0
+    let lotek = 0
+    for (const dropped of palette) {
+      const where = `${dropped.name} in ${host.name}.${hole}`
+      const answer = canDrop(manifest, dropped.name, [
+        { builder: host.name, hole },
+      ])
+      drops += 1
+      const base = opened(anatomy)
+      // One copy for each item the hole is per, each with ids of its own.
+      const per: string[] = declaration.per ?? []
+      const fill = (level: number, keys: string[]): Keyed<string> =>
+        level === per.length
+          ? renderAnatomy(
+              manifest,
+              dropped.name,
+              created(dropped.anatomy, ["c2", ...keys].join("-")),
+            )
+          : Object.fromEntries(
+              (base.repeats?.[per[level]] ?? []).map((k) => [
+                k,
+                fill(level + 1, [...keys, k]),
+              ]),
+            )
+      const inner = fill(0, [])
+      const html = renderAnatomy(manifest, host.name, {
+        ...base,
+        content: { ...base.content, [hole]: inner },
+      })
+      // The first copy must be in the markup, or the drop tested nothing.
+      let first: Keyed<string> = inner
+      while (typeof first !== "string") first = Object.values(first)[0]
+      if (!html.includes(first))
+        fail("9. drop", `${where}: the hole is not written`)
+      const found = findings(html)
+      if (answer.ok) {
+        yes += 1
+        for (const f of found) fail("9. drop", `${where}: ${f}`)
+        continue
+      }
+      if (!answer.why)
+        fail("9. drop", `${where}: the manifest says no without saying why`)
+      if (answer.by === "html" && found.length === 0)
+        fail(
+          "9. drop",
+          `${where}: the manifest says HTML forbids it, and lotek check does not report it`,
+        )
+      if (answer.by === "lotek") lotek += 1
+      if (answer.by === "lotek")
+        for (const f of found)
+          fail(
+            "9. drop",
+            `${where}: LO-TEK's own no, but lotek check reports valid HTML: ${f}`,
+          )
+    }
+    // A hole HTML lets nothing into is a fact; one LO-TEK closes is not.
+    if (yes === 0 && lotek > 0)
+      fail("9. drop", `${host.name}.${hole} takes no component at all`)
+  }
+}
+if (drops === 0) fail("9. drop", "no hole takes other elements")
+
 const total = [...failures.values()].reduce((n, list) => n + list.length, 0)
 if (total) {
   for (const [capability, list] of [...failures].sort()) {
@@ -361,5 +463,5 @@ if (total) {
   process.exit(1)
 }
 console.log(
-  `✓ A tool that reads only the manifest can offer, create, set up, fill, insert into and address all ${palette.length} components.`,
+  `✓ A tool that reads only the manifest can offer, create, set up, fill, insert into and address all ${palette.length} components, and knows every one of ${drops} drops.`,
 )

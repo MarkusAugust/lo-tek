@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
 
 import manifest from "../../manifest/manifest.json"
-import type { Anatomy, Manifest } from "../vocabulary/types"
+import type { Anatomy, AnatomyChild, Manifest } from "../vocabulary/types"
 import {
   type AnatomyInstance,
+  canDrop,
   createdInstance,
+  type Keyed,
   renderAnatomy,
   VOID,
   variantsOf,
@@ -53,9 +55,31 @@ function parsed(html: string): string[] {
   return out
 }
 
+/**
+ * The host as created, with every optional part and every option a node is
+ * there with on, so every hole is written.
+ */
+function opened(anatomy: Anatomy): AnatomyInstance {
+  const parts: Record<string, boolean> = {}
+  const options: Record<string, boolean> = {}
+  const walk = (children: readonly AnatomyChild[] = []) => {
+    for (const c of children) {
+      if ("hole" in c) continue
+      for (const node of "oneOf" in c ? Object.values(c.oneOf) : [c]) {
+        if (node.name && (node.optional || node.wrapper))
+          parts[node.name] = true
+        if (node.when) options[node.when] = true
+        walk(node.children)
+      }
+    }
+  }
+  walk(anatomy.nodes)
+  return { ...created(anatomy), parts, options }
+}
+
 /** The component as created, with one item in a group that may have none. */
-function created(anatomy: Anatomy): AnatomyInstance {
-  let instance = createdInstance(anatomy, "c1")
+function created(anatomy: Anatomy, id = "c1"): AnatomyInstance {
+  let instance = createdInstance(anatomy, id)
   for (const [group, { min }] of Object.entries(anatomy.repeats ?? {}))
     if (min === 0) instance = withItem(anatomy, instance, group, `${group}1`)
   return instance
@@ -91,4 +115,44 @@ describe("the anatomies", () => {
         ).toEqual(written(html))
       }
     })
+
+  for (const host of builders)
+    for (const [hole, declaration] of Object.entries(
+      (host.anatomy as Anatomy).holes,
+    )) {
+      if (declaration.content !== "free") continue
+      it(`${host.name}.${hole}: every component the manifest lets in stays where it is dropped`, () => {
+        const m = manifest as unknown as Manifest
+        const base = opened(host.anatomy as Anatomy)
+        let dropped = 0
+        for (const b of builders) {
+          if (!canDrop(m, b.name, [{ builder: host.name, hole }]).ok) continue
+          dropped += 1
+          // One copy for each item the hole is per, with ids of its own.
+          const per = declaration.per ?? []
+          const fill = (level: number, keys: string[]): Keyed<string> =>
+            level === per.length
+              ? renderAnatomy(
+                  m,
+                  b.name,
+                  created(b.anatomy as Anatomy, ["c2", ...keys].join("-")),
+                )
+              : Object.fromEntries(
+                  (base.repeats?.[per[level]] ?? []).map((k) => [
+                    k,
+                    fill(level + 1, [...keys, k]),
+                  ]),
+                )
+          const html = renderAnatomy(m, host.name, {
+            ...base,
+            content: { ...base.content, [hole]: fill(0, []) },
+          })
+          expect(
+            parsed(html),
+            `${b.name} in ${host.name}.${hole}: ${html}`,
+          ).toEqual(written(html))
+        }
+        expect(dropped, "the hole takes some component").toBeGreaterThan(0)
+      })
+    }
 })

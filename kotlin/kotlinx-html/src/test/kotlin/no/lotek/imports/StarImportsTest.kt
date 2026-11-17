@@ -28,6 +28,7 @@ private val anatomyNames =
         Anatomies::class, AnatomyInstance::class, Keyed::class, Anatomy::class, AnatomyRepeat::class,
         AnatomyHoleDeclaration::class, HoleContent::class, HoleKind::class, AnatomyChild::class,
         AnatomyAttribute::class, AnatomyHole::class, AnatomyChoice::class, AnatomyNode::class, AnatomyOption::class,
+        AnatomyForbidden::class, AnatomyOnly::class, DropPlace::class, DropAnswer::class,
     )
 
 class StarImportsTest {

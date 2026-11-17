@@ -101,6 +101,24 @@ class AnatomyCasesTest {
     }
 
     @Test
+    fun `answers every drop as TypeScript does`() {
+        @Suppress("UNCHECKED_CAST")
+        val drops = (Json.parse(File(System.getProperty("anatomyCases")).readText()) as Map<String, Any?>)["drops"] as List<Map<String, Any?>>
+        assertTrue(drops.size > 300, "Only ${drops.size} drops, so the comparison said little.")
+        for (drop in drops) {
+            val path = (drop["path"] as List<*>).map { it.map().let { p -> DropPlace(p["builder"] as String, p["hole"] as String) } }
+            val answer = drop["answer"].map()
+            val expected =
+                when {
+                    answer["ok"] == true -> DropAnswer.Yes
+                    answer["by"] == "html" -> DropAnswer.Html(answer["why"] as String)
+                    else -> DropAnswer.Lotek(answer["why"] as String)
+                }
+            assertEquals(expected, Anatomies.canDrop(Lotek.manifest, drop["component"] as String, path), "${drop["component"]} in $path")
+        }
+    }
+
+    @Test
     fun `the cases have every change a tool makes`() {
         assertEquals(setOf("variant", "withItem", "tag", "setting", "annotate"), CASES.map { it["change"] }.toSet())
     }

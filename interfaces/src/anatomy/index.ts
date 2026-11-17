@@ -41,7 +41,7 @@ export type AnatomyInstance = {
   repeats?: Record<string, readonly string[]>
   /** The text of the text holes and the value of the attribute holes. */
   holes?: Record<string, Keyed<string | boolean>>
-  /** Markup for the holes that take other elements, written as it is. */
+  /** Markup for the holes that take other elements or a drawing, written as it is. */
   content?: Record<string, Keyed<string>>
   /** The alternative each choice takes. Left out, the first. */
   choices?: Record<string, Keyed<string>>
@@ -221,7 +221,8 @@ class Writer {
     if (isHole(child)) {
       const declaration = this.declared(child.hole)
       const per = declaration.per ?? []
-      if (declaration.content === "free")
+      // Markup, as other elements or a drawing, is written as it is.
+      if (declaration.content === "free" || declaration.content === "svg")
         return (
           this.read(this.instance.content?.[child.hole], per, place.keys) ?? ""
         )
@@ -500,7 +501,7 @@ export function createdInstance(anatomy: Anatomy, id: string): AnatomyInstance {
   for (const [name, hole] of Object.entries(anatomy.holes)) {
     if (hole.example === undefined) continue
     const value = perItem(hole.per ?? [], hole.example)
-    if (hole.content === "free") content[name] = value
+    if (hole.content === "free" || hole.content === "svg") content[name] = value
     else holes[name] = value
   }
   // A value per item gets the item's key, so every option sends its own.
@@ -544,7 +545,8 @@ export function withItem(
   const content = { ...instance.content } as Record<string, Keyed<string>>
   for (const [name, hole] of Object.entries(anatomy.holes)) {
     if (hole.example === undefined || !hole.per?.includes(group)) continue
-    const target = hole.content === "free" ? content : holes
+    const target =
+      hole.content === "free" || hole.content === "svg" ? content : holes
     target[name] = filled(target[name], hole.per, hole.example)
   }
   return { ...instance, repeats, holes, content }
@@ -584,4 +586,60 @@ export function variantsOf(anatomy: Anatomy): Partial<AnatomyInstance>[] {
   }
   walk(anatomy.nodes)
   return out
+}
+
+/** Where a component is dropped: a hole that takes other elements, in a component. */
+export type DropPlace = { builder: string; hole: string }
+
+/**
+ * Whether a design tool may drop the component `name` at the end of
+ * `path`, the holes it stands in, outermost first; an empty path is the
+ * page. A no says why, and `by` says whose rule it is: `html` is what HTML
+ * forbids, which `lotek check` reports in markup too, and `lotek` is
+ * LO-TEK's own choice, which only a tool keeps to.
+ */
+export function canDrop(
+  manifest: Manifest,
+  name: string,
+  path: readonly DropPlace[],
+): { ok: true } | { ok: false; by: "html" | "lotek"; why: string } {
+  const anatomyOf = (builder: string) => {
+    const anatomy = manifest.builders.find((b) => b.name === builder)?.anatomy
+    if (!anatomy)
+      throw new Error(`canDrop: lt.${builder} has no anatomy in the manifest.`)
+    return anatomy
+  }
+  const anatomy = anatomyOf(name)
+  const declarations = path.map(({ builder, hole }) => {
+    const declaration = anatomyOf(builder).holes[hole]
+    if (declaration?.content !== "free")
+      throw new Error(
+        `canDrop: ${builder} has no hole ${hole} that takes other elements.`,
+      )
+    return declaration
+  })
+  // Every tag the component can write, in every alternative.
+  const tags = new Set<string>()
+  const walk = (children: readonly AnatomyChild[]) => {
+    for (const c of children) {
+      if (isHole(c)) continue
+      for (const node of isChoice(c) ? Object.values(c.oneOf) : [c]) {
+        for (const tag of typeof node.tag === "string" ? [node.tag] : node.tag)
+          tags.add(tag)
+        walk(node.children ?? [])
+      }
+    }
+  }
+  walk(anatomy.nodes)
+  for (const declaration of declarations)
+    for (const forbidden of declaration.forbids ?? []) {
+      if (forbidden.tags.some((tag) => tags.has(tag)))
+        return { ok: false, by: "html", why: forbidden.why }
+    }
+  if (path.length > 0 && anatomy.page)
+    return { ok: false, by: "lotek", why: anatomy.page }
+  const only = declarations[declarations.length - 1]?.only
+  if (only && !only.builders.includes(name))
+    return { ok: false, by: "lotek", why: only.why }
+  return { ok: true }
 }

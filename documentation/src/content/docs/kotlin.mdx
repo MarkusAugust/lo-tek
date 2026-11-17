@@ -121,7 +121,7 @@ tabs = Anatomies.withItem(anatomy, tabs, "tab", "claim")
 val html = Anatomies.render(Lotek.manifest, "tabs", tabs)
 ```
 
-`created` gives the component as a tool creates it on a drop, `withItem` inserts a tab, a row or an option without changing the keys of the others, and `variants` gives every alternative and optional part. With `annotate` on the instance, every element gets attributes from its address, such as an id Datastar keeps it by. The markup is the same as from TypeScript, character for character, for every component as created and with every change a tool makes.
+`created` gives the component as a tool creates it on a drop, `withItem` inserts a tab, a row or an option without changing the keys of the others, and `variants` gives every alternative and optional part. `canDrop` says whether a component may be dropped in a hole, and why not when it may not: because HTML forbids it there, or because LO-TEK keeps the place for something else, as the bottom of a dialog for its buttons. With `annotate` on the instance, every element gets attributes from its address, such as an id Datastar keeps it by. The markup is the same as from TypeScript, character for character, for every component as created and with every change a tool makes.
 
 ## kotlinx.html
 

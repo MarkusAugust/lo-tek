@@ -42,6 +42,7 @@ import {
 import { fileURLToPath } from "node:url"
 import {
   type AnatomyInstance,
+  canDrop,
   createdInstance,
   renderAnatomy,
   variantsOf,
@@ -64,6 +65,7 @@ import { elements } from "../src/vocabulary/elements.js"
 import type {
   Anatomy,
   AnatomyChild,
+  AnatomyForbidden,
   AnatomyNode,
   Manifest,
 } from "../src/vocabulary/types.js"
@@ -559,6 +561,83 @@ for (const b of builderFunctions) {
 }
 
 /*
+ * What HTML forbids inside an element, from the content models in the HTML
+ * standard (documented): a form has "no form element descendants"
+ * (4.10.3), a link and a button "no interactive content descendant" and
+ * none "with the tabindex attribute specified" (4.5.1, 4.10.6). The
+ * interactive tags are those of 3.2.5.2.7; `a`, `input`, `audio`, `video`
+ * and `img` are interactive only with some attributes, and are counted as
+ * if they always were. `lotek check` reports the same, with the rule
+ * `invalid-nesting` in the core, and `check-design-tool.ts` holds the two
+ * to each other.
+ */
+const INTERACTIVE = [
+  "a",
+  "audio",
+  "button",
+  "details",
+  "embed",
+  "iframe",
+  "img",
+  "input",
+  "label",
+  "select",
+  "textarea",
+  "video",
+]
+const FORBIDDEN: Record<string, AnatomyForbidden> = {
+  form: {
+    tags: ["form"],
+    why: "A form cannot be inside another form: the browser drops the inner <form>.",
+  },
+  a: {
+    tags: INTERACTIVE,
+    why: "Nothing interactive can be inside a link: the browser cannot tell which one is clicked.",
+  },
+  button: {
+    tags: INTERACTIVE,
+    why: "Nothing interactive can be inside a button: the browser cannot tell which one is clicked.",
+  },
+}
+
+/**
+ * The anatomy with `forbids` on every hole that takes other elements, from
+ * the tags around the hole. A node that can be several tags counts as all
+ * of them.
+ */
+function withForbidden(anatomy: Anatomy): Anatomy {
+  const around = new Map<string, Set<string>>()
+  const walk = (children: readonly AnatomyChild[], tags: Set<string>) => {
+    for (const c of children) {
+      if ("hole" in c) {
+        around.set(c.hole, new Set([...(around.get(c.hole) ?? []), ...tags]))
+        continue
+      }
+      const nodes = "oneOf" in c ? Object.values(c.oneOf) : [c]
+      for (const node of nodes)
+        walk(
+          node.children ?? [],
+          new Set([
+            ...tags,
+            ...(typeof node.tag === "string" ? [node.tag] : node.tag),
+          ]),
+        )
+    }
+  }
+  walk(anatomy.nodes, new Set())
+  const holes = Object.fromEntries(
+    Object.entries(anatomy.holes).map(([name, hole]) => {
+      if (hole.content !== "free") return [name, hole]
+      const forbids = [...(around.get(name) ?? [])].flatMap((tag) =>
+        FORBIDDEN[tag] ? [FORBIDDEN[tag]] : [],
+      )
+      return [name, forbids.length ? { ...hole, forbids } : hole]
+    }),
+  )
+  return { ...anatomy, holes }
+}
+
+/*
  * The anatomy each builder function belongs in, from `BUILDER_ANATOMIES` in
  * `metadata.ts`. A name there that is no builder function stops the build.
  */
@@ -568,7 +647,8 @@ for (const name of Object.keys(BUILDER_ANATOMIES))
       `BUILDER_ANATOMIES has ${name}, and lt has no builder function by that name.`,
     )
 for (const b of builderFunctions)
-  if (BUILDER_ANATOMIES[b.name]) b.anatomy = BUILDER_ANATOMIES[b.name]
+  if (BUILDER_ANATOMIES[b.name])
+    b.anatomy = withForbidden(BUILDER_ANATOMIES[b.name])
 
 /*
  * The description of a class attribute is the description of the option with
@@ -973,9 +1053,39 @@ try {
 } finally {
   console.warn = silent
 }
+/*
+ * What `canDrop()` answers for every component in every hole that takes
+ * other elements, and in each of those again inside a hole that forbids
+ * something, so what the outer hole forbids is answered inside too.
+ */
+const freeHoles = builderFunctions.flatMap((b) =>
+  Object.entries(b.anatomy?.holes ?? {})
+    .filter(([, hole]) => hole.content === "free")
+    .map(([hole, declaration]) => ({ builder: b.name, hole, declaration })),
+)
+const paths = [
+  ...freeHoles.map((h) => [{ builder: h.builder, hole: h.hole }]),
+  ...freeHoles
+    .filter((outer) => outer.declaration.forbids?.length)
+    .flatMap((outer) =>
+      freeHoles.map((inner) => [
+        { builder: outer.builder, hole: outer.hole },
+        { builder: inner.builder, hole: inner.hole },
+      ]),
+    ),
+]
+const drops = paths.flatMap((path) =>
+  builderFunctions
+    .filter((b) => b.anatomy)
+    .map((b) => ({
+      component: b.name,
+      path,
+      answer: canDrop(manifest as unknown as Manifest, b.name, path),
+    })),
+)
 writeFileSync(
   `${OUT}anatomy-cases.json`,
-  `${JSON.stringify({ version: version, cases: anatomyCases })}\n`,
+  `${JSON.stringify({ version: version, cases: anatomyCases, drops })}\n`,
 )
 
 /*
