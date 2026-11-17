@@ -127,6 +127,38 @@ const cases: Case[] = [
     },
     expected: `<div class="lt-table-scroll" tabindex="0" role="region" aria-label="Recovery orders"><table class="lt-table"><caption>Recovery orders</caption><thead><tr><th scope="col">Reference</th><th scope="col"><a class="lt-table__sort" href="?sort=recovered">Recovered</a></th></tr></thead><tbody><tr><th scope="row">LR-2079-0113</th><td>4 April</td></tr></tbody></table></div>`,
   },
+  // The field from the help text page, without the page's inputmode: the
+  // builder function writes type, and the name the form sends.
+  {
+    builder: "field",
+    instance: {
+      options: { help: true },
+      holes: {
+        control: "budget",
+        name: "budget",
+        label: "Budget",
+        help: "In EB, without the code. The crew sees it.",
+      },
+    },
+    expected: `<label class="lt-label" for="budget">Budget</label><input class="lt-input" type="text" id="budget" aria-describedby="budget-help" name="budget"><p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p>`,
+  },
+  // An invalid field with a text area, as the field page lists what the
+  // wiring must be: aria-invalid, and aria-describedby on both texts.
+  {
+    builder: "field",
+    instance: {
+      options: { help: true, error: true, invalid: true },
+      choices: { control: "textarea" },
+      holes: {
+        control: "fixer",
+        name: "fixer",
+        label: "Fixer's address",
+        help: "The board writes to the fixer, never to the crew.",
+        error: "Enter a valid address.",
+      },
+    },
+    expected: `<label class="lt-label" for="fixer">Fixer's address</label><textarea class="lt-textarea" id="fixer" name="fixer" aria-invalid="true" aria-describedby="fixer-help fixer-error" data-state="invalid"></textarea><p class="lt-help-text" id="fixer-help">The board writes to the fixer, never to the crew.</p><p class="lt-error-text" id="fixer-error">Enter a valid address.</p>`,
+  },
   // With the header and the subtitle, as the page shows them.
   {
     builder: "dialog",
@@ -143,7 +175,36 @@ const cases: Case[] = [
   },
 ]
 
+/**
+ * The markup with the attributes of each tag in alphabetical order. HTML
+ * does not care about the order, so a case can be written as the page has
+ * it.
+ */
+const sorted = (html: string) =>
+  html.replace(
+    /<([a-z][\w-]*)((?:\s+[\w:-]+(?:="[^"]*")?)*)\s*>/g,
+    (_, tag, rest: string) => {
+      const attributes = rest.match(/[\w:-]+(?:="[^"]*")?/g) ?? []
+      return `<${tag}${attributes
+        .sort()
+        .map((a) => ` ${a}`)
+        .join("")}>`
+    },
+  )
+
 const errors: string[] = []
+
+// The comparison itself: the order does not count, a value or a missing
+// attribute does.
+if (sorted('<a href="/x" class="y">') !== sorted('<a class="y" href="/x">'))
+  errors.push("the comparison counts the order of the attributes")
+for (const other of [
+  '<a class="y" href="/z">',
+  '<a class="y">',
+  '<b class="y" href="/x">',
+])
+  if (sorted(other) === sorted('<a class="y" href="/x">'))
+    errors.push(`the comparison takes ${other} for <a class="y" href="/x">`)
 for (const c of cases) {
   let written: string
   try {
@@ -154,7 +215,7 @@ for (const c of cases) {
     )
     continue
   }
-  if (written !== c.expected)
+  if (sorted(written) !== sorted(c.expected))
     errors.push(
       `${c.builder}: the anatomy gives\n    ${written || "(nothing)"}\n  and the page has\n    ${c.expected}`,
     )

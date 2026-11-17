@@ -297,6 +297,12 @@ export type AnatomyNode = {
   /** An optional node that is there when a tool creates the component. */
   created?: true
   /**
+   * The node is there exactly when this option of the builder function is
+   * on, as the help text with `help` in `lt.field()`: the control points at
+   * it with `aria-describedby` then, and only then.
+   */
+  when?: string
+  /**
    * The node is written once for each item in the group, as a tab. Nodes in
    * the same group repeat together, and a set that is a list gives each
    * item its own, as `tabs.tabs`.

@@ -859,6 +859,10 @@
           "additionalProperties": {
             "type": "object"
           }
+        },
+        "when": {
+          "type": "string",
+          "description": "The node is there exactly when this option of the builder function is on."
         }
       },
       "additionalProperties": false

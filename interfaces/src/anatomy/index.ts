@@ -113,6 +113,8 @@ function at<T>(value: PerItem<T> | undefined, place: Place): T | undefined {
 
 class Writer {
   private own: Answer
+  /** The options the anatomy's own builder function was called with. */
+  private options: Record<string, unknown>
 
   constructor(
     private builder: string,
@@ -125,7 +127,8 @@ class Writer {
         "repeat" in from ? this.keys(from.repeat) : instance.holes?.[from.hole],
       ]),
     )
-    this.own = call(builder, { ...instance.options, ...required })
+    this.options = { ...instance.options, ...required }
+    this.own = call(builder, this.options)
   }
 
   /** The keys of the items in a group, made up when the instance gives a count. */
@@ -185,6 +188,7 @@ class Writer {
     const inside: Place = { ...place, named: undefined }
     const inner = () =>
       (node.children ?? []).map((c) => this.write(c, inside)).join("")
+    if (node.when !== undefined && !this.options[node.when]) return ""
     if (node.optional || node.wrapper) {
       const there =
         (node.name && this.instance.parts?.[node.name]) ?? node.created === true

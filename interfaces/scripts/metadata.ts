@@ -703,6 +703,47 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
       },
     ],
   },
+  field: {
+    options: { id: { hole: "control", kind: "id" } },
+    nodes: [
+      { tag: "label", from: ["field.label"], children: [{ hole: "label" }] },
+      {
+        // The control gets type from its own builder function, and the
+        // state from field.control: given to both, aria-invalid came twice.
+        name: "control",
+        oneOf: {
+          input: {
+            tag: "input",
+            from: ["input", "field.control"],
+            attributes: { name: { hole: "name", kind: "name" } },
+          },
+          textarea: {
+            tag: "textarea",
+            from: ["textarea", "field.control"],
+            attributes: { name: { hole: "name", kind: "name" } },
+          },
+          select: {
+            tag: "select",
+            from: ["select", "field.control"],
+            attributes: { name: { hole: "name", kind: "name" } },
+            children: [{ hole: "options" }],
+          },
+        },
+      },
+      {
+        tag: "p",
+        from: ["helpText", "field.help"],
+        when: "help",
+        children: [{ hole: "help" }],
+      },
+      {
+        tag: "p",
+        from: ["errorText", "field.error"],
+        when: "error",
+        children: [{ hole: "error" }],
+      },
+    ],
+  },
 }
 
 export type BuilderPart = { element: string; part: string }
