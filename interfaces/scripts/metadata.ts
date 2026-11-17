@@ -1031,7 +1031,17 @@ export const classDocs: Record<string, ClassDoc> = {
       },
     },
   },
-  "lt-heading": { content: "text" },
+  "lt-heading": {
+    content: "text",
+    tags: [
+      { tag: "h1" },
+      { tag: "h2" },
+      { tag: "h3" },
+      { tag: "h4" },
+      { tag: "h5" },
+      { tag: "h6" },
+    ],
+  },
   "lt-help-text": { content: "text" },
   "lt-icon": { content: "none" },
   "lt-input": { content: "none" },
@@ -1106,7 +1116,7 @@ export const classDocs: Record<string, ClassDoc> = {
   "lt-skeleton": { content: "none" },
   "lt-skip-link": { content: "text" },
   "lt-spinner": { content: "none" },
-  "lt-sr-only": { content: "text" },
+  "lt-sr-only": { content: "text", tags: [{ tag: "*" }] },
   "lt-steps": {
     content: "parts",
     parts: {

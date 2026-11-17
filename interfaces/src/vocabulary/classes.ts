@@ -424,6 +424,26 @@ export const classes: Classes = {
     "description": "Headings in six sizes, independent of level. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/heading/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "h1"
+      },
+      {
+        "tag": "h2"
+      },
+      {
+        "tag": "h3"
+      },
+      {
+        "tag": "h4"
+      },
+      {
+        "tag": "h5"
+      },
+      {
+        "tag": "h6"
+      }
+    ],
     "attributes": {
       "data-size": {
         "values": [
@@ -776,6 +796,11 @@ export const classes: Classes = {
     "description": "Text only screen readers get. A CSS component with one class and no JavaScript.",
     "link": "https://lo-tek.sobernetics.no/components/sr-only/",
     "content": "text",
+    "tags": [
+      {
+        "tag": "*"
+      }
+    ],
     "attributes": {}
   },
   "lt-steps": {

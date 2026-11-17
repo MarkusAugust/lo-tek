@@ -1018,21 +1018,51 @@ fn wrong_tag(
         .iter()
         .filter(|t| t.tag == "*" || equals(&tag, &t.tag))
         .collect();
+    // How a tag is written in a message: `<input type="checkbox">`, `<a href>`.
+    let written = |t: &Tag, class: bool| {
+        let mut out = format!("<{}", t.tag);
+        if class {
+            out.push_str(&format!(" class=\"{}\"", info.name));
+        }
+        for (name, values) in &t.attributes {
+            out.push_str(&format!(" {name}=\"{}\"", values[0]));
+        }
+        for name in &t.requires {
+            if !class {
+                out.push_str(&format!(" {name}"));
+            }
+        }
+        out.push('>');
+        out
+    };
+    let alternatives = || {
+        let all: Vec<String> = info.tags.iter().map(|t| written(t, false)).collect();
+        match all.split_last() {
+            Some((last, [])) => last.clone(),
+            Some((last, rest)) => format!("{} or {last}", rest.join(", ")),
+            None => String::new(),
+        }
+    };
+    let write = format!("Write {}.", written(&info.tags[0], true));
+    let shown = lossy(&tag);
     if same.is_empty() {
-        return Some(format!("{} is on the wrong tag.", info.name));
+        return Some(format!(
+            "{} is on <{shown}>, and belongs on {}. {write}",
+            info.name,
+            alternatives()
+        ));
     }
-    // The first attribute the tag must have with one of its values, and does not.
-    fn unlike<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<(&'a str, &'a [String])> {
+    // A value bound by a framework, or written by the template, is not known
+    // here, and only the tag is judged.
+    fn unlike<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<&'a str> {
         t.attributes.iter().find_map(|(name, values)| {
-            // A value bound by a framework, or written by the template, is
-            // not known here, and only the tag is judged.
             let has = attribute(attributes, name).is_some_and(|a| match a.value.as_deref() {
                 _ if !equals(&a.name, name) => true,
                 Some(v) if is_templated_value(v) => true,
                 Some(v) => values.iter().any(|w| equals(&lowercase(v), w)),
                 None => false,
             });
-            (!has).then_some((name.as_str(), values.as_slice()))
+            (!has).then_some(name.as_str())
         })
     }
     fn missing<'a>(t: &'a Tag, attributes: &[ReadAttribute]) -> Option<&'a String> {
@@ -1056,15 +1086,24 @@ fn wrong_tag(
     {
         return None;
     }
-    let shown = lossy(&tag);
-    if let Some((name, values)) = unlike(same[0], attributes) {
+    if let Some(name) = unlike(same[0], attributes) {
+        let actual = attributes
+            .iter()
+            .find(|a| equals(&a.name, name))
+            .and_then(|a| a.value.as_deref())
+            .map(|v| format!(" {name}=\"{}\"", lossy(v)))
+            .unwrap_or_default();
         return Some(format!(
-            "{} is on <{shown}> without {name}=\"{}\".",
-            info.name, values[0]
+            "{} is on <{shown}{actual}>, and belongs on {}. {write}",
+            info.name,
+            alternatives()
         ));
     }
     let name = missing(same[0], attributes)?;
-    Some(format!("{} is on <{shown}> without {name}.", info.name))
+    Some(format!(
+        "{} is on <{shown}> without {name}. Give it {name}.",
+        info.name
+    ))
 }
 
 /// A disabled link that still has `href`.

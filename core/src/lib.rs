@@ -725,6 +725,19 @@ mod tests {
     }
 
     #[test]
+    fn a_class_for_any_tag() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        for html in [
+            r#"<span class="lt-sr-only">Sorted</span>"#,
+            r#"<table class="lt-table"><caption>Orders<span class="lt-sr-only">, sortable</span></caption><thead></thead><tbody></tbody></table>"#,
+            r#"<p class="lt-sr-only">Hidden</p>"#,
+        ] {
+            let found = markup(html);
+            assert!(found.is_empty(), "{html}: {found:?}");
+        }
+    }
+
+    #[test]
     fn a_flag_on_a_class_takes_no_value() {
         let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
         assert!(markup(r#"<label class="lt-label" data-optional>Navn</label>"#).is_empty());
