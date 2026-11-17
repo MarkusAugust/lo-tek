@@ -349,9 +349,38 @@
             "properties": {
               "options": {
                 "type": "object",
-                "description": "The required options of the builder function, each from a hole.",
+                "description": "The required options of the builder function, each from a hole, or from a group, as the keys of the tabs.",
                 "additionalProperties": {
-                  "$ref": "#/$defs/anatomyAttributeHole"
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/anatomyAttributeHole"
+                    },
+                    {
+                      "type": "object",
+                      "required": ["repeat"],
+                      "properties": {
+                        "repeat": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "repeats": {
+                "type": "object",
+                "description": "The groups that repeat, with how few items each may have.",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["min"],
+                  "properties": {
+                    "min": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
               "nodes": {
@@ -515,7 +544,19 @@
             "required": ["tag"],
             "properties": {
               "tag": {
-                "type": "string"
+                "description": "The tag, or the tags to choose from, the first being the one to write.",
+                "oneOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                ]
               },
               "from": {
                 "type": "array",
@@ -555,6 +596,10 @@
               "created": {
                 "const": true,
                 "description": "An optional node that is there when a tool creates the component."
+              },
+              "repeat": {
+                "type": "string",
+                "description": "The group the node is written once for each item of. Nodes in the same group repeat together, and a set that is a list gives each item its own."
               }
             },
             "additionalProperties": false

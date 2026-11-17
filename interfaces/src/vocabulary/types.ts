@@ -255,7 +255,8 @@ export type AnatomyHole = { hole: string }
  * (`"field.control"`), or a class on it (`"checkbox.row"`).
  */
 export type AnatomyNode = {
-  tag: string
+  /** The tag, or the tags to choose from, the first being the one to write. */
+  tag: string | readonly string[]
   from?: readonly string[]
   /**
    * Attributes no builder function writes: a fixed value, or a hole the
@@ -275,6 +276,12 @@ export type AnatomyNode = {
   wrapper?: true
   /** An optional node that is there when a tool creates the component. */
   created?: true
+  /**
+   * The node is written once for each item in the group, as a tab. Nodes in
+   * the same group repeat together, and a set that is a list gives each
+   * item its own, as `tabs.tabs`.
+   */
+  repeat?: string
 }
 
 /** What an attribute hole holds, so a tool knows what to ask for. */
@@ -291,9 +298,12 @@ export type AnatomyAttributeHole = {
 export type Anatomy = {
   /**
    * The required options of the builder function, each from a hole, as the
-   * dialog's `titleId` from the id the heading gets.
+   * dialog's `titleId` from the id the heading gets, or from a group, as the
+   * keys of the tabs, one for each tab.
    */
-  options?: Record<string, AnatomyAttributeHole>
+  options?: Record<string, AnatomyAttributeHole | { repeat: string }>
+  /** The groups that repeat, with how few items each may have. */
+  repeats?: Record<string, { min: number }>
   nodes: readonly (AnatomyNode | AnatomyHole)[]
 }
 

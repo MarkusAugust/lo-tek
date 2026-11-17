@@ -556,6 +556,53 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
       },
     ],
   },
+  tabs: {
+    options: {
+      id: { hole: "tabs", kind: "id" },
+      keys: { repeat: "tab" },
+      label: { hole: "label", kind: "text" },
+    },
+    // One tab is no choice.
+    repeats: { tab: { min: 2 } },
+    nodes: [
+      {
+        tag: "lt-tabs",
+        children: [
+          {
+            tag: "ul",
+            from: ["tabs.list"],
+            children: [
+              {
+                tag: "li",
+                repeat: "tab",
+                children: [
+                  {
+                    tag: "a",
+                    from: ["tabs.tabs"],
+                    children: [{ hole: "title" }],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            tag: "section",
+            from: ["tabs.panels"],
+            repeat: "tab",
+            children: [
+              {
+                // The level follows the page the tabs are on.
+                tag: ["h2", "h3", "h4", "h5", "h6"],
+                from: ["tabs.headings"],
+                children: [{ hole: "title" }],
+              },
+              { hole: "panel" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 }
 
 export type BuilderPart = { element: string; part: string }

@@ -65,6 +65,27 @@ const cases: Case[] = [
     },
     expected: `<dialog class="lt-dialog" aria-labelledby="confirm-title"><h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2></dialog>`,
   },
+  // The tabs as the Kotlin recipe on the page renders them: the panels get
+  // their ids from the id and the keys, and the heading in each panel says
+  // the same as its tab.
+  {
+    builder: "tabs",
+    instance: {
+      holes: {
+        tabs: "claim-tabs",
+        label: "Parts of the claim",
+        title: ["Claim", "Attachments"],
+      },
+      repeats: { tab: ["claim", "attachments"] },
+      content: {
+        panel: [
+          "<p>Claim AV-2079-0481 was filed on 4 March 2079.</p>",
+          "<p>Three attachments have been received.</p>",
+        ],
+      },
+    },
+    expected: `<lt-tabs><ul class="lt-tabs__list" aria-label="Parts of the claim"><li><a href="#claim-tabs-claim">Claim</a></li><li><a href="#claim-tabs-attachments">Attachments</a></li></ul><section id="claim-tabs-claim" class="lt-tabs__panel"><h2 id="claim-tabs-claim-heading">Claim</h2><p>Claim AV-2079-0481 was filed on 4 March 2079.</p></section><section id="claim-tabs-attachments" class="lt-tabs__panel"><h2 id="claim-tabs-attachments-heading">Attachments</h2><p>Three attachments have been received.</p></section></lt-tabs>`,
+  },
   // With the header and the subtitle, as the page shows them.
   {
     builder: "dialog",

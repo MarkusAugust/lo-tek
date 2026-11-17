@@ -17,20 +17,34 @@ import type {
   Manifest,
 } from "../vocabulary/types.js"
 
+/**
+ * A value per item in a group: a list, read at the item's place, as the
+ * title of each tab.
+ */
+type PerItem = string | readonly string[]
+
 /** What the template fills in. */
 export type AnatomyInstance = {
   /** The text of each hole, and the value of each attribute hole, by name. */
-  holes?: Record<string, string>
+  holes?: Record<string, PerItem>
   /** Markup for a hole that takes other elements, by name. Written as it is. */
-  content?: Record<string, string>
+  content?: Record<string, PerItem>
   /**
    * Whether each optional node is there, by its name. Left out, a node is
    * there when the anatomy says it is `created`.
    */
   parts?: Record<string, boolean>
+  /**
+   * The items in each group: how many, or their keys, as the tabs take
+   * keys from the data. Left out, a group has its `min`.
+   */
+  repeats?: Record<string, number | readonly string[]>
   /** Options for the builder function beyond the required ones, as `open`. */
   options?: Record<string, unknown>
 }
+
+/** Where a node is written: the item in each group around it, the innermost last. */
+type Place = { index: Record<string, number>; group?: string }
 
 type Answer = Record<string, unknown>
 type BuilderFunction = (options?: Record<string, unknown>) => unknown
@@ -73,13 +87,13 @@ class Writer {
 
   constructor(
     builder: string,
-    anatomy: Anatomy,
+    private anatomy: Anatomy,
     private instance: AnatomyInstance,
   ) {
     const required = Object.fromEntries(
-      Object.entries(anatomy.options ?? {}).map(([option, hole]) => [
+      Object.entries(anatomy.options ?? {}).map(([option, from]) => [
         option,
-        instance.holes?.[hole.hole],
+        "repeat" in from ? this.keys(from.repeat) : instance.holes?.[from.hole],
       ]),
     )
     this.answers.set(
@@ -88,12 +102,29 @@ class Writer {
     )
   }
 
+  /** The keys of the items in a group, made up when the instance gives a count. */
+  private keys(group: string): string[] {
+    const given = this.instance.repeats?.[group]
+    if (Array.isArray(given)) return [...given]
+    const count =
+      typeof given === "number"
+        ? given
+        : (this.anatomy.repeats?.[group]?.min ?? 1)
+    return Array.from({ length: count }, (_, i) => `${group}-${i + 1}`)
+  }
+
+  /** A value that is one per item is read at the item's place. */
+  private at<T>(value: T | readonly T[] | undefined, place: Place) {
+    if (!Array.isArray(value)) return value as T | undefined
+    return value[place.group ? (place.index[place.group] ?? 0) : 0] as T
+  }
+
   /**
    * The attributes one source gives: the whole answer of a builder
    * function, a set in it, or a class the function carries, as
    * `checkbox.row`.
    */
-  private attributesOf(source: string): Answer {
+  private attributesOf(source: string, place: Place): Answer {
     const [name, field] = source.split(".")
     let answer = this.answers.get(name)
     if (!answer) {
@@ -101,7 +132,8 @@ class Writer {
       this.answers.set(name, answer)
     }
     if (field === undefined) return answer
-    if (field in answer) return answer[field] as Answer
+    if (field in answer)
+      return this.at<Answer>(answer[field] as Answer | Answer[], place) ?? {}
     const constant = (lt as unknown as Record<string, Record<string, unknown>>)[
       name
     ][field]
@@ -109,14 +141,23 @@ class Writer {
     throw new Error(`renderAnatomy: ${source} is neither a set nor a class.`)
   }
 
-  write(child: AnatomyNode | AnatomyHole): string {
+  write(child: AnatomyNode | AnatomyHole, place: Place): string {
     if (isHole(child))
       return (
-        this.instance.content?.[child.hole] ??
-        escapeText(this.instance.holes?.[child.hole] ?? "")
+        this.at(this.instance.content?.[child.hole], place) ??
+        escapeText(this.at(this.instance.holes?.[child.hole], place) ?? "")
       )
+    if (child.repeat && place.index[child.repeat] === undefined)
+      return this.keys(child.repeat)
+        .map((_, i) =>
+          this.write(child, {
+            index: { ...place.index, [child.repeat as string]: i },
+            group: child.repeat,
+          }),
+        )
+        .join("")
     const inner = () =>
-      (child.children ?? []).map((c) => this.write(c)).join("")
+      (child.children ?? []).map((c) => this.write(c, place)).join("")
     if (child.optional || child.wrapper) {
       const there =
         (child.name && this.instance.parts?.[child.name]) ??
@@ -125,7 +166,9 @@ class Writer {
     }
     const attributes: Record<string, string> = {}
     for (const source of child.from ?? [])
-      for (const [name, value] of Object.entries(this.attributesOf(source))) {
+      for (const [name, value] of Object.entries(
+        this.attributesOf(source, place),
+      )) {
         if (value === undefined || value === false) continue
         const text = value === true ? "" : String(value)
         attributes[name] =
@@ -137,14 +180,15 @@ class Writer {
       attributes[name] =
         typeof value === "string"
           ? value
-          : (this.instance.holes?.[value.hole] ?? "")
+          : (this.at(this.instance.holes?.[value.hole], place) ?? "")
     const written = Object.entries(attributes)
       .map(([name, value]) =>
         value === "" ? ` ${name}` : ` ${name}="${escapeAttribute(value)}"`,
       )
       .join("")
-    if (VOID.has(child.tag)) return `<${child.tag}${written}>`
-    return `<${child.tag}${written}>${inner()}</${child.tag}>`
+    const tag = typeof child.tag === "string" ? child.tag : child.tag[0]
+    if (VOID.has(tag)) return `<${tag}${written}>`
+    return `<${tag}${written}>${inner()}</${tag}>`
   }
 }
 
@@ -161,5 +205,5 @@ export function renderAnatomy(
   if (!anatomy)
     throw new Error(`renderAnatomy: lt.${name} has no anatomy in the manifest.`)
   const writer = new Writer(name, anatomy, instance)
-  return anatomy.nodes.map((n) => writer.write(n)).join("")
+  return anatomy.nodes.map((n) => writer.write(n, { index: {} })).join("")
 }
