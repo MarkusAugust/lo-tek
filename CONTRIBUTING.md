@@ -165,7 +165,7 @@ All six come from `interfaces/scripts/metadata.ts`, the CSS and the "Plain HTML"
 
 In the rulebooks the prose is in the generator, while the lists and numbers are read from the package: the classes, the elements, the builder functions and the token names are fetched from where they actually live, so a rulebook cannot promise something that does not exist. `check-agent.ts` checks both.
 
-The build does not stop on an outdated file: `generate` writes them again before any check reads them, so `check:vocabulary` and `check:agent` always compare against what was just written. If you forget to regenerate, or to commit what was generated, CI tells you: the step `Generated files are up to date` runs `git status --porcelain` after the build and fails if the build changed a tracked file.
+The build does not stop on an outdated file: `generate` writes them again before any check reads them, so `check:vocabulary`, `check:manifest` and `check:agent` always compare against what was just written. If you forget to regenerate, or to commit what was generated, CI tells you: the step `Generated files are up to date` runs `git status --porcelain` after the build and fails if the build changed a tracked file.
 
 ## Changelog and releases
 

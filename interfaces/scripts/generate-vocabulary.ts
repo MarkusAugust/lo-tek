@@ -43,6 +43,7 @@ import type {
   Tag,
 } from "../src/vocabulary/types.js"
 import { flagsFor, readBuilderFunctions, setsOf } from "./builder-functions.js"
+import { SAMPLE } from "./builder-sample.js"
 import {
   compoundsOf,
   isText,
@@ -712,14 +713,6 @@ function classesIn(value: unknown): string[] {
   return out
 }
 
-/**
- * The options every builder function is called with to read its classes:
- * an id, so the ones that would otherwise make a random one do not warn,
- * the dialog's own titleId, since the id is on the heading, and a name,
- * which the tabs require on the list.
- */
-const BASE_OPTIONS = { id: "x", titleId: "x", keys: [], label: "x" }
-
 export function classesData(): Classes {
   /*
    * The classes from the CSS, before the content and the parts from
@@ -767,7 +760,7 @@ export function classesData(): Classes {
     const build = builder as (options?: Record<string, unknown>) => unknown
     let base: unknown
     try {
-      base = build(BASE_OPTIONS)
+      base = build(SAMPLE)
     } catch {
       continue
     }
@@ -866,17 +859,12 @@ export function classesData(): Classes {
     if (typeof build !== "function") continue
     // If the builder function throws, generate must stop. A flag that quietly
     // vanished from classes.ts vanished from the editors and the diagnostics too.
-    const flagged = flagsFor(
-      builder,
-      build,
-      BASE_OPTIONS,
-      (name) => name in found,
-    )
+    const flagged = flagsFor(builder, build, SAMPLE, (name) => name in found)
     for (const [name, attributes] of flagged)
       for (const attribute of attributes)
         flags.set(name, (flags.get(name) ?? new Set()).add(attribute))
     const own = builder.options.some((o) => o.name === "type")
-    for (const [, set] of setsOf(build(BASE_OPTIONS)))
+    for (const [, set] of setsOf(build(SAMPLE)))
       for (const name of String(set.class ?? "").split(/\s+/)) {
         if (!name) continue
         const types = typesOf.get(name) ?? new Set<string>()
