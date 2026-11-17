@@ -58,7 +58,13 @@ import type { LtConnectionStatus } from "../src/components/standalone/connection
 import { LT_CONNECTION_STATUS_TAG } from "../src/components/standalone/connection-status/lt-connection-status.js"
 import type { LtToast } from "../src/components/standalone/toast/lt-toast.js"
 import { LT_TOAST_TAG } from "../src/components/standalone/toast/lt-toast.js"
-import type { DefaultText, Name, Tag } from "../src/vocabulary/types.js"
+import type {
+  Anatomy,
+  AnatomyChoice,
+  DefaultText,
+  Name,
+  Tag,
+} from "../src/vocabulary/types.js"
 
 /** An allowed value, with what it means. */
 export type ValueDoc = { name: string; description: string }
@@ -461,6 +467,1779 @@ const PARTS: Record<string, Record<string, PartDoc>> = {
 }
 
 /** Where a set from a builder function goes: a part of a frame component. */
+/**
+ * A column heading in a table: plain, sorted by a button, or sorted by a
+ * link the server answers on the next page load. `hole` is the text.
+ */
+const columnHeading = (
+  name: string,
+  hole: string,
+  sort: string,
+  repeat?: string,
+): AnatomyChoice => ({
+  name,
+  description: "How the column is sorted, if at all.",
+  ...(repeat ? { repeat } : {}),
+  oneOf: {
+    plain: { tag: "th", attributes: { scope: "col" }, children: [{ hole }] },
+    sortable: {
+      tag: "th",
+      from: ["tableSort.header"],
+      settings: ["direction"],
+      attributes: { scope: "col" },
+      children: [
+        { tag: "button", from: ["tableSort.button"], children: [{ hole }] },
+      ],
+    },
+    link: {
+      tag: "th",
+      from: ["tableSort.header"],
+      options: { tableSort: { link: true } },
+      settings: ["direction"],
+      attributes: { scope: "col" },
+      children: [
+        {
+          tag: "a",
+          from: ["tableSort.button"],
+          attributes: { href: { hole: sort } },
+          children: [{ hole }],
+        },
+      ],
+    },
+  },
+})
+
+/** A form control's name: the key the server reads its value by. */
+const nameHole = {
+  description: "The name the form sends the value under.",
+  kind: "name",
+  example: "answer",
+} as const
+
+/**
+ * The markup each builder function belongs in, written once here from the
+ * component page. `check-anatomy.ts` holds each to the page, and
+ * `check-design-tool.ts` to what a design tool must do with it. See
+ * `Anatomy` in `src/vocabulary/types.ts`.
+ */
+export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
+  button: {
+    holes: {
+      label: {
+        description: "What the button does.",
+        content: "text",
+        example: "Order the job",
+      },
+      disabled: { description: "The button cannot be pressed.", kind: "flag" },
+    },
+    nodes: [
+      {
+        tag: "button",
+        from: ["button"],
+        attributes: { disabled: { hole: "disabled" } },
+        children: [{ hole: "label" }],
+      },
+    ],
+  },
+  checkbox: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the box says yes to.",
+        content: "text",
+        example: "I accept the terms",
+      },
+      checked: { description: "The box is ticked.", kind: "flag" },
+      disabled: { description: "The box cannot be changed.", kind: "flag" },
+    },
+    nodes: [
+      {
+        tag: "div",
+        from: ["checkbox.row"],
+        children: [
+          {
+            tag: "input",
+            from: ["checkbox"],
+            attributes: {
+              id: { hole: "control" },
+              name: { hole: "name" },
+              checked: { hole: "checked" },
+              disabled: { hole: "disabled" },
+            },
+          },
+          {
+            tag: "label",
+            from: ["label"],
+            attributes: { for: { hole: "control" } },
+            children: [{ hole: "label" }],
+          },
+        ],
+      },
+    ],
+  },
+  dialog: {
+    holes: {
+      "title-id": {
+        description: "The id the dialog takes its name from.",
+        kind: "id",
+      },
+      title: {
+        description: "What the dialog asks or says.",
+        content: "text",
+        example: "Cancel the job?",
+      },
+      subtitle: {
+        description: "A line below the title.",
+        content: "text",
+        example: "Job 222-0481",
+      },
+      body: {
+        description: "The content.",
+        content: "free",
+        example: "<p>This cannot be undone.</p>",
+      },
+      footer: { description: "The buttons at the bottom.", content: "free" },
+    },
+    options: {
+      titleId: { hole: "title-id" },
+      open: {
+        tool: "The server opens and closes the dialog, through <lt-dialog>.",
+      },
+    },
+    nodes: [
+      {
+        tag: "lt-dialog",
+        from: ["dialog.host"],
+        name: "host",
+        description: "Lets the server open the dialog.",
+        wrapper: true,
+        created: true,
+        children: [
+          {
+            tag: "dialog",
+            from: ["dialog.dialog"],
+            children: [
+              {
+                tag: "div",
+                from: ["dialog.header"],
+                name: "header",
+                description: "A header that can carry a colour and a subtitle.",
+                wrapper: true,
+                children: [
+                  {
+                    tag: "h2",
+                    from: ["dialog.title"],
+                    children: [{ hole: "title" }],
+                  },
+                  {
+                    tag: "p",
+                    from: ["dialog.subtitle"],
+                    name: "subtitle",
+                    description: "A line below the title.",
+                    optional: true,
+                    requires: "header",
+                    children: [{ hole: "subtitle" }],
+                  },
+                ],
+              },
+              {
+                tag: "div",
+                from: ["dialog.body"],
+                name: "body",
+                description: "The content, which scrolls when it is long.",
+                optional: true,
+                created: true,
+                children: [{ hole: "body" }],
+              },
+              {
+                tag: "form",
+                from: ["dialog.footer"],
+                attributes: { method: "dialog" },
+                name: "footer",
+                description: "The row of buttons at the bottom.",
+                optional: true,
+                created: true,
+                children: [{ hole: "footer" }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  tabs: {
+    holes: {
+      tabs: { description: "The start of the panels' ids.", kind: "id" },
+      label: {
+        description: "What the tabs choose between.",
+        content: "text",
+        example: "Sections",
+      },
+      title: {
+        description: "The tab's name, and its panel's heading.",
+        content: "text",
+        per: ["tab"],
+        example: "Section",
+      },
+      panel: {
+        description: "What the tab shows.",
+        content: "free",
+        per: ["tab"],
+        example: "<p>Text.</p>",
+      },
+    },
+    options: {
+      id: { hole: "tabs" },
+      keys: { repeat: "tab" },
+      label: { hole: "label" },
+    },
+    // One tab is no choice.
+    repeats: { tab: { min: 2, description: "The tabs." } },
+    nodes: [
+      {
+        tag: "lt-tabs",
+        children: [
+          {
+            tag: "ul",
+            from: ["tabs.list"],
+            children: [
+              {
+                tag: "li",
+                repeat: "tab",
+                children: [
+                  {
+                    tag: "a",
+                    from: ["tabs.tabs"],
+                    children: [{ hole: "title" }],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            tag: "section",
+            from: ["tabs.panels"],
+            repeat: "tab",
+            children: [
+              {
+                // The level follows the page the tabs are on.
+                tag: ["h2", "h3", "h4", "h5", "h6"],
+                from: ["tabs.headings"],
+                name: "heading",
+                description:
+                  "The panel's heading, at the level the page needs.",
+                children: [{ hole: "title" }],
+              },
+              { hole: "panel" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  table: {
+    holes: {
+      region: {
+        description: "The name of the box that scrolls.",
+        kind: "text",
+        example: "Table",
+      },
+      caption: {
+        description: "The table's name.",
+        content: "text",
+        example: "Table",
+      },
+      "row-heading": {
+        description: "The heading over the rows' names.",
+        content: "text",
+        example: "Name",
+      },
+      heading: {
+        description: "A column's heading.",
+        content: "text",
+        per: ["column"],
+        example: "Column",
+      },
+      "row-sort": {
+        description: "The address that sorts by the rows' names.",
+        kind: "url",
+        example: "?sort=name",
+      },
+      sort: {
+        description: "The address that sorts by the column.",
+        kind: "url",
+        per: ["column"],
+        example: "?sort=column",
+      },
+      "row-name": {
+        description: "A row's name.",
+        content: "text",
+        per: ["row"],
+        example: "Row",
+      },
+      cell: {
+        description: "A cell.",
+        content: "text",
+        per: ["row", "column"],
+        example: "Value",
+      },
+    },
+    repeats: {
+      column: { min: 1, description: "The columns after the rows' names." },
+      row: { min: 1, description: "The rows." },
+    },
+    nodes: [
+      {
+        tag: "div",
+        from: ["table.scroll"],
+        name: "scroll",
+        description: "A box that lets a wide table scroll.",
+        wrapper: true,
+        // Not optional once the box is there: without tabindex no keyboard
+        // reaches what is beyond the edge, and the region needs a name.
+        attributes: {
+          tabindex: "0",
+          role: "region",
+          "aria-label": { hole: "region" },
+        },
+        children: [
+          {
+            tag: "table",
+            from: ["table"],
+            children: [
+              // The table's name. lotek check reports a table without one.
+              { tag: "caption", children: [{ hole: "caption" }] },
+              {
+                tag: "thead",
+                children: [
+                  {
+                    tag: "tr",
+                    children: [
+                      columnHeading("row-heading", "row-heading", "row-sort"),
+                      columnHeading("heading", "heading", "sort", "column"),
+                    ],
+                  },
+                ],
+              },
+              {
+                tag: "tbody",
+                children: [
+                  {
+                    tag: "tr",
+                    repeat: "row",
+                    children: [
+                      {
+                        tag: "th",
+                        attributes: { scope: "row" },
+                        children: [{ hole: "row-name" }],
+                      },
+                      {
+                        tag: "td",
+                        repeat: "column",
+                        children: [{ hole: "cell" }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  field: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the field asks for.",
+        content: "text",
+        example: "Email",
+      },
+      help: {
+        description: "Help to fill it in.",
+        content: "text",
+        example: "We never share it.",
+      },
+      error: {
+        description: "What is wrong.",
+        content: "text",
+        example: "Enter an email address.",
+      },
+      "option-value": {
+        description:
+          "What an option sends. Without it, the option sends its text.",
+        kind: "value",
+        per: ["option"],
+        optional: true,
+      },
+      "option-selected": {
+        description: "The option is the one picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+      "option-label": {
+        description: "What an option says.",
+        content: "text",
+        per: ["option"],
+        example: "Option",
+      },
+    },
+    options: {
+      id: { hole: "control" },
+      helpId: {
+        tool: "Left out: the id of the help text is made from the field's.",
+      },
+      errorId: {
+        tool: "Left out: the id of the error text is made from the field's.",
+      },
+      describedBy: {
+        tool: "Left out: the help and error texts are wired by the field.",
+      },
+    },
+    repeats: { option: { min: 1, description: "The options in a select." } },
+    nodes: [
+      {
+        // One root, so the field is one box in a layout.
+        tag: "div",
+        children: [
+          {
+            tag: "label",
+            from: ["field.label"],
+            children: [{ hole: "label" }],
+          },
+          {
+            // The control gets type from its own builder function, and the
+            // state from field.control: given to both, aria-invalid came twice.
+            name: "control",
+            description: "What the user writes or picks in.",
+            oneOf: {
+              input: {
+                tag: "input",
+                from: ["input", "field.control"],
+                settings: ["type"],
+                attributes: { name: { hole: "name" } },
+              },
+              file: {
+                tag: "input",
+                from: ["fileUpload", "field.control"],
+                settings: ["multiple", "accept"],
+                attributes: { name: { hole: "name" } },
+              },
+              textarea: {
+                tag: "textarea",
+                from: ["textarea", "field.control"],
+                attributes: { name: { hole: "name" } },
+              },
+              select: {
+                tag: "select",
+                from: ["select", "field.control"],
+                attributes: { name: { hole: "name" } },
+                children: [
+                  {
+                    tag: "option",
+                    repeat: "option",
+                    attributes: {
+                      value: { hole: "option-value" },
+                      selected: { hole: "option-selected" },
+                    },
+                    children: [{ hole: "option-label" }],
+                  },
+                ],
+              },
+            },
+          },
+          {
+            tag: "p",
+            from: ["helpText", "field.help"],
+            when: "help",
+            children: [{ hole: "help" }],
+          },
+          {
+            tag: "p",
+            from: ["errorText", "field.error"],
+            when: "error",
+            children: [{ hole: "error" }],
+          },
+        ],
+      },
+    ],
+  },
+  badge: {
+    holes: {
+      label: {
+        description: "What the badge says.",
+        content: "text",
+        example: "Paid",
+      },
+    },
+    nodes: [{ tag: "span", from: ["badge"], children: [{ hole: "label" }] }],
+  },
+  divider: { holes: {}, nodes: [{ tag: "hr", from: ["divider"] }] },
+  heading: {
+    holes: {
+      text: {
+        description: "The heading.",
+        content: "text",
+        example: "What we cover",
+      },
+    },
+    nodes: [
+      {
+        // The level follows the page; the size is separate, in data-size.
+        tag: ["h2", "h1", "h3", "h4", "h5", "h6"],
+        from: ["heading"],
+        name: "level",
+        description: "The level in the page's outline.",
+        children: [{ hole: "text" }],
+      },
+    ],
+  },
+  paragraph: {
+    holes: {
+      text: {
+        description: "The paragraph.",
+        content: "text",
+        example: "A claim must be filed within 30 days.",
+      },
+    },
+    nodes: [{ tag: "p", from: ["paragraph"], children: [{ hole: "text" }] }],
+  },
+  link: {
+    holes: {
+      href: { description: "Where the link goes.", kind: "url", example: "#" },
+      text: {
+        description: "What the link says.",
+        content: "text",
+        example: "the small print",
+      },
+    },
+    options: { disabled: { choice: "state", alternative: "disabled" } },
+    nodes: [
+      {
+        name: "state",
+        description: "A link, or one that cannot be followed yet.",
+        oneOf: {
+          enabled: {
+            tag: "a",
+            from: ["link"],
+            attributes: { href: { hole: "href" } },
+            children: [{ hole: "text" }],
+          },
+          // A disabled link has no href: Enter would follow it.
+          disabled: { tag: "a", from: ["link"], children: [{ hole: "text" }] },
+        },
+      },
+    ],
+  },
+  skipLink: {
+    holes: {
+      target: {
+        description: "Where the main content starts, as #id.",
+        kind: "url",
+        example: "#main",
+      },
+      text: {
+        description: "What the link says.",
+        content: "text",
+        example: "Skip to main content",
+      },
+    },
+    nodes: [
+      {
+        tag: "a",
+        from: ["skipLink"],
+        attributes: { href: { hole: "target" } },
+        children: [{ hole: "text" }],
+      },
+    ],
+  },
+  spinner: { holes: {}, nodes: [{ tag: "span", from: ["spinner"] }] },
+  skeleton: { holes: {}, nodes: [{ tag: "div", from: ["skeleton"] }] },
+  srOnly: {
+    holes: {
+      text: {
+        description: "What only a screen reader says.",
+        content: "text",
+        example: " the report from 4 March",
+      },
+    },
+    nodes: [{ tag: "span", from: ["srOnly"], children: [{ hole: "text" }] }],
+  },
+  icon: {
+    holes: {
+      paths: {
+        description: "The icon's paths, on a 24 by 24 grid.",
+        content: "free",
+        example: '<path d="M12 5v14M5 12h14" />',
+      },
+    },
+    nodes: [
+      {
+        tag: "svg",
+        from: ["icon"],
+        attributes: {
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "2",
+        },
+        children: [{ hole: "paths" }],
+      },
+    ],
+  },
+  progress: {
+    holes: {
+      label: {
+        description: "What the bar measures.",
+        kind: "text",
+        example: "Upload",
+      },
+    },
+    // A bar without a name says nothing to a screen reader.
+    options: { label: { hole: "label" } },
+    nodes: [{ tag: "progress", from: ["progress"] }],
+  },
+  tag: {
+    holes: {
+      text: {
+        description: "What the tag says.",
+        content: "text",
+        example: "cutter",
+      },
+      pressed: {
+        description: "The tag is selected.",
+        kind: "value",
+        values: ["false", "true"],
+        example: "false",
+      },
+    },
+    options: { selectable: { choice: "kind", alternative: "selectable" } },
+    nodes: [
+      {
+        name: "kind",
+        description: "A label, or a filter the user turns on and off.",
+        oneOf: {
+          plain: {
+            tag: ["span", "li"],
+            from: ["tag"],
+            name: "element",
+            children: [{ hole: "text" }],
+          },
+          selectable: {
+            tag: "button",
+            from: ["tag"],
+            attributes: { type: "button", "aria-pressed": { hole: "pressed" } },
+            children: [{ hole: "text" }],
+          },
+        },
+      },
+    ],
+  },
+  alert: {
+    holes: {
+      title: {
+        description: "The message's heading.",
+        content: "text",
+        example: "Sector 9 is dark",
+      },
+      message: {
+        description: "The message.",
+        content: "free",
+        example: "<p>Crews are on the way.</p>",
+      },
+    },
+    nodes: [
+      {
+        tag: "div",
+        from: ["alert"],
+        children: [
+          {
+            tag: "p",
+            from: ["alert.title"],
+            name: "title",
+            description: "A heading in the message.",
+            optional: true,
+            children: [{ hole: "title" }],
+          },
+          { hole: "message" },
+        ],
+      },
+    ],
+  },
+  card: {
+    holes: {
+      title: {
+        description: "The card's heading.",
+        content: "text",
+        example: "Claim AV-2079-0481",
+      },
+      body: {
+        description: "What the card holds.",
+        content: "free",
+        example: "<p>Claim denied.</p>",
+      },
+    },
+    nodes: [
+      {
+        tag: ["div", "article", "section"],
+        from: ["card"],
+        name: "card",
+        description: "A box, or a piece of its own in the page.",
+        children: [
+          {
+            tag: ["h3", "h2", "h4", "h5", "h6"],
+            from: ["card.title"],
+            name: "title",
+            description: "The heading, at the level the page needs.",
+            optional: true,
+            created: true,
+            children: [{ hole: "title" }],
+          },
+          { hole: "body" },
+        ],
+      },
+    ],
+  },
+  accordion: {
+    holes: {
+      summary: {
+        description: "What the panel is about.",
+        content: "text",
+        example: "How long does a claim take?",
+      },
+      content: {
+        description: "What the panel shows when it is open.",
+        content: "free",
+        example: "<p>Three weeks.</p>",
+      },
+      open: { description: "The panel is open.", kind: "flag" },
+      group: {
+        description: "Panels with the same group close each other.",
+        kind: "name",
+        optional: true,
+      },
+    },
+    nodes: [
+      {
+        tag: "details",
+        from: ["accordion"],
+        attributes: { open: { hole: "open" }, name: { hole: "group" } },
+        children: [
+          { tag: "summary", children: [{ hole: "summary" }] },
+          {
+            tag: "div",
+            from: ["accordion.content"],
+            children: [{ hole: "content" }],
+          },
+        ],
+      },
+    ],
+  },
+  list: {
+    holes: {
+      item: {
+        description: "An item.",
+        content: "free",
+        per: ["item"],
+        example: "Floor plans",
+      },
+    },
+    repeats: { item: { min: 1, description: "The items." } },
+    nodes: [
+      {
+        tag: ["ul", "ol"],
+        from: ["list"],
+        name: "list",
+        description: "Unordered, or numbered when the order counts.",
+        children: [{ tag: "li", repeat: "item", children: [{ hole: "item" }] }],
+      },
+    ],
+  },
+  avatar: {
+    holes: {
+      initials: {
+        description: "The person's initials.",
+        content: "text",
+        example: "DP",
+      },
+      "person-initials": {
+        description: "A person's initials in the stack.",
+        content: "text",
+        per: ["person"],
+        example: "DP",
+      },
+      beside: {
+        description:
+          "The name is next to the picture, so the picture is hidden from screen readers.",
+        kind: "flag",
+      },
+    },
+    repeats: { person: { min: 1, description: "The people in a stack." } },
+    nodes: [
+      {
+        name: "kind",
+        description: "One person, or several overlapping.",
+        oneOf: {
+          single: {
+            tag: "span",
+            from: ["avatar"],
+            attributes: { "aria-hidden": { hole: "beside", value: "true" } },
+            children: [{ hole: "initials" }],
+          },
+          stack: {
+            tag: "ul",
+            from: ["avatar.stack"],
+            children: [
+              {
+                tag: "li",
+                repeat: "person",
+                children: [
+                  {
+                    tag: "span",
+                    from: ["avatar"],
+                    attributes: {
+                      "aria-hidden": { hole: "beside", value: "true" },
+                    },
+                    children: [{ hole: "person-initials" }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
+  radio: {
+    holes: {
+      legend: {
+        description: "What the group asks.",
+        content: "text",
+        example: "Lease length",
+      },
+      name: {
+        ...nameHole,
+        description:
+          "The name the form sends the picked value under, the same for every option.",
+      },
+      control: {
+        description: "The id an option's label points at.",
+        kind: "id",
+        per: ["option"],
+      },
+      value: {
+        description: "What an option sends.",
+        kind: "value",
+        per: ["option"],
+        example: "1",
+      },
+      label: {
+        description: "What an option says.",
+        content: "text",
+        per: ["option"],
+        example: "One month",
+      },
+      checked: {
+        description: "The option is picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+      disabled: {
+        description: "The option cannot be picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+    },
+    // One option is no choice.
+    repeats: { option: { min: 2, description: "The options." } },
+    nodes: [
+      {
+        tag: "fieldset",
+        from: ["fieldset"],
+        name: "group",
+        description: "The group, and its state.",
+        settings: ["state", "disabled"],
+        children: [
+          {
+            tag: "legend",
+            from: ["legend"],
+            name: "legend",
+            description: "The question.",
+            settings: ["required", "optional"],
+            children: [{ hole: "legend" }],
+          },
+          {
+            tag: "div",
+            from: ["radio.row"],
+            repeat: "option",
+            children: [
+              {
+                tag: "input",
+                from: ["radio"],
+                attributes: {
+                  id: { hole: "control" },
+                  name: { hole: "name" },
+                  value: { hole: "value" },
+                  checked: { hole: "checked" },
+                  disabled: { hole: "disabled" },
+                },
+              },
+              {
+                tag: "label",
+                from: ["label"],
+                attributes: { for: { hole: "control" } },
+                children: [{ hole: "label" }],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  fieldset: {
+    holes: {
+      legend: {
+        description: "What the fields have in common.",
+        content: "text",
+        example: "Address",
+      },
+      content: { description: "The fields.", content: "free" },
+    },
+    nodes: [
+      {
+        tag: "fieldset",
+        from: ["fieldset"],
+        children: [
+          {
+            tag: "legend",
+            from: ["legend"],
+            name: "legend",
+            description: "What the fields have in common.",
+            settings: ["required", "optional"],
+            children: [{ hole: "legend" }],
+          },
+          { hole: "content" },
+        ],
+      },
+    ],
+  },
+  switch: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the switch turns on.",
+        content: "text",
+        example: "Auto-renew",
+      },
+      checked: { description: "The switch is on.", kind: "flag" },
+      disabled: { description: "The switch cannot be changed.", kind: "flag" },
+    },
+    nodes: [
+      {
+        tag: "div",
+        from: ["switch.row"],
+        children: [
+          {
+            tag: "input",
+            from: ["switch"],
+            attributes: {
+              id: { hole: "control" },
+              name: { hole: "name" },
+              checked: { hole: "checked" },
+              disabled: { hole: "disabled" },
+            },
+          },
+          {
+            tag: "label",
+            from: ["label"],
+            attributes: { for: { hole: "control" } },
+            children: [{ hole: "label" }],
+          },
+        ],
+      },
+    ],
+  },
+  search: {
+    holes: {
+      control: { description: "The id the label points at.", kind: "id" },
+      name: { ...nameHole, example: "q" },
+      label: {
+        description: "What is searched, for screen readers.",
+        content: "text",
+        example: "Search breakers",
+      },
+      placeholder: {
+        description: "A hint in the empty field.",
+        kind: "text",
+        optional: true,
+        example: "Search breakers",
+      },
+      button: {
+        description: "What the button says.",
+        content: "text",
+        example: "Search",
+      },
+    },
+    nodes: [
+      {
+        tag: "form",
+        from: ["search.row"],
+        attributes: { role: "search" },
+        children: [
+          // The button says what the field is for, so the label is for
+          // screen readers.
+          {
+            tag: "label",
+            from: ["label", "srOnly"],
+            attributes: { for: { hole: "control" } },
+            children: [{ hole: "label" }],
+          },
+          {
+            tag: "input",
+            from: ["search"],
+            attributes: {
+              id: { hole: "control" },
+              name: { hole: "name" },
+              placeholder: { hole: "placeholder" },
+            },
+          },
+          {
+            tag: "button",
+            from: ["button"],
+            attributes: { type: "submit" },
+            children: [{ hole: "button" }],
+          },
+        ],
+      },
+    ],
+  },
+  toggleGroup: {
+    holes: {
+      legend: {
+        description: "What the group chooses, for screen readers.",
+        content: "text",
+        example: "View",
+      },
+      name: {
+        ...nameHole,
+        description:
+          "The name the form sends the picked value under, the same for every option.",
+        example: "view",
+      },
+      value: {
+        description: "What an option sends.",
+        kind: "value",
+        per: ["option"],
+        example: "all",
+      },
+      label: {
+        description: "What an option says.",
+        content: "text",
+        per: ["option"],
+        example: "All",
+      },
+      checked: {
+        description: "The option is picked.",
+        kind: "flag",
+        per: ["option"],
+      },
+    },
+    repeats: { option: { min: 2, description: "The options." } },
+    nodes: [
+      {
+        tag: "fieldset",
+        from: ["toggleGroup"],
+        children: [
+          { tag: "legend", from: ["srOnly"], children: [{ hole: "legend" }] },
+          {
+            tag: "label",
+            from: ["toggleGroup.option"],
+            repeat: "option",
+            children: [
+              {
+                tag: "input",
+                attributes: {
+                  type: "radio",
+                  name: { hole: "name" },
+                  value: { hole: "value" },
+                  checked: { hole: "checked" },
+                },
+              },
+              { hole: "label" },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  breadcrumbs: {
+    holes: {
+      label: {
+        description: "What the trail is, for screen readers.",
+        kind: "text",
+        example: "You are here",
+      },
+      href: {
+        description: "Where a step goes.",
+        kind: "url",
+        per: ["step"],
+        example: "#",
+      },
+      text: {
+        description: "A step's name.",
+        content: "text",
+        per: ["step"],
+        example: "Home",
+      },
+      "current-href": {
+        description: "The address of the page the reader is on.",
+        kind: "url",
+        example: "#",
+      },
+      current: {
+        description: "The name of the page the reader is on.",
+        content: "text",
+        example: "This page",
+      },
+    },
+    repeats: {
+      step: {
+        min: 1,
+        description: "The steps before the page the reader is on.",
+      },
+    },
+    nodes: [
+      {
+        tag: "nav",
+        attributes: { "aria-label": { hole: "label" } },
+        children: [
+          {
+            tag: "ol",
+            from: ["breadcrumbs"],
+            children: [
+              {
+                tag: "li",
+                repeat: "step",
+                children: [
+                  {
+                    tag: "a",
+                    attributes: { href: { hole: "href" } },
+                    children: [{ hole: "text" }],
+                  },
+                ],
+              },
+              {
+                tag: "li",
+                children: [
+                  {
+                    tag: "a",
+                    attributes: {
+                      href: { hole: "current-href" },
+                      "aria-current": "page",
+                    },
+                    children: [{ hole: "current" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  pagination: {
+    holes: {
+      label: {
+        description: "What the pages are, for screen readers.",
+        kind: "text",
+        example: "Pagination",
+      },
+      href: {
+        description: "Where a page link goes.",
+        kind: "url",
+        per: ["page"],
+        example: "#",
+      },
+      number: {
+        description: "A page's number.",
+        content: "text",
+        per: ["page"],
+        example: "1",
+      },
+      name: {
+        description: "A page's name for screen readers.",
+        kind: "text",
+        per: ["page"],
+        example: "Page 1",
+      },
+      previous: {
+        description: "What the link to the previous page says.",
+        content: "text",
+        example: "Previous",
+      },
+      "previous-name": {
+        description: "The previous page's name for screen readers.",
+        kind: "text",
+        example: "Previous page",
+      },
+      next: {
+        description: "What the link to the next page says.",
+        content: "text",
+        example: "Next",
+      },
+      "next-name": {
+        description: "The next page's name for screen readers.",
+        kind: "text",
+        example: "Next page",
+      },
+      gap: {
+        description: "What stands for the pages left out.",
+        content: "text",
+        example: "…",
+      },
+      "previous-href": {
+        description: "Where the previous page is.",
+        kind: "url",
+        example: "#",
+      },
+      "next-href": {
+        description: "Where the next page is.",
+        kind: "url",
+        example: "#",
+      },
+    },
+    repeats: {
+      page: { min: 1, description: "The pages, the current one and the gaps." },
+    },
+    nodes: [
+      {
+        tag: "nav",
+        attributes: { "aria-label": { hole: "label" } },
+        children: [
+          {
+            tag: "ul",
+            from: ["pagination"],
+            children: [
+              {
+                tag: "li",
+                name: "previous",
+                description: "A link to the previous page.",
+                optional: true,
+                created: true,
+                children: [
+                  {
+                    tag: "a",
+                    attributes: {
+                      href: { hole: "previous-href" },
+                      "aria-label": { hole: "previous-name" },
+                    },
+                    children: [{ hole: "previous" }],
+                  },
+                ],
+              },
+              {
+                name: "page",
+                description: "A page, the page the reader is on, or a gap.",
+                repeat: "page",
+                oneOf: {
+                  link: {
+                    tag: "li",
+                    children: [
+                      {
+                        tag: "a",
+                        attributes: {
+                          href: { hole: "href" },
+                          "aria-label": { hole: "name" },
+                        },
+                        children: [{ hole: "number" }],
+                      },
+                    ],
+                  },
+                  current: {
+                    tag: "li",
+                    children: [
+                      {
+                        tag: "a",
+                        attributes: {
+                          href: { hole: "href" },
+                          "aria-label": { hole: "name" },
+                          "aria-current": "page",
+                        },
+                        children: [{ hole: "number" }],
+                      },
+                    ],
+                  },
+                  gap: {
+                    tag: "li",
+                    children: [
+                      {
+                        tag: "span",
+                        from: ["pagination.gap"],
+                        children: [{ hole: "gap" }],
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                tag: "li",
+                name: "next",
+                description: "A link to the next page.",
+                optional: true,
+                created: true,
+                children: [
+                  {
+                    tag: "a",
+                    attributes: {
+                      href: { hole: "next-href" },
+                      "aria-label": { hole: "next-name" },
+                    },
+                    children: [{ hole: "next" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  steps: {
+    holes: {
+      label: {
+        description: "What the steps are, for screen readers.",
+        kind: "text",
+        example: "Order",
+      },
+      href: {
+        description: "Where a done step goes.",
+        kind: "url",
+        per: ["step"],
+        example: "#",
+      },
+      text: {
+        description: "A step's name.",
+        content: "text",
+        per: ["step"],
+        example: "Step",
+      },
+    },
+    repeats: { step: { min: 2, description: "The steps." } },
+    nodes: [
+      {
+        tag: "ol",
+        from: ["steps"],
+        attributes: { "aria-label": { hole: "label" } },
+        children: [
+          {
+            name: "step",
+            description: "Done, the current step, or still to come.",
+            repeat: "step",
+            oneOf: {
+              todo: { tag: "li", children: [{ hole: "text" }] },
+              done: {
+                tag: "li",
+                children: [
+                  {
+                    tag: "a",
+                    attributes: { href: { hole: "href" } },
+                    children: [{ hole: "text" }],
+                  },
+                ],
+              },
+              current: {
+                tag: "li",
+                attributes: { "aria-current": "step" },
+                children: [{ hole: "text" }],
+              },
+            },
+          },
+        ],
+      },
+    ],
+  },
+  tooltip: {
+    holes: {
+      bubble: { description: "The id the button points at.", kind: "id" },
+      label: {
+        description: "What the button does.",
+        content: "text",
+        example: "Appraise",
+      },
+      tip: {
+        description: "The hint.",
+        content: "text",
+        example: "All chrome is appraised at street value",
+      },
+    },
+    nodes: [
+      {
+        tag: "span",
+        from: ["tooltip"],
+        children: [
+          {
+            tag: "button",
+            from: ["button"],
+            name: "button",
+            settings: ["variant"],
+            attributes: {
+              type: "button",
+              "aria-describedby": { hole: "bubble" },
+            },
+            children: [{ hole: "label" }],
+          },
+          {
+            tag: "span",
+            from: ["tooltip.bubble"],
+            attributes: { role: "tooltip", id: { hole: "bubble" } },
+            children: [{ hole: "tip" }],
+          },
+        ],
+      },
+    ],
+  },
+  popover: {
+    holes: {
+      panel: {
+        description: "The id of the panel the button opens.",
+        kind: "id",
+      },
+      label: {
+        description: "What the button says.",
+        content: "text",
+        example: "Actions",
+      },
+      item: {
+        description: "An item in the panel.",
+        content: "free",
+        per: ["item"],
+        example:
+          '<button class="lt-button" data-variant="ghost">Action</button>',
+      },
+    },
+    options: {
+      id: { hole: "panel" },
+      open: { tool: "The server opens and closes the panel." },
+    },
+    repeats: { item: { min: 1, description: "The items in the panel." } },
+    nodes: [
+      {
+        tag: "lt-popover",
+        from: ["popover.host"],
+        children: [
+          {
+            tag: "button",
+            from: ["button", "popover.trigger"],
+            name: "button",
+            settings: ["variant"],
+            children: [{ hole: "label" }],
+          },
+          {
+            tag: "ul",
+            from: ["popover.panel"],
+            children: [
+              { tag: "li", repeat: "item", children: [{ hole: "item" }] },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  term: {
+    holes: {
+      entry: {
+        description: "The id the word in the text points at.",
+        kind: "id",
+        per: ["entry"],
+      },
+      word: {
+        description: "The word.",
+        content: "text",
+        per: ["entry"],
+        example: "Act of God",
+      },
+      meaning: {
+        description: "What the word means.",
+        content: "text",
+        per: ["entry"],
+        example: "A cause the policy does not cover.",
+      },
+    },
+    options: { id: { tool: "Each entry calls lt.term() with its own id." } },
+    repeats: {
+      entry: { min: 1, description: "The words the glossary explains." },
+    },
+    nodes: [
+      {
+        // The glossary. A word in running text that points at an entry
+        // needs a text hole that takes elements, which is beyond this.
+        tag: "dl",
+        children: [
+          {
+            tag: "div",
+            from: ["term.entry"],
+            options: { term: { id: { hole: "entry" } } },
+            repeat: "entry",
+            children: [
+              { tag: "dt", children: [{ hole: "word" }] },
+              { tag: "dd", children: [{ hole: "meaning" }] },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  errorSummary: {
+    holes: {
+      summary: { description: "The id of the box.", kind: "id" },
+      title: {
+        description: "What the box says above the errors.",
+        content: "text",
+        example: "There is a problem",
+      },
+      target: {
+        description: "The field an error is about, as #id.",
+        kind: "url",
+        per: ["error"],
+        example: "#",
+      },
+      message: {
+        description: "The error.",
+        content: "text",
+        per: ["error"],
+        example: "Enter an email address",
+      },
+    },
+    options: {
+      id: { hole: "summary" },
+      count: { count: "error" },
+      titleId: { tool: "Left out: made from the box's id." },
+    },
+    // Empty until the server has errors to show; then the box is hidden.
+    repeats: {
+      error: { min: 0, description: "The errors, each a link to its field." },
+    },
+    nodes: [
+      {
+        tag: "lt-error-summary",
+        from: ["errorSummary.host"],
+        children: [
+          {
+            tag: "h2",
+            from: ["errorSummary.title"],
+            children: [{ hole: "title" }],
+          },
+          {
+            tag: "ul",
+            from: ["list"],
+            children: [
+              {
+                tag: "li",
+                repeat: "error",
+                children: [
+                  {
+                    tag: "a",
+                    attributes: { href: { hole: "target" } },
+                    children: [{ hole: "message" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  toast: {
+    holes: {},
+    nodes: [{ tag: "lt-toast", from: ["toast.host"] }],
+  },
+  connectionStatus: {
+    holes: {},
+    nodes: [{ tag: "lt-connection-status", from: ["connectionStatus"] }],
+  },
+  sessionTimeout: {
+    holes: {
+      "title-id": {
+        description: "The id the dialog takes its name from.",
+        kind: "id",
+      },
+      title: {
+        description: "What the dialog says.",
+        content: "text",
+        example: "Your session is ending",
+      },
+      before: {
+        description: "The text before the time left.",
+        content: "text",
+        example: "Your session ends in ",
+      },
+      after: {
+        description: "The text after the time left.",
+        content: "text",
+        example: ".",
+      },
+      extend: {
+        description: "What the button that keeps the session says.",
+        content: "text",
+        example: "Stay signed in",
+      },
+      logout: {
+        description: "What the button that ends it says.",
+        content: "text",
+        example: "Sign out",
+      },
+    },
+    options: {
+      titleId: { hole: "title-id" },
+      expiresAt: { tool: "The server says when the session ends." },
+    },
+    nodes: [
+      {
+        tag: "lt-session-timeout",
+        from: ["sessionTimeout.host"],
+        children: [
+          {
+            tag: "dialog",
+            from: ["sessionTimeout.dialog"],
+            children: [
+              {
+                tag: "h2",
+                from: ["sessionTimeout.title"],
+                children: [{ hole: "title" }],
+              },
+              {
+                tag: "p",
+                from: ["sessionTimeout.text"],
+                children: [
+                  { hole: "before" },
+                  { tag: "span", from: ["sessionTimeout.count"] },
+                  { hole: "after" },
+                ],
+              },
+              { tag: "span", from: ["sessionTimeout.live"] },
+              {
+                tag: "form",
+                from: ["sessionTimeout.actions"],
+                children: [
+                  {
+                    tag: "button",
+                    from: ["sessionTimeout.extend"],
+                    children: [{ hole: "extend" }],
+                  },
+                  {
+                    tag: "button",
+                    from: ["sessionTimeout.logout"],
+                    children: [{ hole: "logout" }],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  suggestion: {
+    holes: {
+      control: { description: "The id of the field.", kind: "id" },
+      name: nameHole,
+      label: {
+        description: "What the field asks for.",
+        content: "text",
+        example: "Breaker",
+      },
+      option: {
+        description: "A suggestion.",
+        content: "text",
+        per: ["option"],
+        example: "Crowbar",
+      },
+      empty: {
+        description: "What the list says when nothing matches.",
+        content: "text",
+        example: "No matches",
+      },
+      help: {
+        description: "Help to fill it in.",
+        content: "text",
+        example: "Start typing a name.",
+      },
+      error: {
+        description: "What is wrong.",
+        content: "text",
+        example: "Choose a breaker from the list.",
+      },
+    },
+    options: {
+      id: { hole: "control" },
+      keys: { repeat: "option" },
+      activeIndex: { tool: "The component moves the active option." },
+      open: { tool: "The component opens and closes the list." },
+      pending: { tool: "The server says while it is fetching." },
+      helpId: { tool: "Left out: made from the field's id." },
+      errorId: { tool: "Left out: made from the field's id." },
+      describedBy: {
+        tool: "Left out: the help and error texts are wired by the component.",
+      },
+    },
+    repeats: {
+      option: { min: 0, description: "The suggestions the server sends." },
+    },
+    nodes: [
+      {
+        tag: "lt-suggestion",
+        children: [
+          {
+            tag: "label",
+            from: ["suggestion.label"],
+            children: [{ hole: "label" }],
+          },
+          {
+            tag: "input",
+            from: ["suggestion.control"],
+            attributes: { name: { hole: "name" } },
+          },
+          {
+            tag: "ul",
+            from: ["suggestion.list"],
+            children: [
+              {
+                tag: "li",
+                from: ["suggestion.options"],
+                repeat: "option",
+                children: [{ hole: "option" }],
+              },
+            ],
+          },
+          {
+            tag: "p",
+            from: ["suggestion.empty"],
+            children: [{ hole: "empty" }],
+          },
+          { tag: "span", from: ["suggestion.status"] },
+          {
+            tag: "p",
+            from: ["helpText", "suggestion.help"],
+            when: "help",
+            children: [{ hole: "help" }],
+          },
+          {
+            tag: "p",
+            from: ["errorText", "suggestion.error"],
+            when: "error",
+            children: [{ hole: "error" }],
+          },
+        ],
+      },
+    ],
+  },
+}
+
 export type BuilderPart = { element: string; part: string }
 
 /**

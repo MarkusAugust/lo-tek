@@ -39,6 +39,17 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the attributes a tag must have, such as `type` on an input, and the ones
   it requires a value for, such as `href` on a link. The first is the one to
   write. The rulebooks show them in the class tables.
+- **Every builder function has an anatomy in the manifest, or is a source
+  in another's:** the markup it belongs in, which attributes each element
+  takes from the builder functions, and the holes the template fills, each
+  declared with what it takes and an example. A design tool, or a server in
+  another language, can build every component from the manifest alone: 39
+  components, each correct markup as created and with every option, choice
+  and optional part. `@lo-tek/interfaces/anatomy` has `renderAnatomy()`,
+  which writes an anatomy, `createdInstance()`, which fills it as a tool
+  creates it, and `withItem()`, which inserts a tab, a row or an option
+  without changing the ids of the others. `manifest/anatomy-cases.json` in
+  the repository holds what it writes, for a renderer in another language.
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.

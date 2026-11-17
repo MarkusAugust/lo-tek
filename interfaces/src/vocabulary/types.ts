@@ -239,6 +239,160 @@ export type Builder = {
    * that have one.
    */
   classes?: Record<string, string>
+  /** The markup the builder function belongs in. See `Anatomy`. */
+  anatomy?: Anatomy
+}
+
+/**
+ * A place among the children of a node that the template fills, by the
+ * name it is declared under in `Anatomy.holes`.
+ */
+export type AnatomyHole = {
+  hole: string
+  /** In an attribute with a flag hole: the value written when the flag is on, as `"true"` for `aria-hidden`. Without it, the attribute is bare. */
+  value?: string
+}
+
+/**
+ * What a hole holds, declared once for the anatomy, so a tool knows what
+ * to ask for and what may be dropped there.
+ *
+ * A hole among the children has `content`, in the same words as the
+ * manifest's parts: `text` takes text, `free` takes other elements too and
+ * is a drop target. A hole in an attribute has `kind`.
+ */
+export type AnatomyHoleDeclaration = {
+  description: string
+  content?: "text" | "free"
+  /**
+   * What an attribute hole holds. An `id` hole the instance leaves empty
+   * gets `<instance id>-<hole>`, and `-<key>` for each group in `per`, so
+   * the same component gets the same ids on every render. A `flag` writes
+   * the attribute bare when it is on, and leaves it out when it is off.
+   */
+  kind?: "text" | "id" | "name" | "value" | "url" | "flag"
+  /**
+   * The groups the hole has a value for each item in, outermost first, as
+   * a tab's title per `tab`, or a cell per `row` and `column`. Without it,
+   * the hole has one value for the whole component, as the shared `name`
+   * of a radio group.
+   */
+  per?: readonly string[]
+  /**
+   * Without a value, the attribute is left out. Without `optional`, an
+   * attribute hole without a value is an error. An empty text is a value.
+   */
+  optional?: true
+  /** What a tool fills in on a new component, so it is correct as created. */
+  example?: string
+  /** The values an attribute hole can take, as `"true"` and `"false"` for `aria-pressed`. */
+  values?: readonly string[]
+}
+
+/**
+ * A place with alternatives the designer chooses between, as a plain or a
+ * sortable column heading. The first is the one a tool creates. With
+ * `repeat`, each item in the group chooses for itself.
+ */
+export type AnatomyChoice = {
+  name: string
+  description: string
+  oneOf: Record<string, AnatomyNode>
+  repeat?: string
+}
+
+/** What can stand among the children of a node. */
+export type AnatomyChild = AnatomyNode | AnatomyHole | AnatomyChoice
+
+/**
+ * One element in an anatomy.
+ *
+ * `from` is where its attributes come from, in order: a builder function
+ * (`"button"`), a set in its answer (`"field.control"`), or a class the
+ * function carries (`"checkbox.row"`, in `classes` on the builder). The
+ * attributes merge in that order: a later value wins, `class` is joined,
+ * `false` and `undefined` are left out, and `true` and `""` are written bare. Then
+ * `attributes` are written over them.
+ *
+ * The first node that names a builder function calls it, as does a node
+ * with `options` for it, with what the designer set under `settings` and
+ * then `options`, and the nodes inside use the same answer; a node outside
+ * calls it anew. The anatomy's own builder function takes the instance's
+ * options and the bound ones, and is called where a node first uses it.
+ */
+export type AnatomyNode = {
+  /** The tag, or the tags to choose from, the first being the one to write. */
+  tag: string | readonly string[]
+  from?: readonly string[]
+  /** Attributes no builder function writes: a fixed value, or a hole. */
+  attributes?: Record<string, string | AnatomyHole>
+  children?: readonly AnatomyChild[]
+  /**
+   * Options for a builder function, by its name, as `{ tableSort: { link:
+   * true } }`. The node calls the function anew with them, even when a node
+   * above has called it, and they win over the designer's. A value can be a
+   * hole, read at the node's place, as the id of each glossary entry.
+   */
+  options?: Record<string, Record<string, unknown | AnatomyHole>>
+  /**
+   * The options of the builder functions the node calls that the designer
+   * sets here, as the direction of a sorted column. Requires a name.
+   */
+  settings?: readonly string[]
+  /**
+   * The node's name: what a tool shows, and what the instance uses for its
+   * parts, tag and settings. Names are unique in an anatomy.
+   */
+  name?: string
+  description?: string
+  /** The component works without the node. Requires `name`. */
+  optional?: true
+  /** Optional, and the children stay when it is left out. Requires `name`. */
+  wrapper?: true
+  /** An optional node that is there when a tool creates the component. */
+  created?: true
+  /** An optional node that can only be there with the named one, as the subtitle with the header. */
+  requires?: string
+  /**
+   * The node is there exactly when this option of the anatomy's own builder
+   * function is on, as the help text with `help` in `lt.field()`.
+   */
+  when?: string
+  /**
+   * The node is written once for each item in the group, as a tab. Nodes in
+   * the same group repeat together, and a set that is a list gives each
+   * item its own, as `tabs.tabs`.
+   */
+  repeat?: string
+}
+
+/**
+ * Where an option of the anatomy's own builder function gets its value,
+ * so the tool knows not to show it in the panel: a hole, the keys or the
+ * number of items in a group, an alternative of a choice, or the tool
+ * itself, with what it does.
+ */
+export type AnatomyOption =
+  | { hole: string }
+  | { repeat: string }
+  | { count: string }
+  | { tool: string }
+  /** On exactly when the choice takes the alternative, as `disabled` with a disabled link. */
+  | { choice: string; alternative: string }
+
+/**
+ * The markup a builder function belongs in: the elements, which attributes
+ * each takes from the builder functions, and the holes the template fills.
+ * A design tool builds a component from it, and `renderAnatomy()` writes it.
+ * There is one root, so the component is one box in a layout.
+ */
+export type Anatomy = {
+  holes: Record<string, AnatomyHoleDeclaration>
+  /** The options the panel does not show, and where each gets its value. */
+  options?: Record<string, AnatomyOption>
+  /** The groups that repeat, with how few items each may have. */
+  repeats?: Record<string, { min: number; description: string }>
+  nodes: readonly [AnatomyChild]
 }
 
 /**

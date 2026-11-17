@@ -237,7 +237,8 @@ class ManifestReaderTest {
         for ((i, b) in builders.withIndex()) {
             val expected = b.map()
             val read = Lotek.manifest.builders[i]
-            known(b, "name", "description", "example", "docs", "parts", "options", "returns", "table", "classes", at = read.name)
+            known(b, "name", "description", "example", "docs", "parts", "options", "returns", "table", "classes", "anatomy", at = read.name)
+            assertEquals(b.map()["anatomy"], read.anatomy, "${read.name} anatomy")
             assertEquals(expected["classes"] ?: emptyMap<String, String>(), read.classes, "${read.name} classes")
             assertEquals(listOf(expected["description"], expected["example"], expected["docs"]), listOf(read.description, read.example, read.docs), "${read.name} documentation")
             assertEquals(
@@ -391,6 +392,11 @@ class ManifestReaderTest {
         assertContains(error("""{"schemaVersion": 1, "version": "0", "elements": {}, "classes": []}"""), "classes should have been an object")
         // Without tokens the manifest is from before 0.34 and is read; with the wrong shape it throws.
         assertContains(error("""{"schemaVersion": 1, "version": "0", "elements": {}, "classes": {}, "builders": [], "tokens": 3}"""), "tokens should have been an object")
-        assertContains(error(text.replaceFirst("\"kind\": \"flag\"", "\"kind\": \"flagg\"")), "\"flagg\"")
+        // The type of an option; the first "kind": "flag" in the file can be
+        // a hole in an anatomy, which is read as JSON.
+        assertContains(
+            error(text.replaceFirst(Regex("(\"type\": \\{\\s*\"kind\": \")flag\""), "$1flagg\"")),
+            "\"flagg\"",
+        )
     }
 }

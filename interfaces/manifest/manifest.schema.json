@@ -342,6 +342,108 @@
               "type": "string"
             }
           },
+          "anatomy": {
+            "type": "object",
+            "description": "The markup the builder function belongs in: the elements, which attributes each takes from the builder functions, and the holes the template fills. One root, so the component is one box in a layout. Added after schemaVersion 1.",
+            "required": ["holes", "nodes"],
+            "properties": {
+              "holes": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/anatomyHoleDeclaration"
+                }
+              },
+              "options": {
+                "type": "object",
+                "description": "The options the panel does not show, and where each gets its value: a hole, the keys or the number of items in a group, or the tool.",
+                "additionalProperties": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": ["hole"],
+                      "properties": {
+                        "hole": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["repeat"],
+                      "properties": {
+                        "repeat": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["count"],
+                      "properties": {
+                        "count": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["tool"],
+                      "properties": {
+                        "tool": {
+                          "type": "string",
+                          "description": "What the tool does with the option."
+                        }
+                      },
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["choice", "alternative"],
+                      "properties": {
+                        "choice": {
+                          "type": "string"
+                        },
+                        "alternative": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
+                    }
+                  ]
+                }
+              },
+              "repeats": {
+                "type": "object",
+                "description": "The groups that repeat, with how few items each may have.",
+                "additionalProperties": {
+                  "type": "object",
+                  "required": ["min", "description"],
+                  "properties": {
+                    "min": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "description": {
+                      "type": "string"
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "nodes": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 1,
+                "items": {
+                  "$ref": "#/$defs/anatomyChild"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
           "table": {
             "description": "When the options act independently: the base set and what each option adds, derived from the results and checked against every builder case. Another language can build the builder function from it alone.",
             "oneOf": [
@@ -683,6 +785,191 @@
         "component": {
           "const": true,
           "description": "The component names it itself, and no rule judges its name in the markup."
+        }
+      },
+      "additionalProperties": false
+    },
+    "anatomyHoleDeclaration": {
+      "type": "object",
+      "description": "What a hole holds. A hole among the children has content: text takes text, free takes other elements too and is a drop target. A hole in an attribute has kind; an empty id hole gets <instance id>-<hole>, and -<key> for each group in per; a flag is written bare when on and left out when off.",
+      "required": ["description"],
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "content": {
+          "enum": ["text", "free"]
+        },
+        "kind": {
+          "enum": ["text", "id", "name", "value", "url", "flag"]
+        },
+        "per": {
+          "type": "array",
+          "description": "The groups the hole has a value for each item in, outermost first. Without it, one value for the whole component.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional": {
+          "const": true,
+          "description": "Empty, the attribute is left out. Without it, an empty attribute hole is an error."
+        },
+        "example": {
+          "type": "string",
+          "description": "What a tool fills in on a new component, so it is correct as created."
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The values an attribute hole can take."
+        }
+      },
+      "additionalProperties": false
+    },
+    "anatomyHole": {
+      "type": "object",
+      "description": "A hole, by the name it is declared under.",
+      "required": ["hole"],
+      "properties": {
+        "hole": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "description": "In an attribute with a flag hole: the value written when the flag is on. Without it, the attribute is bare."
+        }
+      },
+      "additionalProperties": false
+    },
+    "anatomyChild": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/anatomyHole"
+        },
+        {
+          "$ref": "#/$defs/anatomyNode"
+        },
+        {
+          "$ref": "#/$defs/anatomyChoice"
+        }
+      ]
+    },
+    "anatomyChoice": {
+      "type": "object",
+      "description": "A place with alternatives the designer chooses between. The first is the one a tool creates. With repeat, each item in the group chooses for itself.",
+      "required": ["name", "description", "oneOf"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "repeat": {
+          "type": "string"
+        },
+        "oneOf": {
+          "type": "object",
+          "minProperties": 2,
+          "additionalProperties": {
+            "$ref": "#/$defs/anatomyNode"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "anatomyNode": {
+      "type": "object",
+      "description": "An element. from is where its attributes come from, in order: a builder function, a set in its answer, or a class the function carries. They merge in that order, a later value winning and class joined; then attributes are written over them. The first node that names a builder function calls it, as does a node with options for it: with the designer's settings first and the anatomy's options over them, so the fixed options win. The nodes inside use the same answer.",
+      "required": ["tag"],
+      "properties": {
+        "tag": {
+          "description": "The tag, or the tags to choose from, the first being the one to write.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "from": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Attributes no builder function writes: a fixed value, or a hole.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/anatomyHole"
+              }
+            ]
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/anatomyChild"
+          }
+        },
+        "options": {
+          "type": "object",
+          "description": "Options for a builder function, by its name. The node calls the function anew with them, and they win over the designer's. A value can be a hole, read at the node's place.",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "settings": {
+          "type": "array",
+          "description": "The options of the builder functions the node calls that the designer sets here.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "What a tool shows, and what the instance uses for parts, tag and settings. Unique in an anatomy."
+        },
+        "description": {
+          "type": "string"
+        },
+        "optional": {
+          "const": true,
+          "description": "The component works without the node."
+        },
+        "wrapper": {
+          "const": true,
+          "description": "Optional, and the children stay when it is left out."
+        },
+        "created": {
+          "const": true,
+          "description": "An optional node that is there when a tool creates the component."
+        },
+        "requires": {
+          "type": "string",
+          "description": "An optional node that can only be there with the named one."
+        },
+        "when": {
+          "type": "string",
+          "description": "The node is there exactly when this option of the anatomy's own builder function is on."
+        },
+        "repeat": {
+          "type": "string",
+          "description": "The group the node is written once for each item of. Nodes in the same group repeat together, and a set that is a list gives each item its own."
         }
       },
       "additionalProperties": false

@@ -338,6 +338,10 @@
     "./diagnostics": {
       "types": "./dist/diagnostics/index.d.ts",
       "import": "./dist/diagnostics/index.js"
+    },
+    "./anatomy": {
+      "types": "./dist/anatomy/index.d.ts",
+      "import": "./dist/anatomy/index.js"
     }
   },
   "files": [
@@ -353,6 +357,7 @@
     "manifest/manifest.schema.json",
     "src/*.ts",
     "src/diagnostics",
+    "src/anatomy",
     "src/jsx",
     "src/tokens",
     "src/components",
@@ -374,8 +379,10 @@
     "vocabulary": "bun scripts/generate-vocabulary.ts",
     "check:vocabulary": "bun scripts/check-vocabulary.ts",
     "check:manifest-schema": "bun scripts/check-manifest-schema.ts",
+    "check:anatomy": "bun scripts/check-anatomy.ts",
+    "check:design-tool": "bun scripts/check-design-tool.ts",
     "core": "bun ../core/scripts/build.ts && mkdir -p core && cp ../core/dist/lotek-core.wasm ../core/dist/lotek.wasm core/",
-    "build": "bun run core && bun run generate && rm -rf dist && tsc -b --force && bun run build:css && bun run check:exports && bun run check:server && bun run check:types && bun run check:writes && bun run check:layers && bun run check:test-files && bun run check:texts && bun run check:identifiers && bun run check:agent && bun run check:vocabulary && bun run check:manifest-schema && bun run check:css-witness && bun run check:wording && bun run check:cli && bun run check:version && bun run check:package",
+    "build": "bun run core && bun run generate && rm -rf dist && tsc -b --force && bun run build:css && bun run check:exports && bun run check:server && bun run check:types && bun run check:writes && bun run check:layers && bun run check:test-files && bun run check:texts && bun run check:identifiers && bun run check:agent && bun run check:vocabulary && bun run check:manifest-schema && bun run check:anatomy && bun run check:design-tool && bun run check:css-witness && bun run check:wording && bun run check:cli && bun run check:version && bun run check:package",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
     "test:browser": "vitest --config vitest.config.ts --run",

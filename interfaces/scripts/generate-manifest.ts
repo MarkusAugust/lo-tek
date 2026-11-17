@@ -1,7 +1,7 @@
 /**
  * Writes the manifest: what LO-TEK promises, as data every tool reads.
  *
- * Three files, all generated and checked in:
+ * Four files, all generated and checked in:
  *
  *   - `manifest/manifest.json`: the vocabulary (the elements and the classes,
  *     the same as `classes.ts` and `elements.ts`) and every builder function
@@ -12,6 +12,9 @@
  *     in another language must give exactly the same result for every case.
  *   - `manifest/files.json`: the rulebooks and the component files the
  *     command line reads from the package.
+ *   - `manifest/anatomy-cases.json`: every anatomy rendered by
+ *     `renderAnatomy()`, as created and with each choice and optional part.
+ *     A renderer in another language must give exactly the same.
  *
  * The builder functions are not written by hand. The options and their
  * types are read by the TypeScript compiler from the signatures in
@@ -36,6 +39,13 @@ import {
   writeFileSync,
 } from "node:fs"
 import { fileURLToPath } from "node:url"
+import {
+  type AnatomyInstance,
+  createdInstance,
+  renderAnatomy,
+  variantsOf,
+  withItem,
+} from "../src/anatomy/index.js"
 import { DEFAULT_LANGUAGE } from "../src/components/default-texts.js"
 import { lt } from "../src/lt.js"
 import { FAMILIES, NEUTRAL_LAYERS, ROLES } from "../src/tokens/matrix-cells.js"
@@ -50,6 +60,7 @@ import {
 } from "../src/tokens/tokens.js"
 import { classes } from "../src/vocabulary/classes.js"
 import { elements } from "../src/vocabulary/elements.js"
+import type { Anatomy, Manifest } from "../src/vocabulary/types.js"
 import {
   type BuilderFunction as Base,
   type Option,
@@ -57,7 +68,11 @@ import {
   readBuilderFunctions,
   setsOf,
 } from "./builder-functions.js"
-import { BUILDER_PARTS, type BuilderPart } from "./metadata.js"
+import {
+  BUILDER_ANATOMIES,
+  BUILDER_PARTS,
+  type BuilderPart,
+} from "./metadata.js"
 
 const PACKAGE = fileURLToPath(new URL("..", import.meta.url))
 const OUT = `${PACKAGE}manifest/`
@@ -67,6 +82,7 @@ const version: string = JSON.parse(
 ).version
 
 type BuilderFunction = Base & {
+  anatomy?: Anatomy
   /** The page the builder function is documented on. */
   docs?: string
   parts?: Record<string, BuilderPart>
@@ -537,6 +553,18 @@ for (const b of builderFunctions) {
 }
 
 /*
+ * The anatomy each builder function belongs in, from `BUILDER_ANATOMIES` in
+ * `metadata.ts`. A name there that is no builder function stops the build.
+ */
+for (const name of Object.keys(BUILDER_ANATOMIES))
+  if (!builderFunctions.some((b) => b.name === name))
+    throw new Error(
+      `BUILDER_ANATOMIES has ${name}, and lt has no builder function by that name.`,
+    )
+for (const b of builderFunctions)
+  if (BUILDER_ANATOMIES[b.name]) b.anatomy = BUILDER_ANATOMIES[b.name]
+
+/*
  * The description of a class attribute is the description of the option with
  * the same name, `variant` for `data-variant`, and the class is found as for
  * the flags above: a case with the option against the same case without it.
@@ -743,6 +771,48 @@ writeFileSync(`${OUT}manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`)
 writeFileSync(
   `${OUT}build-cases.json`,
   `${JSON.stringify({ version: version, cases: cases })}\n`,
+)
+
+/*
+ * The anatomies as `renderAnatomy()` writes them, for a renderer in another
+ * language to give exactly the same: every component as created, with an
+ * item in each group that may have none, and with every alternative of
+ * every choice and every optional part. Repository only, as the build
+ * cases are.
+ */
+const anatomyCases: {
+  builder: string
+  instance: AnatomyInstance
+  expected: string
+}[] = []
+const silent = console.warn
+console.warn = () => {}
+try {
+  for (const b of builderFunctions) {
+    if (!b.anatomy) continue
+    let base = createdInstance(b.anatomy, "c1")
+    for (const [group, { min }] of Object.entries(b.anatomy.repeats ?? {}))
+      if (min === 0) base = withItem(b.anatomy, base, group, `${group}1`)
+    const variants = variantsOf(b.anatomy)
+    for (const variant of variants) {
+      const instance = { ...base, ...variant }
+      anatomyCases.push({
+        builder: b.name,
+        instance,
+        expected: renderAnatomy(
+          manifest as unknown as Manifest,
+          b.name,
+          instance,
+        ),
+      })
+    }
+  }
+} finally {
+  console.warn = silent
+}
+writeFileSync(
+  `${OUT}anatomy-cases.json`,
+  `${JSON.stringify({ version: version, cases: anatomyCases })}\n`,
 )
 
 /*
