@@ -398,6 +398,19 @@
                         }
                       },
                       "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "required": ["choice", "alternative"],
+                      "properties": {
+                        "choice": {
+                          "type": "string"
+                        },
+                        "alternative": {
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": false
                     }
                   ]
                 }
@@ -804,6 +817,13 @@
         "example": {
           "type": "string",
           "description": "What a tool fills in on a new component, so it is correct as created."
+        },
+        "values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The values an attribute hole can take."
         }
       },
       "additionalProperties": false
@@ -815,6 +835,10 @@
       "properties": {
         "hole": {
           "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "description": "In an attribute with a flag hole: the value written when the flag is on. Without it, the attribute is bare."
         }
       },
       "additionalProperties": false

@@ -220,6 +220,174 @@ const cases: Case[] = [
     },
     expected: `<div><label class="lt-label" for="building">Building</label><select class="lt-select" id="building" name="building"><option value="">Choose a building</option><option>Breakwater House</option><option selected>Saltline Tower</option><option>The Lantern Block</option></select></div>`,
   },
+  {
+    builder: "badge",
+    instance: {
+      id: "b",
+      holes: { label: "Paid" },
+      options: { color: "success" },
+    },
+    expected: `<span class="lt-badge" data-color="success">Paid</span>`,
+  },
+  {
+    builder: "divider",
+    instance: { id: "d", options: { variant: "strong" } },
+    expected: `<hr class="lt-divider" data-variant="strong">`,
+  },
+  {
+    builder: "heading",
+    instance: {
+      id: "h",
+      holes: { text: "Runner's policy terms" },
+      tags: { level: "h1" },
+      options: { size: "mega" },
+    },
+    expected: `<h1 class="lt-heading" data-size="mega">Runner's policy terms</h1>`,
+  },
+  {
+    builder: "paragraph",
+    instance: {
+      id: "p",
+      holes: { text: "Everything a runner's policy covers." },
+      options: { variant: "lead" },
+    },
+    expected: `<p class="lt-paragraph" data-variant="lead">Everything a runner's policy covers.</p>`,
+  },
+  {
+    builder: "link",
+    instance: { id: "l", holes: { href: "#", text: "Read the small print" } },
+    expected: `<a class="lt-link" href="#">Read the small print</a>`,
+  },
+  {
+    builder: "link",
+    instance: {
+      id: "l",
+      holes: { href: "#", text: "See payout statement" },
+      choices: { state: "disabled" },
+    },
+    expected: `<a class="lt-link" role="link" tabindex="0" aria-disabled="true">See payout statement</a>`,
+  },
+  {
+    builder: "skipLink",
+    instance: {
+      id: "s",
+      holes: { target: "#main-content", text: "Skip to main content" },
+    },
+    expected: `<a class="lt-skip-link" href="#main-content">Skip to main content</a>`,
+  },
+  {
+    builder: "spinner",
+    instance: { id: "s", options: { size: "small" } },
+    expected: `<span class="lt-spinner" data-size="small" aria-hidden="true"></span>`,
+  },
+  {
+    builder: "skeleton",
+    instance: { id: "s", options: { variant: "circle" } },
+    expected: `<div class="lt-skeleton" data-variant="circle" aria-hidden="true"></div>`,
+  },
+  {
+    builder: "srOnly",
+    instance: { id: "s", holes: { text: " the report from 4 March" } },
+    expected: `<span class="lt-sr-only"> the report from 4 March</span>`,
+  },
+  {
+    builder: "icon",
+    instance: { id: "i", content: { paths: '<path d="M12 5v14M5 12h14" />' } },
+    expected: `<svg class="lt-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14" /></svg>`,
+  },
+  {
+    builder: "progress",
+    instance: {
+      id: "p",
+      holes: { label: "Subscription CM-2079-0090" },
+      options: {
+        value: 27,
+        max: 30,
+        valueText: "Your walls expire in 3 days.",
+      },
+    },
+    expected: `<progress class="lt-progress" value="27" max="30" aria-label="Subscription CM-2079-0090" aria-valuetext="Your walls expire in 3 days."></progress>`,
+  },
+  {
+    builder: "tag",
+    instance: {
+      id: "t",
+      holes: { text: "worm" },
+      options: { variant: "filled" },
+    },
+    expected: `<span class="lt-tag" data-variant="filled">worm</span>`,
+  },
+  {
+    builder: "tag",
+    instance: {
+      id: "t",
+      holes: { text: "Cutter", pressed: "true" },
+      choices: { kind: "selectable" },
+    },
+    expected: `<button class="lt-tag" data-selectable aria-pressed="true" type="button">Cutter</button>`,
+  },
+  {
+    builder: "alert",
+    instance: {
+      id: "a",
+      holes: { title: "Sector 9 is dark" },
+      content: { message: "<p>Crews are on the way.</p>" },
+      parts: { title: true },
+      options: { color: "danger" },
+    },
+    expected: `<div class="lt-alert" data-color="danger"><p class="lt-alert__title">Sector 9 is dark</p><p>Crews are on the way.</p></div>`,
+  },
+  {
+    builder: "card",
+    instance: {
+      id: "c",
+      holes: { title: "Claim AV-2079-0481" },
+      content: { body: "<p>Claim denied. Black ICE is an act of God.</p>" },
+      options: { variant: "filled" },
+    },
+    expected: `<div class="lt-card" data-variant="filled"><h3 class="lt-card__title">Claim AV-2079-0481</h3><p>Claim denied. Black ICE is an act of God.</p></div>`,
+  },
+  {
+    builder: "accordion",
+    instance: {
+      id: "a",
+      holes: { summary: "How long does a claim take?", open: true },
+      content: { content: "<p>We process a claim within three weeks.</p>" },
+    },
+    expected: `<details class="lt-accordion" open><summary>How long does a claim take?</summary><div class="lt-accordion__content"><p>We process a claim within three weeks.</p></div></details>`,
+  },
+  {
+    builder: "list",
+    instance: {
+      id: "l",
+      tags: { list: "ol" },
+      repeats: { item: ["objective", "budget"] },
+      content: {
+        item: { objective: "State the objective", budget: "Set the budget" },
+      },
+    },
+    expected: `<ol class="lt-list"><li>State the objective</li><li>Set the budget</li></ol>`,
+  },
+  {
+    builder: "avatar",
+    instance: {
+      id: "a",
+      holes: { initials: "DP", beside: true },
+      options: { size: "small" },
+    },
+    expected: `<span class="lt-avatar" data-size="small" aria-hidden="true">DP</span>`,
+  },
+  {
+    builder: "avatar",
+    instance: {
+      id: "a",
+      choices: { kind: "stack" },
+      repeats: { person: ["dp", "nv"] },
+      holes: { initials: { dp: "DP", nv: "NV" }, beside: true },
+      options: { size: "small" },
+    },
+    expected: `<ul class="lt-avatar-stack"><li><span class="lt-avatar" data-size="small" aria-hidden="true">DP</span></li><li><span class="lt-avatar" data-size="small" aria-hidden="true">NV</span></li></ul>`,
+  },
 ]
 
 /**

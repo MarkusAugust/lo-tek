@@ -305,10 +305,14 @@ for (const b of palette) {
     content: {},
     annotate: (path: string) => ({ "data-node": path }),
   })
-  const roots = annotated.match(/^(<[a-z][\w-]*)/)
+  // One root: the markup is one element, an end tag closing it, or a void
+  // element with nothing after it.
+  const first = annotated.match(/^<([a-z][\w-]*)[^>]*>/)
+  const single =
+    first !== null &&
+    (annotated.endsWith(`</${first[1]}>`) || annotated === first[0])
   const tags = [...annotated.matchAll(/<([a-z][\w-]*)([^>]*)>/g)]
-  if (!roots || !annotated.endsWith(`</${roots[1].slice(1)}>`))
-    fail("6. address", `${b.name} has no single root`)
+  if (!single) fail("6. address", `${b.name} has no single root`)
   for (const [, tag, attributes] of tags)
     if (!/\sdata-node="/.test(attributes))
       fail("6. address", `${b.name}: <${tag}> has no address`)

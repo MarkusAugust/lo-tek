@@ -129,9 +129,31 @@ class Writer {
       if ("hole" in from) bound[option] = this.attribute(from.hole, {})
       else if ("repeat" in from) bound[option] = this.keys(from.repeat)
       else if ("count" in from) bound[option] = this.keys(from.count).length
+      else if ("choice" in from)
+        bound[option] =
+          (instance.choices?.[from.choice] ??
+            this.firstAlternative(from.choice)) === from.alternative
     }
     this.options = { ...instance.options, ...bound }
     this.own = call(builder, this.options)
+  }
+
+  /** The first alternative of the named choice, the one a tool creates. */
+  private firstAlternative(name: string): string | undefined {
+    const walk = (children: readonly AnatomyChild[]): string | undefined => {
+      for (const child of children) {
+        if (isHole(child)) continue
+        if (isChoice(child) && child.name === name)
+          return Object.keys(child.oneOf)[0]
+        const nodes = isChoice(child) ? Object.values(child.oneOf) : [child]
+        for (const node of nodes) {
+          const found = walk(node.children ?? [])
+          if (found) return found
+        }
+      }
+      return undefined
+    }
+    return walk(this.anatomy.nodes)
   }
 
   /** The keys of the items in a group: the instance's, or `min` made up. */
@@ -300,7 +322,9 @@ class Writer {
         this.attributesOf(source, answers, place),
       )) {
         if (value === undefined || value === false) continue
-        if (value === true) {
+        // A builder function writes a flag as true or as "", which HTML
+        // reads the same; both are written bare.
+        if (value === true || value === "") {
           attributes[attribute] = true
           continue
         }
@@ -319,9 +343,18 @@ class Writer {
       const declaration = this.declared(value.hole)
       const given = this.attribute(value.hole, place.keys)
       if (declaration.kind === "flag") {
-        if (given === true || given === "true") attributes[attribute] = true
+        if (given === true || given === "true")
+          attributes[attribute] = value.value ?? true
         continue
       }
+      if (
+        declaration.values &&
+        given !== undefined &&
+        !declaration.values.includes(String(given))
+      )
+        throw new Error(
+          `renderAnatomy: the hole ${value.hole} can be ${declaration.values.join(", ")}, not ${given}.`,
+        )
       if (given === undefined || given === false) {
         if (declaration.optional) continue
         throw new Error(

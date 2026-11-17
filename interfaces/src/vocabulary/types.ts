@@ -247,7 +247,11 @@ export type Builder = {
  * A place among the children of a node that the template fills, by the
  * name it is declared under in `Anatomy.holes`.
  */
-export type AnatomyHole = { hole: string }
+export type AnatomyHole = {
+  hole: string
+  /** In an attribute with a flag hole: the value written when the flag is on, as `"true"` for `aria-hidden`. Without it, the attribute is bare. */
+  value?: string
+}
 
 /**
  * What a hole holds, declared once for the anatomy, so a tool knows what
@@ -281,6 +285,8 @@ export type AnatomyHoleDeclaration = {
   optional?: true
   /** What a tool fills in on a new component, so it is correct as created. */
   example?: string
+  /** The values an attribute hole can take, as `"true"` and `"false"` for `aria-pressed`. */
+  values?: readonly string[]
 }
 
 /**
@@ -305,7 +311,7 @@ export type AnatomyChild = AnatomyNode | AnatomyHole | AnatomyChoice
  * (`"button"`), a set in its answer (`"field.control"`), or a class the
  * function carries (`"checkbox.row"`, in `classes` on the builder). The
  * attributes merge in that order: a later value wins, `class` is joined,
- * `false` and `undefined` are left out, and `true` is written bare. Then
+ * `false` and `undefined` are left out, and `true` and `""` are written bare. Then
  * `attributes` are written over them.
  *
  * The first node that names a builder function calls it, with `options`
@@ -361,13 +367,16 @@ export type AnatomyNode = {
 /**
  * Where an option of the anatomy's own builder function gets its value,
  * so the tool knows not to show it in the panel: a hole, the keys or the
- * number of items in a group, or the tool itself, with what it does.
+ * number of items in a group, an alternative of a choice, or the tool
+ * itself, with what it does.
  */
 export type AnatomyOption =
   | { hole: string }
   | { repeat: string }
   | { count: string }
   | { tool: string }
+  /** On exactly when the choice takes the alternative, as `disabled` with a disabled link. */
+  | { choice: string; alternative: string }
 
 /**
  * The markup a builder function belongs in: the elements, which attributes

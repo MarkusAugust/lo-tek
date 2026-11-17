@@ -961,6 +961,347 @@ export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
       },
     ],
   },
+  badge: {
+    holes: {
+      label: {
+        description: "What the badge says.",
+        content: "text",
+        example: "Paid",
+      },
+    },
+    nodes: [{ tag: "span", from: ["badge"], children: [{ hole: "label" }] }],
+  },
+  divider: { holes: {}, nodes: [{ tag: "hr", from: ["divider"] }] },
+  heading: {
+    holes: {
+      text: {
+        description: "The heading.",
+        content: "text",
+        example: "What we cover",
+      },
+    },
+    nodes: [
+      {
+        // The level follows the page; the size is separate, in data-size.
+        tag: ["h2", "h1", "h3", "h4", "h5", "h6"],
+        from: ["heading"],
+        name: "level",
+        description: "The level in the page's outline.",
+        children: [{ hole: "text" }],
+      },
+    ],
+  },
+  paragraph: {
+    holes: {
+      text: {
+        description: "The paragraph.",
+        content: "text",
+        example: "A claim must be filed within 30 days.",
+      },
+    },
+    nodes: [{ tag: "p", from: ["paragraph"], children: [{ hole: "text" }] }],
+  },
+  link: {
+    holes: {
+      href: { description: "Where the link goes.", kind: "url", example: "#" },
+      text: {
+        description: "What the link says.",
+        content: "text",
+        example: "the small print",
+      },
+    },
+    options: { disabled: { choice: "state", alternative: "disabled" } },
+    nodes: [
+      {
+        name: "state",
+        description: "A link, or one that cannot be followed yet.",
+        oneOf: {
+          enabled: {
+            tag: "a",
+            from: ["link"],
+            attributes: { href: { hole: "href" } },
+            children: [{ hole: "text" }],
+          },
+          // A disabled link has no href: Enter would follow it.
+          disabled: { tag: "a", from: ["link"], children: [{ hole: "text" }] },
+        },
+      },
+    ],
+  },
+  skipLink: {
+    holes: {
+      target: {
+        description: "Where the main content starts, as #id.",
+        kind: "url",
+        example: "#main",
+      },
+      text: {
+        description: "What the link says.",
+        content: "text",
+        example: "Skip to main content",
+      },
+    },
+    nodes: [
+      {
+        tag: "a",
+        from: ["skipLink"],
+        attributes: { href: { hole: "target" } },
+        children: [{ hole: "text" }],
+      },
+    ],
+  },
+  spinner: { holes: {}, nodes: [{ tag: "span", from: ["spinner"] }] },
+  skeleton: { holes: {}, nodes: [{ tag: "div", from: ["skeleton"] }] },
+  srOnly: {
+    holes: {
+      text: {
+        description: "What only a screen reader says.",
+        content: "text",
+        example: " the report from 4 March",
+      },
+    },
+    nodes: [{ tag: "span", from: ["srOnly"], children: [{ hole: "text" }] }],
+  },
+  icon: {
+    holes: {
+      paths: {
+        description: "The icon's paths, on a 24 by 24 grid.",
+        content: "free",
+        example: '<path d="M12 5v14M5 12h14" />',
+      },
+    },
+    nodes: [
+      {
+        tag: "svg",
+        from: ["icon"],
+        attributes: {
+          viewBox: "0 0 24 24",
+          fill: "none",
+          stroke: "currentColor",
+          "stroke-width": "2",
+        },
+        children: [{ hole: "paths" }],
+      },
+    ],
+  },
+  progress: {
+    holes: {
+      label: {
+        description: "What the bar measures.",
+        kind: "text",
+        example: "Upload",
+      },
+    },
+    // A bar without a name says nothing to a screen reader.
+    options: { label: { hole: "label" } },
+    nodes: [{ tag: "progress", from: ["progress"] }],
+  },
+  tag: {
+    holes: {
+      text: {
+        description: "What the tag says.",
+        content: "text",
+        example: "cutter",
+      },
+      pressed: {
+        description: "The tag is selected.",
+        kind: "value",
+        values: ["false", "true"],
+        example: "false",
+      },
+    },
+    options: { selectable: { choice: "kind", alternative: "selectable" } },
+    nodes: [
+      {
+        name: "kind",
+        description: "A label, or a filter the user turns on and off.",
+        oneOf: {
+          plain: {
+            tag: ["span", "li"],
+            from: ["tag"],
+            name: "element",
+            children: [{ hole: "text" }],
+          },
+          selectable: {
+            tag: "button",
+            from: ["tag"],
+            attributes: { type: "button", "aria-pressed": { hole: "pressed" } },
+            children: [{ hole: "text" }],
+          },
+        },
+      },
+    ],
+  },
+  alert: {
+    holes: {
+      title: {
+        description: "The message's heading.",
+        content: "text",
+        example: "Sector 9 is dark",
+      },
+      message: {
+        description: "The message.",
+        content: "free",
+        example: "<p>Crews are on the way.</p>",
+      },
+    },
+    nodes: [
+      {
+        tag: "div",
+        from: ["alert"],
+        children: [
+          {
+            tag: "p",
+            from: ["alert.title"],
+            name: "title",
+            description: "A heading in the message.",
+            optional: true,
+            children: [{ hole: "title" }],
+          },
+          { hole: "message" },
+        ],
+      },
+    ],
+  },
+  card: {
+    holes: {
+      title: {
+        description: "The card's heading.",
+        content: "text",
+        example: "Claim AV-2079-0481",
+      },
+      body: {
+        description: "What the card holds.",
+        content: "free",
+        example: "<p>Claim denied.</p>",
+      },
+    },
+    nodes: [
+      {
+        tag: ["div", "article", "section"],
+        from: ["card"],
+        name: "card",
+        description: "A box, or a piece of its own in the page.",
+        children: [
+          {
+            tag: ["h3", "h2", "h4", "h5", "h6"],
+            from: ["card.title"],
+            name: "title",
+            description: "The heading, at the level the page needs.",
+            optional: true,
+            created: true,
+            children: [{ hole: "title" }],
+          },
+          { hole: "body" },
+        ],
+      },
+    ],
+  },
+  accordion: {
+    holes: {
+      summary: {
+        description: "What the panel is about.",
+        content: "text",
+        example: "How long does a claim take?",
+      },
+      content: {
+        description: "What the panel shows when it is open.",
+        content: "free",
+        example: "<p>Three weeks.</p>",
+      },
+      open: { description: "The panel is open.", kind: "flag" },
+      group: {
+        description: "Panels with the same group close each other.",
+        kind: "name",
+        optional: true,
+      },
+    },
+    nodes: [
+      {
+        tag: "details",
+        from: ["accordion"],
+        attributes: { open: { hole: "open" }, name: { hole: "group" } },
+        children: [
+          { tag: "summary", children: [{ hole: "summary" }] },
+          {
+            tag: "div",
+            from: ["accordion.content"],
+            children: [{ hole: "content" }],
+          },
+        ],
+      },
+    ],
+  },
+  list: {
+    holes: {
+      item: {
+        description: "An item.",
+        content: "free",
+        per: ["item"],
+        example: "Floor plans",
+      },
+    },
+    repeats: { item: { min: 1, description: "The items." } },
+    nodes: [
+      {
+        tag: ["ul", "ol"],
+        from: ["list"],
+        name: "list",
+        description: "Unordered, or numbered when the order counts.",
+        children: [{ tag: "li", repeat: "item", children: [{ hole: "item" }] }],
+      },
+    ],
+  },
+  avatar: {
+    holes: {
+      initials: {
+        description: "The person's initials.",
+        content: "text",
+        per: ["person"],
+        example: "DP",
+      },
+      beside: {
+        description:
+          "The name is next to the picture, so the picture is hidden from screen readers.",
+        kind: "flag",
+      },
+    },
+    repeats: { person: { min: 1, description: "The people in a stack." } },
+    nodes: [
+      {
+        name: "kind",
+        description: "One person, or several overlapping.",
+        oneOf: {
+          single: {
+            tag: "span",
+            from: ["avatar"],
+            attributes: { "aria-hidden": { hole: "beside", value: "true" } },
+            children: [{ hole: "initials" }],
+          },
+          stack: {
+            tag: "ul",
+            from: ["avatar.stack"],
+            children: [
+              {
+                tag: "li",
+                repeat: "person",
+                children: [
+                  {
+                    tag: "span",
+                    from: ["avatar"],
+                    attributes: {
+                      "aria-hidden": { hole: "beside", value: "true" },
+                    },
+                    children: [{ hole: "initials" }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ],
+  },
 }
 
 export type BuilderPart = { element: string; part: string }
