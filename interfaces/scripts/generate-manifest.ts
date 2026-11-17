@@ -24,10 +24,17 @@
  * manifest on the next build. What the code cannot say is written once, in
  * `metadata.ts`: the parts, the content and the tags of a class, and which
  * part each set from a builder function fills (`BUILDER_PARTS`). The
- * generators stop when that table and the code disagree. `bun run build` rewrites the files before it checks anything,
- * so an out-of-date file on disk does not stop the build; it is the CI step
- * that checks nothing is ungenerated that fails a change where the files
- * have not been regenerated and committed.
+ * generators stop when that table and the code disagree.
+ *
+ * `files()` gives the four files as a value, from an input that
+ * `fromPackage()` reads from the package, and only the last lines here write
+ * anything. `check-manifest.ts` calls the same function and compares in
+ * memory, and the tests hand it a small input of their own.
+ *
+ * `bun run build` rewrites the files before it checks anything, so an
+ * out-of-date file on disk does not stop the build; it is the CI step that
+ * checks nothing is ungenerated that fails a change where the files have not
+ * been regenerated and committed.
  *
  * Run with: bun scripts/generate-manifest.ts, or as part of `generate`.
  */
@@ -39,6 +46,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs"
+import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   type AnatomyInstance,
@@ -67,27 +75,155 @@ import type {
   AnatomyChild,
   AnatomyForbidden,
   AnatomyNode,
+  Classes,
+  Elements,
   Manifest,
+  ManifestClass,
+  ManifestClassAttribute,
+  Table,
+  TableAttributes,
+  Tables,
 } from "../src/vocabulary/types.js"
 import {
   type BuilderFunction as Base,
   type Option,
-  type OptionType,
   readBuilderFunctions,
   setsOf,
 } from "./builder-functions.js"
+import { TRIAL_VALUES } from "./builder-sample.js"
 import {
   BUILDER_ANATOMIES,
   BUILDER_PARTS,
   type BuilderPart,
 } from "./metadata.js"
 
-const PACKAGE = fileURLToPath(new URL("..", import.meta.url))
-const OUT = `${PACKAGE}manifest/`
+/** The package folder, which the paths from `files()` are relative to. */
+export const ROOT = fileURLToPath(new URL("..", import.meta.url))
 const SCHEMA_VERSION = 1
-const version: string = JSON.parse(
-  readFileSync(`${PACKAGE}package.json`, "utf8"),
-).version
+
+/**
+ * A component folder: its files without the tests, sorted, and the text of
+ * the TypeScript and the CSS among them.
+ */
+type ComponentFolder = {
+  category: string
+  name: string
+  files: string[]
+  sources: Record<string, string>
+}
+
+/**
+ * Everything the manifest is written from. `fromPackage()` reads it from
+ * the package, and is the only thing here that reads the disk; a test hands
+ * in a small one.
+ */
+export type Input = {
+  version: string
+  /** The language of the texts the components write themselves. */
+  textLanguage: string
+  elements: Elements
+  classes: Classes
+  /** The builder functions as the TypeScript compiler reads them from `lt`. */
+  builders: Base[]
+  /**
+   * The builder functions themselves, by name, to call. Each takes options
+   * of its own type, so here they take ones nobody can make, and `buildCases()`
+   * is the one place that hands them what the cases say.
+   */
+  lt: Record<string, (options: never) => unknown>
+  /** `BUILDER_PARTS` in `metadata.ts`. */
+  parts: Record<string, Record<string, BuilderPart | null>>
+  /** `BUILDER_ANATOMIES` in `metadata.ts`. */
+  anatomies: Record<string, Anatomy>
+  tokens: {
+    /** The tokens with a fixed value, by their CSS name. */
+    css: Record<string, string>
+    /** The colour tokens, by their CSS name. */
+    colors: Record<string, string>
+    breakpoints: Record<string, string>
+    containers: Record<string, string>
+    /** What each colour family, role and neutral layer is for. */
+    families: Record<string, string>
+    roles: Record<string, string>
+    layers: Record<string, string>
+  }
+  /** The component folders, category by category and sorted by name in each. */
+  components: ComponentFolder[]
+  /** The rulebooks in `agent/`, without `.md`, sorted. */
+  agent: string[]
+}
+
+const roleToCss = (role: string) =>
+  role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+
+/** The input as the package has it. */
+export function fromPackage(): Input {
+  const ls = (folder: string) => readdirSync(join(ROOT, folder)).sort()
+  return {
+    version: JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"))
+      .version,
+    textLanguage: DEFAULT_LANGUAGE,
+    elements,
+    classes,
+    builders: readBuilderFunctions(),
+    lt: lt as unknown as Input["lt"],
+    parts: BUILDER_PARTS,
+    anatomies: BUILDER_ANATOMIES,
+    tokens: {
+      css: cssTokens,
+      colors: colorTokens,
+      breakpoints: Breakpoints,
+      containers: Containers,
+      families: Object.fromEntries(
+        FAMILIES.map((family) => [family, FAMILY_DESCRIPTIONS[family]]),
+      ),
+      roles: Object.fromEntries(
+        (Object.keys(ROLES) as (keyof typeof ROLES)[]).map((role) => [
+          roleToCss(role),
+          ROLE_DESCRIPTIONS[role],
+        ]),
+      ),
+      layers: Object.fromEntries(
+        (Object.keys(NEUTRAL_LAYERS) as (keyof typeof NEUTRAL_LAYERS)[]).map(
+          (layer) => [layer, LAYER_DESCRIPTIONS[layer]],
+        ),
+      ),
+    },
+    components: ["css", "frame", "standalone"].flatMap((category) =>
+      ls(`src/components/${category}`)
+        .filter((name) =>
+          statSync(join(ROOT, "src/components", category, name)).isDirectory(),
+        )
+        .map((name) => {
+          const folder = `src/components/${category}/${name}`
+          const files = ls(folder).filter((file) => !file.includes(".test."))
+          return {
+            category,
+            name,
+            files,
+            sources: Object.fromEntries(
+              files
+                .filter((file) => file.endsWith(".ts") || file.endsWith(".css"))
+                .map((file) => [
+                  file,
+                  readFileSync(join(ROOT, folder, file), "utf8"),
+                ]),
+            ),
+          }
+        }),
+    ),
+    /*
+     * The files the command line reads from the package: the rulebooks for
+     * `lotek agent` and, above, the source of each component for `lotek
+     * takeover`, without the tests. It reads the list rather than the
+     * folders, because a folder could not be read through Node's WASI on
+     * Windows: `takeover` found no components there.
+     */
+    agent: ls("agent")
+      .filter((file) => file.endsWith(".md"))
+      .map((file) => file.slice(0, -3)),
+  }
+}
 
 type BuilderFunction = Base & {
   anatomy?: Anatomy
@@ -98,34 +234,12 @@ type BuilderFunction = Base & {
   classes?: Record<string, string>
 }
 
-const builderFunctions: BuilderFunction[] = readBuilderFunctions()
-
 /*
  * The cases. Each option is tried alone, and then all combinations when there
  * are few enough. When there are too many, a fixed sample is drawn with a
- * fixed seed, so the file is the same from build to build. The text values
- * include whitespace that JavaScript counts as whitespace and Java by default
- * does not, a no-break space and a BOM: without them, a port that splits on
- * ASCII whitespace alone would have passed.
+ * fixed seed, so the file is the same from build to build. The values of
+ * each kind are `TRIAL_VALUES` in `builder-sample.ts`.
  */
-const TRIAL_VALUES: Record<OptionType["kind"], unknown[]> = {
-  values: [],
-  flag: [false, true],
-  text: ["x", "a b", ""],
-  number: [0, 1, 3],
-  // `["x", "y"]` is the only valid one with several: without it, the tabs and
-  // the options were never tried with more than one key.
-  textList: [
-    [],
-    ["x"],
-    ["x", "y"],
-    ["x", "x"],
-    ["  x   y "],
-    ["x y"],
-    ["﻿x"],
-    [""],
-  ],
-}
 const trialValues = (v: Option) => {
   const values =
     v.type.kind === "values" ? v.type.values : TRIAL_VALUES[v.type.kind]
@@ -194,30 +308,44 @@ function combinations(options: Option[]): Record<string, unknown>[] {
   return [...unique.values()]
 }
 
-const cases: Case[] = []
-// The builder functions warn in the console about use they do not like. That
-// is part of what they do in the browser, not of the result, and here it is noise.
-const warn = console.warn
-console.warn = () => {}
-try {
-  for (const b of builderFunctions) {
-    const build = (lt as unknown as Record<string, (o: unknown) => unknown>)[
-      b.name
-    ]
-    for (const options of combinations(b.options)) {
-      try {
-        cases.push({ builder: b.name, options, expected: build(options) })
-      } catch (error) {
-        cases.push({
-          builder: b.name,
-          options,
-          throws: error instanceof Error ? error.message : String(error),
-        })
+/**
+ * Runs it with `console.warn` silent. The builder functions and the
+ * renderer warn in the console about use they do not like. That is part of
+ * what they do in the browser, not of the result, and here it is noise.
+ */
+function silently<T>(run: () => T): T {
+  const warn = console.warn
+  console.warn = () => {}
+  try {
+    return run()
+  } finally {
+    console.warn = warn
+  }
+}
+
+/** Every builder function called with the combinations of its options. */
+function buildCases(
+  builderFunctions: BuilderFunction[],
+  lt: Input["lt"],
+): Case[] {
+  const cases: Case[] = []
+  silently(() => {
+    for (const b of builderFunctions) {
+      const build = lt[b.name] as (options: unknown) => unknown
+      for (const options of combinations(b.options)) {
+        try {
+          cases.push({ builder: b.name, options, expected: build(options) })
+        } catch (error) {
+          cases.push({
+            builder: b.name,
+            options,
+            throws: error instanceof Error ? error.message : String(error),
+          })
+        }
       }
     }
-  }
-} finally {
-  console.warn = warn
+  })
+  return cases
 }
 
 /*
@@ -238,16 +366,8 @@ try {
  * `{ "aria-labelledby": "{titleId}" }` in `dialog`. A builder function that
  * returns several sets, such as `dialog` and `popover`, gets one table per set.
  */
-type Attributes = Record<string, string | null>
-type TableOption = {
-  cases: Record<string, Attributes>
-  template?: Attributes
-  empty?: Attributes
-}
-type Table = { base: Attributes; options: Record<string, TableOption> }
-type Tables =
-  | { kind: "attributes"; table: Table }
-  | { kind: "group"; fields: Record<string, Table> }
+type Attributes = TableAttributes
+type TableOption = Table["options"][string]
 
 const asText = (values: Record<string, unknown>): Record<string, string> =>
   Object.fromEntries(
@@ -341,7 +461,7 @@ function tableFor(
   return table
 }
 
-function tables(b: BuilderFunction): Tables | undefined {
+function tables(b: BuilderFunction, cases: Case[]): Tables | undefined {
   const own = cases.filter((t) => t.builder === b.name)
   if (own.length === 0 || own.some((t) => t.throws)) return undefined
   // The base is the required options with their first trial value, and no others.
@@ -408,158 +528,6 @@ function apply(
   return sorted(out)
 }
 
-for (const b of builderFunctions) {
-  const t = tables(b)
-  if (t) b.table = t
-}
-
-/*
- * The classes a builder function carries for the parts the template writes
- * itself: `lt.card.title`, `lt.toggleGroup.option`. In TypeScript they are
- * string constants hung on the function, and another language could not
- * reach them, so a Kotlin template wrote `lt-card__title` as text. A
- * constant whose class a set of the function's own answer writes, as
- * `lt.dialog.title`, is left out: there the set is the way.
- */
-for (const b of builderFunctions) {
-  const written = new Set(
-    cases
-      .filter((t) => t.builder === b.name && t.expected)
-      .flatMap((t) => setsOf(t.expected))
-      .flatMap(([, set]) => String(set.class ?? "").split(/\s+/)),
-  )
-  const strings = Object.entries(
-    lt[b.name as keyof typeof lt] as unknown as Record<string, unknown>,
-  ).filter((entry): entry is [string, string] => typeof entry[1] === "string")
-  // Every class is `lt-`, so a string constant on a builder function that is
-  // not one is a mistake, and it stops here rather than vanishing from the
-  // manifest without a word.
-  for (const [key, value] of strings)
-    if (!value.startsWith("lt-"))
-      throw new Error(
-        `lt.${b.name}.${key} is "${value}". A string constant on a builder function is a class, and every class starts with lt-.`,
-      )
-  const constants = strings.filter(([, value]) => !written.has(value))
-  if (constants.length > 0) b.classes = Object.fromEntries(constants)
-}
-
-/*
- * The default of an option with a closed list: the value whose answer is the
- * same as the answer without the option, in the call with only what is
- * required. It is read from the answers, so it is what the function does,
- * and the comment on the option must say the same: a comment that names
- * another default, or none, stops the build. The comment is what TypeScript
- * shows, and the field is what the other languages generate theirs from.
- */
-for (const b of builderFunctions) {
-  const own = cases.filter((t) => t.builder === b.name && t.expected)
-  const required = b.options.filter((o) => o.required).map((o) => o.name)
-  const base = own.find(
-    (t) =>
-      Object.keys(t.options).length === required.length &&
-      required.every((name) => name in t.options),
-  )
-  for (const option of b.options) {
-    if (option.type.kind !== "values" || option.required) continue
-    const values = option.type.values
-    const found = base
-      ? values.filter((value) =>
-          own.some(
-            (t) =>
-              equal(t.options, { ...base.options, [option.name]: value }) &&
-              equal(t.expected, base.expected),
-          ),
-        )
-      : []
-    const written = option.description?.match(/Default: `([^`]+)`/)?.[1]
-    const where = `lt.${b.name}({ ${option.name} })`
-    if (found.length > 1)
-      throw new Error(
-        `${where}: ${found.join(" and ")} both give the same answer as no value. Only one of them can be the default.`,
-      )
-    const value = found[0]
-    if (value !== undefined && written !== value)
-      throw new Error(
-        `${where}: the default is \`${value}\`, read from the answers, but the comment on the option ${written ? `says \`${written}\`` : "does not say so"}. End the comment with "Default: \`${value}\`."`,
-      )
-    if (value === undefined && written !== undefined)
-      throw new Error(
-        `${where}: the comment says the default is \`${written}\`, but no value gives the same answer as leaving the option out.`,
-      )
-    if (value !== undefined) option.default = value
-  }
-}
-
-/*
- * The page each builder function is documented on: the element with the
- * same name, otherwise the class, otherwise the first class in its answer
- * that has a page. `lt.tableSort` is on the table's page that way.
- */
-const kebab = (name: string) =>
-  name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
-const linkOf = (className: string): string | undefined =>
-  (classes as Record<string, { link?: string }>)[className]?.link
-for (const b of builderFunctions) {
-  const name = `lt-${kebab(b.name)}`
-  const answer = cases.find((t) => t.builder === b.name && t.expected)
-  const fromAnswer = setsOf(answer?.expected)
-    .flatMap(([, set]) => String(set.class ?? "").split(/\s+/))
-    .map(linkOf)
-    .find(Boolean)
-  const link =
-    (elements as Record<string, { link?: string }>)[name]?.link ??
-    linkOf(name) ??
-    fromAnswer
-  if (!link)
-    throw new Error(
-      `lt.${b.name} has no page: no element or class called ${name}, and no class in its answer with a link.`,
-    )
-  b.docs = link
-}
-
-/*
- * Which part of a frame component each set fills, from `BUILDER_PARTS` in
- * `metadata.ts`. Every set must be there, and every part must exist, so
- * the list cannot drift from the functions or from the components.
- */
-for (const b of builderFunctions) {
-  if (b.returns.kind !== "group") {
-    if (BUILDER_PARTS[b.name])
-      throw new Error(
-        `BUILDER_PARTS has lt.${b.name}, which returns one set. Take it out.`,
-      )
-    continue
-  }
-  const sets = Object.entries(b.returns.fields)
-    .filter(
-      ([, shape]) =>
-        shape.kind === "attributes" ||
-        (shape.kind === "list" && shape.of.kind === "attributes"),
-    )
-    .map(([field]) => field)
-  const listed = BUILDER_PARTS[b.name] ?? {}
-  const missing = sets.filter((field) => !(field in listed))
-  const extra = Object.keys(listed).filter((field) => !sets.includes(field))
-  if (missing.length || extra.length)
-    throw new Error(
-      `BUILDER_PARTS for lt.${b.name} must list exactly its sets, ${sets.join(", ")}.${missing.length ? ` Missing: ${missing.join(", ")}.` : ""}${extra.length ? ` Not a set: ${extra.join(", ")}.` : ""} Give each a part, or null when it fills none.`,
-    )
-  const parts: Record<string, BuilderPart> = {}
-  for (const field of sets) {
-    const target = listed[field]
-    if (!target) continue
-    const element = (
-      elements as Record<string, { parts?: Record<string, unknown> }>
-    )[target.element]
-    if (!element?.parts?.[target.part])
-      throw new Error(
-        `BUILDER_PARTS says lt.${b.name}().${field} fills ${target.element}'s ${target.part}, and that part does not exist.`,
-      )
-    parts[field] = target
-  }
-  if (Object.keys(parts).length) b.parts = parts
-}
-
 /*
  * What HTML forbids inside an element, from the content models in the HTML
  * standard (documented): a form has "no form element descendants"
@@ -585,7 +553,11 @@ const UNANSWERED = ["a", "button"]
  * the tags around the hole. A node that can be several tags counts as all
  * of them.
  */
-function withForbidden(builder: string, anatomy: Anatomy): Anatomy {
+function withForbidden(
+  builder: string,
+  anatomy: Anatomy,
+  anatomies: Input["anatomies"],
+): Anatomy {
   const around = new Map<string, Set<string>>()
   const walk = (children: readonly AnatomyChild[], tags: Set<string>) => {
     for (const c of children) {
@@ -614,7 +586,7 @@ function withForbidden(builder: string, anatomy: Anatomy): Anatomy {
           `${builder}.${name} takes other elements inside <${inside}>, and the manifest cannot yet say what HTML forbids there.`,
         )
       for (const only of hole.only?.builders ?? [])
-        if (!BUILDER_ANATOMIES[only])
+        if (!anatomies[only])
           throw new Error(
             `${builder}.${name} lets only ${only} in, and no builder function by that name has an anatomy.`,
           )
@@ -627,18 +599,176 @@ function withForbidden(builder: string, anatomy: Anatomy): Anatomy {
   return { ...anatomy, holes }
 }
 
-/*
- * The anatomy each builder function belongs in, from `BUILDER_ANATOMIES` in
- * `metadata.ts`. A name there that is no builder function stops the build.
+/**
+ * Adds to each builder function what it alone does not say, in the order
+ * the manifest writes it: the table, the classes, the defaults, the page,
+ * the parts and the anatomy.
  */
-for (const name of Object.keys(BUILDER_ANATOMIES))
-  if (!builderFunctions.some((b) => b.name === name))
-    throw new Error(
-      `BUILDER_ANATOMIES has ${name}, and lt has no builder function by that name.`,
+function fillIn(
+  builderFunctions: BuilderFunction[],
+  cases: Case[],
+  { lt, classes, elements, parts: builderParts, anatomies }: Input,
+) {
+  for (const b of builderFunctions) {
+    const t = tables(b, cases)
+    if (t) b.table = t
+  }
+
+  /*
+   * The classes a builder function carries for the parts the template writes
+   * itself: `lt.card.title`, `lt.toggleGroup.option`. In TypeScript they are
+   * string constants hung on the function, and another language could not
+   * reach them, so a Kotlin template wrote `lt-card__title` as text. A
+   * constant whose class a set of the function's own answer writes, as
+   * `lt.dialog.title`, is left out: there the set is the way.
+   */
+  for (const b of builderFunctions) {
+    const written = new Set(
+      cases
+        .filter((t) => t.builder === b.name && t.expected)
+        .flatMap((t) => setsOf(t.expected))
+        .flatMap(([, set]) => String(set.class ?? "").split(/\s+/)),
     )
-for (const b of builderFunctions)
-  if (BUILDER_ANATOMIES[b.name])
-    b.anatomy = withForbidden(b.name, BUILDER_ANATOMIES[b.name])
+    const strings = Object.entries(lt[b.name]).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    )
+    // Every class is `lt-`, so a string constant on a builder function that is
+    // not one is a mistake, and it stops here rather than vanishing from the
+    // manifest without a word.
+    for (const [key, value] of strings)
+      if (!value.startsWith("lt-"))
+        throw new Error(
+          `lt.${b.name}.${key} is "${value}". A string constant on a builder function is a class, and every class starts with lt-.`,
+        )
+    const constants = strings.filter(([, value]) => !written.has(value))
+    if (constants.length > 0) b.classes = Object.fromEntries(constants)
+  }
+
+  /*
+   * The default of an option with a closed list: the value whose answer is the
+   * same as the answer without the option, in the call with only what is
+   * required. It is read from the answers, so it is what the function does,
+   * and the comment on the option must say the same: a comment that names
+   * another default, or none, stops the build. The comment is what TypeScript
+   * shows, and the field is what the other languages generate theirs from.
+   */
+  for (const b of builderFunctions) {
+    const own = cases.filter((t) => t.builder === b.name && t.expected)
+    const required = b.options.filter((o) => o.required).map((o) => o.name)
+    const base = own.find(
+      (t) =>
+        Object.keys(t.options).length === required.length &&
+        required.every((name) => name in t.options),
+    )
+    for (const option of b.options) {
+      if (option.type.kind !== "values" || option.required) continue
+      const values = option.type.values
+      const found = base
+        ? values.filter((value) =>
+            own.some(
+              (t) =>
+                equal(t.options, { ...base.options, [option.name]: value }) &&
+                equal(t.expected, base.expected),
+            ),
+          )
+        : []
+      const written = option.description?.match(/Default: `([^`]+)`/)?.[1]
+      const where = `lt.${b.name}({ ${option.name} })`
+      if (found.length > 1)
+        throw new Error(
+          `${where}: ${found.join(" and ")} both give the same answer as no value. Only one of them can be the default.`,
+        )
+      const value = found[0]
+      if (value !== undefined && written !== value)
+        throw new Error(
+          `${where}: the default is \`${value}\`, read from the answers, but the comment on the option ${written ? `says \`${written}\`` : "does not say so"}. End the comment with "Default: \`${value}\`."`,
+        )
+      if (value === undefined && written !== undefined)
+        throw new Error(
+          `${where}: the comment says the default is \`${written}\`, but no value gives the same answer as leaving the option out.`,
+        )
+      if (value !== undefined) option.default = value
+    }
+  }
+
+  /*
+   * The page each builder function is documented on: the element with the
+   * same name, otherwise the class, otherwise the first class in its answer
+   * that has a page. `lt.tableSort` is on the table's page that way.
+   */
+  const kebab = (name: string) =>
+    name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)
+  const linkOf = (className: string): string | undefined =>
+    classes[className]?.link
+  for (const b of builderFunctions) {
+    const name = `lt-${kebab(b.name)}`
+    const answer = cases.find((t) => t.builder === b.name && t.expected)
+    const fromAnswer = setsOf(answer?.expected)
+      .flatMap(([, set]) => String(set.class ?? "").split(/\s+/))
+      .map(linkOf)
+      .find(Boolean)
+    const link = elements[name]?.link ?? linkOf(name) ?? fromAnswer
+    if (!link)
+      throw new Error(
+        `lt.${b.name} has no page: no element or class called ${name}, and no class in its answer with a link.`,
+      )
+    b.docs = link
+  }
+
+  /*
+   * Which part of a frame component each set fills, from `BUILDER_PARTS` in
+   * `metadata.ts`. Every set must be there, and every part must exist, so
+   * the list cannot drift from the functions or from the components.
+   */
+  for (const b of builderFunctions) {
+    if (b.returns.kind !== "group") {
+      if (builderParts[b.name])
+        throw new Error(
+          `BUILDER_PARTS has lt.${b.name}, which returns one set. Take it out.`,
+        )
+      continue
+    }
+    const sets = Object.entries(b.returns.fields)
+      .filter(
+        ([, shape]) =>
+          shape.kind === "attributes" ||
+          (shape.kind === "list" && shape.of.kind === "attributes"),
+      )
+      .map(([field]) => field)
+    const listed = builderParts[b.name] ?? {}
+    const missing = sets.filter((field) => !(field in listed))
+    const extra = Object.keys(listed).filter((field) => !sets.includes(field))
+    if (missing.length || extra.length)
+      throw new Error(
+        `BUILDER_PARTS for lt.${b.name} must list exactly its sets, ${sets.join(", ")}.${missing.length ? ` Missing: ${missing.join(", ")}.` : ""}${extra.length ? ` Not a set: ${extra.join(", ")}.` : ""} Give each a part, or null when it fills none.`,
+      )
+    const parts: Record<string, BuilderPart> = {}
+    for (const field of sets) {
+      const target = listed[field]
+      if (!target) continue
+      const element = elements[target.element]
+      if (!element?.parts?.[target.part])
+        throw new Error(
+          `BUILDER_PARTS says lt.${b.name}().${field} fills ${target.element}'s ${target.part}, and that part does not exist.`,
+        )
+      parts[field] = target
+    }
+    if (Object.keys(parts).length) b.parts = parts
+  }
+
+  /*
+   * The anatomy each builder function belongs in, from `BUILDER_ANATOMIES` in
+   * `metadata.ts`. A name there that is no builder function stops the build.
+   */
+  for (const name of Object.keys(anatomies))
+    if (!builderFunctions.some((b) => b.name === name))
+      throw new Error(
+        `BUILDER_ANATOMIES has ${name}, and lt has no builder function by that name.`,
+      )
+  for (const b of builderFunctions)
+    if (anatomies[b.name])
+      b.anatomy = withForbidden(b.name, anatomies[b.name], anatomies)
+}
 
 /*
  * The description of a class attribute is the description of the option with
@@ -649,65 +779,73 @@ for (const b of builderFunctions)
  * else. When several builder functions write the same attribute, the first
  * in alphabetical order wins.
  */
-const descriptions = new Map<string, string>()
-for (const builder of builderFunctions) {
-  const own = cases.filter((t) => t.builder === builder.name && t.expected)
-  for (const option of builder.options) {
-    if (!option.description) continue
-    const attribute = `data-${option.name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`
-    for (const withOption of own.filter(
-      (t) => t.options[option.name] !== undefined,
-    )) {
-      const { [option.name]: _, ...withoutOption } = withOption.options
-      const base = own.find((t) => equal(t.options, withoutOption))
-      if (!base) continue
-      const before = new Map(setsOf(base.expected))
-      for (const [setName, set] of setsOf(withOption.expected)) {
-        if (equal(set[attribute], before.get(setName)?.[attribute])) continue
-        const classNames = String(set.class ?? "")
-          .split(/\s+/)
-          .filter((c) => classes[c])
-        for (const className of classNames)
-          if (!descriptions.has(`${className} ${attribute}`))
-            descriptions.set(`${className} ${attribute}`, option.description)
+function classEntriesOf(
+  builderFunctions: BuilderFunction[],
+  cases: Case[],
+  classes: Classes,
+) {
+  const descriptions = new Map<string, string>()
+  for (const builder of builderFunctions) {
+    const own = cases.filter((t) => t.builder === builder.name && t.expected)
+    for (const option of builder.options) {
+      if (!option.description) continue
+      const attribute = `data-${option.name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`
+      for (const withOption of own.filter(
+        (t) => t.options[option.name] !== undefined,
+      )) {
+        const { [option.name]: _, ...withoutOption } = withOption.options
+        const base = own.find((t) => equal(t.options, withoutOption))
+        if (!base) continue
+        const before = new Map(setsOf(base.expected))
+        for (const [setName, set] of setsOf(withOption.expected)) {
+          if (equal(set[attribute], before.get(setName)?.[attribute])) continue
+          const classNames = String(set.class ?? "")
+            .split(/\s+/)
+            .filter((c) => classes[c])
+          for (const className of classNames)
+            if (!descriptions.has(`${className} ${attribute}`))
+              descriptions.set(`${className} ${attribute}`, option.description)
+        }
       }
     }
   }
-}
-const withDescriptions = (
-  className: string,
-  attributes: Record<string, object>,
-) =>
-  Object.fromEntries(
-    Object.entries(attributes).map(([attribute, value]) => {
-      const description = descriptions.get(`${className} ${attribute}`)
-      return [attribute, description ? { ...value, description } : value]
-    }),
-  )
+  const withDescriptions = (
+    className: string,
+    attributes: Record<string, ManifestClassAttribute>,
+  ): Record<string, ManifestClassAttribute> =>
+    Object.fromEntries(
+      Object.entries(attributes).map(([attribute, value]) => {
+        const description = descriptions.get(`${className} ${attribute}`)
+        return [attribute, description ? { ...value, description } : value]
+      }),
+    )
 
-const classEntries = Object.fromEntries(
-  Object.entries(classes).map(([name, info]) => [
-    name,
-    {
-      ...info,
-      attributes: withDescriptions(
-        name,
-        // The flags, such as `data-interactive` on `lt-card`, are in
-        // `classes.ts` with an empty value list, since the editors read that
-        // file. Here a flag has no values, see `types.ts`. They are derived
-        // from the builder function each time the vocabulary is written, see
-        // `flagsFor` in builder-functions.ts, so a flag that is gone from the
-        // function is gone here too.
-        Object.fromEntries(
-          Object.entries(info.attributes).map(([attribute, value]) => [
-            attribute,
-            value.flag ? { flag: true } : value,
-          ]),
+  return Object.fromEntries(
+    Object.entries(classes).map(([name, info]): [string, ManifestClass] => [
+      name,
+      {
+        ...info,
+        attributes: withDescriptions(
+          name,
+          // The flags, such as `data-interactive` on `lt-card`, are in
+          // `classes.ts` with an empty value list, since the editors read that
+          // file. Here a flag has no values, see the schema. They are derived
+          // from the builder function each time the vocabulary is written, see
+          // `flagsFor` in builder-functions.ts, so a flag that is gone from the
+          // function is gone here too.
+          Object.fromEntries(
+            Object.entries(info.attributes).map(
+              ([attribute, value]): [string, ManifestClassAttribute] => [
+                attribute,
+                value.flag ? { flag: true } : value,
+              ],
+            ),
+          ),
         ),
-      ),
-    },
-  ]),
-)
+      },
+    ]),
+  )
+}
 
 /*
  * The tokens: what a stylesheet outside the package can build on without
@@ -725,129 +863,84 @@ const classEntries = Object.fromEntries(
  * not to the stylesheet it is read in: `fieldset.css` reads
  * `--lt-label-required-symbol`, and it belongs to the label.
  */
-const roleToCss = (role: string) =>
-  role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
-const COMPONENT_DIRS = ["css", "frame", "standalone"].flatMap((category) =>
-  readdirSync(`${PACKAGE}src/components/${category}`)
-    .filter((name) =>
-      statSync(`${PACKAGE}src/components/${category}/${name}`).isDirectory(),
-    )
-    .sort()
-    .map((name) => ({
-      name,
-      path: `${PACKAGE}src/components/${category}/${name}`,
-    })),
-)
-const componentNames = COMPONENT_DIRS.map((d) => d.name)
-/** The component a variable belongs to: the longest name it starts with. */
-const ownerOf = (variable: string, fallback: string) =>
-  componentNames
-    .filter((name) => variable.startsWith(`--lt-${name}-`))
-    .sort((a, b) => b.length - a.length)[0] ?? fallback
-const TOKEN_KINDS = new Set(
-  Object.keys({ ...cssTokens, ...colorTokens }).map(
-    (name) => name.split("-")[3],
-  ),
-)
-/*
- * The variables a web component writes itself, such as `--lt-popover-top`,
- * are not something the consumer overrides: the inline style beats a
- * stylesheet. They are read with a fallback in the CSS like all the others,
- * and are recognised by `setProperty` in the component's own source.
- */
-const setByComponent = new Set<string>()
-for (const { path } of COMPONENT_DIRS)
-  for (const file of readdirSync(path).filter(
-    (f) => f.endsWith(".ts") && !f.includes(".test."),
-  ))
-    for (const m of readFileSync(`${path}/${file}`, "utf8").matchAll(
-      /setProperty\(\s*["'](--lt-[a-z0-9-]+)["']/g,
-    ))
-      setByComponent.add(m[1])
-const componentVariables: Record<string, Record<string, string>> = {}
-for (const { name, path } of COMPONENT_DIRS) {
-  for (const file of readdirSync(path)
-    .filter((f) => f.endsWith(".css"))
-    .sort()) {
-    const css = readFileSync(`${path}/${file}`, "utf8").replace(
-      /\/\*[\s\S]*?\*\//g,
-      "",
-    )
-    const pattern = /var\(\s*(--lt-[a-z0-9-]+)\s*,/g
-    for (let m = pattern.exec(css); m; m = pattern.exec(css)) {
-      // The fallback runs to the parenthesis that closes `var(`, also when it
-      // has `calc()` or another `var()` in it.
-      let depth = 1
-      let i = pattern.lastIndex
-      for (; i < css.length && depth > 0; i++) {
-        if (css[i] === "(") depth++
-        else if (css[i] === ")") depth--
+function tokensOf({ tokens, components }: Input) {
+  const componentNames = components.map((d) => d.name)
+  /** The component a variable belongs to: the longest name it starts with. */
+  const ownerOf = (variable: string, fallback: string) =>
+    componentNames
+      .filter((name) => variable.startsWith(`--lt-${name}-`))
+      .sort((a, b) => b.length - a.length)[0] ?? fallback
+  const TOKEN_KINDS = new Set(
+    Object.keys({ ...tokens.css, ...tokens.colors }).map(
+      (name) => name.split("-")[3],
+    ),
+  )
+  /*
+   * The variables a web component writes itself, such as `--lt-popover-top`,
+   * are not something the consumer overrides: the inline style beats a
+   * stylesheet. They are read with a fallback in the CSS like all the others,
+   * and are recognised by `setProperty` in the component's own source.
+   */
+  const setByComponent = new Set<string>()
+  for (const { sources } of components)
+    for (const [file, text] of Object.entries(sources))
+      if (file.endsWith(".ts"))
+        for (const m of text.matchAll(
+          /setProperty\(\s*["'](--lt-[a-z0-9-]+)["']/g,
+        ))
+          setByComponent.add(m[1])
+  const componentVariables: Record<string, Record<string, string>> = {}
+  for (const { name, sources } of components) {
+    for (const [file, text] of Object.entries(sources)) {
+      if (!file.endsWith(".css")) continue
+      const css = text.replace(/\/\*[\s\S]*?\*\//g, "")
+      const pattern = /var\(\s*(--lt-[a-z0-9-]+)\s*,/g
+      for (let m = pattern.exec(css); m; m = pattern.exec(css)) {
+        // The fallback runs to the parenthesis that closes `var(`, also when it
+        // has `calc()` or another `var()` in it.
+        let depth = 1
+        let i = pattern.lastIndex
+        for (; i < css.length && depth > 0; i++) {
+          if (css[i] === "(") depth++
+          else if (css[i] === ")") depth--
+        }
+        const variable = m[1]
+        // A token belongs on the token side, not here. Today no component reads
+        // a token with a fallback, but if one did, it would look like a
+        // component variable without this.
+        if (TOKEN_KINDS.has(variable.split("-")[3])) continue
+        if (setByComponent.has(variable)) continue
+        const fallback = css
+          .slice(pattern.lastIndex, i - 1)
+          .trim()
+          .replace(/\s+/g, " ")
+        const owner = ownerOf(variable, name)
+        componentVariables[owner] ??= {}
+        componentVariables[owner][variable] ??= fallback
       }
-      const variable = m[1]
-      // A token belongs on the token side, not here. Today no component reads
-      // a token with a fallback, but if one did, it would look like a
-      // component variable without this.
-      if (TOKEN_KINDS.has(variable.split("-")[3])) continue
-      if (setByComponent.has(variable)) continue
-      const fallback = css
-        .slice(pattern.lastIndex, i - 1)
-        .trim()
-        .replace(/\s+/g, " ")
-      const owner = ownerOf(variable, name)
-      componentVariables[owner] ??= {}
-      componentVariables[owner][variable] ??= fallback
     }
   }
-}
-const tokens = {
-  spacing: Object.fromEntries(
-    Object.entries(cssTokens).filter(([name]) =>
-      name.startsWith("--lt-spacing-"),
-    ),
-  ),
-  breakpoints: Breakpoints,
-  containers: Containers,
-  colors: {
-    families: Object.fromEntries(
-      FAMILIES.map((family) => [family, FAMILY_DESCRIPTIONS[family]]),
-    ),
-    roles: Object.fromEntries(
-      (Object.keys(ROLES) as (keyof typeof ROLES)[]).map((role) => [
-        roleToCss(role),
-        ROLE_DESCRIPTIONS[role],
-      ]),
-    ),
-    layers: Object.fromEntries(
-      (Object.keys(NEUTRAL_LAYERS) as (keyof typeof NEUTRAL_LAYERS)[]).map(
-        (layer) => [layer, LAYER_DESCRIPTIONS[layer]],
+  return {
+    spacing: Object.fromEntries(
+      Object.entries(tokens.css).filter(([name]) =>
+        name.startsWith("--lt-spacing-"),
       ),
     ),
-    tokens: Object.keys(colorTokens).filter((name) =>
-      name.startsWith("--lt-color-"),
+    breakpoints: tokens.breakpoints,
+    containers: tokens.containers,
+    colors: {
+      families: tokens.families,
+      roles: tokens.roles,
+      layers: tokens.layers,
+      tokens: Object.keys(tokens.colors).filter((name) =>
+        name.startsWith("--lt-color-"),
+      ),
+    },
+    components: Object.fromEntries(
+      Object.entries(componentVariables).sort(([a], [b]) => a.localeCompare(b)),
     ),
-  },
-  components: Object.fromEntries(
-    Object.entries(componentVariables).sort(([a], [b]) => a.localeCompare(b)),
-  ),
+  }
 }
-
-const manifest = {
-  $schema: "./manifest.schema.json",
-  schemaVersion: SCHEMA_VERSION,
-  version: version,
-  textLanguage: DEFAULT_LANGUAGE,
-  elements,
-  classes: classEntries,
-  builders: builderFunctions,
-  tokens,
-}
-
-mkdirSync(OUT, { recursive: true })
-writeFileSync(`${OUT}manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`)
-writeFileSync(
-  `${OUT}build-cases.json`,
-  `${JSON.stringify({ version: version, cases: cases })}\n`,
-)
 
 /*
  * The anatomies as `renderAnatomy()` writes them, for a renderer in another
@@ -868,7 +961,6 @@ type AnatomyCase = {
   instance: AnatomyInstance
   expected: string
 }
-const anatomyCases: AnatomyCase[] = []
 /** What a tool's annotate gives, with `{address}` for the address. */
 const ANNOTATE = {
   "data-node": "{address}",
@@ -936,182 +1028,203 @@ const writing = (base: AnatomyInstance, place: NodePlace): AnatomyInstance => ({
   ...(Object.keys(place.parts).length ? { parts: place.parts } : {}),
   ...(Object.keys(place.options).length ? { options: place.options } : {}),
 })
-const silent = console.warn
-console.warn = () => {}
-try {
-  for (const b of builderFunctions) {
-    if (!b.anatomy) continue
-    let base = createdInstance(b.anatomy, "c1")
-    for (const [group, { min }] of Object.entries(b.anatomy.repeats ?? {}))
-      if (min === 0) base = withItem(b.anatomy, base, group, `${group}1`)
-    const made: Omit<AnatomyCase, "builder" | "expected">[] = []
-    for (const variant of variantsOf(b.anatomy))
-      made.push({ change: "variant", instance: { ...base, ...variant } })
-    for (const group of Object.keys(b.anatomy.repeats ?? {}))
-      for (const at of [0, base.repeats?.[group]?.length ?? 0])
-        made.push({
-          change: "withItem",
-          withItem: { group, key: "inserted", at },
-          instance: withItem(b.anatomy, base, group, "inserted", at),
+/** The anatomy cases of every builder function with an anatomy. */
+function anatomyCasesOf(
+  manifest: Manifest,
+  builderFunctions: BuilderFunction[],
+): AnatomyCase[] {
+  const anatomyCases: AnatomyCase[] = []
+  silently(() => {
+    for (const b of builderFunctions) {
+      if (!b.anatomy) continue
+      let base = createdInstance(b.anatomy, "c1")
+      for (const [group, { min }] of Object.entries(b.anatomy.repeats ?? {}))
+        if (min === 0) base = withItem(b.anatomy, base, group, `${group}1`)
+      const made: Omit<AnatomyCase, "builder" | "expected">[] = []
+      for (const variant of variantsOf(b.anatomy))
+        made.push({ change: "variant", instance: { ...base, ...variant } })
+      for (const group of Object.keys(b.anatomy.repeats ?? {}))
+        for (const at of [0, base.repeats?.[group]?.length ?? 0])
+          made.push({
+            change: "withItem",
+            withItem: { group, key: "inserted", at },
+            instance: withItem(b.anatomy, base, group, "inserted", at),
+          })
+      const places = placesOf(b.anatomy.nodes, {
+        choices: {},
+        parts: {},
+        options: {},
+      })
+      // A tag case where the node is not written would test nothing, so
+      // every tag must give other markup than the first.
+      for (const place of places) {
+        const { node } = place
+        if (!node.name || typeof node.tag === "string") continue
+        const as = (tag: string) => ({
+          ...writing(base, place),
+          tags: { [node.name as string]: tag },
         })
-    const places = placesOf(b.anatomy.nodes, {
-      choices: {},
-      parts: {},
-      options: {},
-    })
-    // A tag case where the node is not written would test nothing, so
-    // every tag must give other markup than the first.
-    for (const place of places) {
-      const { node } = place
-      if (!node.name || typeof node.tag === "string") continue
-      const as = (tag: string) => ({
-        ...writing(base, place),
-        tags: { [node.name as string]: tag },
-      })
-      const first = renderAnatomy(
-        manifest as unknown as Manifest,
-        b.name,
-        as(node.tag[0]),
-      )
-      for (const tag of node.tag) {
-        if (
-          tag !== node.tag[0] &&
-          renderAnatomy(manifest as unknown as Manifest, b.name, as(tag)) ===
-            first
-        )
-          throw new Error(
-            `anatomy-cases: ${b.name} as <${tag}> writes what <${node.tag[0]}> does, so ${node.name} is not written.`,
+        const first = renderAnatomy(manifest, b.name, as(node.tag[0]))
+        for (const tag of node.tag) {
+          if (
+            tag !== node.tag[0] &&
+            renderAnatomy(manifest, b.name, as(tag)) === first
           )
-        made.push({ change: "tag", instance: as(tag) })
-      }
-    }
-    // Per item when the node is in a group, as the renderer reads it.
-    for (const place of places) {
-      const { node, named, group } = place
-      if (!named) continue
-      for (const setting of node.settings ?? [])
-        for (const source of node.from ?? []) {
-          const option = builderFunctions
-            .find((x) => x.name === source.split(".")[0])
-            ?.options.find((o) => o.name === setting)
-          if (!option) continue
-          const values =
-            option.type.kind === "values"
-              ? option.type.values
-              : option.type.kind === "flag"
-                ? [true]
-                : []
-          for (const value of values) {
-            const one = { [setting]: value }
-            made.push({
-              change: "setting",
-              instance: {
-                ...writing(base, place),
-                settings: {
-                  [named]: group
-                    ? Object.fromEntries(
-                        (base.repeats?.[group] ?? []).map((k) => [k, one]),
-                      )
-                    : one,
-                },
-              },
-            })
-          }
+            throw new Error(
+              `anatomy-cases: ${b.name} as <${tag}> writes what <${node.tag[0]}> does, so ${node.name} is not written.`,
+            )
+          made.push({ change: "tag", instance: as(tag) })
         }
+      }
+      // Per item when the node is in a group, as the renderer reads it.
+      for (const place of places) {
+        const { node, named, group } = place
+        if (!named) continue
+        for (const setting of node.settings ?? [])
+          for (const source of node.from ?? []) {
+            const option = builderFunctions
+              .find((x) => x.name === source.split(".")[0])
+              ?.options.find((o) => o.name === setting)
+            if (!option) continue
+            const values =
+              option.type.kind === "values"
+                ? option.type.values
+                : option.type.kind === "flag"
+                  ? [true]
+                  : []
+            for (const value of values) {
+              const one = { [setting]: value }
+              made.push({
+                change: "setting",
+                instance: {
+                  ...writing(base, place),
+                  settings: {
+                    [named]: group
+                      ? Object.fromEntries(
+                          (base.repeats?.[group] ?? []).map((k) => [k, one]),
+                        )
+                      : one,
+                  },
+                },
+              })
+            }
+          }
+      }
+      made.push({ change: "annotate", annotate: ANNOTATE, instance: base })
+      for (const m of made)
+        anatomyCases.push({
+          builder: b.name,
+          ...m,
+          expected: renderAnatomy(manifest, b.name, {
+            ...m.instance,
+            ...(m.annotate
+              ? {
+                  annotate: (address: string) =>
+                    Object.fromEntries(
+                      Object.entries(ANNOTATE).map(([k, v]) => [
+                        k,
+                        v.replace("{address}", address),
+                      ]),
+                    ),
+                }
+              : {}),
+          }),
+        })
     }
-    made.push({ change: "annotate", annotate: ANNOTATE, instance: base })
-    for (const m of made)
-      anatomyCases.push({
-        builder: b.name,
-        ...m,
-        expected: renderAnatomy(manifest as unknown as Manifest, b.name, {
-          ...m.instance,
-          ...(m.annotate
-            ? {
-                annotate: (address: string) =>
-                  Object.fromEntries(
-                    Object.entries(ANNOTATE).map(([k, v]) => [
-                      k,
-                      v.replace("{address}", address),
-                    ]),
-                  ),
-              }
-            : {}),
-        }),
-      })
-  }
-} finally {
-  console.warn = silent
+  })
+  return anatomyCases
 }
+
 /*
  * What `canDrop()` answers for every component in every hole that takes
  * other elements, and in each of those again inside every hole the host
  * may stand in, so a path of two is answered too.
  */
-const freeHoles = builderFunctions.flatMap((b) =>
-  Object.entries(b.anatomy?.holes ?? {})
-    .filter(([, hole]) => hole.content === "free")
-    .map(([hole, declaration]) => ({ builder: b.name, hole, declaration })),
-)
-const paths = [
-  ...freeHoles.map((h) => [{ builder: h.builder, hole: h.hole }]),
-  ...freeHoles.flatMap((outer) =>
-    freeHoles
-      // Only a host that may itself stand in the outer hole.
-      .filter(
-        (inner) =>
-          canDrop(manifest as unknown as Manifest, inner.builder, [
-            { builder: outer.builder, hole: outer.hole },
-          ]).ok,
-      )
-      .map((inner) => [
-        { builder: outer.builder, hole: outer.hole },
-        { builder: inner.builder, hole: inner.hole },
-      ]),
-  ),
-]
-const drops = paths.flatMap((path) =>
-  builderFunctions
-    .filter((b) => b.anatomy)
-    .map((b) => ({
-      component: b.name,
-      path,
-      answer: canDrop(manifest as unknown as Manifest, b.name, path),
-    })),
-)
-writeFileSync(
-  `${OUT}anatomy-cases.json`,
-  `${JSON.stringify({ version: version, cases: anatomyCases, drops })}\n`,
-)
-
-/*
- * The files the command line reads from the package: the rulebooks for
- * `lotek agent` and the source of each component for `lotek takeover`,
- * without the tests. It reads the list rather than the folders, because a
- * folder could not be read through Node's WASI on Windows: `takeover` found
- * no components there.
- */
-const ls = (folder: string) => readdirSync(`${PACKAGE}${folder}`).sort()
-const files = {
-  agent: ls("agent")
-    .filter((file) => file.endsWith(".md"))
-    .map((file) => file.slice(0, -3)),
-  components: ["css", "frame", "standalone"].flatMap((category) =>
-    ls(`src/components/${category}`)
-      .filter((name) =>
-        statSync(`${PACKAGE}src/components/${category}/${name}`).isDirectory(),
-      )
-      .map((name) => ({
-        category: category,
-        name: name,
-        files: ls(`src/components/${category}/${name}`).filter(
-          (file) => !file.includes(".test."),
-        ),
+function dropsOf(manifest: Manifest, builderFunctions: BuilderFunction[]) {
+  const freeHoles = builderFunctions.flatMap((b) =>
+    Object.entries(b.anatomy?.holes ?? {})
+      .filter(([, hole]) => hole.content === "free")
+      .map(([hole, declaration]) => ({ builder: b.name, hole, declaration })),
+  )
+  const paths = [
+    ...freeHoles.map((h) => [{ builder: h.builder, hole: h.hole }]),
+    ...freeHoles.flatMap((outer) =>
+      freeHoles
+        // Only a host that may itself stand in the outer hole.
+        .filter(
+          (inner) =>
+            canDrop(manifest, inner.builder, [
+              { builder: outer.builder, hole: outer.hole },
+            ]).ok,
+        )
+        .map((inner) => [
+          { builder: outer.builder, hole: outer.hole },
+          { builder: inner.builder, hole: inner.hole },
+        ]),
+    ),
+  ]
+  return paths.flatMap((path) =>
+    builderFunctions
+      .filter((b) => b.anatomy)
+      .map((b) => ({
+        component: b.name,
+        path,
+        answer: canDrop(manifest, b.name, path),
       })),
-  ),
+  )
 }
-writeFileSync(`${OUT}files.json`, `${JSON.stringify(files, null, 2)}\n`)
 
-console.log(
-  `✓ The manifest: ${builderFunctions.length} builder functions, ${Object.keys(elements).length} elements, ${Object.keys(classes).length} classes, ${cases.length} build cases, ${Object.values(componentVariables).reduce((n, v) => n + Object.keys(v).length, 0)} component variables.`,
-)
+/** The four files, with what the last line of a run counts. */
+function generated(input: Input) {
+  const { version } = input
+  // A copy, since the builder functions are filled in below and the input is
+  // the caller's.
+  const builderFunctions: BuilderFunction[] = structuredClone(input.builders)
+  const cases = buildCases(builderFunctions, input.lt)
+  fillIn(builderFunctions, cases, input)
+  const manifest: Manifest = {
+    $schema: "./manifest.schema.json",
+    schemaVersion: SCHEMA_VERSION,
+    version,
+    textLanguage: input.textLanguage,
+    elements: input.elements,
+    classes: classEntriesOf(builderFunctions, cases, input.classes),
+    builders: builderFunctions,
+    tokens: tokensOf(input),
+  }
+  const list = {
+    agent: input.agent,
+    components: input.components.map(({ category, name, files }) => ({
+      category,
+      name,
+      files,
+    })),
+  }
+  const files: Record<string, string> = {
+    "manifest/manifest.json": `${JSON.stringify(manifest, null, 2)}\n`,
+    "manifest/build-cases.json": `${JSON.stringify({ version, cases })}\n`,
+    "manifest/anatomy-cases.json": `${JSON.stringify({
+      version,
+      cases: anatomyCasesOf(manifest, builderFunctions),
+      drops: dropsOf(manifest, builderFunctions),
+    })}\n`,
+    "manifest/files.json": `${JSON.stringify(list, null, 2)}\n`,
+  }
+  return { files, manifest, cases }
+}
+
+/** The four files in `manifest/`, by their path in the package. */
+export function files(input: Input = fromPackage()): Record<string, string> {
+  return generated(input).files
+}
+
+if (import.meta.main) {
+  const { files, manifest, cases } = generated(fromPackage())
+  for (const [path, content] of Object.entries(files)) {
+    mkdirSync(dirname(join(ROOT, path)), { recursive: true })
+    writeFileSync(join(ROOT, path), content)
+  }
+  console.log(
+    `✓ The manifest: ${manifest.builders.length} builder functions, ${Object.keys(manifest.elements).length} elements, ${Object.keys(manifest.classes).length} classes, ${cases.length} build cases, ${Object.values(manifest.tokens.components).reduce((n, v) => n + Object.keys(v).length, 0)} component variables.`,
+  )
+}

@@ -26,20 +26,10 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { defaultCore } from "../src/diagnostics/default-core.js"
+import type { Manifest } from "../src/vocabulary/types.js"
 
 const PACKAGE = fileURLToPath(new URL("..", import.meta.url))
 
-type Manifest = {
-  classes: Record<
-    string,
-    {
-      attributes: Record<
-        string,
-        { values?: string[]; default?: string; flag?: true }
-      >
-    }
-  >
-}
 const manifest: Manifest = JSON.parse(
   readFileSync(join(PACKAGE, "manifest/manifest.json"), "utf8"),
 )
@@ -108,13 +98,14 @@ const used = new Set<string>()
 // the values, and is the only thing a flag can have.
 let valueCount = 0
 for (const [className, { attributes }] of Object.entries(manifest.classes)) {
-  for (const [
-    attribute,
-    { values = [], default: defaultValue, flag },
-  ] of Object.entries(attributes)) {
+  for (const [attribute, allowed] of Object.entries(attributes)) {
+    const flag = "flag" in allowed
+    const values = flag ? [] : allowed.values
+    const defaultValue = flag ? undefined : allowed.default
     const bare = witnessed.has(key(className, attribute))
     for (const value of flag ? [undefined] : values) {
-      if (value === defaultValue) continue
+      // A flag has no default: without this, it was skipped as one.
+      if (!flag && value === defaultValue) continue
       valueCount += 1
       const k = key(className, attribute, value)
       if (bare || witnessed.has(k)) continue
@@ -135,8 +126,8 @@ for (const [k, file] of witnessed) {
   const known =
     allowed !== undefined &&
     (value === undefined ||
-      allowed.values?.includes(value) ||
-      value === allowed.default)
+      ("values" in allowed &&
+        (allowed.values.includes(value) || value === allowed.default)))
   if (known) continue
   if (k in INTERNAL) used.add(k)
   else

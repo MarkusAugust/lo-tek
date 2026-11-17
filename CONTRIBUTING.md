@@ -143,6 +143,7 @@ The files in the two tables below are written by a script, and a change made dir
 
 | File | Source |
 | --- | --- |
+| `interfaces/src/vocabulary/manifest.ts`, the types of the manifest | `manifest/manifest.schema.json`, which is written by hand and is where the shape of the manifest is written, in `scripts/generate-manifest-types.ts` |
 | `interfaces/src/tokens/matrix-cells.ts` | `src/tokens/color-contract.json` and the brand colours, computed by the core in `scripts/generate-matrix.ts` |
 | `interfaces/src/tokens/tokens.css` | `src/tokens/tokens.ts` and the colour matrix |
 | `interfaces/src/tailwind/tailwind.css` | the same tokens |
@@ -165,7 +166,7 @@ All six come from `interfaces/scripts/metadata.ts`, the CSS and the "Plain HTML"
 
 In the rulebooks the prose is in the generator, while the lists and numbers are read from the package: the classes, the elements, the builder functions and the token names are fetched from where they actually live, so a rulebook cannot promise something that does not exist. `check-agent.ts` checks both.
 
-The build does not stop on an outdated file: `generate` writes them again before any check reads them, so `check:vocabulary` and `check:agent` always compare against what was just written. If you forget to regenerate, or to commit what was generated, CI tells you: the step `Generated files are up to date` runs `git status --porcelain` after the build and fails if the build changed a tracked file.
+The build does not stop on an outdated file: `generate` writes them again before any check reads them, so `check:vocabulary`, `check:manifest` and `check:agent` always compare against what was just written. If you forget to regenerate, or to commit what was generated, CI tells you: the step `Generated files are up to date` runs `git status --porcelain` after the build and fails if the build changed a tracked file.
 
 ## Changelog and releases
 

@@ -14,6 +14,7 @@
       "!interfaces/snippets.json",
       "!interfaces/src/vocabulary/elements.ts",
       "!interfaces/src/vocabulary/classes.ts",
+      "!interfaces/src/vocabulary/manifest.ts",
       "!interfaces/src/components/events.ts",
       "!interfaces/src/tokens/matrix-cells.ts",
       "!interfaces/web-types.json",

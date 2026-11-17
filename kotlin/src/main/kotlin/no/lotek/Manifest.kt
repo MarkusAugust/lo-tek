@@ -637,7 +637,7 @@ data class ClassAttribute(
  * tool builds a component from it, and [Anatomies.render] writes it, as
  * `renderAnatomy()` does in `@lo-tek/interfaces/anatomy`. There is one
  * [root], so the component is one box in a layout. The rules are the ones
- * on the types in `vocabulary/types.ts` in the npm package.
+ * `manifest.schema.json` describes, next to the manifest in the npm package.
  */
 data class Anatomy(
     /** What each hole holds, by name. */

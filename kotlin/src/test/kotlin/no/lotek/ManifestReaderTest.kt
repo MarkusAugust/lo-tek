@@ -21,18 +21,35 @@ class ManifestReaderTest {
     @Suppress("UNCHECKED_CAST")
     private fun Any?.map() = this as Map<String, Any?>
 
+    // The schema lies next to the manifest in the package, and is where the
+    // shape of the manifest is written.
+    @Suppress("UNCHECKED_CAST")
+    private val schema = Json.parse(File(System.getProperty("manifest")).resolveSibling("manifest.schema.json").readText()) as Map<String, Any?>
+
+    private fun definition(name: String) = schema["\$defs"].map()[name]?.map() ?: error("The schema has no definition $name. The definitions got their names after 0.45.0, so the test needs a package packed from the repository: bun --filter @lo-tek/interfaces pack, and ./gradlew test -Plotek.package=../interfaces.")
+
+    private fun Map<String, Any?>.field(name: String) = this["properties"].map()[name]?.map() ?: error("The schema has no field $name there.")
+
+    /** The fields the schema gives an object, over every alternative when it has several. */
+    private fun fieldsOf(node: Map<String, Any?>): Set<String> =
+        (node["properties"]?.map()?.keys ?: emptySet()) + ((node["oneOf"] as? List<*>)?.flatMap { fieldsOf(it.map()) } ?: emptyList())
+
     /*
      * The tests below compare the fields the reader knows. They would not see
-     * a new field in the schema, so every raw object must have only these.
+     * a new field in the schema, so the fields named here must be exactly the
+     * ones the schema gives the object in [of]: the schema and not the
+     * manifest, since a field no component uses yet is in no manifest. Every
+     * raw object must then have only these.
      */
-    private fun known(obj: Any?, vararg keys: String, at: String) {
+    private fun known(obj: Any?, vararg keys: String, of: Map<String, Any?>, at: String) {
+        assertEquals(fieldsOf(of), keys.toSet(), "$at: the schema's fields, and the ones this test compares.")
         val unknown = obj.map().keys - keys.toSet()
         assertTrue(unknown.isEmpty(), "$at has $unknown, which Manifest does not read.")
     }
 
     @Test
     fun `the package manifest is the one in the jar`() {
-        known(raw, "\$schema", "schemaVersion", "version", "textLanguage", "elements", "classes", "builders", "tokens", at = "the manifest")
+        known(raw, "\$schema", "schemaVersion", "version", "textLanguage", "elements", "classes", "builders", "tokens", of = schema, at = "the manifest")
         assertEquals(Manifest.parse(text), Lotek.manifest)
         assertEquals(raw["version"], Lotek.manifest.version)
         assertEquals(raw["textLanguage"], Lotek.manifest.textLanguage)
@@ -51,7 +68,7 @@ class ManifestReaderTest {
         for ((name, c) in classes) {
             val read = Lotek.manifest.classes.getValue(name)
             val expected = c.map()
-            known(c, "component", "title", "description", "link", "content", "partOf", "parts", "name", "texts", "tags", "attributes", at = name)
+            known(c, "component", "title", "description", "link", "content", "partOf", "parts", "name", "texts", "tags", "attributes", of = definition("manifestClass"), at = name)
             assertEquals(
                 expected["tags"] ?: emptyList<Any?>(),
                 read.tags.map { t ->
@@ -64,7 +81,7 @@ class ManifestReaderTest {
                 "$name tags",
             )
             tags += read.tags.size
-            (expected["tags"] as? List<*>)?.forEach { known(it, "tag", "attributes", "requires", at = "$name tags") }
+            (expected["tags"] as? List<*>)?.forEach { known(it, "tag", "attributes", "requires", of = definition("tag"), at = "$name tags") }
             assertEquals(nameJson(read.named), expected["name"], "$name name")
             assertEquals(
                 expected["texts"] ?: emptyList<Any?>(),
@@ -92,7 +109,7 @@ class ManifestReaderTest {
             for ((part, p) in rawParts) {
                 val r = read.parts.getValue(part)
                 val pm = p.map()
-                known(p, "selector", "description", "content", "multiple", "unique", "optional", "stableId", "name", at = "$name $part")
+                known(p, "selector", "description", "content", "multiple", "unique", "optional", "stableId", "name", of = definition("part"), at = "$name $part")
                 assertEquals(nameJson(r.named), pm["name"], "$name $part name")
                 assertEquals(listOf(pm["selector"], pm["description"], pm["content"], pm["multiple"] == true, pm["unique"] == true, pm["optional"] == true, pm["stableId"] == true), listOf(r.selector, r.description, r.content.name.lowercase(), r.multiple, r.unique, r.optional, r.stableId), "$name $part")
                 parts += 1
@@ -102,7 +119,7 @@ class ManifestReaderTest {
             for ((attr, a) in attrs) {
                 val r = read.attributes.getValue(attr)
                 val e = a.map()
-                known(a, "values", "default", "flag", "description", at = "$name $attr")
+                known(a, "values", "default", "flag", "description", of = definition("manifestClassAttribute"), at = "$name $attr")
                 assertEquals(e["values"] ?: emptyList<String>(), r.values, "$name $attr")
                 assertEquals(e["default"], r.default, "$name $attr")
                 assertEquals(e["flag"] == true, r.flag, "$name $attr")
@@ -129,7 +146,7 @@ class ManifestReaderTest {
         for ((tag, el) in elements) {
             val read = Lotek.manifest.elements.getValue(tag)
             val e = el.map()
-            known(el, "link", "description", "attributes", "parts", "events", "removed", "name", "texts", at = tag)
+            known(el, "link", "description", "attributes", "parts", "events", "removed", "name", "texts", of = definition("element"), at = tag)
             assertEquals(nameJson(read.named), e["name"], "$tag name")
             assertEquals(
                 e["texts"] ?: emptyMap<String, Any?>(),
@@ -143,7 +160,7 @@ class ManifestReaderTest {
             assertEquals(e["removed"] ?: emptyMap<String, String>(), read.removed, "$tag removed")
             removed += read.removed.size
             for ((name, a) in e["attributes"].map()) {
-                known(a, "type", "values", "description", at = "$tag $name")
+                known(a, "type", "values", "description", of = definition("attribute"), at = "$tag $name")
                 val r = read.attributes.getValue(name)
                 assertEquals(a.map()["type"], r.type.name.lowercase(), "$tag $name")
                 assertEquals(a.map()["values"] ?: emptyList<String>(), r.values, "$tag $name")
@@ -155,7 +172,7 @@ class ManifestReaderTest {
             for ((name, p) in rawParts) {
                 val r = read.parts.getValue(name)
                 val pm = p.map()
-                known(p, "selector", "description", "content", "multiple", "unique", "optional", "stableId", "name", at = "$tag $name")
+                known(p, "selector", "description", "content", "multiple", "unique", "optional", "stableId", "name", of = definition("part"), at = "$tag $name")
                 assertEquals(nameJson(r.named), pm["name"], "$tag $name name")
                 if (r.named != null) partNames += 1
                 assertEquals(listOf(pm["selector"], pm["description"], pm["content"], pm["multiple"] == true, pm["unique"] == true, pm["optional"] == true, pm["stableId"] == true), listOf(r.selector, r.description, r.content.name.lowercase(), r.multiple, r.unique, r.optional, r.stableId), "$tag $name")
@@ -165,7 +182,7 @@ class ManifestReaderTest {
             val rawEvents = e["events"]?.map() ?: emptyMap()
             assertEquals(rawEvents.keys.toList(), read.events.keys.toList(), tag)
             for ((name, ev) in rawEvents) {
-                known(ev, "detail", at = "$tag $name")
+                known(ev, "detail", of = definition("elementEvent"), at = "$tag $name")
                 assertEquals(ev.map()["detail"] ?: emptyMap<String, String>(), read.events.getValue(name).detail, "$tag $name")
                 events += 1
             }
@@ -307,7 +324,7 @@ class ManifestReaderTest {
         val shapes = mutableSetOf<String>()
         fun shapesIn(r: Any?) {
             val m = r.map()
-            known(r, "kind", "values", "of", "fields", "optional", at = "returns")
+            known(r, "kind", "values", "of", "fields", "optional", of = definition("builderReturns"), at = "returns")
             shapes += m["kind"] as String
             m["of"]?.let { shapesIn(it) }
             m["fields"]?.map()?.values?.forEach { shapesIn(it) }
@@ -320,7 +337,7 @@ class ManifestReaderTest {
         for ((i, b) in builders.withIndex()) {
             val expected = b.map()
             val read = Lotek.manifest.builders[i]
-            known(b, "name", "description", "example", "docs", "parts", "options", "returns", "table", "classes", "anatomy", at = read.name)
+            known(b, "name", "description", "example", "docs", "parts", "options", "returns", "table", "classes", "anatomy", of = definition("builder"), at = read.name)
             assertEquals(b.map()["anatomy"], read.anatomy?.let(::anatomyJson), "${read.name} anatomy")
             if (read.anatomy != null) anatomies += 1
             assertEquals(expected["classes"] ?: emptyMap<String, String>(), read.classes, "${read.name} classes")
@@ -338,8 +355,8 @@ class ManifestReaderTest {
             for ((j, o) in rawOptions.withIndex()) {
                 val e = o.map()
                 val r = read.options[j]
-                known(o, "name", "required", "type", "description", "default", at = "${read.name} ${e["name"]}")
-                known(e["type"], "kind", "values", at = "${read.name} ${e["name"]} type")
+                known(o, "name", "required", "type", "description", "default", of = definition("builder").field("options")["items"].map(), at = "${read.name} ${e["name"]}")
+                known(e["type"], "kind", "values", of = definition("builderOptionType"), at = "${read.name} ${e["name"]} type")
                 assertEquals(listOf(e["name"], e["required"], e["type"], e["description"], e["default"]), listOf(r.name, r.required, typeJson(r.type), r.description, r.default), "${read.name} ${e["name"]}")
                 if (r.default != null) defaults += 1
                 kinds += e["type"].map()["kind"] as String
@@ -381,12 +398,12 @@ class ManifestReaderTest {
     fun `the tokens keep every scale, axis and component variable`() {
         val tokens = raw["tokens"].map()
         val read = Lotek.manifest.tokens!!
-        known(tokens, "spacing", "breakpoints", "containers", "colors", "components", at = "tokens")
+        known(tokens, "spacing", "breakpoints", "containers", "colors", "components", of = definition("manifestTokens"), at = "tokens")
         assertEquals(tokens["spacing"], read.spacing)
         assertEquals(tokens["breakpoints"], read.breakpoints)
         assertEquals(tokens["containers"], read.containers)
         val colors = tokens["colors"].map()
-        known(colors, "families", "roles", "layers", "tokens", at = "tokens.colors")
+        known(colors, "families", "roles", "layers", "tokens", of = definition("manifestTokens").field("colors"), at = "tokens.colors")
         assertEquals(colors["families"], read.colors.families)
         assertEquals(colors["roles"], read.colors.roles)
         assertEquals(colors["layers"], read.colors.layers)

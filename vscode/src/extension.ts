@@ -212,9 +212,9 @@ export function activate(context: vscode.ExtensionContext) {
     const info = classes[name]
     const takes = Object.entries(info.attributes)
       .map(([attribute, a]) =>
-        a.flag
+        "flag" in a
           ? `\`${attribute}\`: flag, takes effect by being present`
-          : `\`${attribute}\`: ${(a.values ?? []).join(", ")}` +
+          : `\`${attribute}\`: ${a.values.join(", ")}` +
             (a.default ? ` (${a.default} without the attribute)` : ""),
       )
       .join("  \n")
@@ -268,8 +268,9 @@ export function activate(context: vscode.ExtensionContext) {
         const attribute = inValue[1].toLowerCase()
         for (const name of classesIn(tag)) {
           const takes = classes[name]?.attributes[attribute]
-          if (!takes) continue
-          for (const value of takes.values ?? [])
+          // A flag has no values to suggest.
+          if (!takes || "flag" in takes) continue
+          for (const value of takes.values)
             item(
               value,
               vscode.CompletionItemKind.EnumMember,

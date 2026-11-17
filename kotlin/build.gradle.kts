@@ -179,6 +179,8 @@ tasks.test {
     inputs.file(interfaces.resolve("manifest/build-cases.json")).withPathSensitivity(PathSensitivity.NONE)
     inputs.file(interfaces.resolve("manifest/anatomy-cases.json")).withPathSensitivity(PathSensitivity.NONE)
     inputs.file(manifestFile).withPathSensitivity(PathSensitivity.NONE)
+    // The schema next to it, which ManifestReaderTest holds its field lists to.
+    inputs.file(manifestFile.map { it.asFile.resolveSibling("manifest.schema.json") }).withPathSensitivity(PathSensitivity.NONE)
     val manifestPath = manifestFile.map { it.asFile.absolutePath }
     jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-Dmanifest=${manifestPath.get()}") })
     systemProperty("buildCases", interfaces.resolve("manifest/build-cases.json").absolutePath)

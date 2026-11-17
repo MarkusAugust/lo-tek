@@ -520,7 +520,7 @@ const nameHole = {
  * The markup each builder function belongs in, written once here from the
  * component page. `check-anatomy.ts` holds each to the page, and
  * `check-design-tool.ts` to what a design tool must do with it. See
- * `Anatomy` in `src/vocabulary/types.ts`.
+ * `anatomy` in `manifest/manifest.schema.json`.
  */
 export const BUILDER_ANATOMIES: Record<string, Anatomy> = {
   button: {

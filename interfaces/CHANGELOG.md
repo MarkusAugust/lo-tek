@@ -24,6 +24,26 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **The `Manifest` type is written from `manifest.schema.json`,** and no
+  longer by hand next to it. The two had drifted: the type lacked
+  `textLanguage` and the `table` of a builder function, which the manifest
+  has. The type from `@lo-tek/interfaces/diagnostics` now says what the
+  schema says, so code that reads it may need a change: `schemaVersion` is
+  `1`, not any number, every list is `readonly`, and an attribute of a class
+  is either `{ values }` or `{ flag: true }`, so `values` is read after
+  asking which, as `"values" in attribute`. `manifest.json` itself is
+  unchanged.
+- **The definitions in `manifest.schema.json` have new names.** Every
+  shape the manifest has is now a definition of its own in `$defs`, as
+  `element`, `manifestClass`, `builder` and `anatomy`, and four are
+  renamed: `elementAttribute` is `attribute`, `optionType` is
+  `builderOptionType`, `returns` is `builderReturns` and `attributes` is
+  `tableAttributes`. The schema describes the same manifest as before. A
+  reader that validates against it sees no difference, and one that points
+  at a definition by name must follow.
+
 ### Added
 
 - **`lotek check` reports a class on a tag it does not belong on,** with
