@@ -222,7 +222,8 @@ const each = <T>(pick: (component: ComponentDoc) => T) =>
 
 export const classDocs: Record<string, ClassDoc> = together("classes", {
   ...each((component) => component.classes),
-  tokens: TOKEN_CLASSES,
+  // Named by its stylesheet, which no component folder can be called.
+  "tokens.css": TOKEN_CLASSES,
 })
 
 export const BUILDER_ANATOMIES: Record<string, Anatomy> = together(

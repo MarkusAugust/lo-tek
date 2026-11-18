@@ -8,13 +8,18 @@ import { expect, test } from "bun:test"
 import { together } from "./metadata/shared"
 
 test("the tables of the components become one, in the order of the components", () => {
-  expect(
-    together("classes", {
-      card: { "lt-card": 1, "lt-card__title": 2 },
-      badge: undefined,
-      button: { "lt-button": 3 },
-    }),
-  ).toEqual({ "lt-card": 1, "lt-card__title": 2, "lt-button": 3 })
+  const all = together("classes", {
+    card: { "lt-card": 1, "lt-card__title": 2 },
+    badge: undefined,
+    button: { "lt-button": 3 },
+    accordion: { "lt-accordion": 4 },
+  })
+  expect(Object.entries(all)).toEqual([
+    ["lt-card", 1],
+    ["lt-card__title", 2],
+    ["lt-button", 3],
+    ["lt-accordion", 4],
+  ])
 })
 
 test("a name two components both describe stops the build, and names both", () => {
@@ -23,5 +28,23 @@ test("a name two components both describe stops the build, and names both", () =
       card: { "lt-title": 1 },
       dialog: { "lt-title": 2 },
     }),
-  ).toThrow("classes: lt-title is in both card.ts and dialog.ts.")
+  ).toThrow("classes: lt-title is written for both card and dialog.")
+})
+
+test("a name every object has is a name like any other", () => {
+  const all = together("anatomies", {
+    card: { constructor: 1, toString: 2 },
+    dialog: { hasOwnProperty: 3 },
+  })
+  expect(Object.keys(all)).toEqual([
+    "constructor",
+    "toString",
+    "hasOwnProperty",
+  ])
+  expect(() =>
+    together("anatomies", {
+      card: { constructor: 1 },
+      dialog: { constructor: 2 },
+    }),
+  ).toThrow("anatomies: constructor is written for both card and dialog.")
 })

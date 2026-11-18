@@ -282,16 +282,18 @@ export function together<T>(
   what: string,
   tables: Record<string, Record<string, T> | undefined>,
 ): Record<string, T> {
-  const all: Record<string, T> = {}
-  const from: Record<string, string> = {}
+  // Maps, so a name every object has, as `constructor`, is a name like any other.
+  const all = new Map<string, T>()
+  const from = new Map<string, string>()
   for (const [component, table] of Object.entries(tables))
     for (const [name, entry] of Object.entries(table ?? {})) {
-      if (from[name])
+      const first = from.get(name)
+      if (first !== undefined)
         throw new Error(
-          `${what}: ${name} is in both ${from[name]}.ts and ${component}.ts.`,
+          `${what}: ${name} is written for both ${first} and ${component}.`,
         )
-      from[name] = component
-      all[name] = entry
+      from.set(name, component)
+      all.set(name, entry)
     }
-  return all
+  return Object.fromEntries(all)
 }

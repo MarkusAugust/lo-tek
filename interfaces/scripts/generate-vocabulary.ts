@@ -909,7 +909,7 @@ export function classesData(): Classes {
     throw new Error(
       [
         missing.length &&
-          `No file in scripts/metadata/ has ${missing.join(", ")}. Write each under classes in the file of its component.`,
+          `No file that metadata.ts lists has ${missing.join(", ")}. Write each under classes in scripts/metadata/, in the file of its component, and see that metadata.ts lists the file. A class from tokens.css goes in TOKEN_CLASSES in metadata.ts.`,
         stale.length &&
           `The files in scripts/metadata/ have classes that do not exist in the CSS: ${stale.join(", ")}.`,
       ]

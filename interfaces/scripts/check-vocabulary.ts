@@ -202,7 +202,7 @@ for (const [path, expected] of Object.entries(generated)) {
     )
 }
 
-// 2. Every element the package registers has an entry in metadata.ts.
+// 2. Every element the package registers has an entry in scripts/metadata/.
 type Component = { observedAttributes: readonly string[] }
 const pkg = JSON.parse(
   readFileSync(join(ROOT, "interfaces/package.json"), "utf8"),
@@ -282,7 +282,7 @@ for (const tag of documented.keys())
       `<${tag}> is in scripts/metadata/, but the package does not register it`,
     )
 
-// 2a. Every part the component exports has a description in metadata.ts,
+// 2a. Every part the component exports has a description in scripts/metadata/,
 // with the same selector. The type in `parts()` requires it for a component
 // in the table; this catches the component that is not in it.
 for (const [tag, parts] of exportedParts) {
@@ -303,7 +303,7 @@ for (const [tag, parts] of exportedParts) {
       )
 }
 
-// 2b. The events in metadata.ts are the ones the component dispatches, no
+// 2b. The events in scripts/metadata/ are the ones the component dispatches, no
 // more and no fewer. The type check does not see this: the name is only in a
 // string, in `new CustomEvent("…")` or in the component's own `emit("…")`.
 const sourceOf = (tag: string): string | null => {

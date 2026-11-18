@@ -182,8 +182,8 @@ export function fromPackage(): Input {
     parts: BUILDER_PARTS,
     anatomies: BUILDER_ANATOMIES,
     described: ls("scripts/metadata")
-      .map((file) => file.slice(0, -3))
-      .filter((name) => name !== "shared"),
+      .filter((file) => file.endsWith(".ts") && file !== "shared.ts")
+      .map((file) => file.slice(0, -3)),
     listed: Object.keys(COMPONENTS),
     tokens: {
       css: cssTokens,
