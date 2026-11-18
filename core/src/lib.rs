@@ -27,6 +27,7 @@
 //! UTF-16 units.
 
 pub mod accessibility;
+pub mod complete;
 pub mod diagnose;
 pub mod json;
 pub mod manifest;

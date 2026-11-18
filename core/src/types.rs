@@ -113,6 +113,9 @@ pub struct Tag {
 pub struct Class {
     pub name: String,
     pub title: String,
+    /// What the component is, in a sentence. Empty when the manifest says
+    /// nothing.
+    pub description: String,
     pub link: String,
     pub attributes: Vec<(String, ClassAttribute)>,
     pub parts: Vec<Part>,
@@ -224,3 +227,35 @@ pub const RULES: &[&str] = &[
     "without-name",
     "untranslated-text",
 ];
+
+/// What a suggestion is, so an editor can show the kind.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SuggestionKind {
+    Class,
+    Value,
+    Element,
+    Attribute,
+}
+
+/// Something to write where the cursor is. `start` and `end` are the word
+/// it replaces, as UTF-16 indices; they are the same when there is none.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Suggestion {
+    pub label: String,
+    pub kind: SuggestionKind,
+    /// A few words beside the label.
+    pub detail: Option<String>,
+    /// More, as Markdown.
+    pub documentation: Option<String>,
+    pub start: usize,
+    pub end: usize,
+}
+
+/// What an editor shows about the word under the pointer, as Markdown, and
+/// the word it is about, as UTF-16 indices.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Hover {
+    pub text: String,
+    pub start: usize,
+    pub end: usize,
+}
