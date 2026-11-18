@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "bun --filter @lo-tek/documentation dev",
     "build": "bun --filter @lo-tek/interfaces build && bun --filter ./vscode check && bun --filter @lo-tek/documentation build",
-    "typecheck": "tsc -b && bun --filter @lo-tek/interfaces typecheck:scripts && bun --filter ./vscode typecheck",
+    "typecheck": "tsc -b && tsc -p tsconfig.scripts.json && bun --filter @lo-tek/interfaces typecheck:scripts && bun --filter ./vscode typecheck",
     "typecheck:tests": "bun --filter @lo-tek/interfaces typecheck:tests",
     "test": "bun --filter @lo-tek/interfaces core && bun --filter @lo-tek/interfaces test:browser && bun --filter @lo-tek/interfaces check:without-javascript && bun --filter @lo-tek/interfaces check:tailwind",
     "test:model": "bun --filter @lo-tek/interfaces core && bun --filter @lo-tek/interfaces test:model",
