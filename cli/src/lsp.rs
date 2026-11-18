@@ -26,8 +26,9 @@
 //! couple of milliseconds on a page, and that keeps the server simple.
 //!
 //! `initializationOptions` can have `manifest`, a path to a manifest that
-//! comes before the others, and `rendered`, which checks the documents as
-//! whole pages.
+//! comes before the others, `rendered`, which checks the documents as whole
+//! pages, and `htmlService`, which says the editor completes the `<lt-…>`
+//! elements in HTML files itself, so the server leaves them out there.
 
 use std::io::{Read, Write};
 use std::rc::Rc;
@@ -71,6 +72,9 @@ pub struct Server {
     roots: Vec<String>,
     preferred: Option<String>,
     rendered: bool,
+    /// The editor has an HTML service that knows the elements, as VS Code
+    /// has with `html-data.json`.
+    html_service: bool,
     /// The manifests that have been read, one per path. In a monorepo two
     /// documents can belong to different packages, each with its own version
     /// of LO-TEK.
@@ -279,6 +283,7 @@ impl Server {
             roots: Vec::new(),
             preferred: None,
             rendered: false,
+            html_service: false,
             sources: Vec::new(),
             shut_down: false,
             outgoing: Vec::new(),
@@ -528,6 +533,7 @@ impl Server {
                 .and_then(Json::as_str)
                 .map(|p| manifest_path(p, self.roots.first().map(String::as_str)));
             self.rendered = matches!(options.get("rendered"), Some(Json::Bool(true)));
+            self.html_service = matches!(options.get("htmlService"), Some(Json::Bool(true)));
         }
         // The version of LO-TEK the server checks against. Without a manifest
         // it is unknown, and the field is left out, as LSP allows.
@@ -609,8 +615,9 @@ impl Server {
         };
         let document = &self.documents[index];
         let lines = Lines::new(&document.text);
-        // An HTML file has the editor's own service for the elements.
-        let html = document.language == "html";
+        // Where the editor has a service of its own for the elements in an
+        // HTML file, they are left to it, or each would be suggested twice.
+        let html = self.html_service && document.language == "html";
         let items = lotek_core::complete::complete(&document.text, offset, html, &vocabulary)
             .iter()
             .map(|s| {
@@ -981,8 +988,8 @@ pub fn run(_arguments: &[String]) {
                 }
             },
         };
-        // The answer first: completion comes right after a keystroke, and
-        // must not wait for the check that keystroke leads to.
+        // The answer first: a completion that is already waiting behind the
+        // change it follows must not wait for the check of that change too.
         let mut out = stdout.lock();
         for message in server.take() {
             write_message(&mut out, &message);
@@ -1303,8 +1310,9 @@ mod tests {
         let item = &php.as_array().unwrap()[0];
         assert_eq!(item.get("kind").unwrap().as_f64(), Some(7.0));
         assert!(item.get("detail").is_none());
+        // In an HTML file too: Neovim and Helix have no service that knows them.
         let html = asked(&mut server, "textDocument/completion", "html", "<lt-|");
-        assert!(labels(&html).is_empty());
+        assert!(labels(&html).contains(&"lt-dialog"));
         let values = asked(
             &mut server,
             "textDocument/completion",
@@ -1324,6 +1332,37 @@ mod tests {
             names.as_array().unwrap()[0].get("kind").unwrap().as_f64(),
             Some(10.0)
         );
+    }
+
+    #[test]
+    fn leaves_the_elements_in_html_to_an_editor_that_says_it_has_them() {
+        let mut server = Server::new();
+        server.handle(&request(
+            1,
+            "initialize",
+            r#"{"rootUri":null,"capabilities":{},"initializationOptions":{"htmlService":true}}"#,
+        ));
+        server.take();
+        let html = asked(&mut server, "textDocument/completion", "html", "<lt-|");
+        assert!(labels(&html).is_empty());
+        let names = asked(
+            &mut server,
+            "textDocument/completion",
+            "html",
+            "<lt-popover |",
+        );
+        assert!(labels(&names).is_empty());
+        // The classes are the server's everywhere, and so are the elements
+        // in the other languages.
+        let classes = asked(
+            &mut server,
+            "textDocument/completion",
+            "html",
+            r#"<b class="|""#,
+        );
+        assert!(labels(&classes).contains(&"lt-button"));
+        let php = asked(&mut server, "textDocument/completion", "php", "<lt-|");
+        assert!(labels(&php).contains(&"lt-dialog"));
     }
 
     #[test]

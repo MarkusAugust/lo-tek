@@ -46,7 +46,7 @@ From version 0.3.0 the plugin also gives the **error messages**, in HTML files a
 
 ## The language server
 
-The error messages and quick fixes are available as a language server, `lotek lsp`, for every editor that speaks LSP. It is written in Rust, is the same check as `lotek check`, and is started in whichever way suits the project:
+The error messages, the quick fixes, completion and hover help are available as a language server, `lotek lsp`, for every editor that speaks LSP. It is written in Rust, runs the same check as `lotek check`, and is started in whichever way suits the project:
 
 | If you have | The command |
 | --- | --- |
@@ -84,7 +84,7 @@ language-servers = ["vscode-html-language-server", "lotek"]
 
 **Zed** starts only language servers that a Zed extension has registered, and no such extension for LO-TEK exists yet.
 
-The server gives findings, fixes, completion and hover help. Inside `class="…"` it completes the `lt-` classes, and inside an attribute a class on the tag takes, like `data-variant`, the values. In files that are not HTML it also completes the `<lt-…>` elements, their attributes and their values; in HTML files it leaves those to the editor's own HTML service. Hovering over an `lt-` class says what the component is, with a link. In JetBrains completion comes from `web-types.json` for files and from the plugin for HTML in strings. `initializationOptions` can have `manifest`, a path to a manifest that takes precedence over the others, and `rendered: true`, which checks every file as a whole page, with the wiring.
+The server gives findings, fixes, completion and hover help. Inside `class="…"` it completes the `lt-` classes, and inside an attribute a class on the tag takes, like `data-variant`, the values. It also completes the `<lt-…>` elements, their attributes and their values. Hovering over an `lt-` class says what the component is, with a link. In JetBrains completion comes from `web-types.json` for files and from the plugin for HTML in strings. `initializationOptions` can have `manifest`, a path to a manifest that takes precedence over the others, `rendered: true`, which checks every file as a whole page, with the wiring, and `htmlService: true`, which says the editor completes the elements in HTML files itself, so the server leaves them out there. The extension for VS Code sets it, since VS Code's HTML service reads the elements from the extension.
 
 ## The command line and the tests
 

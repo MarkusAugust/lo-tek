@@ -121,8 +121,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   control.
 - **`lotek lsp` completes and gives hover help.** Inside `class="…"` it
   suggests the `lt-` classes, and inside an attribute a class on the tag
-  takes, the values. Outside HTML files it also suggests the `<lt-…>`
-  elements, their attributes and their values. Hovering over a class says
+  takes, the values. It also suggests the `<lt-…>` elements, their
+  attributes and their values, except in HTML files in an editor that says
+  it does that itself, with `htmlService: true` in `initializationOptions`,
+  as the extension for VS Code does. Hovering over a class says
   what the component is. It reads the manifest it checks against, so a
   component taken over with `lotek takeover` is suggested, and Neovim and
   Helix get what VS Code had. The extension for VS Code gave these itself,

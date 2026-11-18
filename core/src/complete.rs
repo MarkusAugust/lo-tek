@@ -269,9 +269,9 @@ fn class_documentation(class: &Class) -> String {
 }
 
 /// What there is to write where the cursor is, at the UTF-16 index
-/// `offset`. `html` is a file VS Code's own HTML service reads: there the
-/// editor completes the `<lt-…>` elements and their attributes itself, from
-/// `html-data.json`, and here they are left out.
+/// `offset`. `html` is an HTML file in an editor with a service of its own
+/// for the `<lt-…>` elements and their attributes, as VS Code has from
+/// `html-data.json`: there they are left out.
 pub fn complete(
     text: &[u16],
     offset: usize,

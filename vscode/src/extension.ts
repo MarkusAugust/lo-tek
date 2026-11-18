@@ -78,6 +78,9 @@ export function activate(context: vscode.ExtensionContext) {
             { scheme: "untitled", language },
           ]),
           synchronize: { fileEvents: manifests },
+          // VS Code's HTML service completes the elements in HTML files,
+          // from `html-data.json`, so the server leaves them out there.
+          initializationOptions: { htmlService: true },
         } satisfies LanguageClientOptions)
         await client.start()
       })
