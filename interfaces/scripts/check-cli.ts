@@ -1402,7 +1402,11 @@ for (const old of [
 {
   const page =
     '<!doctype html><html lang="en"><body><label for="nowhere">Name</label><button class="lt-buton">Save</button></body></html>'
+  // Bound to 127.0.0.1, as the page checks are: without a hostname the URL
+  // is localhost, which macOS resolves to IPv6 first, where another process
+  // may answer on the same port.
   const server = Bun.serve({
+    hostname: "127.0.0.1",
     port: 0,
     fetch(request) {
       const path = new URL(request.url).pathname
@@ -1435,7 +1439,7 @@ for (const old of [
       return new Response("<p>Not found</p>", { status: 404, headers: html })
     },
   })
-  const root = `http://localhost:${server.port}`
+  const root = `http://127.0.0.1:${server.port}`
 
   for (const path of ["/page", "/onwards", "/chunks", "/bom"]) {
     const { code, out } = await run(["check", `${root}${path}`])
@@ -1499,7 +1503,6 @@ if (differences.length > 0) {
   console.error(
     `${differences.length} runs answered differently from ${COMPARE}:\n\n${differences.map((d) => `  ${d}`).join("\n\n")}\n`,
   )
-  process.exit(1)
 }
 
 if (failures.length > 0) {
@@ -1508,7 +1511,8 @@ if (failures.length > 0) {
       .map((line) => `  ${line}`)
       .join("\n")}\n`,
   )
-  process.exit(1)
 }
+
+if (differences.length > 0 || failures.length > 0) process.exit(1)
 
 console.log(`The command line tool answers as it should on ${runCount} runs.`)
