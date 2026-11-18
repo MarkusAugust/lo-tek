@@ -31,8 +31,12 @@ const classInfo = (more: Partial<ClassInfo> = {}): ClassInfo => ({
   ...more,
 })
 
-/** An input with one class, `lt-box`, and nothing else. */
+/**
+ * An input with one class, `lt-box`, and nothing else. Every component
+ * folder handed in is described, unless the test says otherwise.
+ */
 const input = (more: Partial<Input> = {}): Input => ({
+  described: (more.components ?? []).map((folder) => folder.name),
   version: "0.0.0",
   textLanguage: "en",
   elements: {},
@@ -420,5 +424,19 @@ test("a helper imported under another name stops the build", () => {
     ),
   ).toThrow(
     "dialog.ts imports uniqueId under another name, so the manifest cannot find the ids <lt-dialog> creates.",
+  )
+})
+
+test("a component folder that metadata.ts does not describe stops the build", () => {
+  expect(() =>
+    files(input({ components: [folder("card", "")], described: [] })),
+  ).toThrow(
+    "src/components/css/card has no file in scripts/metadata/. Write card.ts there, and list it in metadata.ts.",
+  )
+})
+
+test("a description of a component that has no folder stops the build", () => {
+  expect(() => files(input({ described: ["card"] }))).toThrow(
+    "scripts/metadata/ describes card, and no folder in src/components/ has that name.",
   )
 })

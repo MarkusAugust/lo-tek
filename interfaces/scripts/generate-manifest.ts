@@ -102,6 +102,7 @@ import {
   BUILDER_ANATOMIES,
   BUILDER_PARTS,
   type BuilderPart,
+  COMPONENTS,
 } from "./metadata.js"
 
 /** The package folder, which the paths from `files()` are relative to. */
@@ -156,6 +157,8 @@ export type Input = {
   }
   /** The component folders, category by category and sorted by name in each. */
   components: ComponentFolder[]
+  /** The components `metadata.ts` describes, by the name of their folder. */
+  described: string[]
   /** The rulebooks in `agent/`, without `.md`, sorted. */
   agent: string[]
 }
@@ -176,6 +179,7 @@ export function fromPackage(): Input {
     lt: lt as unknown as Input["lt"],
     parts: BUILDER_PARTS,
     anatomies: BUILDER_ANATOMIES,
+    described: Object.keys(COMPONENTS),
     tokens: {
       css: cssTokens,
       colors: colorTokens,
@@ -1213,6 +1217,18 @@ function generated(input: Input) {
   const { version } = input
   // A copy, since the builder functions are filled in below and the input is
   // the caller's.
+  // A component is described in a file by the name of its folder, so one
+  // without the other is a folder nobody wrote about, or a file left behind.
+  for (const { category, name } of input.components)
+    if (!input.described.includes(name))
+      throw new Error(
+        `src/components/${category}/${name} has no file in scripts/metadata/. Write ${name}.ts there, and list it in metadata.ts.`,
+      )
+  for (const name of input.described)
+    if (!input.components.some((folder) => folder.name === name))
+      throw new Error(
+        `scripts/metadata/ describes ${name}, and no folder in src/components/ has that name.`,
+      )
   const builderFunctions: BuilderFunction[] = structuredClone(input.builders)
   const cases = buildCases(builderFunctions, input.lt)
   fillIn(builderFunctions, cases, input)
