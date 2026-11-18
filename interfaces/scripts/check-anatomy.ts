@@ -754,6 +754,9 @@ for (const b of manifest.builders) {
   const examples = [b.name, ...sources].flatMap((name) =>
     examplesFor(manifest.builders.find((x) => x.name === name)?.docs),
   )
+  const wrapperNames = [...nodesOf(b.anatomy)].flatMap(({ node }) =>
+    node.wrapper && node.name ? [node.name] : [],
+  )
   // As created, and with every choice, optional part and option a node
   // is there with. A render that throws is an error, not a skip.
   for (const variant of variantsOf(b.anatomy)) {
@@ -774,9 +777,9 @@ for (const b of manifest.builders) {
     // A wrapper the variant does not turn on, as <lt-dialog> around a
     // dialog with a header, is witnessed by the variants that have it, and
     // the rest may stand on the page without it.
-    const wrappers = [...nodesOf(b.anatomy)]
-      .flatMap(({ node }) => (node.wrapper && node.name ? [node.name] : []))
-      .filter((w) => !(variant.parts && w in variant.parts))
+    const wrappers = wrapperNames.filter(
+      (w) => !(variant.parts && w in variant.parts),
+    )
     const unwrapped = renderAnatomy(manifest, b.name, {
       ...instance,
       parts: {

@@ -140,9 +140,12 @@ class Writer {
 
   /** Calls a builder function by name. */
   private call(name: string, options?: Record<string, unknown>): Answer {
-    const build = this.builders[name]
+    // Its own, so `toString`, which every object has, is not one.
+    const build = Object.getOwnPropertyDescriptor(this.builders, name)?.value
     if (typeof build !== "function")
-      throw new Error(`renderAnatomy: lt has no builder function ${name}.`)
+      throw new Error(
+        `renderAnatomy: no builder function ${name} among the ones handed in.`,
+      )
     return build(options) as Answer
   }
 

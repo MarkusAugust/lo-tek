@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import manifest from "../../manifest/manifest.json"
-import type { Anatomy, AnatomyChild, Manifest } from "../vocabulary/types"
+import type { Anatomy, Manifest } from "../vocabulary/types"
 import {
   type AnatomyInstance,
   canDrop,
@@ -12,6 +12,7 @@ import {
   variantsOf,
   withItem,
 } from "./index"
+import { nodesOf } from "./walk"
 
 /*
  * The browser's own HTML parser is the witness the core cannot be: it
@@ -62,18 +63,10 @@ function parsed(html: string): string[] {
 function opened(anatomy: Anatomy): AnatomyInstance {
   const parts: Record<string, boolean> = {}
   const options: Record<string, boolean> = {}
-  const walk = (children: readonly AnatomyChild[] = []) => {
-    for (const c of children) {
-      if ("hole" in c) continue
-      for (const node of "oneOf" in c ? Object.values(c.oneOf) : [c]) {
-        if (node.name && (node.optional || node.wrapper))
-          parts[node.name] = true
-        if (node.when) options[node.when] = true
-        walk(node.children)
-      }
-    }
+  for (const { node } of nodesOf(anatomy)) {
+    if (node.name && (node.optional || node.wrapper)) parts[node.name] = true
+    if (node.when) options[node.when] = true
   }
-  walk(anatomy.nodes)
   return { ...created(anatomy), parts, options }
 }
 

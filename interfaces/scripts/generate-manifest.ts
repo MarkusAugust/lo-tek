@@ -970,7 +970,7 @@ const ANNOTATE = {
  * choice's for an alternative without one, and `group` the innermost group
  * around it, which its settings are keyed by.
  */
-type NodePlace = {
+type WrittenPlace = {
   node: AnatomyNode
   named?: string
   group?: string
@@ -978,9 +978,9 @@ type NodePlace = {
   parts: Record<string, boolean>
   options: Record<string, boolean>
 }
-const placesOf = (anatomy: Anatomy): NodePlace[] =>
+const placesOf = (anatomy: Anatomy): WrittenPlace[] =>
   [...nodesOf(anatomy)].map((place) => {
-    const made: NodePlace = {
+    const made: WrittenPlace = {
       node: place.node,
       named: place.node.name ?? place.choice?.name,
       choices: {},
@@ -1001,7 +1001,10 @@ const placesOf = (anatomy: Anatomy): NodePlace[] =>
     return made
   })
 /** The instance with what makes the node written, and nothing empty. */
-const writing = (base: AnatomyInstance, place: NodePlace): AnatomyInstance => ({
+const writing = (
+  base: AnatomyInstance,
+  place: WrittenPlace,
+): AnatomyInstance => ({
   ...base,
   ...(Object.keys(place.choices).length ? { choices: place.choices } : {}),
   ...(Object.keys(place.parts).length ? { parts: place.parts } : {}),
