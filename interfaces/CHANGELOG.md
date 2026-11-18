@@ -104,6 +104,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   page (`page` on the anatomy). The paths of an icon are a hole of their
   own, `svg`, written as they are and not a place to drop components.
   `anatomy-cases.json` has every answer, for Kotlin to give the same.
+- **`renderAnatomy()` takes the builder functions to call** as a fourth
+  argument, `renderAnatomy(manifest, name, instance, builders)`. Left out,
+  it is `lt`, as before. The generator of the manifest hands in the
+  functions it was given, so the anatomy cases and the build cases come from
+  the same ones.
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.

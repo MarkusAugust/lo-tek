@@ -19,6 +19,7 @@ import {
   variantsOf,
   withItem,
 } from "../src/anatomy/index.js"
+import { nodesOf } from "../src/anatomy/walk.js"
 import type { Manifest } from "../src/vocabulary/types.js"
 import { allBlocks, type RecipePage, recipePage } from "./recipes.js"
 
@@ -746,15 +747,13 @@ for (const b of manifest.builders) {
   // The builder function's page, and the pages of the builder functions
   // its anatomy takes from, as the file upload's for the field.
   const sources = new Set(
-    (JSON.stringify(b.anatomy).match(/"from":\[[^\]]*\]/g) ?? []).flatMap(
-      (list) => [...list.matchAll(/"([A-Za-z]+)[."]/g)].map((m) => m[1]),
+    [...nodesOf(b.anatomy)].flatMap(({ node }) =>
+      (node.from ?? []).map((source) => source.split(".")[0]),
     ),
   )
-  const examples = [b.name, ...sources]
-    .filter((name) => name !== "from")
-    .flatMap((name) =>
-      examplesFor(manifest.builders.find((x) => x.name === name)?.docs),
-    )
+  const examples = [b.name, ...sources].flatMap((name) =>
+    examplesFor(manifest.builders.find((x) => x.name === name)?.docs),
+  )
   // As created, and with every choice, optional part and option a node
   // is there with. A render that throws is an error, not a skip.
   for (const variant of variantsOf(b.anatomy)) {
@@ -775,12 +774,8 @@ for (const b of manifest.builders) {
     // A wrapper the variant does not turn on, as <lt-dialog> around a
     // dialog with a header, is witnessed by the variants that have it, and
     // the rest may stand on the page without it.
-    const wrappers = (
-      JSON.stringify(b.anatomy).match(
-        /"name":"[^"]+"(?=[^{}]*"wrapper":true)/g,
-      ) ?? []
-    )
-      .map((m) => m.slice(8, -1))
+    const wrappers = [...nodesOf(b.anatomy)]
+      .flatMap(({ node }) => (node.wrapper && node.name ? [node.name] : []))
       .filter((w) => !(variant.parts && w in variant.parts))
     const unwrapped = renderAnatomy(manifest, b.name, {
       ...instance,

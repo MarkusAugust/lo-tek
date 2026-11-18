@@ -21,6 +21,7 @@ import type {
   AnatomyNode,
   Manifest,
 } from "../vocabulary/types.js"
+import { isChoice, isHole, nodesOf, tagsOf } from "./walk.js"
 
 /**
  * A value per item, keyed by the item's key, one level for each group, as
@@ -66,7 +67,14 @@ export type AnatomyInstance = {
 }
 
 type Answer = Record<string, unknown>
-type BuilderFunction = (options?: Record<string, unknown>) => unknown
+
+/**
+ * Builder functions by name, as `lt` has them. `lt` has other things too,
+ * as the lists of values, and each function takes options of its own type,
+ * so `call()` is the one place that asks whether a name is a function and
+ * hands it what the anatomy says.
+ */
+export type Builders = Readonly<Record<string, unknown>>
 
 /** Text: `&` and `<`. Attributes: `&` and `"`. Content is written as it is. */
 const escapeText = (text: string) =>
@@ -90,18 +98,6 @@ export const VOID = new Set([
   "wbr",
 ])
 
-const isHole = (child: AnatomyChild): child is AnatomyHole => "hole" in child
-const isChoice = (child: AnatomyChild): child is AnatomyChoice =>
-  "oneOf" in child
-
-/** Calls a builder function in `lt` by name. */
-function call(name: string, options?: Record<string, unknown>): Answer {
-  const build = (lt as unknown as Record<string, BuilderFunction>)[name]
-  if (typeof build !== "function")
-    throw new Error(`renderAnatomy: lt has no builder function ${name}.`)
-  return build(options) as Answer
-}
-
 /** Where a node is written. */
 type Place = {
   address: string
@@ -122,6 +118,7 @@ class Writer {
     private builder: string,
     private anatomy: Anatomy,
     private instance: AnatomyInstance,
+    private builders: Builders,
   ) {
     for (const [group, { min }] of Object.entries(anatomy.repeats ?? {}))
       if (this.keys(group).length < min)
@@ -141,22 +138,19 @@ class Writer {
     this.options = { ...instance.options, ...bound }
   }
 
+  /** Calls a builder function by name. */
+  private call(name: string, options?: Record<string, unknown>): Answer {
+    const build = this.builders[name]
+    if (typeof build !== "function")
+      throw new Error(`renderAnatomy: lt has no builder function ${name}.`)
+    return build(options) as Answer
+  }
+
   /** The first alternative of the named choice, the one a tool creates. */
   private firstAlternative(name: string): string | undefined {
-    const walk = (children: readonly AnatomyChild[]): string | undefined => {
-      for (const child of children) {
-        if (isHole(child)) continue
-        if (isChoice(child) && child.name === name)
-          return Object.keys(child.oneOf)[0]
-        const nodes = isChoice(child) ? Object.values(child.oneOf) : [child]
-        for (const node of nodes) {
-          const found = walk(node.children ?? [])
-          if (found) return found
-        }
-      }
-      return undefined
-    }
-    return walk(this.anatomy.nodes)
+    for (const { choice } of nodesOf(this.anatomy))
+      if (choice?.name === name) return Object.keys(choice.oneOf)[0]
+    return undefined
   }
 
   /** The keys of the items in a group: the instance's, or `min` made up. */
@@ -273,19 +267,9 @@ class Writer {
   }
 
   /** The node with the name, anywhere in the anatomy. */
-  private find(
-    name: string,
-    children: readonly AnatomyChild[] = this.anatomy.nodes,
-  ): AnatomyNode | undefined {
-    for (const child of children) {
-      if (isHole(child)) continue
-      const nodes = isChoice(child) ? Object.values(child.oneOf) : [child]
-      for (const node of nodes) {
-        if (node.name === name) return node
-        const inner = this.find(name, node.children ?? [])
-        if (inner) return inner
-      }
-    }
+  private find(name: string): AnatomyNode | undefined {
+    for (const { node } of nodesOf(this.anatomy))
+      if (node.name === name) return node
     return undefined
   }
 
@@ -322,7 +306,7 @@ class Writer {
       // The anatomy's own builder function, unless the node calls it anew,
       // takes the instance's options and the bound ones.
       if (builder === this.builder && !fixed) {
-        answers.set(builder, call(builder, this.options))
+        answers.set(builder, this.call(builder, this.options))
         continue
       }
       const options = Object.fromEntries(
@@ -334,7 +318,10 @@ class Writer {
         ]),
       )
       const own = builder === this.builder ? this.options : {}
-      answers.set(builder, call(builder, { ...own, ...settings, ...options }))
+      answers.set(
+        builder,
+        this.call(builder, { ...own, ...settings, ...options }),
+      )
     }
 
     // No prototype, so `in` finds only the attributes written here.
@@ -405,7 +392,7 @@ class Writer {
           : ` ${attribute}="${escapeAttribute(value)}"`,
       )
       .join("")
-    const tags = typeof node.tag === "string" ? [node.tag] : node.tag
+    const tags = tagsOf(node)
     const asked = node.name ? this.instance.tags?.[node.name] : undefined
     if (asked !== undefined && !tags.includes(asked))
       throw new Error(
@@ -458,16 +445,23 @@ class Writer {
  * when the builder function has no anatomy, or the instance is not one the
  * anatomy allows: too few items, a hole without a value, a tag or an
  * alternative the node does not have.
+ *
+ * The attributes come from calling `builders`, which is `lt` unless
+ * another set is handed in, as the generator of the manifest does with the
+ * functions it was given.
  */
 export function renderAnatomy(
   manifest: Manifest,
   name: string,
   instance: AnatomyInstance,
+  builders: Builders = lt,
 ): string {
   const anatomy = manifest.builders.find((b) => b.name === name)?.anatomy
   if (!anatomy)
     throw new Error(`renderAnatomy: lt.${name} has no anatomy in the manifest.`)
-  return new Writer(manifest, name, anatomy, instance).start(anatomy.nodes[0])
+  return new Writer(manifest, name, anatomy, instance, builders).start(
+    anatomy.nodes[0],
+  )
 }
 
 /**
@@ -561,19 +555,14 @@ export function withItem(
  */
 export function variantsOf(anatomy: Anatomy): Partial<AnatomyInstance>[] {
   const out: Partial<AnatomyInstance>[] = [{}]
-  const walk = (value: unknown) => {
-    if (value === null || typeof value !== "object") return
-    const node = value as {
-      name?: string
-      oneOf?: Record<string, unknown>
-      optional?: true
-      wrapper?: true
-      requires?: string
-      when?: string
+  const choices = new Set<AnatomyChoice>()
+  for (const { node, choice } of nodesOf(anatomy)) {
+    // A choice comes with its first alternative, and is offered once.
+    if (choice && !choices.has(choice)) {
+      choices.add(choice)
+      for (const alternative of Object.keys(choice.oneOf))
+        out.push({ choices: { [choice.name]: alternative } })
     }
-    if (node.oneOf && node.name)
-      for (const alternative of Object.keys(node.oneOf))
-        out.push({ choices: { [node.name]: alternative } })
     if (node.name && (node.optional || node.wrapper))
       for (const on of [true, false])
         out.push({
@@ -583,9 +572,7 @@ export function variantsOf(anatomy: Anatomy): Partial<AnatomyInstance>[] {
           },
         })
     if (node.when) out.push({ options: { [node.when]: true } })
-    for (const child of Object.values(value)) walk(child)
   }
-  walk(anatomy.nodes)
   return out
 }
 
@@ -627,18 +614,9 @@ export function canDrop(
     return declaration
   })
   // Every tag the component can write, in every alternative.
-  const tags = new Set<string>()
-  const walk = (children: readonly AnatomyChild[]) => {
-    for (const c of children) {
-      if (isHole(c)) continue
-      for (const node of isChoice(c) ? Object.values(c.oneOf) : [c]) {
-        for (const tag of typeof node.tag === "string" ? [node.tag] : node.tag)
-          tags.add(tag)
-        walk(node.children ?? [])
-      }
-    }
-  }
-  walk(anatomy.nodes)
+  const tags = new Set(
+    [...nodesOf(anatomy)].flatMap(({ node }) => tagsOf(node)),
+  )
   for (const declaration of declarations)
     for (const forbidden of declaration.forbids ?? []) {
       if (forbidden.tags.some((tag) => tags.has(tag)))

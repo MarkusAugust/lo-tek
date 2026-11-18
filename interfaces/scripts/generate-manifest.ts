@@ -56,6 +56,13 @@ import {
   variantsOf,
   withItem,
 } from "../src/anatomy/index.js"
+import {
+  aroundOf,
+  holesOf,
+  nodesOf,
+  pathTo,
+  tagsOf,
+} from "../src/anatomy/walk.js"
 import { DEFAULT_LANGUAGE } from "../src/components/default-texts.js"
 import { lt } from "../src/lt.js"
 import { FAMILIES, NEUTRAL_LAYERS, ROLES } from "../src/tokens/matrix-cells.js"
@@ -72,7 +79,6 @@ import { classes } from "../src/vocabulary/classes.js"
 import { elements } from "../src/vocabulary/elements.js"
 import type {
   Anatomy,
-  AnatomyChild,
   AnatomyForbidden,
   AnatomyNode,
   Classes,
@@ -559,24 +565,14 @@ function withForbidden(
   anatomies: Input["anatomies"],
 ): Anatomy {
   const around = new Map<string, Set<string>>()
-  const walk = (children: readonly AnatomyChild[], tags: Set<string>) => {
-    for (const c of children) {
-      if ("hole" in c) {
-        around.set(c.hole, new Set([...(around.get(c.hole) ?? []), ...tags]))
-        continue
-      }
-      const nodes = "oneOf" in c ? Object.values(c.oneOf) : [c]
-      for (const node of nodes)
-        walk(
-          node.children ?? [],
-          new Set([
-            ...tags,
-            ...(typeof node.tag === "string" ? [node.tag] : node.tag),
-          ]),
-        )
-    }
-  }
-  walk(anatomy.nodes, new Set())
+  for (const place of holesOf(anatomy))
+    around.set(
+      place.hole.hole,
+      new Set([
+        ...(around.get(place.hole.hole) ?? []),
+        ...aroundOf(place).flatMap(tagsOf),
+      ]),
+    )
   const holes = Object.fromEntries(
     Object.entries(anatomy.holes).map(([name, hole]) => {
       if (hole.content !== "free") return [name, hole]
@@ -982,45 +978,28 @@ type NodePlace = {
   parts: Record<string, boolean>
   options: Record<string, boolean>
 }
-type Around = Omit<NodePlace, "node" | "named">
-const placesOf = (
-  children: readonly AnatomyChild[] = [],
-  around: Around,
-): NodePlace[] =>
-  children.flatMap((c) =>
-    "hole" in c
-      ? []
-      : "oneOf" in c
-        ? Object.entries(c.oneOf).flatMap(([alternative, node]) =>
-            visit(node, node.name ?? c.name, {
-              ...around,
-              group: c.repeat ?? around.group,
-              choices: { ...around.choices, [c.name]: alternative },
-            }),
-          )
-        : visit(c, c.name, { ...around, group: c.repeat ?? around.group }),
-  )
-const visit = (
-  node: AnatomyNode,
-  named: string | undefined,
-  around: Around,
-): NodePlace[] => {
-  const here: Around = {
-    ...around,
-    parts:
-      node.name && (node.optional || node.wrapper)
-        ? {
-            ...around.parts,
-            [node.name]: true,
-            ...(node.requires ? { [node.requires]: true } : {}),
-          }
-        : around.parts,
-    options: node.when
-      ? { ...around.options, [node.when]: true }
-      : around.options,
-  }
-  return [{ node, named, ...here }, ...placesOf(node.children, here)]
-}
+const placesOf = (anatomy: Anatomy): NodePlace[] =>
+  [...nodesOf(anatomy)].map((place) => {
+    const made: NodePlace = {
+      node: place.node,
+      named: place.node.name ?? place.choice?.name,
+      choices: {},
+      parts: {},
+      options: {},
+    }
+    for (const { node, choice, alternative } of pathTo(place)) {
+      // An alternative repeats with its choice.
+      made.group = (choice ? choice.repeat : node.repeat) ?? made.group
+      if (choice && alternative !== undefined)
+        made.choices[choice.name] = alternative
+      if (node.name && (node.optional || node.wrapper)) {
+        made.parts[node.name] = true
+        if (node.requires) made.parts[node.requires] = true
+      }
+      if (node.when) made.options[node.when] = true
+    }
+    return made
+  })
 /** The instance with what makes the node written, and nothing empty. */
 const writing = (base: AnatomyInstance, place: NodePlace): AnatomyInstance => ({
   ...base,
@@ -1032,8 +1011,12 @@ const writing = (base: AnatomyInstance, place: NodePlace): AnatomyInstance => ({
 function anatomyCasesOf(
   manifest: Manifest,
   builderFunctions: BuilderFunction[],
+  lt: Input["lt"],
 ): AnatomyCase[] {
   const anatomyCases: AnatomyCase[] = []
+  // With the builder functions of the input, as the build cases are.
+  const render = (name: string, instance: AnatomyInstance) =>
+    renderAnatomy(manifest, name, instance, lt)
   silently(() => {
     for (const b of builderFunctions) {
       if (!b.anatomy) continue
@@ -1050,11 +1033,7 @@ function anatomyCasesOf(
             withItem: { group, key: "inserted", at },
             instance: withItem(b.anatomy, base, group, "inserted", at),
           })
-      const places = placesOf(b.anatomy.nodes, {
-        choices: {},
-        parts: {},
-        options: {},
-      })
+      const places = placesOf(b.anatomy)
       // A tag case where the node is not written would test nothing, so
       // every tag must give other markup than the first.
       for (const place of places) {
@@ -1064,12 +1043,9 @@ function anatomyCasesOf(
           ...writing(base, place),
           tags: { [node.name as string]: tag },
         })
-        const first = renderAnatomy(manifest, b.name, as(node.tag[0]))
+        const first = render(b.name, as(node.tag[0]))
         for (const tag of node.tag) {
-          if (
-            tag !== node.tag[0] &&
-            renderAnatomy(manifest, b.name, as(tag)) === first
-          )
+          if (tag !== node.tag[0] && render(b.name, as(tag)) === first)
             throw new Error(
               `anatomy-cases: ${b.name} as <${tag}> writes what <${node.tag[0]}> does, so ${node.name} is not written.`,
             )
@@ -1115,7 +1091,7 @@ function anatomyCasesOf(
         anatomyCases.push({
           builder: b.name,
           ...m,
-          expected: renderAnatomy(manifest, b.name, {
+          expected: render(b.name, {
             ...m.instance,
             ...(m.annotate
               ? {
@@ -1205,7 +1181,7 @@ function generated(input: Input) {
     "manifest/build-cases.json": `${JSON.stringify({ version, cases })}\n`,
     "manifest/anatomy-cases.json": `${JSON.stringify({
       version,
-      cases: anatomyCasesOf(manifest, builderFunctions),
+      cases: anatomyCasesOf(manifest, builderFunctions, input.lt),
       drops: dropsOf(manifest, builderFunctions),
     })}\n`,
     "manifest/files.json": `${JSON.stringify(list, null, 2)}\n`,

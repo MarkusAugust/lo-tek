@@ -58,17 +58,13 @@ const input = (more: Partial<Input> = {}): Input => ({
 const manifestOf = (given: Input) =>
   JSON.parse(files(given)["manifest/manifest.json"])
 
-/**
- * A `box` whose anatomy is one tag around a hole that takes other elements.
- * The node calls no builder function: `renderAnatomy()` calls the package's
- * own `lt`, which has no `box`.
- */
+/** A `box` whose anatomy is one tag around a hole that takes other elements. */
 const boxIn = (tag: string): Input => {
   const anatomy: Anatomy = {
     holes: {
       body: { description: "What it holds.", content: "free", example: "" },
     },
-    nodes: [{ tag, children: [{ hole: "body" }] }],
+    nodes: [{ tag, from: ["box"], children: [{ hole: "body" }] }],
   }
   return input({
     builders: [builder("box")],
@@ -259,4 +255,23 @@ test("a token read with a fallback is not a component variable", () => {
     }),
   ).tokens
   expect(components).toEqual({})
+})
+
+test("an anatomy is rendered with the builder functions of the input, not the package's own", () => {
+  const anatomy: Anatomy = {
+    holes: { body: { description: "What it holds.", content: "text" } },
+    nodes: [{ tag: "div", from: ["box"], children: [{ hole: "body" }] }],
+  }
+  const { cases } = JSON.parse(
+    files(
+      input({
+        builders: [builder("box")],
+        lt: { box: () => ({ class: "lt-box", "data-from": "the input" }) },
+        anatomies: { box: anatomy },
+      }),
+    )["manifest/anatomy-cases.json"],
+  )
+  expect(cases[0].expected).toBe(
+    '<div class="lt-box" data-from="the input"></div>',
+  )
 })
