@@ -123,7 +123,7 @@ async function suite() {
     `the finding came ${once.length} times after two restarts`,
   )
 
-  // Completion is still the extension's own.
+  // Completion comes from the language server, like the findings.
   const edit = new vscode.WorkspaceEdit()
   edit.insert(document.uri, new vscode.Position(2, 0), '<b class="lt-')
   await vscode.workspace.applyEdit(edit)
@@ -135,6 +135,33 @@ async function suite() {
   assert.ok(
     list.items.some((item) => (item.label.label ?? item.label) === "lt-button"),
     "lt-button is not among the suggestions",
+  )
+  // Each class is suggested once: the extension has no provider of its own
+  // beside the server's.
+  assert.strictEqual(
+    list.items.filter(
+      (item) => (item.label.label ?? item.label) === "lt-button",
+    ).length,
+    1,
+    "lt-button is suggested more than once",
+  )
+
+  // Hover comes from the server too.
+  const hoverEdit = new vscode.WorkspaceEdit()
+  hoverEdit.insert(document.uri, new vscode.Position(2, 13), 'button">')
+  await vscode.workspace.applyEdit(hoverEdit)
+  const hovers = await vscode.commands.executeCommand(
+    "vscode.executeHoverProvider",
+    document.uri,
+    new vscode.Position(2, 15),
+  )
+  assert.ok(
+    hovers.some((hover) =>
+      hover.contents.some((content) =>
+        (content.value ?? content).startsWith("**Button**"),
+      ),
+    ),
+    "hovering over lt-button does not say it is the button",
   )
 
   /*

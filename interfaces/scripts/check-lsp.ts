@@ -259,9 +259,41 @@ try {
     `the manifest in build/lotek was not read: ${JSON.stringify(third.diagnostics)}`,
   )
 
+  // Completion and hover read the same manifest as the check: the class the
+  // project took over is suggested, and what is suggested is not underlined.
+  s.send({
+    id: 5,
+    method: "textDocument/completion",
+    params: { textDocument: { uri }, position: { line: 0, character: 15 } },
+  })
+  const suggested = (
+    await s.waitFor((m) => m.id === 5, "the answer to completion")
+  ).result as { label: string; textEdit: { newText: string } }[]
+  expect(
+    suggested.some((item) => item.label === "app-button") &&
+      suggested.some((item) => item.label === "lt-button"),
+    `completion does not suggest app-button and lt-button: ${suggested.length} suggestions`,
+  )
+  expect(
+    suggested.every((item) => item.textEdit.newText === item.label),
+    "a suggestion does not write its own label",
+  )
+  s.send({
+    id: 6,
+    method: "textDocument/hover",
+    params: { textDocument: { uri }, position: { line: 0, character: 18 } },
+  })
+  const hovered = (await s.waitFor((m) => m.id === 6, "the answer to hover"))
+    .result as { contents: { kind: string; value: string } } | null
+  expect(
+    hovered?.contents.kind === "markdown" &&
+      hovered.contents.value.startsWith("**Button**"),
+    `hover does not say what app-button is: ${JSON.stringify(hovered)}`,
+  )
+
   s.send({
     id: 3,
-    method: "textDocument/hover",
+    method: "textDocument/definition",
     params: { textDocument: { uri }, position: { line: 0, character: 0 } },
   })
   const unknown = await s.waitFor(

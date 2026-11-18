@@ -119,6 +119,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   list of its own. With a manifest from 0.45.0 or older, which has no such
   list, the rule `id-from-component` finds only the id a field gives its
   control.
+- **`lotek lsp` completes and gives hover help.** Inside `class="…"` it
+  suggests the `lt-` classes, and inside an attribute a class on the tag
+  takes, the values. Outside HTML files it also suggests the `<lt-…>`
+  elements, their attributes and their values. Hovering over a class says
+  what the component is. It reads the manifest it checks against, so a
+  component taken over with `lotek takeover` is suggested, and Neovim and
+  Helix get what VS Code had. The extension for VS Code gave these itself,
+  from the manifest it was built with, and now leaves them to the server.
 
 ### Fixed
 
