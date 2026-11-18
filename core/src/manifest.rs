@@ -338,6 +338,11 @@ fn from_value(root: &Json) -> Result<Vocabulary, String> {
             removed: removed(element, &path)?,
             named: element_named,
             texts: default_texts(element, &path)?,
+            generated_ids: element
+                .get("generatedIds")
+                .map(|ids| texts(ids, &format!("{path}.generatedIds")))
+                .transpose()?
+                .unwrap_or_default(),
         });
     }
 

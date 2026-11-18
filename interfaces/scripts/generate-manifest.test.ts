@@ -31,8 +31,14 @@ const classInfo = (more: Partial<ClassInfo> = {}): ClassInfo => ({
   ...more,
 })
 
-/** An input with one class, `lt-box`, and nothing else. */
+/**
+ * An input with one class, `lt-box`, and nothing else. Every component
+ * folder handed in is described, unless the test says otherwise.
+ */
 const input = (more: Partial<Input> = {}): Input => ({
+  described: (more.components ?? []).map((folder) => folder.name),
+  listed:
+    more.described ?? (more.components ?? []).map((folder) => folder.name),
   version: "0.0.0",
   textLanguage: "en",
   elements: {},
@@ -58,17 +64,13 @@ const input = (more: Partial<Input> = {}): Input => ({
 const manifestOf = (given: Input) =>
   JSON.parse(files(given)["manifest/manifest.json"])
 
-/**
- * A `box` whose anatomy is one tag around a hole that takes other elements.
- * The node calls no builder function: `renderAnatomy()` calls the package's
- * own `lt`, which has no `box`.
- */
+/** A `box` whose anatomy is one tag around a hole that takes other elements. */
 const boxIn = (tag: string): Input => {
   const anatomy: Anatomy = {
     holes: {
       body: { description: "What it holds.", content: "free", example: "" },
     },
-    nodes: [{ tag, children: [{ hole: "body" }] }],
+    nodes: [{ tag, from: ["box"], children: [{ hole: "body" }] }],
   }
   return input({
     builders: [builder("box")],
@@ -85,6 +87,20 @@ test("a hole inside a form forbids another form, and says why", () => {
       why: "A form cannot be inside another form: the browser drops the inner <form>.",
     },
   ])
+})
+
+test("a form further out than the nearest element forbids a form too", () => {
+  const given = boxIn("form")
+  const [form] = given.anatomies.box.nodes
+  if (!("tag" in form)) throw new Error("the box is a node")
+  const inner = { tag: "div", children: form.children }
+  const { forbids } = manifestOf({
+    ...given,
+    anatomies: {
+      box: { ...given.anatomies.box, nodes: [{ ...form, children: [inner] }] },
+    },
+  }).builders[0].anatomy.holes.body
+  expect(forbids?.map((f: { tags: string[] }) => f.tags)).toEqual([["form"]])
 })
 
 test("a hole inside a div forbids nothing", () => {
@@ -259,4 +275,200 @@ test("a token read with a fallback is not a component variable", () => {
     }),
   ).tokens
   expect(components).toEqual({})
+})
+
+test("an anatomy is rendered with the builder functions of the input, not the package's own", () => {
+  const anatomy: Anatomy = {
+    holes: { body: { description: "What it holds.", content: "text" } },
+    nodes: [{ tag: "div", from: ["box"], children: [{ hole: "body" }] }],
+  }
+  const { cases } = JSON.parse(
+    files(
+      input({
+        builders: [builder("box")],
+        lt: { box: () => ({ class: "lt-box", "data-from": "the input" }) },
+        anatomies: { box: anatomy },
+      }),
+    )["manifest/anatomy-cases.json"],
+  )
+  expect(cases[0].expected).toBe(
+    '<div class="lt-box" data-from="the input"></div>',
+  )
+})
+
+test("a node that can be several tags and requires another part gets its tag cases with that part on", () => {
+  const anatomy: Anatomy = {
+    holes: {},
+    nodes: [
+      {
+        tag: "div",
+        from: ["box"],
+        children: [
+          { tag: "header", name: "header", optional: true },
+          {
+            tag: ["h2", "h3"],
+            name: "title",
+            optional: true,
+            requires: "header",
+          },
+        ],
+      },
+    ],
+  }
+  const { cases } = JSON.parse(
+    files(
+      input({
+        builders: [builder("box")],
+        lt: { box: () => ({ class: "lt-box" }) },
+        anatomies: { box: anatomy },
+      }),
+    )["manifest/anatomy-cases.json"],
+  )
+  const asH3 = cases.find(
+    (c: { instance: { tags?: Record<string, string> } }) =>
+      c.instance.tags?.title === "h3",
+  )
+  expect(asH3.instance.parts).toEqual({ title: true, header: true })
+  expect(asH3.expected).toBe(
+    '<div class="lt-box"><header></header><h3></h3></div>',
+  )
+})
+
+/** An input with the element `<lt-NAME>` and its folder, with one source file. */
+const withSource = (name: string, source: string): Input =>
+  input({
+    elements: { [`lt-${name}`]: { link: "", attributes: {} } },
+    components: [{ ...folder(name, "", source), category: "frame" }],
+  })
+
+test("the ids a component creates itself are on its element, by their prefix", () => {
+  const { elements } = manifestOf(
+    withSource("dialog", 'this.titleId ??= uniqueId("lt-dialog-title")'),
+  )
+  expect(elements["lt-dialog"].generatedIds).toEqual(["lt-dialog-title"])
+})
+
+test("an id the component remembers for a node counts too, each prefix once and in order", () => {
+  const { elements } = manifestOf(
+    withSource(
+      "suggestion",
+      `setAttr(
+        option,
+        "id",
+        rememberedId(this.ids, option, "lt-suggestion-option"),
+      )
+      setAttr(list, "id", rememberedId(this.ids, list, "lt-suggestion-list"))
+      this.other = rememberedId(
+        this.ids,
+        other,
+        "lt-suggestion-list",
+      )`,
+    ),
+  )
+  expect(elements["lt-suggestion"].generatedIds).toEqual([
+    "lt-suggestion-list",
+    "lt-suggestion-option",
+  ])
+})
+
+test("an element that creates no id says nothing about ids", () => {
+  const { elements } = manifestOf(withSource("term", "const x = 1"))
+  expect("generatedIds" in elements["lt-term"]).toBe(false)
+})
+
+test("an id made from something other than a written-out prefix stops the build", () => {
+  expect(() =>
+    files(withSource("tabs", "const id = uniqueId('lt-tabs-' + kind)")),
+  ).toThrow(
+    "tabs.ts: uniqueId('lt-tabs-' + kind) does not write its prefix out, so the manifest cannot say which ids <lt-tabs> creates.",
+  )
+  expect(() =>
+    files(withSource("tabs", "rememberedId(this.ids, tab, PREFIX)")),
+  ).toThrow("rememberedId(this.ids, tab, PREFIX) does not write its prefix out")
+})
+
+test("an id created in a folder that has no element stops the build", () => {
+  expect(() =>
+    files(
+      input({
+        components: [
+          folder("card", "", 'const id = uniqueId("lt-card-title")'),
+        ],
+      }),
+    ),
+  ).toThrow(
+    "card.ts creates the id lt-card-title, and there is no <lt-card> to put it on.",
+  )
+})
+
+test("a call in a comment creates no id, and a comment in a call does not hide its prefix", () => {
+  const { elements } = manifestOf(
+    withSource(
+      "dialog",
+      `/** Like uniqueId(), but kept: see rememberedId(memory, node, prefix). */
+      // this.old = uniqueId("lt-dialog-old")
+      this.titleId ??= uniqueId(
+        "lt-dialog-title", // the title
+      )
+      const url = "https://example.test/uniqueId(x)"`,
+    ),
+  )
+  expect(elements["lt-dialog"].generatedIds).toEqual(["lt-dialog-title"])
+})
+
+test("a helper imported under another name stops the build", () => {
+  expect(() =>
+    files(
+      withSource(
+        "dialog",
+        'import { uniqueId as uid } from "../../host-element.js"\nuid("lt-dialog-body")',
+      ),
+    ),
+  ).toThrow(
+    "dialog.ts imports uniqueId under another name, so the manifest cannot find the ids <lt-dialog> creates.",
+  )
+})
+
+test("a component folder with no file in scripts/metadata/ stops the build", () => {
+  expect(() =>
+    files(input({ components: [folder("card", "")], described: [] })),
+  ).toThrow(
+    "src/components/css/card has no file in scripts/metadata/. Write card.ts there, and list it in metadata.ts.",
+  )
+})
+
+test("a file in scripts/metadata/ with no component folder stops the build", () => {
+  expect(() => files(input({ described: ["card"] }))).toThrow(
+    "scripts/metadata/card.ts describes a component, and no folder in src/components/ has that name.",
+  )
+})
+
+test("a helper used as anything but a call by its own name stops the build", () => {
+  for (const source of [
+    'import * as host from "../../host-element.js"\nhost.uniqueId("lt-dialog-body")',
+    'const uid = uniqueId\nuid("lt-dialog-body")',
+    '["lt-dialog-body"].map(uniqueId)',
+    '(rememberedId as Remember)(ids, node, "lt-dialog-body")',
+  ])
+    expect(() => files(withSource("dialog", source))).toThrow("dialog.ts uses ")
+})
+
+test("an empty prefix stops the build", () => {
+  expect(() => files(withSource("dialog", 'uniqueId("")'))).toThrow(
+    'dialog.ts: uniqueId("") does not write its prefix out',
+  )
+})
+
+test("a file in scripts/metadata/ that metadata.ts does not list stops the build", () => {
+  expect(() =>
+    files(
+      input({
+        components: [folder("card", "")],
+        described: ["card"],
+        listed: [],
+      }),
+    ),
+  ).toThrow(
+    "scripts/metadata/card.ts is not listed in metadata.ts, so nothing reads it.",
+  )
 })

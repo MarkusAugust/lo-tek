@@ -13,8 +13,8 @@
  * It knows the keywords the schema uses, and stops on any other, and on one
  * that stands beside the keyword that decides the type, so a constraint is
  * never silently left out of the types. What TypeScript cannot
- * say is left to the schema: `minItems`, `minimum`, `minProperties`,
- * `format`, and whether an object takes other fields than its own. A list
+ * say is left to the schema: `minItems`, `minimum`, `minLength`,
+ * `minProperties`, `format`, and whether an object takes other fields than its own. A list
  * with as many `minItems` as `maxItems` is a tuple, and every list is
  * `readonly`.
  *
@@ -54,6 +54,7 @@ const SCHEMA_ONLY = [
   "description",
   "format",
   "minimum",
+  "minLength",
   "minProperties",
 ]
 const KNOWN = new Set([...SHAPING, ...SCHEMA_ONLY])

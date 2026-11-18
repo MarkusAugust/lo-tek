@@ -813,6 +813,11 @@ mod tests {
         let vocabulary = lotek_core::manifest::with_fragments(&text, &[&fragment]).unwrap();
         assert!(vocabulary.elements.iter().any(|e| e.tag == "app-dialog"));
         assert!(vocabulary.classes.iter().any(|c| c.name == "app-dialog"));
-        assert!(!fragment.contains("lt-dialog"));
+        // No name of the component's own is left. `lt-dialog-title` is not
+        // one: it is what the ids the copy creates begin with, and the copy
+        // still creates them, so the fragment still says so.
+        assert_eq!(rename(&fragment, &names), fragment);
+        let taken = vocabulary.elements.iter().find(|e| e.tag == "app-dialog");
+        assert_eq!(taken.unwrap().generated_ids, ["lt-dialog-title"]);
     }
 }

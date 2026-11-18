@@ -141,12 +141,13 @@ class ManifestReaderTest {
         var events = 0
         var stable = 0
         var removed = 0
+        var generatedIds = 0
         var elementTexts = 0
         var partNames = 0
         for ((tag, el) in elements) {
             val read = Lotek.manifest.elements.getValue(tag)
             val e = el.map()
-            known(el, "link", "description", "attributes", "parts", "events", "removed", "name", "texts", of = definition("element"), at = tag)
+            known(el, "link", "description", "attributes", "parts", "events", "removed", "generatedIds", "name", "texts", of = definition("element"), at = tag)
             assertEquals(nameJson(read.named), e["name"], "$tag name")
             assertEquals(
                 e["texts"] ?: emptyMap<String, Any?>(),
@@ -158,6 +159,8 @@ class ManifestReaderTest {
             assertEquals(e["link"], read.link)
             assertEquals(e["description"], read.description)
             assertEquals(e["removed"] ?: emptyMap<String, String>(), read.removed, "$tag removed")
+            assertEquals(e["generatedIds"] ?: emptyList<String>(), read.generatedIds, "$tag generatedIds")
+            generatedIds += read.generatedIds.size
             removed += read.removed.size
             for ((name, a) in e["attributes"].map()) {
                 known(a, "type", "values", "description", of = definition("attribute"), at = "$tag $name")
@@ -189,6 +192,7 @@ class ManifestReaderTest {
         }
         assertTrue(parts > 0 && events > 0, "Found $parts parts and $events events, so the comparison said nothing.")
         assertTrue(stable > 0 && removed > 0, "Found $stable parts with stableId and $removed removed attributes, so those branches in the reader are untested.")
+        assertTrue(generatedIds > 0, "Found no element that creates an id, so that branch in the reader is untested.")
         assertTrue(elementTexts > 0 && partNames > 0, "Found $elementTexts texts and $partNames parts with name, so those branches in the reader are untested.")
     }
 

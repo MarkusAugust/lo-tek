@@ -104,12 +104,29 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   page (`page` on the anatomy). The paths of an icon are a hole of their
   own, `svg`, written as they are and not a place to drop components.
   `anatomy-cases.json` has every answer, for Kotlin to give the same.
+- **`renderAnatomy()` takes the builder functions to call** as a fourth
+  argument, `renderAnatomy(manifest, name, instance, builders)`. Left out,
+  it is `lt`, as before. The generator of the manifest hands in the
+  functions it was given, so the anatomy cases and the build cases come from
+  the same ones.
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.
+- **An element in the manifest says which ids it creates itself,** as
+  `generatedIds`: `lt-dialog-title` for `<lt-dialog>`, which is what an id
+  like `lt-dialog-title-k2x9qa1` begins with. The list is read from the
+  components, and `lotek check` reads it from the manifest, where it had a
+  list of its own. With a manifest from 0.45.0 or older, which has no such
+  list, the rule `id-from-component` finds only the id a field gives its
+  control.
 
 ### Fixed
 
+- **`lotek check` sends an id copied from the browser to the page of the
+  component that created it.** The rule `id-from-component` linked to the
+  field's page whichever component the id came from. It also reported an id
+  that begins with `lt-popover-`, which no component creates, and no longer
+  does.
 - **`manifest.json` matches `manifest.schema.json`.** The schema forbade
   `siblingsBefore` on the texts of a class, which `lt-steps` has, and did not
   describe `removed` on the elements. The build now checks the manifest

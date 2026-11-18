@@ -273,6 +273,7 @@ data class Manifest(
                         )
                     },
                 removed = (e["removed"]?.obj("$at.removed") ?: emptyMap()).mapValues { (name, note) -> note.str("$at.removed.$name") },
+                generatedIds = e["generatedIds"]?.strings("$at.generatedIds") ?: emptyList(),
                 named = nameOf(e["name"], "$at.name"),
                 texts =
                     (e["texts"]?.obj("$at.texts") ?: emptyMap()).mapValues { (key, t) ->
@@ -381,6 +382,11 @@ data class ManifestElement(
     val events: Map<String, ElementEvent>,
     /** Attributes that were removed from the element, with what applies instead. */
     val removed: Map<String, String>,
+    /**
+     * What the ids the element creates itself in the browser begin with: `lt-dialog-title` for
+     * `lt-dialog-title-k2x9qa1`. Such an id is new on every page load, so a template must not write one.
+     */
+    val generatedIds: List<String>,
     /** The name LO-TEK demands for the element itself, beyond WAI-ARIA's. */
     val named: Name? = null,
     /** The texts the element writes itself, by their name in `DEFAULT_TEXTS`. */

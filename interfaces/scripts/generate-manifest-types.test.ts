@@ -96,3 +96,12 @@ test("no line of a comment starts with @, which would read as a tag", () => {
     )
   }
 })
+
+test("how long a text must be is left to the schema, and the type is a text", () => {
+  expect(
+    manifestTypes({
+      type: "object",
+      properties: { version: { type: "string", minLength: 1 } },
+    }),
+  ).toContain("version?: string")
+})

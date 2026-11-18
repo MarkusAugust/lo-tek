@@ -121,6 +121,16 @@ export type Element = {
    */
   events?: Record<string, ElementEvent>
   /**
+   * The ids the element creates itself in the browser, when the markup had
+   * none, by what each begins with: lt-dialog-title is the start of
+   * lt-dialog-title-k2x9qa1, a hyphen and seven characters after it. Such an
+   * id is new on every page load, so lotek check reports one written in a
+   * template. The id a field gives a control without one, lt-field-3-k2x9qa,
+   * has another form and is not listed. Absent when the element creates none
+   * of the listed kind.
+   */
+  generatedIds?: readonly string[]
+  /**
    * Attributes removed from the element, with what applies instead. lotek
    * check reports them with the text, so a template from an older version is
    * told what to write.
