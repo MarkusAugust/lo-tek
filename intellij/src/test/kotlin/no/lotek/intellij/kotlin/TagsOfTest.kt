@@ -52,8 +52,8 @@ class TagsOfTest : TestCase() {
     fun `test every selector of a part in the manifest has its tags written out here`() {
         assertEquals(
             "A selector here that no part has, or a part's selector with no answer here.",
-            selectors.sorted(),
             expected.keys.sorted(),
+            selectors.sorted(),
         )
     }
 

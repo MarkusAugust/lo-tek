@@ -136,6 +136,17 @@ async function suite() {
     list.items.some((item) => (item.label.label ?? item.label) === "lt-button"),
     "lt-button is not among the suggestions",
   )
+  // From the server, and not VS Code's own suggestions of the words in the
+  // document, which has `lt-button` in it already: only the server knows
+  // what the class is.
+  const fromServer = list.items.find(
+    (item) => (item.label.label ?? item.label) === "lt-button",
+  )
+  assert.strictEqual(
+    fromServer.detail,
+    "Button",
+    "the suggestion of lt-button does not say it is the button",
+  )
   // Each class is suggested once: the extension has no provider of its own
   // beside the server's.
   assert.strictEqual(

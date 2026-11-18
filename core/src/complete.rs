@@ -10,7 +10,7 @@ use crate::text::lossy;
 use crate::types::*;
 
 /// How far back and forth to read for the tag the cursor is in. A tag is
-/// shorter, and a large file is not read on every keystroke.
+/// shorter, and the answer does not grow with the file.
 const WINDOW: usize = 4000;
 
 /// The tag the cursor is in.
@@ -256,9 +256,15 @@ fn class_documentation(class: &Class) -> String {
     } else {
         format!("{}\n\n", takes.join("  \n"))
     };
+    // A manifest written by hand may say nothing about what the class is.
+    let description = if class.description.is_empty() {
+        String::new()
+    } else {
+        format!(" · {}", class.description)
+    };
     format!(
-        "**{}** · {}\n\n{takes}[Documentation]({})",
-        class.title, class.description, class.link
+        "**{}**{description}\n\n{takes}[Documentation]({})",
+        class.title, class.link
     )
 }
 
@@ -632,5 +638,19 @@ mod tests {
         ] {
             assert!(hover_at(markup).is_none(), "{markup}");
         }
+    }
+
+    #[test]
+    fn a_class_the_manifest_does_not_describe_is_said_by_its_title_alone() {
+        let vocabulary = manifest::from_json(
+            r#"{"schemaVersion": 1, "version": "0", "elements": {}, "classes": {
+              "app-box": {"title": "Box", "link": "https://example.test/box/", "attributes": {}}}}"#,
+        )
+        .unwrap();
+        let found = hover(&utf16(r#"<div class="app-box">"#), 14, &vocabulary).unwrap();
+        assert_eq!(
+            found.text,
+            "**Box**\n\n[Documentation](https://example.test/box/)"
+        );
     }
 }

@@ -981,12 +981,17 @@ pub fn run(_arguments: &[String]) {
                 }
             },
         };
-        if input.buffer().is_empty() {
-            server.flush();
-        }
+        // The answer first: completion comes right after a keystroke, and
+        // must not wait for the check that keystroke leads to.
         let mut out = stdout.lock();
         for message in server.take() {
             write_message(&mut out, &message);
+        }
+        if input.buffer().is_empty() {
+            server.flush();
+            for message in server.take() {
+                write_message(&mut out, &message);
+            }
         }
         if let Some(code) = code {
             std::process::exit(code);
