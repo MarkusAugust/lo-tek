@@ -17,12 +17,12 @@ import { readFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { compile } from "tailwindcss"
-import { CONTRACTS } from "../../interfaces/scripts/accessibility/contracts.ts"
+import { CONTRACTS } from "../../interfaces/scripts/accessibility/contracts"
 import {
   FAMILIES,
   ROLES,
   roleToCss,
-} from "../../interfaces/scripts/color-contract.ts"
+} from "../../interfaces/scripts/color-contract"
 import RECIPES from "../generated/recipes.json"
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url))

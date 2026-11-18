@@ -124,11 +124,12 @@ for (const rel of new Glob(PAGES).scanSync(ROOT)) {
 const expected = [...new Glob(PAGES).scanSync(ROOT)].length
 const fromFolder = countPages(`${ROOT}documentation/src/content/docs`)
 
-if (read === 0 || blocks === 0 || read !== expected || read !== fromFolder) {
+const incomplete =
+  read === 0 || blocks === 0 || read !== expected || read !== fromFolder
+if (incomplete) {
   console.error(
     `The check did not look at what it was meant to: ${read} pages read, ${expected} from the glob, ${fromFolder} in the folder, and ${blocks} markup blocks.\n`,
   )
-  process.exit(1)
 }
 
 if (findings.length > 0) {
@@ -137,8 +138,9 @@ if (findings.length > 0) {
       .map((line) => `  - ${line}`)
       .join("\n")}\n`,
   )
-  process.exit(1)
 }
+
+if (incomplete || findings.length > 0) process.exit(1)
 
 console.log(
   `None of ${blocks} markup blocks in ${read} pages imports a package name, and every CDN address uses the placeholder and points to a file that exists.`,

@@ -74,6 +74,12 @@ type Case = {
   noFix?: boolean
   /** How long the case may take, when speed is the point. */
   maxMs?: number
+  /**
+   * Markup the case must take less than half the time of, when the point is
+   * that something is remembered: the same page with nothing to remember.
+   * Two runs on the same machine are slowed alike, so this holds in CI too.
+   */
+  fasterThan?: string
   /** Check as a whole page, with the wiring rules. */
   page?: boolean
   /** The rule the finding must have. */
@@ -853,7 +859,10 @@ const cases: Case[] = [
       () => `<td class="lt-cell lt-celle">x</td>`,
     ).join("\n"),
     count: 6000,
-    maxMs: 60,
+    fasterThan: Array.from(
+      { length: 3000 },
+      (_, i) => `<td class="lt-cell lt-celle${i}">x</td>`,
+    ).join("\n"),
   },
   {
     name: "the findings come in the order of the text",
@@ -1568,9 +1577,34 @@ for (const c of cases) {
   }
   // The time limit is a local guard for the cache, not a claim about a
   // shared CI machine: there the wall clock can go red with nothing wrong.
-  const took = performance.now() - before
-  if (c.maxMs && took > c.maxMs && !process.env.CI)
-    fail(`took ${Math.round(took)} ms, and must take less than ${c.maxMs}`)
+  // A busy machine at home can do the same to one run, so a run over the
+  // limit is taken twice more and the fastest counts: load only adds time.
+  let took = performance.now() - before
+  if (c.maxMs && !process.env.CI) {
+    for (let again = 0; again < 2 && took > c.maxMs; again++) {
+      const start = performance.now()
+      if (c.page) core.diagnosePage(c.html)
+      else core.diagnoseMarkup(c.html)
+      took = Math.min(took, performance.now() - start)
+    }
+    if (took > c.maxMs)
+      fail(`took ${Math.round(took)} ms, and must take less than ${c.maxMs}`)
+  }
+  if (c.fasterThan) {
+    const fastest = (html: string) =>
+      Math.min(
+        ...[1, 2, 3].map(() => {
+          const start = performance.now()
+          core.diagnoseMarkup(html)
+          return performance.now() - start
+        }),
+      )
+    const [own, other] = [fastest(c.html), fastest(c.fasterThan)]
+    if (own * 2 > other)
+      fail(
+        `took ${Math.round(own)} ms, and must take less than half of the ${Math.round(other)} ms the page with nothing to remember takes`,
+      )
+  }
   if (found.length !== c.count) {
     fail(
       `expected ${c.count} findings, got ${found.length}: ${found.map((f) => f.message).join(" | ") || "none"}`,
@@ -1689,8 +1723,10 @@ for (const [name, info] of Object.entries(classes)) {
   core.loadManifest(real)
 }
 
+// A local guard, like the limit on each case: not a claim about a shared CI
+// machine.
 const elapsed = performance.now() - started
-if (elapsed > 2000)
+if (elapsed > 2000 && !process.env.CI)
   findings.push(
     `all the cases took ${Math.round(elapsed)} ms, and must take less than 2000`,
   )

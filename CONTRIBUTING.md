@@ -313,6 +313,12 @@ the content, has to come from somewhere other than the queue the check walks thr
 the guard only checks itself. `check-agent.ts` therefore reads the folder on
 disk, and `check-vocabulary.ts` reads `exports` in the package, not the metadata.
 
+A rule about a function that can be fed small inputs is a `*.test.ts` under `bun test`,
+as `anatomy-walk.test.ts` is. Anything that reads the repository, reads what was built or
+runs the product is a `check-*.ts` script. A script collects what it finds, prints all of it
+before it exits, also when it turns out not to have looked at everything, and says on
+success how much it read.
+
 ## Commit messages
 
 In English, in the imperative, without a prefix: "Fix focus in the error summary", not "fix: …". The body explains why, not what the diff already shows.

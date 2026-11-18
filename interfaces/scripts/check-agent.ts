@@ -368,7 +368,6 @@ if (problems.length > 0) {
       .map((line) => `  ${line}`)
       .join("\n")}\n`,
   )
-  process.exit(1)
 }
 
 /*
@@ -447,8 +446,9 @@ if (shortfalls.length > 0) {
   console.error(
     `The guard did not look at what it should have: ${shortfalls.join("; ")}\n`,
   )
-  process.exit(1)
 }
+
+if (problems.length > 0 || shortfalls.length > 0) process.exit(1)
 
 console.log(
   `The rulebooks match: ${checkedFiles} files, ${checkedClasses} class claims, ${checkedElements} element claims, ${checkedTokens} token names, ${checkedAxes} axes and ${checkedBlocks} markup blocks, and the setup in ${checkedSetups} html blocks.`,

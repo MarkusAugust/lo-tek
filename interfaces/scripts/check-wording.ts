@@ -240,7 +240,6 @@ if (empty.length > 0) {
       .map(([pattern]) => `  ${pattern}`)
       .join("\n")}\n`,
   )
-  process.exit(1)
 }
 
 if (findings.length > 0) {
@@ -249,8 +248,9 @@ if (findings.length > 0) {
       .map((line) => `  ${line}`)
       .join("\n")}\n`,
   )
-  process.exit(1)
 }
+
+if (empty.length > 0 || findings.length > 0) process.exit(1)
 
 const total = [...read.values()].reduce((sum, count) => sum + count, 0)
 
