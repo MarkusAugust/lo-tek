@@ -71,3 +71,144 @@ test("a value in the set that is no function is not one either", () => {
     ),
   ).toThrow("no builder function states")
 })
+
+/** A dialog-like box: a header that can go, and a subtitle only with it. */
+const withHeader: Anatomy = {
+  holes: {},
+  nodes: [
+    {
+      tag: "div",
+      children: [
+        { tag: "header", name: "header", optional: true },
+        {
+          tag: "p",
+          name: "subtitle",
+          optional: true,
+          created: true,
+          requires: "header",
+        },
+      ],
+    },
+  ],
+}
+const parts = (anatomy: Anatomy, given?: Record<string, boolean>) =>
+  renderAnatomy(manifestWith(anatomy), "box", { id: "c1", parts: given }, {})
+
+test("a node that requires another is there only with it", () => {
+  expect(parts(withHeader)).toBe("<div></div>")
+  expect(parts(withHeader, { subtitle: true })).toBe("<div></div>")
+  expect(parts(withHeader, { header: true })).toBe(
+    "<div><header></header><p></p></div>",
+  )
+  expect(parts(withHeader, { header: true, subtitle: false })).toBe(
+    "<div><header></header></div>",
+  )
+})
+
+test("the required node is found wherever it stands, also as an alternative of a choice below", () => {
+  const deep: Anatomy = {
+    holes: {},
+    nodes: [
+      {
+        tag: "div",
+        children: [
+          { tag: "p", name: "note", optional: true, requires: "mark" },
+          {
+            tag: "section",
+            children: [
+              {
+                name: "kind",
+                description: "Plain or marked.",
+                oneOf: {
+                  plain: { tag: "span" },
+                  marked: { tag: "mark", name: "mark", optional: true },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  }
+  expect(parts(deep, { note: true })).toBe(
+    "<div><section><span></span></section></div>",
+  )
+  expect(parts(deep, { note: true, mark: true })).toBe(
+    "<div><p></p><section><span></span></section></div>",
+  )
+})
+
+test("a node that requires a name no node has is never there", () => {
+  const alone: Anatomy = {
+    holes: {},
+    nodes: [
+      {
+        tag: "div",
+        children: [
+          { tag: "p", name: "note", optional: true, requires: "gone" },
+        ],
+      },
+    ],
+  }
+  expect(parts(alone, { note: true, gone: true })).toBe("<div></div>")
+})
+
+test("with a name used twice, the first node by that name is the one required", () => {
+  const twice: Anatomy = {
+    holes: {},
+    nodes: [
+      {
+        tag: "div",
+        children: [
+          { tag: "p", name: "note", optional: true, requires: "part" },
+          // Never there: it requires a name no node has.
+          { tag: "b", name: "part", optional: true, requires: "gone" },
+          { tag: "i", name: "part", optional: true },
+        ],
+      },
+    ],
+  }
+  expect(parts(twice, { note: true, part: true })).toBe("<div><i></i></div>")
+})
+
+/** A box whose `disabled` option is on exactly when the choice takes `off`. */
+const bound: Anatomy = {
+  holes: {},
+  options: { disabled: { choice: "state", alternative: "off" } },
+  nodes: [
+    {
+      name: "state",
+      description: "On or off.",
+      oneOf: {
+        on: { tag: "a", from: ["box"] },
+        off: { tag: "span", from: ["box"] },
+      },
+    },
+  ],
+}
+const disabledBox = {
+  box: ({ disabled }: { disabled?: boolean }) => ({
+    "data-disabled": String(disabled),
+  }),
+}
+const choosing = (choices?: Record<string, string>) =>
+  renderAnatomy(manifestWith(bound), "box", { id: "c1", choices }, disabledBox)
+
+test("an option bound to a choice is on exactly when the choice takes the alternative", () => {
+  expect(choosing({ state: "off" })).toBe('<span data-disabled="true"></span>')
+  expect(choosing({ state: "on" })).toBe('<a data-disabled="false"></a>')
+})
+
+test("left out, a choice takes its first alternative, and the bound option follows", () => {
+  expect(choosing()).toBe('<a data-disabled="false"></a>')
+})
+
+test("an option bound to a choice no node has is off", () => {
+  const nowhere: Anatomy = {
+    ...bound,
+    options: { disabled: { choice: "gone", alternative: "off" } },
+  }
+  expect(
+    renderAnatomy(manifestWith(nowhere), "box", { id: "c1" }, disabledBox),
+  ).toBe('<a data-disabled="false"></a>')
+})
