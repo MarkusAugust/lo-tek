@@ -1114,6 +1114,48 @@ function anatomyCasesOf(
   return anatomyCases
 }
 
+/**
+ * The elements with the ids each creates itself, by what the id begins
+ * with. A component makes such an id with `uniqueId()` or `rememberedId()`
+ * from `host-element.ts`, so they are read from the calls in its own source,
+ * as the variables it sets are, and belong to the element of its folder.
+ */
+function elementsOf({ elements, components }: Input): Manifest["elements"] {
+  const ids: Record<string, Set<string>> = {}
+  for (const { name, sources } of components)
+    for (const [file, text] of Object.entries(sources)) {
+      if (!file.endsWith(".ts")) continue
+      for (const m of text.matchAll(/\b(?:uniqueId|rememberedId)\(/g)) {
+        // The call runs to the parenthesis that closes it.
+        let depth = 1
+        let end = m.index + m[0].length
+        for (; end < text.length && depth > 0; end++) {
+          if (text[end] === "(") depth++
+          else if (text[end] === ")") depth--
+        }
+        const call = text.slice(m.index, end).replace(/\s+/g, " ")
+        // The prefix is the last argument, written out.
+        const prefix = call.match(/[(,] ?["']([a-z0-9-]+)["'],? ?\)$/)?.[1]
+        if (!prefix)
+          throw new Error(
+            `${file}: ${call} does not write its prefix out, so the manifest cannot say which ids <lt-${name}> creates.`,
+          )
+        if (!elements[`lt-${name}`])
+          throw new Error(
+            `${file} creates the id ${prefix}, and there is no <lt-${name}> to put it on.`,
+          )
+        ids[`lt-${name}`] ??= new Set()
+        ids[`lt-${name}`].add(prefix)
+      }
+    }
+  return Object.fromEntries(
+    Object.entries(elements).map(([tag, element]) => [
+      tag,
+      ids[tag] ? { ...element, generatedIds: [...ids[tag]].sort() } : element,
+    ]),
+  )
+}
+
 /*
  * What `canDrop()` answers for every component in every hole that takes
  * other elements, and in each of those again inside every hole the host
@@ -1166,7 +1208,7 @@ function generated(input: Input) {
     schemaVersion: SCHEMA_VERSION,
     version,
     textLanguage: input.textLanguage,
-    elements: input.elements,
+    elements: elementsOf(input),
     classes: classEntriesOf(builderFunctions, cases, input.classes),
     builders: builderFunctions,
     tokens: tokensOf(input),

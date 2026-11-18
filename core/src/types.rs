@@ -59,6 +59,9 @@ pub struct Element {
     pub named: Option<Named>,
     /// The texts the element writes itself.
     pub texts: Vec<DefaultText>,
+    /// What the ids the element creates itself begin with, as `uniqueId` in
+    /// `host-element.ts` makes them: the prefix, a hyphen and seven characters.
+    pub generated_ids: Vec<String>,
 }
 
 /// A text a component writes itself when nobody has given it another, and

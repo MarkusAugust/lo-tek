@@ -591,6 +591,54 @@ mod tests {
         assert!(found.is_empty(), "{found:?}");
     }
 
+    /// A manifest with one element, `<lt-x>`, which creates the ids given.
+    fn creating(ids: &str) -> Vocabulary {
+        manifest::from_json(&format!(
+            r#"{{"schemaVersion": 1, "version": "0", "elements": {{"lt-x": {{"link": "https://example.test/x/", "attributes": {{}}{ids}}}}}, "classes": {{}}}}"#
+        ))
+        .unwrap()
+    }
+
+    fn copied(html: &str, vocabulary: &Vocabulary) -> Vec<Finding> {
+        diagnose_markup(&utf16(html), vocabulary)
+            .into_iter()
+            .filter(|f| f.rule == "id-from-component")
+            .collect()
+    }
+
+    #[test]
+    fn an_id_the_manifest_says_an_element_creates_is_reported_with_its_page() {
+        let found = copied(
+            r#"<p id="lt-x-note-a1b2c3d">Note</p>"#,
+            &creating(r#", "generatedIds": ["lt-x-note"]"#),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].link, "https://example.test/x/");
+    }
+
+    #[test]
+    fn an_id_no_element_creates_is_the_templates_own() {
+        let html = r#"<p id="lt-x-note-a1b2c3d">Note</p>"#;
+        assert!(copied(html, &creating("")).is_empty());
+        // Nothing in the package creates an id that begins with this.
+        let html = r#"<div id="lt-popover-a1b2c3d"></div>"#;
+        assert!(copied(html, &manifest::for_tests()).is_empty());
+    }
+
+    #[test]
+    fn an_id_from_the_package_is_reported_with_the_page_of_its_element() {
+        let found = copied(
+            r#"<h2 id="lt-dialog-title-a1b2c3d">Cancel?</h2>"#,
+            &manifest::for_tests(),
+        );
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found[0].link.ends_with("/components/dialog/"),
+            "{}",
+            found[0].link
+        );
+    }
+
     fn nesting(html: &str) -> Vec<String> {
         diagnose_markup(&utf16(html), &manifest::for_tests())
             .into_iter()
@@ -1038,6 +1086,7 @@ mod tests {
             removed: Vec::new(),
             named: None,
             texts: Vec::new(),
+            generated_ids: Vec::new(),
         });
         assert!(diagnose_markup(&html, &vocabulary).is_empty());
     }

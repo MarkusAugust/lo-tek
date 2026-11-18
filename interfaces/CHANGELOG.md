@@ -112,9 +112,19 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`lt.tableSort({ link: true })`** gives a sorting link the class alone,
   without `type="button"`, for a column the server sorts on the next page
   load.
+- **An element in the manifest says which ids it creates itself,** as
+  `generatedIds`: `lt-dialog-title` for `<lt-dialog>`, which is what an id
+  like `lt-dialog-title-k2x9qa1` begins with. The list is read from the
+  components, and `lotek check` reads it from the manifest, where it had a
+  list of its own.
 
 ### Fixed
 
+- **`lotek check` sends an id copied from the browser to the page of the
+  component that created it.** The rule `id-from-component` linked to the
+  field's page whichever component the id came from. It also reported an id
+  that begins with `lt-popover-`, which no component creates, and no longer
+  does.
 - **`manifest.json` matches `manifest.schema.json`.** The schema forbade
   `siblingsBefore` on the texts of a class, which `lt-steps` has, and did not
   describe `removed` on the elements. The build now checks the manifest

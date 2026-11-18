@@ -327,3 +327,70 @@ test("a node that can be several tags and requires another part gets its tag cas
     '<div class="lt-box"><header></header><h3></h3></div>',
   )
 })
+
+/** An input with the element `<lt-NAME>` and its folder, with one source file. */
+const withSource = (name: string, source: string): Input =>
+  input({
+    elements: { [`lt-${name}`]: { link: "", attributes: {} } },
+    components: [{ ...folder(name, "", source), category: "frame" }],
+  })
+
+test("the ids a component creates itself are on its element, by their prefix", () => {
+  const { elements } = manifestOf(
+    withSource("dialog", 'this.titleId ??= uniqueId("lt-dialog-title")'),
+  )
+  expect(elements["lt-dialog"].generatedIds).toEqual(["lt-dialog-title"])
+})
+
+test("an id the component remembers for a node counts too, each prefix once and in order", () => {
+  const { elements } = manifestOf(
+    withSource(
+      "suggestion",
+      `setAttr(
+        option,
+        "id",
+        rememberedId(this.ids, option, "lt-suggestion-option"),
+      )
+      setAttr(list, "id", rememberedId(this.ids, list, "lt-suggestion-list"))
+      this.other = rememberedId(
+        this.ids,
+        other,
+        "lt-suggestion-list",
+      )`,
+    ),
+  )
+  expect(elements["lt-suggestion"].generatedIds).toEqual([
+    "lt-suggestion-list",
+    "lt-suggestion-option",
+  ])
+})
+
+test("an element that creates no id says nothing about ids", () => {
+  const { elements } = manifestOf(withSource("term", "const x = 1"))
+  expect("generatedIds" in elements["lt-term"]).toBe(false)
+})
+
+test("an id made from something other than a written-out prefix stops the build", () => {
+  expect(() =>
+    files(withSource("tabs", "const id = uniqueId('lt-tabs-' + kind)")),
+  ).toThrow(
+    "tabs.ts: uniqueId('lt-tabs-' + kind) does not write its prefix out, so the manifest cannot say which ids <lt-tabs> creates.",
+  )
+  expect(() =>
+    files(withSource("tabs", "rememberedId(this.ids, tab, PREFIX)")),
+  ).toThrow("rememberedId(this.ids, tab, PREFIX) does not write its prefix out")
+})
+
+test("an id created in a folder that has no element stops the build", () => {
+  expect(() =>
+    files(
+      input({
+        components: [
+          folder("card", "", 'const id = uniqueId("lt-card-title")'),
+        ],
+      }),
+    ),
+  ).toThrow(
+    "card.ts creates the id lt-card-title, and there is no <lt-card> to put it on.",
+  )
+})

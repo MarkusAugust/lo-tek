@@ -31,20 +31,6 @@ use crate::types::*;
 
 const CONTROLS: &[&str] = &["input", "textarea", "select"];
 
-/// The ids the components create themselves, `uniqueId` in `host-element.ts`,
-/// plus `createFieldId`: `lt-field-<number>-<six characters>`.
-const GENERATED_PREFIXES: &[&str] = &[
-    "lt-field-help-",
-    "lt-field-error-",
-    "lt-popover-",
-    "lt-dialog-title-",
-    "lt-session-timeout-title-",
-    "lt-tabs-heading-",
-    "lt-suggestion-list-",
-    "lt-suggestion-option-",
-    "lt-suggestion-label-",
-];
-
 /// What the node says about its id.
 enum Id {
     /// No id, and no binding that gives one.
@@ -633,20 +619,15 @@ fn text_in_label(page: &Page, vocabulary: &Vocabulary) -> Vec<Finding> {
 /// copied into the template from DevTools. Only in markup mode: on a rendered
 /// page it is correct.
 fn generated_ids(page: &Page, vocabulary: &Vocabulary) -> Vec<Finding> {
-    let link = vocabulary
-        .elements
-        .iter()
-        .find(|e| e.tag == "lt-field")
-        .map_or("", |e| e.link.as_str());
     let mut out = Vec::new();
     for node in page.nodes {
         let Some(id) = non_empty(node, "id") else {
             continue;
         };
         let text = lossy(id);
-        if !looks_generated(&text) {
+        let Some(link) = creator(&text, vocabulary) else {
             continue;
-        }
+        };
         let a = value(node, "id").unwrap();
         out.push(Finding {
             start: a.value_start,
@@ -663,7 +644,11 @@ fn generated_ids(page: &Page, vocabulary: &Vocabulary) -> Vec<Finding> {
     out
 }
 
-fn looks_generated(id: &str) -> bool {
+/// The page of the element that created the id, when one did. Which ids an
+/// element creates is in the manifest, as `generatedIds`: here is only the
+/// form `uniqueId` in `host-element.ts` gives them, the prefix, a hyphen and
+/// seven characters.
+fn creator<'a>(id: &str, vocabulary: &'a Vocabulary) -> Option<&'a str> {
     let base36 = |s: &str, len: usize| {
         s.len() == len
             && s.chars()
@@ -673,13 +658,27 @@ fn looks_generated(id: &str) -> bool {
         // `createFieldId`: `lt-field-<counter>-<six characters>`.
         if let Some((count, tail)) = rest.split_once('-') {
             if !count.is_empty() && count.chars().all(|c| c.is_ascii_digit()) && base36(tail, 6) {
-                return true;
+                return Some(
+                    vocabulary
+                        .elements
+                        .iter()
+                        .find(|e| e.tag == "lt-field")
+                        .map_or("", |e| e.link.as_str()),
+                );
             }
         }
     }
-    GENERATED_PREFIXES
+    vocabulary
+        .elements
         .iter()
-        .any(|p| id.strip_prefix(p).is_some_and(|tail| base36(tail, 7)))
+        .find(|e| {
+            e.generated_ids.iter().any(|prefix| {
+                id.strip_prefix(prefix.as_str())
+                    .and_then(|rest| rest.strip_prefix('-'))
+                    .is_some_and(|tail| base36(tail, 7))
+            })
+        })
+        .map(|e| e.link.as_str())
 }
 
 /// A glossary entry, as `<lt-term>` recognises one: a `<div>` in a `<dl>`,

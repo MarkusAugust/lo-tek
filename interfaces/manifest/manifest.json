@@ -56,7 +56,11 @@
         "invalid": "The field is invalid when the error text, `.lt-error-text`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
         "required-marker": "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
         "control-id": "Write `id` on the control and `for` on the label in the template. The component never writes an id on the control."
-      }
+      },
+      "generatedIds": [
+        "lt-field-error",
+        "lt-field-help"
+      ]
     },
     "lt-tabs": {
       "link": "https://lo-tek.sobernetics.no/components/tabs/",
@@ -105,7 +109,10 @@
             "index": "number"
           }
         }
-      }
+      },
+      "generatedIds": [
+        "lt-tabs-heading"
+      ]
     },
     "lt-error-summary": {
       "link": "https://lo-tek.sobernetics.no/components/error-summary/",
@@ -321,7 +328,12 @@
             "label": "string"
           }
         }
-      }
+      },
+      "generatedIds": [
+        "lt-suggestion-label",
+        "lt-suggestion-list",
+        "lt-suggestion-option"
+      ]
     },
     "lt-dialog": {
       "link": "https://lo-tek.sobernetics.no/components/dialog/",
@@ -367,7 +379,10 @@
             "returnValue": "string"
           }
         }
-      }
+      },
+      "generatedIds": [
+        "lt-dialog-title"
+      ]
     },
     "lt-toast": {
       "link": "https://lo-tek.sobernetics.no/components/toast/",
@@ -464,7 +479,10 @@
         "session-logout": {},
         "session-expired": {},
         "session-activity": {}
-      }
+      },
+      "generatedIds": [
+        "lt-session-timeout-title"
+      ]
     },
     "lt-connection-status": {
       "link": "https://lo-tek.sobernetics.no/components/connection-status/",
