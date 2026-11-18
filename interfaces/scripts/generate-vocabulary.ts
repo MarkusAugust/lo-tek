@@ -909,9 +909,9 @@ export function classesData(): Classes {
     throw new Error(
       [
         missing.length &&
-          `classDocs in metadata.ts is missing ${missing.join(", ")}.`,
+          `No file in scripts/metadata/ has ${missing.join(", ")}. Write each under classes in the file of its component.`,
         stale.length &&
-          `classDocs in metadata.ts has classes that do not exist in the CSS: ${stale.join(", ")}.`,
+          `The files in scripts/metadata/ have classes that do not exist in the CSS: ${stale.join(", ")}.`,
       ]
         .filter(Boolean)
         .join(" "),

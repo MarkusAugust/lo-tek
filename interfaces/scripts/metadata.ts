@@ -56,6 +56,7 @@ import type {
   ComponentDoc,
   ElementDoc,
 } from "./metadata/shared.js"
+import { together } from "./metadata/shared.js"
 import { skeleton } from "./metadata/skeleton.js"
 import { skipLink } from "./metadata/skip-link.js"
 import { spinner } from "./metadata/spinner.js"
@@ -188,20 +189,19 @@ function textsOf(
   }
 }
 
-const all = Object.values(COMPONENTS)
-
-export const elements: readonly ElementDoc[] = all.flatMap(
-  ({ element, parts, name }) =>
-    element
-      ? [
-          {
-            ...element,
-            parts: parts ?? {},
-            ...(name ? { name } : {}),
-            ...textsOf(element.tag, Object.keys(element.attributes)),
-          },
-        ]
-      : [],
+export const elements: readonly ElementDoc[] = Object.values(
+  COMPONENTS,
+).flatMap(({ element, parts, name }) =>
+  element
+    ? [
+        {
+          ...element,
+          parts: parts ?? {},
+          ...(name ? { name } : {}),
+          ...textsOf(element.tag, Object.keys(element.attributes)),
+        },
+      ]
+    : [],
 )
 
 /** The class from `tokens.css`, which belongs to no component. */
@@ -212,18 +212,28 @@ const TOKEN_CLASSES: Record<string, ClassDoc> = {
   },
 }
 
-export const classDocs: Record<string, ClassDoc> = Object.assign(
-  {},
-  ...all.map((component) => component.classes),
-  TOKEN_CLASSES,
-)
+const each = <T>(pick: (component: ComponentDoc) => T) =>
+  Object.fromEntries(
+    Object.entries(COMPONENTS).map(([name, component]) => [
+      name,
+      pick(component),
+    ]),
+  )
 
-export const BUILDER_ANATOMIES: Record<string, Anatomy> = Object.assign(
-  {},
-  ...all.map((component) => component.anatomies),
+export const classDocs: Record<string, ClassDoc> = together("classes", {
+  ...each((component) => component.classes),
+  tokens: TOKEN_CLASSES,
+})
+
+export const BUILDER_ANATOMIES: Record<string, Anatomy> = together(
+  "anatomies",
+  each((component) => component.anatomies),
 )
 
 export const BUILDER_PARTS: Record<
   string,
   Record<string, BuilderPart | null>
-> = Object.assign({}, ...all.map((component) => component.builderParts))
+> = together(
+  "builderParts",
+  each((component) => component.builderParts),
+)

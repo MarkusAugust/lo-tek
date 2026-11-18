@@ -37,6 +37,8 @@ const classInfo = (more: Partial<ClassInfo> = {}): ClassInfo => ({
  */
 const input = (more: Partial<Input> = {}): Input => ({
   described: (more.components ?? []).map((folder) => folder.name),
+  listed:
+    more.described ?? (more.components ?? []).map((folder) => folder.name),
   version: "0.0.0",
   textLanguage: "en",
   elements: {},
@@ -427,7 +429,7 @@ test("a helper imported under another name stops the build", () => {
   )
 })
 
-test("a component folder that metadata.ts does not describe stops the build", () => {
+test("a component folder with no file in scripts/metadata/ stops the build", () => {
   expect(() =>
     files(input({ components: [folder("card", "")], described: [] })),
   ).toThrow(
@@ -435,9 +437,9 @@ test("a component folder that metadata.ts does not describe stops the build", ()
   )
 })
 
-test("a description of a component that has no folder stops the build", () => {
+test("a file in scripts/metadata/ with no component folder stops the build", () => {
   expect(() => files(input({ described: ["card"] }))).toThrow(
-    "scripts/metadata/ describes card, and no folder in src/components/ has that name.",
+    "scripts/metadata/card.ts describes a component, and no folder in src/components/ has that name.",
   )
 })
 
@@ -454,5 +456,19 @@ test("a helper used as anything but a call by its own name stops the build", () 
 test("an empty prefix stops the build", () => {
   expect(() => files(withSource("dialog", 'uniqueId("")'))).toThrow(
     'dialog.ts: uniqueId("") does not write its prefix out',
+  )
+})
+
+test("a file in scripts/metadata/ that metadata.ts does not list stops the build", () => {
+  expect(() =>
+    files(
+      input({
+        components: [folder("card", "")],
+        described: ["card"],
+        listed: [],
+      }),
+    ),
+  ).toThrow(
+    "scripts/metadata/card.ts is not listed in metadata.ts, so nothing reads it.",
   )
 })

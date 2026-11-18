@@ -4,7 +4,7 @@
  * every element the package registers and every class in the CSS, with parts
  * that match the markup on the component pages.
  *
- * The type check covers the attributes: `metadata.ts` writes them as a
+ * The type check covers the attributes: a file in `metadata/` writes them as a
  * `Record` over the component's `observedAttributes`, so a missing or extra
  * attribute stops `tsc`. What the type check cannot see is a whole element
  * missing from the list. So `exports` in the package is read here, every
@@ -252,7 +252,7 @@ for (const [tag, attributes] of registered) {
   const doc = documented.get(tag)
   if (!doc) {
     findings.push(
-      `<${tag}> is registered in the package, but is missing in metadata.ts`,
+      `<${tag}> is registered in the package, but is missing in scripts/metadata/`,
     )
     continue
   }
@@ -261,10 +261,12 @@ for (const [tag, attributes] of registered) {
     (a) => !attributes.includes(a),
   )
   if (missing.length)
-    findings.push(`<${tag}> is missing attributes in metadata.ts: ${missing}`)
+    findings.push(
+      `<${tag}> is missing attributes in scripts/metadata/: ${missing}`,
+    )
   if (extra.length)
     findings.push(
-      `<${tag}> has attributes in metadata.ts that do not exist: ${extra}`,
+      `<${tag}> has attributes in scripts/metadata/ that do not exist: ${extra}`,
     )
 }
 // A tag that only exists in a module with several elements, such as the main
@@ -277,7 +279,7 @@ for (const tag of allTags)
 for (const tag of documented.keys())
   if (!registered.has(tag))
     findings.push(
-      `<${tag}> is in metadata.ts, but the package does not register it`,
+      `<${tag}> is in scripts/metadata/, but the package does not register it`,
     )
 
 // 2a. Every part the component exports has a description in metadata.ts,
@@ -288,7 +290,7 @@ for (const [tag, parts] of exportedParts) {
   for (const [name, selector] of Object.entries(parts))
     if (!doc[name])
       findings.push(
-        `<${tag}> has the part "${name}", which is missing in metadata.ts`,
+        `<${tag}> has the part "${name}", which is missing in scripts/metadata/`,
       )
     else if (doc[name].selector !== selector)
       findings.push(
@@ -297,7 +299,7 @@ for (const [tag, parts] of exportedParts) {
   for (const name of Object.keys(doc))
     if (!(name in parts))
       findings.push(
-        `<${tag}> has the part "${name}" in metadata.ts, but does not export it`,
+        `<${tag}> has the part "${name}" in scripts/metadata/, but does not export it`,
       )
 }
 
@@ -333,12 +335,12 @@ for (const element of elements) {
   for (const name of dispatched)
     if (!described.has(name))
       findings.push(
-        `<${element.tag}> dispatches "${name}", which is missing in metadata.ts`,
+        `<${element.tag}> dispatches "${name}", which is missing in scripts/metadata/`,
       )
   for (const name of described)
     if (!dispatched.has(name))
       findings.push(
-        `<${element.tag}> has "${name}" in metadata.ts, but does not dispatch it`,
+        `<${element.tag}> has "${name}" in scripts/metadata/, but does not dispatch it`,
       )
 }
 

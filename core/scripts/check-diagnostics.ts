@@ -1663,7 +1663,8 @@ const shown = new Set(
     .flatMap((m) => m[1].split(/\s+/)),
 )
 for (const [name, info] of Object.entries(classes)) {
-  if (!info.tags?.length) findings.push(`${name} has no tags in metadata.ts`)
+  if (!info.tags?.length)
+    findings.push(`${name} has no tags in scripts/metadata/`)
   else if (!shown.has(name) && !WRITTEN_BY_THE_COMPONENT.has(name))
     findings.push(
       `${name} appears on no page, so nothing holds its tags to the markup`,

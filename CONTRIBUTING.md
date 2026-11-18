@@ -252,8 +252,8 @@ a new variant is included once `lt` returns it. The files are generated from
 together with `interfaces/web-types.json` for JetBrains. What is written by hand about a
 component is in one file, `interfaces/scripts/metadata/<folder>.ts`, by the name of its folder
 in `src/components/`: the element, its parts, the classes and the markup its builder functions
-belong in. `metadata.ts` puts the files together, and the build stops on a folder without a
-file. If you change an attribute on a component, the type check stops until the component's
+belong in. `metadata.ts` lists the files and puts them together, and the build stops on a folder
+without a file and on a file that is not listed. If you change an attribute on a component, the type check stops until the component's
 file has a sentence about it. `bun run build` writes the files again before any check reads
 them, and does not fail on an outdated file; if you forget to commit what the build wrote,
 the step `Generated files are up to date` in CI does. The files can also be written on their own:

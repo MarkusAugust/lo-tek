@@ -1,7 +1,7 @@
 //! `part-repeated`: a part with `unique` that appears more than once.
 //!
 //! The rule is driven by `parts` in the manifest, both for the elements and
-//! for the classes, so a new part in `metadata.ts` is checked without a line
+//! for the classes, so a new part in the metadata is checked without a line
 //! here. It only reports the parts with `unique`: where a second part of the
 //! same kind is an error, like an `<lt-field>` with two controls, where only
 //! the first is wired. A part without `unique` can appear several times and

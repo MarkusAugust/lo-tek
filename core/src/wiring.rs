@@ -11,7 +11,7 @@
 //! same words the components use in the console.
 //!
 //! Which parts must have an id from the server is in the manifest as
-//! `stableId` on the part, so a new part in `metadata.ts` is checked without
+//! `stableId` on the part, so a new part in the metadata is checked without
 //! a line here. Each component's own rules, like the tabs and the suggestion
 //! list, are under its element name.
 //!

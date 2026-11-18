@@ -165,7 +165,7 @@ export const number = (description: string): AttributeDoc => ({
 /**
  * What each class takes as content, and the parts it consists of.
  *
- * The elements above say what the web components look for. The classes said
+ * The elements say what the web components look for. The classes said
  * nothing: the manifest did not know that `lt-button` takes text, that
  * `lt-list` consists of `<li>`, or that `lt-table` has `<thead>` and `<tbody>`
  * with an `lt-table__sort` in a `<th>`. A tool that assembles markup from the
@@ -178,9 +178,9 @@ export const number = (description: string): AttributeDoc => ({
  * its parent with `partOf` instead of having parts of its own, and the parent
  * has a part that matches it.
  *
- * The table is kept in step with the package by `generate-vocabulary.ts`,
- * which stops on a class in the CSS that is missing here and on an entry
- * without a class, and by `check-vocabulary.ts`, which requires every
+ * The classes are kept in step with the package by `generate-vocabulary.ts`,
+ * which stops on a class in the CSS that no component's file has and on an
+ * entry without a class, and by `check-vocabulary.ts`, which requires every
  * selector to match the markup on the component page, and `partOf` to point
  * to a class with a part that matches this one.
  */
@@ -270,4 +270,28 @@ export type ComponentDoc = {
    * `builders[].parts` in the manifest.
    */
   builderParts?: Record<string, Record<string, BuilderPart | null>>
+}
+
+/**
+ * One table from what each component has of it, in the order of the
+ * components. A name in two of them stops the build: with one literal for
+ * the whole table the compiler refused that, and here the last would have
+ * won without a word.
+ */
+export function together<T>(
+  what: string,
+  tables: Record<string, Record<string, T> | undefined>,
+): Record<string, T> {
+  const all: Record<string, T> = {}
+  const from: Record<string, string> = {}
+  for (const [component, table] of Object.entries(tables))
+    for (const [name, entry] of Object.entries(table ?? {})) {
+      if (from[name])
+        throw new Error(
+          `${what}: ${name} is in both ${from[name]}.ts and ${component}.ts.`,
+        )
+      from[name] = component
+      all[name] = entry
+    }
+  return all
 }
