@@ -378,6 +378,11 @@ fn from_value(root: &Json) -> Result<Vocabulary, String> {
         classes.push(Class {
             name: name.clone(),
             title: text(field(class, "title", &path)?, &path)?,
+            description: class
+                .get("description")
+                .map(|d| text(d, &format!("{path}.description")))
+                .transpose()?
+                .unwrap_or_default(),
             link: text(field(class, "link", &path)?, &path)?,
             attributes,
             parts: {

@@ -87,8 +87,8 @@ EJS, Liquid, Nunjucks and Edge, and in HTML. The list is the setting
 `lotek.languages`, with VS Code's language ids, and can be changed. The
 snippets apply in the twenty language ids of the default list, whatever the
 setting says, since their languages are written into the snippet file when the extension is built. Outside
-HTML the `<lt-…>` elements and their attributes are also completed by the extension
-itself, since VS Code's own HTML service only runs in HTML files.
+HTML the `<lt-…>` elements and their attributes are also completed by the language
+server, since VS Code's own HTML service only runs in HTML files.
 
 Files with an extension other than the one the language expects can be associated with it in
 the settings, for example `"files.associations": { "*.gohtml": "html" }`.
@@ -109,7 +109,7 @@ and other editors with LSP can use `lotek lsp`.
 The completion, the snippets and the lists the diagnostics check against are generated from
 the components and the component pages in the
 [repository](https://github.com/MarkusAugust/lo-tek). The elements come from
-`interfaces/scripts/metadata.ts`, the classes from the package's CSS, and what each class takes is read by
+the files in `interfaces/scripts/metadata/`, the classes from the package's CSS, and what each class takes is read by
 calling the builder functions in `lt`, so `data-variant="ghost"` is allowed because
 `lt.button({ variant: "ghost" })` returns it. `bun run build` in the package writes
 the files again before any check reads them, and CI fails a change where what the build wrote

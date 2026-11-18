@@ -26,8 +26,9 @@
 //! couple of milliseconds on a page, and that keeps the server simple.
 //!
 //! `initializationOptions` can have `manifest`, a path to a manifest that
-//! comes before the others, and `rendered`, which checks the documents as
-//! whole pages.
+//! comes before the others, `rendered`, which checks the documents as whole
+//! pages, and `htmlService`, which says the editor completes the `<lt-…>`
+//! elements in HTML files itself, so the server leaves them out there.
 
 use std::io::{Read, Write};
 use std::rc::Rc;
@@ -35,7 +36,7 @@ use std::time::SystemTime;
 
 use lotek_core::json::{parse, Json};
 use lotek_core::text::utf16;
-use lotek_core::types::{Finding, Severity, Vocabulary};
+use lotek_core::types::{Finding, Severity, SuggestionKind, Vocabulary};
 use lotek_core::{diagnose_markup, diagnose_page, manifest, Lines};
 
 /// Where the manifest is looked for: in the file's folder and every folder
@@ -46,8 +47,15 @@ const CANDIDATES: [&str; 2] = [
     "node_modules/@lo-tek/interfaces/manifest/manifest.json",
 ];
 
+/// What makes the editor ask for suggestions as it is typed: a quote or an
+/// equals sign opens a value, a space a new class or attribute, a hyphen
+/// comes after `lt`, and `<` opens a tag.
+const TRIGGERS: [&str; 6] = ["\"", "'", " ", "-", "<", "="];
+
 struct Document {
     uri: String,
+    /// The language the editor says the document is in, as `html` or `php`.
+    language: String,
     text: Vec<u16>,
     findings: Vec<Finding>,
 }
@@ -64,6 +72,9 @@ pub struct Server {
     roots: Vec<String>,
     preferred: Option<String>,
     rendered: bool,
+    /// The editor has an HTML service that knows the elements, as VS Code
+    /// has with `html-data.json`.
+    html_service: bool,
     /// The manifests that have been read, one per path. In a monorepo two
     /// documents can belong to different packages, each with its own version
     /// of LO-TEK.
@@ -206,6 +217,35 @@ fn range(lines: &Lines, start: usize, end: usize) -> Json {
     ])
 }
 
+/// Markdown, as LSP wraps it.
+fn markdown(value: &str) -> Json {
+    object(vec![("kind", text("markdown")), ("value", text(value))])
+}
+
+/// The UTF-16 offset of an LSP position, line and character from 0. A line
+/// ends with `\n`, `\r\n` or `\r`, as LSP counts them. A position past the
+/// end of its line is the end of the line, and one past the last line is the
+/// end of the text.
+fn offset_of(text: &[u16], line: usize, character: usize) -> usize {
+    const LF: u16 = 0x0A;
+    const CR: u16 = 0x0D;
+    let mut start = 0;
+    for _ in 0..line {
+        let Some(at) = text[start..].iter().position(|&u| u == LF || u == CR) else {
+            return text.len();
+        };
+        start += at + 1;
+        if text[start - 1] == CR && text.get(start) == Some(&LF) {
+            start += 1;
+        }
+    }
+    let length = text[start..]
+        .iter()
+        .position(|&u| u == LF || u == CR)
+        .unwrap_or(text.len() - start);
+    start + character.min(length)
+}
+
 fn diagnostic(lines: &Lines, finding: &Finding) -> Json {
     let mut entries = vec![
         ("range", range(lines, finding.start, finding.end)),
@@ -243,6 +283,7 @@ impl Server {
             roots: Vec::new(),
             preferred: None,
             rendered: false,
+            html_service: false,
             sources: Vec::new(),
             shut_down: false,
             outgoing: Vec::new(),
@@ -401,15 +442,21 @@ impl Server {
         );
     }
 
-    fn open(&mut self, uri: &str, content: &str) {
+    /// Opens the document, or gives it new text. A change does not say the
+    /// language again, so the one it was opened in stays.
+    fn open(&mut self, uri: &str, content: &str, language: Option<&str>) {
         let index = match self.documents.iter().position(|d| d.uri == uri) {
             Some(index) => {
                 self.documents[index].text = utf16(content);
+                if let Some(language) = language {
+                    self.documents[index].language = language.to_string();
+                }
                 index
             }
             None => {
                 self.documents.push(Document {
                     uri: uri.to_string(),
+                    language: language.unwrap_or("").to_string(),
                     text: utf16(content),
                     findings: Vec::new(),
                 });
@@ -486,6 +533,7 @@ impl Server {
                 .and_then(Json::as_str)
                 .map(|p| manifest_path(p, self.roots.first().map(String::as_str)));
             self.rendered = matches!(options.get("rendered"), Some(Json::Bool(true)));
+            self.html_service = matches!(options.get("htmlService"), Some(Json::Bool(true)));
         }
         // The version of LO-TEK the server checks against. Without a manifest
         // it is unknown, and the field is left out, as LSP allows.
@@ -511,6 +559,14 @@ impl Server {
                             Json::Array(vec![text("quickfix")]),
                         )]),
                     ),
+                    (
+                        "completionProvider",
+                        object(vec![(
+                            "triggerCharacters",
+                            Json::Array(TRIGGERS.iter().map(|t| text(t)).collect()),
+                        )]),
+                    ),
+                    ("hoverProvider", Json::Bool(true)),
                 ]),
             ),
             (
@@ -523,6 +579,96 @@ impl Server {
                 ),
             ),
         ])
+    }
+
+    /// The document a request is about and where in it, as a UTF-16 index,
+    /// with the vocabulary that applies to it. `None` for a document that is
+    /// not open, and when there is no manifest.
+    fn asked_at(&mut self, params: &Json) -> Option<(usize, usize, Rc<Vocabulary>)> {
+        let uri = params
+            .get("textDocument")?
+            .get("uri")?
+            .as_str()?
+            .to_string();
+        let index = self.documents.iter().position(|d| d.uri == uri)?;
+        let place = |k| {
+            params
+                .get("position")
+                .and_then(|p| p.get(k))
+                .and_then(Json::as_f64)
+                .unwrap_or(0.0) as usize
+        };
+        let offset = offset_of(
+            &self.documents[index].text,
+            place("line"),
+            place("character"),
+        );
+        let vocabulary = self.vocabulary(Some(&uri))?;
+        Some((index, offset, vocabulary))
+    }
+
+    /// What there is to write at the cursor, each as an edit of the word
+    /// that is there.
+    fn completion(&mut self, params: &Json) -> Json {
+        let Some((index, offset, vocabulary)) = self.asked_at(params) else {
+            return Json::Array(Vec::new());
+        };
+        let document = &self.documents[index];
+        let lines = Lines::new(&document.text);
+        // Where the editor has a service of its own for the elements in an
+        // HTML file, they are left to it, or each would be suggested twice.
+        let html = self.html_service && document.language == "html";
+        let items = lotek_core::complete::complete(&document.text, offset, html, &vocabulary)
+            .iter()
+            .map(|s| {
+                let mut entries = vec![
+                    ("label", text(&s.label)),
+                    (
+                        "kind",
+                        // Value, EnumMember, Class and Property in LSP.
+                        number(match s.kind {
+                            SuggestionKind::Class => 12,
+                            SuggestionKind::Value => 20,
+                            SuggestionKind::Element => 7,
+                            SuggestionKind::Attribute => 10,
+                        }),
+                    ),
+                ];
+                if let Some(detail) = &s.detail {
+                    entries.push(("detail", text(detail)));
+                }
+                if let Some(documentation) = &s.documentation {
+                    entries.push(("documentation", markdown(documentation)));
+                }
+                entries.push((
+                    "textEdit",
+                    object(vec![
+                        ("range", range(&lines, s.start, s.end)),
+                        ("newText", text(&s.label)),
+                    ]),
+                ));
+                object(entries)
+            })
+            .collect();
+        Json::Array(items)
+    }
+
+    /// What the word under the pointer is, or `null`.
+    fn hover(&mut self, params: &Json) -> Json {
+        let Some((index, offset, vocabulary)) = self.asked_at(params) else {
+            return Json::Null;
+        };
+        let document = &self.documents[index];
+        match lotek_core::complete::hover(&document.text, offset, &vocabulary) {
+            Some(found) => object(vec![
+                ("contents", markdown(&found.text)),
+                (
+                    "range",
+                    range(&Lines::new(&document.text), found.start, found.end),
+                ),
+            ]),
+            None => Json::Null,
+        }
     }
 
     /// The quick fixes for the findings that overlap the range.
@@ -656,7 +802,12 @@ impl Server {
                     .and_then(Json::as_str)
                     .unwrap_or("")
                     .to_string();
-                self.open(&document_uri, &content);
+                let language = params
+                    .get("textDocument")
+                    .and_then(|d| d.get("languageId"))
+                    .and_then(Json::as_str)
+                    .map(str::to_string);
+                self.open(&document_uri, &content, language.as_deref());
                 None
             }
             "textDocument/didChange" => {
@@ -669,7 +820,7 @@ impl Server {
                     .and_then(Json::as_str)
                     .map(str::to_string);
                 if let Some(content) = content {
-                    self.open(&document_uri, &content);
+                    self.open(&document_uri, &content, None);
                 }
                 None
             }
@@ -696,6 +847,8 @@ impl Server {
                 self.flush();
                 Some(self.code_actions(&params))
             }
+            "textDocument/completion" => Some(self.completion(&params)),
+            "textDocument/hover" => Some(self.hover(&params)),
             _ => None,
         };
 
@@ -835,12 +988,17 @@ pub fn run(_arguments: &[String]) {
                 }
             },
         };
-        if input.buffer().is_empty() {
-            server.flush();
-        }
+        // The answer first: a completion that is already waiting behind the
+        // change it follows must not wait for the check of that change too.
         let mut out = stdout.lock();
         for message in server.take() {
             write_message(&mut out, &message);
+        }
+        if input.buffer().is_empty() {
+            server.flush();
+            for message in server.take() {
+                write_message(&mut out, &message);
+            }
         }
         if let Some(code) = code {
             std::process::exit(code);
@@ -1016,12 +1174,252 @@ mod tests {
     #[test]
     fn answers_an_unknown_request_with_an_error() {
         let mut server = started();
-        server.handle(&request(4, "textDocument/hover", "{}"));
+        server.handle(&request(4, "textDocument/definition", "{}"));
         let reply = &server.take()[0];
         assert_eq!(
             reply.get("error").unwrap().get("code").unwrap().as_f64(),
             Some(-32601.0)
         );
+    }
+
+    /// Opens `marked` without its `|` as `file:///a` in the language given,
+    /// and asks `method` where the `|` stood. The result of the answer.
+    fn asked(server: &mut Server, method: &str, language: &str, marked: &str) -> Json {
+        let before = marked.split('|').next().unwrap();
+        let line = before.matches('\n').count();
+        let character = utf16(before.rsplit('\n').next().unwrap()).len();
+        let content = Json::String(marked.replace('|', "")).to_compact();
+        server.handle(&notification(
+            "textDocument/didOpen",
+            &format!(
+                r#"{{"textDocument":{{"uri":"file:///a","languageId":"{language}","version":1,"text":{content}}}}}"#
+            ),
+        ));
+        server.take();
+        server.handle(&request(
+            7,
+            method,
+            &format!(
+                r#"{{"textDocument":{{"uri":"file:///a"}},"position":{{"line":{line},"character":{character}}}}}"#
+            ),
+        ));
+        server.take()[0].get("result").cloned().unwrap()
+    }
+
+    fn labels(items: &Json) -> Vec<&str> {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|i| i.get("label").unwrap().as_str().unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn says_it_completes_and_hovers() {
+        let mut server = Server::new();
+        server.handle(&request(1, "initialize", r#"{"capabilities":{}}"#));
+        let reply = &server.take()[0];
+        let capabilities = reply.get("result").unwrap().get("capabilities").unwrap();
+        assert_eq!(capabilities.get("hoverProvider"), Some(&Json::Bool(true)));
+        let triggers = capabilities
+            .get("completionProvider")
+            .unwrap()
+            .get("triggerCharacters")
+            .unwrap()
+            .to_compact();
+        assert_eq!(triggers, r#"["\"","'"," ","-","<","="]"#);
+    }
+
+    #[test]
+    fn completes_a_class_as_an_edit_of_the_word_at_the_cursor() {
+        let mut server = started();
+        let items = asked(
+            &mut server,
+            "textDocument/completion",
+            "html",
+            "<p>ø</p>\n<b class=\"lt-bu|\"></b>",
+        );
+        let button = items
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|i| i.get("label").unwrap().as_str() == Some("lt-button"))
+            .expect("lt-button is not among the suggestions");
+        assert_eq!(button.get("kind").unwrap().as_f64(), Some(12.0));
+        assert_eq!(button.get("detail").unwrap().as_str(), Some("Button"));
+        let documentation = button.get("documentation").unwrap();
+        assert_eq!(
+            documentation.get("kind").unwrap().as_str(),
+            Some("markdown")
+        );
+        assert!(documentation
+            .get("value")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .starts_with("**Button** · "));
+        assert_eq!(
+            button.get("textEdit").unwrap().to_compact(),
+            r#"{"range":{"start":{"line":1,"character":10},"end":{"line":1,"character":15}},"newText":"lt-button"}"#
+        );
+    }
+
+    #[test]
+    fn completes_from_the_manifest_of_the_project() {
+        let root = std::env::temp_dir().join(format!("lotek-lsp-complete-{}", std::process::id()));
+        let folder = root.join("build/lotek");
+        std::fs::create_dir_all(&folder).unwrap();
+        let fragment = r#"{"schemaVersion":1,"version":"0","classes":{"app-button":{"title":"Button","link":"","attributes":{}}}}"#;
+        std::fs::write(
+            folder.join("manifest.json"),
+            manifest::merged(&crate::package::manifest(), &[fragment])
+                .unwrap()
+                .to_pretty(),
+        )
+        .unwrap();
+        let mut server = Server::new();
+        server.handle(&request(
+            1,
+            "initialize",
+            &format!(
+                r#"{{"rootUri":"file://{}","capabilities":{{}}}}"#,
+                root.display()
+            ),
+        ));
+        server.take();
+        let items = asked(
+            &mut server,
+            "textDocument/completion",
+            "html",
+            r#"<b class="|"></b>"#,
+        );
+        assert!(
+            labels(&items).contains(&"app-button"),
+            "a class the project took over"
+        );
+        assert!(labels(&items).contains(&"lt-button"));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn completes_the_elements_where_the_editor_has_no_html_service() {
+        let mut server = started();
+        let php = asked(&mut server, "textDocument/completion", "php", "<lt-|");
+        assert!(labels(&php).contains(&"lt-dialog"));
+        let item = &php.as_array().unwrap()[0];
+        assert_eq!(item.get("kind").unwrap().as_f64(), Some(7.0));
+        assert!(item.get("detail").is_none());
+        // In an HTML file too: Neovim and Helix have no service that knows them.
+        let html = asked(&mut server, "textDocument/completion", "html", "<lt-|");
+        assert!(labels(&html).contains(&"lt-dialog"));
+        let values = asked(
+            &mut server,
+            "textDocument/completion",
+            "php",
+            r#"<lt-popover placement="|""#,
+        );
+        assert!(!labels(&values).is_empty());
+        let value = &values.as_array().unwrap()[0];
+        assert_eq!(value.get("kind").unwrap().as_f64(), Some(20.0));
+        let names = asked(
+            &mut server,
+            "textDocument/completion",
+            "php",
+            "<lt-popover |",
+        );
+        assert_eq!(
+            names.as_array().unwrap()[0].get("kind").unwrap().as_f64(),
+            Some(10.0)
+        );
+    }
+
+    #[test]
+    fn leaves_the_elements_in_html_to_an_editor_that_says_it_has_them() {
+        let mut server = Server::new();
+        server.handle(&request(
+            1,
+            "initialize",
+            r#"{"rootUri":null,"capabilities":{},"initializationOptions":{"htmlService":true}}"#,
+        ));
+        server.take();
+        let html = asked(&mut server, "textDocument/completion", "html", "<lt-|");
+        assert!(labels(&html).is_empty());
+        let names = asked(
+            &mut server,
+            "textDocument/completion",
+            "html",
+            "<lt-popover |",
+        );
+        assert!(labels(&names).is_empty());
+        // The classes are the server's everywhere, and so are the elements
+        // in the other languages.
+        let classes = asked(
+            &mut server,
+            "textDocument/completion",
+            "html",
+            r#"<b class="|""#,
+        );
+        assert!(labels(&classes).contains(&"lt-button"));
+        let php = asked(&mut server, "textDocument/completion", "php", "<lt-|");
+        assert!(labels(&php).contains(&"lt-dialog"));
+    }
+
+    #[test]
+    fn completes_in_the_text_of_the_last_change() {
+        let mut server = started();
+        asked(&mut server, "textDocument/completion", "html", "<b|");
+        server.handle(&notification(
+            "textDocument/didChange",
+            r#"{"textDocument":{"uri":"file:///a","version":2},"contentChanges":[{"text":"<b class=\"\">"}]}"#,
+        ));
+        server.handle(&request(
+            8,
+            "textDocument/completion",
+            r#"{"textDocument":{"uri":"file:///a"},"position":{"line":0,"character":10}}"#,
+        ));
+        let sent = server.take();
+        let reply = sent.iter().find(|m| m.get("id").is_some()).unwrap();
+        assert!(labels(reply.get("result").unwrap()).contains(&"lt-button"));
+    }
+
+    #[test]
+    fn hovers_over_a_class_and_says_nothing_elsewhere() {
+        let mut server = started();
+        let hover = asked(
+            &mut server,
+            "textDocument/hover",
+            "html",
+            "<b\r\n class=\"lt-bu|tton\"></b>",
+        );
+        let contents = hover.get("contents").unwrap();
+        assert_eq!(contents.get("kind").unwrap().as_str(), Some("markdown"));
+        assert!(contents
+            .get("value")
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .starts_with("**Button** · "));
+        assert_eq!(
+            hover.get("range").unwrap().to_compact(),
+            r#"{"start":{"line":1,"character":8},"end":{"line":1,"character":17}}"#
+        );
+        let nothing = asked(
+            &mut server,
+            "textDocument/hover",
+            "html",
+            "<b>lt-bu|tton</b>",
+        );
+        assert_eq!(nothing, Json::Null);
+        let unopened = {
+            server.handle(&request(
+                9,
+                "textDocument/hover",
+                r#"{"textDocument":{"uri":"file:///other"},"position":{"line":0,"character":0}}"#,
+            ));
+            server.take()[0].get("result").cloned().unwrap()
+        };
+        assert_eq!(unopened, Json::Null);
     }
 
     #[test]
