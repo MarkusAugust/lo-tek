@@ -72,7 +72,8 @@ type Answer = Record<string, unknown>
  * Builder functions by name, as `lt` has them. `lt` has other things too,
  * as the lists of values, and each function takes options of its own type,
  * so `call()` is the one place that asks whether a name is a function and
- * hands it what the anatomy says.
+ * hands it what the anatomy says. A function counts when it is the object's
+ * own: one inherited, as a method of a class, is not found.
  */
 export type Builders = Readonly<Record<string, unknown>>
 
@@ -141,11 +142,11 @@ class Writer {
   /** Calls a builder function by name. */
   private call(name: string, options?: Record<string, unknown>): Answer {
     // Its own, so `toString`, which every object has, is not one.
-    const build = Object.getOwnPropertyDescriptor(this.builders, name)?.value
+    const build = Object.getOwnPropertyDescriptor(this.builders, name)
+      ? this.builders[name]
+      : undefined
     if (typeof build !== "function")
-      throw new Error(
-        `renderAnatomy: no builder function ${name} among the ones handed in.`,
-      )
+      throw new Error(`renderAnatomy: its builder functions have no ${name}.`)
     return build(options) as Answer
   }
 

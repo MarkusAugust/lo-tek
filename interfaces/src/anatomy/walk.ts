@@ -1,12 +1,13 @@
 /**
- * The one way through an anatomy.
+ * The nodes and the holes of an anatomy, wherever they stand in it.
  *
  * A child of a node is one of three things: a node, a hole, or a choice
- * between nodes, and a node's tag is one tag or a list. Every reader of the
- * tree had to know that and write its own descent: the renderer, the
- * generator of the manifest and the checks, two of them as a regex over the
- * anatomy written out as JSON. Here it is written once. A new kind of child
- * is a change here, and the readers ask for the nodes or the holes.
+ * between nodes, and a node's tag is one tag or a list. Whoever asks a
+ * question about the whole tree, as which sources it names or what stands
+ * around a hole, asks here and need not know that. The renderer and the
+ * rules in `check-anatomy.ts` still go down the tree themselves, because
+ * they do something at every level: a new kind of child is a change here
+ * and in those.
  *
  * Not part of the package's API: `index.ts` does not export it.
  */

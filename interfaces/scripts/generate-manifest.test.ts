@@ -83,6 +83,20 @@ test("a hole inside a form forbids another form, and says why", () => {
   ])
 })
 
+test("a form further out than the nearest element forbids a form too", () => {
+  const given = boxIn("form")
+  const [form] = given.anatomies.box.nodes
+  if (!("tag" in form)) throw new Error("the box is a node")
+  const inner = { tag: "div", children: form.children }
+  const { forbids } = manifestOf({
+    ...given,
+    anatomies: {
+      box: { ...given.anatomies.box, nodes: [{ ...form, children: [inner] }] },
+    },
+  }).builders[0].anatomy.holes.body
+  expect(forbids?.map((f: { tags: string[] }) => f.tags)).toEqual([["form"]])
+})
+
 test("a hole inside a div forbids nothing", () => {
   const { body } = manifestOf(boxIn("div")).builders[0].anatomy.holes
   expect("forbids" in body).toBe(false)
@@ -273,5 +287,43 @@ test("an anatomy is rendered with the builder functions of the input, not the pa
   )
   expect(cases[0].expected).toBe(
     '<div class="lt-box" data-from="the input"></div>',
+  )
+})
+
+test("a node that can be several tags and requires another part gets its tag cases with that part on", () => {
+  const anatomy: Anatomy = {
+    holes: {},
+    nodes: [
+      {
+        tag: "div",
+        from: ["box"],
+        children: [
+          { tag: "header", name: "header", optional: true },
+          {
+            tag: ["h2", "h3"],
+            name: "title",
+            optional: true,
+            requires: "header",
+          },
+        ],
+      },
+    ],
+  }
+  const { cases } = JSON.parse(
+    files(
+      input({
+        builders: [builder("box")],
+        lt: { box: () => ({ class: "lt-box" }) },
+        anatomies: { box: anatomy },
+      }),
+    )["manifest/anatomy-cases.json"],
+  )
+  const asH3 = cases.find(
+    (c: { instance: { tags?: Record<string, string> } }) =>
+      c.instance.tags?.title === "h3",
+  )
+  expect(asH3.instance.parts).toEqual({ title: true, header: true })
+  expect(asH3.expected).toBe(
+    '<div class="lt-box"><header></header><h3></h3></div>',
   )
 })

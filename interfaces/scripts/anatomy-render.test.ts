@@ -46,17 +46,34 @@ test("the attributes come from the builder functions handed in", () => {
   ).toBe('<div class="lt-box"></div>')
 })
 
-test("a builder function that was not handed in is said to be missing there, not in lt", () => {
+test("a builder function that is missing is said to be missing among the renderer's own", () => {
   expect(() =>
     renderAnatomy(manifestWith(from("box")), "box", { id: "c1" }, {}),
-  ).toThrow("renderAnatomy: no builder function box among the ones handed in.")
+  ).toThrow("renderAnatomy: its builder functions have no box.")
+})
+
+test("with no builder functions handed in, the message does not say any were", () => {
+  expect(() =>
+    renderAnatomy(manifestWith(from("nowhere")), "box", { id: "c1" }),
+  ).toThrow("renderAnatomy: its builder functions have no nowhere.")
+})
+
+test("a builder function behind a getter of the set's own is one", () => {
+  const builders = {
+    get box() {
+      return () => ({ class: "lt-box" })
+    },
+  }
+  expect(
+    renderAnatomy(manifestWith(from("box")), "box", { id: "c1" }, builders),
+  ).toBe('<div class="lt-box"></div>')
 })
 
 test("a name every object has is not a builder function", () => {
   for (const name of ["toString", "constructor", "hasOwnProperty"])
     expect(() =>
       renderAnatomy(manifestWith(from(name)), "box", { id: "c1" }, {}),
-    ).toThrow(`no builder function ${name}`)
+    ).toThrow(`its builder functions have no ${name}.`)
 })
 
 test("a value in the set that is no function is not one either", () => {
@@ -69,7 +86,7 @@ test("a value in the set that is no function is not one either", () => {
         states: ["default", "invalid"],
       },
     ),
-  ).toThrow("no builder function states")
+  ).toThrow("its builder functions have no states.")
 })
 
 /** A dialog-like box: a header that can go, and a subtitle only with it. */
