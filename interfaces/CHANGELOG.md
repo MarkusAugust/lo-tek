@@ -116,7 +116,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `generatedIds`: `lt-dialog-title` for `<lt-dialog>`, which is what an id
   like `lt-dialog-title-k2x9qa1` begins with. The list is read from the
   components, and `lotek check` reads it from the manifest, where it had a
-  list of its own.
+  list of its own. With a manifest from 0.45.0 or older, which has no such
+  list, the rule `id-from-component` finds only the id a field gives its
+  control.
 
 ### Fixed
 

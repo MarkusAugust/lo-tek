@@ -394,3 +394,31 @@ test("an id created in a folder that has no element stops the build", () => {
     "card.ts creates the id lt-card-title, and there is no <lt-card> to put it on.",
   )
 })
+
+test("a call in a comment creates no id, and a comment in a call does not hide its prefix", () => {
+  const { elements } = manifestOf(
+    withSource(
+      "dialog",
+      `/** Like uniqueId(), but kept: see rememberedId(memory, node, prefix). */
+      // this.old = uniqueId("lt-dialog-old")
+      this.titleId ??= uniqueId(
+        "lt-dialog-title", // the title
+      )
+      const url = "https://example.test/uniqueId(x)"`,
+    ),
+  )
+  expect(elements["lt-dialog"].generatedIds).toEqual(["lt-dialog-title"])
+})
+
+test("a helper imported under another name stops the build", () => {
+  expect(() =>
+    files(
+      withSource(
+        "dialog",
+        'import { uniqueId as uid } from "../../host-element.js"\nuid("lt-dialog-body")',
+      ),
+    ),
+  ).toThrow(
+    "dialog.ts imports uniqueId under another name, so the manifest cannot find the ids <lt-dialog> creates.",
+  )
+})

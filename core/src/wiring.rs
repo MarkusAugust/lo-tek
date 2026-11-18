@@ -645,9 +645,11 @@ fn generated_ids(page: &Page, vocabulary: &Vocabulary) -> Vec<Finding> {
 }
 
 /// The page of the element that created the id, when one did. Which ids an
-/// element creates is in the manifest, as `generatedIds`: here is only the
-/// form `uniqueId` in `host-element.ts` gives them, the prefix, a hyphen and
-/// seven characters.
+/// element creates with `uniqueId` in `host-element.ts` is in the manifest,
+/// as `generatedIds`, and here is the form they have: the prefix, a hyphen
+/// and seven characters. The id `createFieldId` gives a control has another
+/// form, a counter and six characters, and is not in the list: it is known
+/// here, as the field's.
 fn creator<'a>(id: &str, vocabulary: &'a Vocabulary) -> Option<&'a str> {
     let base36 = |s: &str, len: usize| {
         s.len() == len

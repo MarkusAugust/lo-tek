@@ -639,6 +639,39 @@ mod tests {
         );
     }
 
+    #[test]
+    fn only_the_form_the_component_gives_an_id_counts() {
+        let creates = creating(r#", "generatedIds": ["lt-x-note"]"#);
+        for own in [
+            // Written by hand: a word, not seven characters.
+            "lt-x-note-main",
+            "lt-x-note",
+            "lt-x-note-",
+            "lt-x-notea1b2c3d",
+            "lt-x-note--a1b2c3d",
+            "lt-x-note-a1b2c3de",
+            "lt-x-note-A1B2C3D",
+        ] {
+            let html = format!(r#"<p id="{own}">Note</p>"#);
+            assert!(copied(&html, &creates).is_empty(), "{own}");
+        }
+    }
+
+    #[test]
+    fn the_id_a_field_gives_its_control_is_reported_with_the_fields_page() {
+        let found = copied(r#"<input id="lt-field-3-k2x9qa">"#, &manifest::for_tests());
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert!(
+            found[0].link.ends_with("/components/field/"),
+            "{}",
+            found[0].link
+        );
+        for own in ["lt-field-3-main", "lt-field-x-k2x9qa", "lt-field-3-k2x9qa1"] {
+            let html = format!(r#"<input id="{own}">"#);
+            assert!(copied(&html, &manifest::for_tests()).is_empty(), "{own}");
+        }
+    }
+
     fn nesting(html: &str) -> Vec<String> {
         diagnose_markup(&utf16(html), &manifest::for_tests())
             .into_iter()

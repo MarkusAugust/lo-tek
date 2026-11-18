@@ -125,7 +125,9 @@ export type Element = {
    * none, by what each begins with: lt-dialog-title is the start of
    * lt-dialog-title-k2x9qa1, a hyphen and seven characters after it. Such an
    * id is new on every page load, so lotek check reports one written in a
-   * template. Absent when the element creates none.
+   * template. The id a field gives a control without one, lt-field-3-k2x9qa,
+   * has another form and is not listed. Absent when the element creates none
+   * of the listed kind.
    */
   generatedIds?: readonly string[]
   /**

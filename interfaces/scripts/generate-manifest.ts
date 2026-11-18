@@ -48,6 +48,7 @@ import {
 } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import ts from "typescript"
 import {
   type AnatomyInstance,
   canDrop,
@@ -1117,36 +1118,48 @@ function anatomyCasesOf(
 /**
  * The elements with the ids each creates itself, by what the id begins
  * with. A component makes such an id with `uniqueId()` or `rememberedId()`
- * from `host-element.ts`, so they are read from the calls in its own source,
- * as the variables it sets are, and belong to the element of its folder.
+ * from `host-element.ts`, so they are read from the calls in the source
+ * files of its folder and belong to the element of that folder. A call that
+ * does not write its prefix out, or a helper imported under another name,
+ * stops the build. An id made some other way is not found.
  */
 function elementsOf({ elements, components }: Input): Manifest["elements"] {
+  const HELPERS = ["uniqueId", "rememberedId"]
   const ids: Record<string, Set<string>> = {}
   for (const { name, sources } of components)
     for (const [file, text] of Object.entries(sources)) {
       if (!file.endsWith(".ts")) continue
-      for (const m of text.matchAll(/\b(?:uniqueId|rememberedId)\(/g)) {
-        // The call runs to the parenthesis that closes it.
-        let depth = 1
-        let end = m.index + m[0].length
-        for (; end < text.length && depth > 0; end++) {
-          if (text[end] === "(") depth++
-          else if (text[end] === ")") depth--
+      const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest)
+      const visit = (node: ts.Node): void => {
+        if (
+          ts.isImportSpecifier(node) &&
+          node.propertyName &&
+          HELPERS.includes(node.propertyName.text)
+        )
+          throw new Error(
+            `${file} imports ${node.propertyName.text} under another name, so the manifest cannot find the ids <lt-${name}> creates.`,
+          )
+        if (
+          ts.isCallExpression(node) &&
+          ts.isIdentifier(node.expression) &&
+          HELPERS.includes(node.expression.text)
+        ) {
+          // The prefix is the last argument, written out.
+          const last = node.arguments[node.arguments.length - 1]
+          if (!last || !ts.isStringLiteralLike(last))
+            throw new Error(
+              `${file}: ${text.slice(node.getStart(source), node.end).replace(/\s+/g, " ")} does not write its prefix out, so the manifest cannot say which ids <lt-${name}> creates.`,
+            )
+          if (!elements[`lt-${name}`])
+            throw new Error(
+              `${file} creates the id ${last.text}, and there is no <lt-${name}> to put it on.`,
+            )
+          ids[`lt-${name}`] ??= new Set()
+          ids[`lt-${name}`].add(last.text)
         }
-        const call = text.slice(m.index, end).replace(/\s+/g, " ")
-        // The prefix is the last argument, written out.
-        const prefix = call.match(/[(,] ?["']([a-z0-9-]+)["'],? ?\)$/)?.[1]
-        if (!prefix)
-          throw new Error(
-            `${file}: ${call} does not write its prefix out, so the manifest cannot say which ids <lt-${name}> creates.`,
-          )
-        if (!elements[`lt-${name}`])
-          throw new Error(
-            `${file} creates the id ${prefix}, and there is no <lt-${name}> to put it on.`,
-          )
-        ids[`lt-${name}`] ??= new Set()
-        ids[`lt-${name}`].add(prefix)
+        ts.forEachChild(node, visit)
       }
+      visit(source)
     }
   return Object.fromEntries(
     Object.entries(elements).map(([tag, element]) => [
