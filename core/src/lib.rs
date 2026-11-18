@@ -893,7 +893,7 @@ mod tests {
     fn a_tag_with_no_allowed_values_is_refused_when_read() {
         let fragment = r#"{"schemaVersion": 1, "version": "0", "classes": {"app-box": {"title": "Box", "link": "", "attributes": {}, "tags": [{"tag": "input", "attributes": {"type": []}}]}}}"#;
         let read = manifest::with_fragments(&manifest::test_text(), &[fragment]);
-        let error = read.err().expect("an empty list of values must be refused");
+        let error = read.expect_err("an empty list of values must be refused");
         assert!(error.contains("app-box"), "{error}");
     }
 

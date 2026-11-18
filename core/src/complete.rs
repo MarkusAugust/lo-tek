@@ -421,7 +421,6 @@ mod tests {
     use super::*;
     use crate::manifest;
     use crate::text::utf16;
-    use crate::types::*;
 
     /// Two classes and one element, as small as a manifest gets.
     fn small() -> Vocabulary {

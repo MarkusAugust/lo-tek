@@ -23,6 +23,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { lightCells } from "../src/tokens/matrix-cells.js"
+import { atOnce, turn } from "./at-once.js"
 
 const packageDir = fileURLToPath(new URL("../", import.meta.url))
 
@@ -50,7 +51,16 @@ const COMMAND = process.env.LOTEK_CLI
 const COMPARE = process.env.LOTEK_COMPARE
   ? command(process.env.LOTEK_COMPARE)
   : undefined
-const differences: string[] = []
+const differing: string[][] = []
+
+/**
+ * Files what was found under the block that found it, so the report keeps
+ * the order the blocks are written in, whichever finished first.
+ */
+function filed(lists: string[][], line: string): void {
+  const number = turn() ?? 0
+  lists[number] = [...(lists[number] ?? []), line]
+}
 
 const COLOURS = [
   "--accent=#7c3aed",
@@ -128,21 +138,34 @@ async function run(args: string[], folder?: string): Promise<Run> {
         .replace(/(Could not reach \S+: ).*/g, "$1…")
     for (const part of ["code", "out", "err"] as const)
       if (same(String(result[part])) !== same(String(other[part])))
-        differences.push(
+        filed(
+          differing,
           `${args.join(" ")} (${part})\n    ${JSON.stringify(result[part]).slice(0, 400)}\n    ${JSON.stringify(other[part]).slice(0, 400)}`,
         )
   }
   return result
 }
 
-const failures: string[] = []
+const failures: string[][] = []
 
 function expect(claim: boolean, description: string): void {
-  if (!claim) failures.push(description)
+  if (!claim) filed(failures, description)
+}
+
+/*
+ * The blocks below share nothing: each makes its own folder, and none
+ * changes the working directory or the environment. Nearly all the time goes
+ * to waiting on the processes they start, so a few run at the same time.
+ */
+const AT_ONCE = 4
+const blocks: (() => Promise<void>)[] = []
+
+function block(body: () => Promise<void>): void {
+  blocks.push(body)
 }
 
 // Writes the theme to standard output when no file is given
-{
+block(async () => {
   const { code, out } = await run(["theme", ...COLOURS])
 
   expect(code === 0, `theme with every colour exited with code ${code}`)
@@ -154,10 +177,10 @@ function expect(claim: boolean, description: string): void {
     out.includes('[data-theme="dark"]'),
     "the output is missing the dark theme",
   )
-}
+})
 
 // Writes to a file when --out is given, and leaves standard output empty
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-cli-"))
   const path = join(folder, "theme.css")
 
@@ -172,10 +195,10 @@ function expect(claim: boolean, description: string): void {
   expect(content.includes("@layer lotek"), "the file is missing the layer")
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // Reads the colours from a JSON file
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-cli-"))
   const path = join(folder, "lotek.theme.json")
   await writeFile(
@@ -197,10 +220,10 @@ function expect(claim: boolean, description: string): void {
   )
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // `check-theme` checks a theme, and counts the consumer's own values
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const good = join(folder, "good.css")
 
@@ -269,10 +292,10 @@ function expect(claim: boolean, description: string): void {
   )
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // A family that is left out inherits LO-TEK's own, rather than failing the run
-{
+block(async () => {
   const { code, out } = await run(["theme", "--accent=#7c3aed"])
 
   expect(code === 0, `one brand colour alone exited with code ${code}`)
@@ -280,7 +303,7 @@ function expect(claim: boolean, description: string): void {
     out.includes("--lt-color-danger-fill"),
     "a theme with only accent is missing the inherited families",
   )
-}
+})
 
 /*
  * Font and shape, as flags and from a file.
@@ -291,7 +314,7 @@ function expect(claim: boolean, description: string): void {
  * `--button-radius=2rem` is read as a file name again, and everything else
  * passes.
  */
-{
+block(async () => {
   const { code, out } = await run([
     "theme",
     "--font=Helvetica, Arial, sans-serif",
@@ -331,10 +354,10 @@ function expect(claim: boolean, description: string): void {
     !out.includes("--palette-") && !out.includes("--semantic-"),
     "a theme without colours must not write colours",
   )
-}
+})
 
 // Font and shape from a theme file, together with the colours
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
   await writeFile(
@@ -369,10 +392,10 @@ function expect(claim: boolean, description: string): void {
   )
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // The Norwegian keys are gone, and an unknown key names the English ones
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
   await writeFile(
@@ -389,10 +412,10 @@ function expect(claim: boolean, description: string): void {
   )
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // Says so when a flag does not exist, rather than ignoring it
-{
+block(async () => {
   // A misspelt flag went quietly through once, and the theme came out
   // without the radius and without a word.
   const { code, err } = await run([
@@ -406,10 +429,10 @@ function expect(claim: boolean, description: string): void {
     err.includes("--button-radii"),
     "the error message does not say which flag",
   )
-}
+})
 
 // Rejects a value that could break out of the CSS rule it is written into
-{
+block(async () => {
   const { code, err } = await run([
     "theme",
     "--button-radius=4px; } html { display: none } :root { --x: 1",
@@ -424,10 +447,10 @@ function expect(claim: boolean, description: string): void {
     !err.includes("Colours are written as hexadecimal"),
     "the error message points to the colours, and the error is not about colours",
   )
-}
+})
 
 // Says so when the recipe sets nothing
-{
+block(async () => {
   const { code, err } = await run(["theme"])
 
   expect(code !== 0, "an empty theme should give an error code")
@@ -435,10 +458,10 @@ function expect(claim: boolean, description: string): void {
     err.includes("empty"),
     `the error message does not say the theme is empty: ${err.slice(0, 120)}`,
   )
-}
+})
 
 // Says so in a readable way when a colour is not a colour
-{
+block(async () => {
   const { code, err } = await run([
     "theme",
     "--accent=purple",
@@ -460,7 +483,7 @@ function expect(claim: boolean, description: string): void {
     !err.includes("at buildTheme"),
     "the error message shows a stack trace rather than saying what is wrong",
   )
-}
+})
 
 /**
  * Every component can be taken over, and the copy does not point into thin
@@ -474,7 +497,7 @@ function expect(claim: boolean, description: string): void {
  * Here every component the tool itself lists is taken over, and every
  * reference out of the folder is checked against `exports` in the package.
  */
-{
+block(async () => {
   const exported = new Set(
     Object.keys(
       (
@@ -546,10 +569,10 @@ function expect(claim: boolean, description: string): void {
   }
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // Takes over a component, and rewrites the references out of the folder
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-cli-"))
 
   const { code, err } = await run([
@@ -664,10 +687,10 @@ function expect(claim: boolean, description: string): void {
   )
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // With the style sheets, the check also reports what they do not style
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-css-"))
   const page = join(folder, "page.html")
   await writeFile(
@@ -701,10 +724,10 @@ function expect(claim: boolean, description: string): void {
     "a style sheet that does not exist was not reported",
   )
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // `@import` from a package follows `exports`, as a bundler does
-{
+block(async () => {
   /*
    * The path in `@import "@lo-tek/interfaces/lotek.css"` is a name in
    * `exports`, not a file in the package: the file is in `dist/`. The check
@@ -791,10 +814,10 @@ function expect(claim: boolean, description: string): void {
     "a relative @import that does not exist was taken from elsewhere in the project",
   )
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // The brand colours have a digit in the flag name, and were read as file names
-{
+block(async () => {
   const without = await run(["theme", "--accent=#7c3aed"])
   const withBrand = await run(["theme", "--accent=#7c3aed", "--brand1=#aa3366"])
 
@@ -804,10 +827,10 @@ function expect(claim: boolean, description: string): void {
       withBrand.out !== without.out,
     "--brand1 did not change the theme",
   )
-}
+})
 
 // A flag without an equals sign stops, rather than writing to the default folder
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-takeover-"))
   const { code, err } = await run([
     "takeover",
@@ -825,13 +848,13 @@ function expect(claim: boolean, description: string): void {
     "the error message does not say that --out has no value",
   )
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // The same goes for theme after a recipe file. `--out theme.css` was read as
 // two more file names, the theme went to standard output and no file was
 // written, and `--accent #f00` quietly disappeared behind the colour in the
 // file.
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const recipe = join(folder, "recipe.json")
   await writeFile(recipe, JSON.stringify({ accent: "#7c3aed" }))
@@ -870,12 +893,12 @@ function expect(claim: boolean, description: string): void {
     `theme with two recipes did not say what was wrong: ${two.err}`,
   )
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // An unknown flag with an equals sign also stops takeover and agent.
 // `--outt=` put the copy quietly in the default folder, and `--framwork=`
 // gave the templates rulebook.
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-takeover-"))
   const takeover = await run(["takeover", "button", "--outt=src/ui"], folder)
   expect(takeover.code === 1, `takeover with --outt should give an error code`)
@@ -895,10 +918,10 @@ function expect(claim: boolean, description: string): void {
     `agent with --framwork did not say the flag is unknown: ${agent.err}`,
   )
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // Says which components exist when the name is unknown
-{
+block(async () => {
   const { code, err } = await run(["takeover", "buton"])
 
   expect(code !== 0, "an unknown component name should give an error code")
@@ -906,37 +929,44 @@ function expect(claim: boolean, description: string): void {
     err.includes("buton") && err.includes("button"),
     "the error message does not list the components that exist",
   )
-}
+})
 
 // Prints the help without arguments, and when someone asks for it
-for (const args of [[], ["--help"], ["-h"], ["help"]]) {
-  const { code, out } = await run(args)
+block(async () => {
+  for (const args of [[], ["--help"], ["-h"], ["help"]]) {
+    const { code, out } = await run(args)
 
-  expect(
-    code === 0,
-    `"${args[0] ?? "without arguments"}" exited with code ${code}`,
-  )
-  expect(
-    out.includes("takeover") && out.includes("theme"),
-    `the help does not mention both commands: ${out.slice(0, 80)}`,
-  )
-}
+    expect(
+      code === 0,
+      `"${args[0] ?? "without arguments"}" exited with code ${code}`,
+    )
+    expect(
+      out.includes("takeover") && out.includes("theme"),
+      `the help does not mention both commands: ${out.slice(0, 80)}`,
+    )
+  }
+})
 
 // The old Norwegian verbs and help flags are gone, not kept as aliases
-for (const old of [
-  "sjekk",
-  "sjekk-tema",
-  "overta",
-  "tema",
-  "hjelp",
-  "--hjelp",
-]) {
-  const { code } = await run([old])
-  expect(code === 1, `"${old}" should be an unknown command, gave code ${code}`)
-}
+block(async () => {
+  for (const old of [
+    "sjekk",
+    "sjekk-tema",
+    "overta",
+    "tema",
+    "hjelp",
+    "--hjelp",
+  ]) {
+    const { code } = await run([old])
+    expect(
+      code === 1,
+      `"${old}" should be an unknown command, gave code ${code}`,
+    )
+  }
+})
 
 // Says so about an unknown command instead of reading it as a file name
-{
+block(async () => {
   const { code, err } = await run(["build"])
 
   expect(code !== 0, "an unknown command should give an error code")
@@ -944,10 +974,10 @@ for (const old of [
     err.includes("build") && !err.includes("ENOENT"),
     `the error message is a stack trace instead of an explanation: ${err.slice(0, 80)}`,
   )
-}
+})
 
 // Says so about a theme file that does not exist, or is not JSON
-{
+block(async () => {
   const gone = await run(["theme", "does-not-exist.json"])
 
   expect(
@@ -997,10 +1027,10 @@ for (const old of [
   )
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // `check`: files that match give 0, one finding gives 1 with file, line and column
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-cli-"))
   const right = join(folder, "right.html")
   const wrong = join(folder, "wrong.html")
@@ -1208,11 +1238,11 @@ for (const old of [
   expect(!slowErr.includes("EAGAIN"), "reading standard input threw EAGAIN")
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // `agent`: the rulebook to standard output, the message to standard error,
 // and no file written
-{
+block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-agent-"))
   const rulebook = (name: string) =>
     readFile(join(packageDir, `agent/${name}.md`), "utf8")
@@ -1370,15 +1400,30 @@ for (const old of [
     await readFile(join(packageDir, "manifest/files.json"), "utf8"),
   ).agent.map((name: string) => name.replace(/\.md$/, ""))
   expect(books.length > 0, "manifest/files.json lists no rulebooks")
+  let examples = 0
 
   for (const framework of books) {
     const book = await run(["agent", `--framework=${framework}`], folder)
-    const blocks = [...book.out.matchAll(/```html\n([\s\S]*?)```/g)]
+    const fenced = [...book.out.matchAll(/```html\r?\n([\s\S]*?)```/g)]
+    // Counted a second way, from the file and line by line. On Windows the
+    // rulebooks are checked out with CRLF, and a pattern that asked for a
+    // bare line feed found no example at all: 32 went unchecked there, with
+    // nothing saying so.
+    const fences = (
+      await readFile(join(packageDir, "agent", `${framework}.md`), "utf8")
+    )
+      .split("\n")
+      .filter((line) => line.trim().toLowerCase() === "```html").length
+    expect(
+      fenced.length === fences,
+      `the ${framework} rulebook has ${fences} html examples, and ${fenced.length} were read`,
+    )
+    examples += fenced.length
 
-    for (const [number, block] of blocks.entries()) {
+    for (const [number, example] of fenced.entries()) {
       const attempt = Bun.spawn([...COMMAND, "check"], {
         env: ENVIRONMENT,
-        stdin: new Blob([block[1]]),
+        stdin: new Blob([example[1]]),
         stdout: "pipe",
         stderr: "pipe",
       })
@@ -1394,12 +1439,13 @@ for (const old of [
       )
     }
   }
+  expect(examples > 0, "no rulebook has an html example to check")
 
   await rm(folder, { recursive: true, force: true })
-}
+})
 
 // An address is fetched and checked as a whole page
-{
+block(async () => {
   const page =
     '<!doctype html><html lang="en"><body><label for="nowhere">Name</label><button class="lt-buton">Save</button></body></html>'
   // Bound to 127.0.0.1, as the page checks are: without a hostname the URL
@@ -1497,7 +1543,17 @@ for (const old of [
     nobody.err.includes(`Could not reach ${root}`),
     `an address where nobody answers was not reported: ${nobody.err}`,
   )
-}
+})
+
+// A block that throws does not take the others' findings with it: they are
+// printed first, and the error after them.
+const thrown = await atOnce(AT_ONCE, blocks).then(
+  () => undefined,
+  (error: unknown) => ({ error }),
+)
+
+const differences = differing.flat()
+const failed = failures.flat()
 
 if (differences.length > 0) {
   console.error(
@@ -1505,14 +1561,15 @@ if (differences.length > 0) {
   )
 }
 
-if (failures.length > 0) {
+if (failed.length > 0) {
   console.error(
-    `The command line tool does not behave as promised:\n\n${failures
+    `The command line tool does not behave as promised:\n\n${failed
       .map((line) => `  ${line}`)
       .join("\n")}\n`,
   )
 }
 
-if (differences.length > 0 || failures.length > 0) process.exit(1)
+if (thrown) throw thrown.error
+if (differences.length > 0 || failed.length > 0) process.exit(1)
 
 console.log(`The command line tool answers as it should on ${runCount} runs.`)
