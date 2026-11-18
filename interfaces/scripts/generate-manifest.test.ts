@@ -440,3 +440,19 @@ test("a description of a component that has no folder stops the build", () => {
     "scripts/metadata/ describes card, and no folder in src/components/ has that name.",
   )
 })
+
+test("a helper used as anything but a call by its own name stops the build", () => {
+  for (const source of [
+    'import * as host from "../../host-element.js"\nhost.uniqueId("lt-dialog-body")',
+    'const uid = uniqueId\nuid("lt-dialog-body")',
+    '["lt-dialog-body"].map(uniqueId)',
+    '(rememberedId as Remember)(ids, node, "lt-dialog-body")',
+  ])
+    expect(() => files(withSource("dialog", source))).toThrow("dialog.ts uses ")
+})
+
+test("an empty prefix stops the build", () => {
+  expect(() => files(withSource("dialog", 'uniqueId("")'))).toThrow(
+    'dialog.ts: uniqueId("") does not write its prefix out',
+  )
+})

@@ -650,6 +650,7 @@ mod tests {
             "lt-x-notea1b2c3d",
             "lt-x-note--a1b2c3d",
             "lt-x-note-a1b2c3de",
+            "lt-x-note-a1b2c3",
             "lt-x-note-A1B2C3D",
         ] {
             let html = format!(r#"<p id="{own}">Note</p>"#);
