@@ -59,6 +59,8 @@ Where you get `lotek.jar`, `lotek.wasm` and the executable is described on [Comm
 
 The server checks against what the project actually has. It goes from the file's folder upwards, the way Node finds a package, and looks in each folder for `build/lotek/manifest.json`, which the [Gradle plugin](../kotlin/#the-gradle-plugin) writes, and then for `node_modules/@lo-tek/interfaces/manifest/manifest.json`, the installed package. The nearest folder with one of them wins, and it does not look above the root of the workspace. In a monorepo, a page in `apps/web` is therefore checked against the package `apps/web` has installed. If the file is outside the workspace, such as a scratch file, or the editor has not given a workspace, it does not search from the file at all: then the manifest at the root of the workspace applies, if there is one. If none of them exist, `npx`, `java -jar` and VS Code check against the package they bring with them. The executable and wasmtime check against the package `LOTEK_PACKAGE` points to, and without it they check nothing and say so. The file is read again when it changes, so a new build or an upgrade reaches the editor without a restart.
 
+The server is tested inside VS Code on every change, and the JetBrains plugin on the IntelliJ platform. Neovim and Helix are not tested by us yet: nothing here starts either of them, so the two setups below may have gaps we do not know about. See the [roadmap](../roadmap/#what-is-left).
+
 In **Neovim** 0.11 or newer:
 
 ```lua
