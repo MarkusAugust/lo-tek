@@ -27,6 +27,20 @@
 }
 
 /*
+ * One page fades into the next. Every link is a whole new document, and the
+ * browser painted it as it arrived: the header first, then the sidebar, then
+ * the content, which was seen as a flash on every click in the sidebar. With
+ * this the old page stays until the new one has its first frame, and
+ * `Head.astro` says what that frame waits for. A browser that does not know
+ * the rule loads the page as before.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+/*
  * Starlight's own colours, read from LO-TEK's tokens.
  *
  * Starlight draws its whole shell with `--sl-color-*`. The Tailwind bridge

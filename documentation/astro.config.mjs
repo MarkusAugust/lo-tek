@@ -34,6 +34,11 @@ export default defineConfig({
    */
   compressHTML: true,
   /*
+   * The page behind a link is fetched when the pointer is over it or focus
+   * is on it, so it is already there at the click and comes in one piece.
+   */
+  prefetch: { prefetchAll: true, defaultStrategy: "hover" },
+  /*
    * The address is in `homepage` in the package, which `llms.txt` and
    * `robots.txt` also read. With `site` set, Starlight makes the sitemap
    * itself, and that is how search engines and agents find the pages.
