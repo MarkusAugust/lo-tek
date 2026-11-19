@@ -165,6 +165,10 @@ tasks.test {
     val manifest = rootDir.resolve("../interfaces/manifest/manifest.json")
     systemProperty("manifest", manifest.absolutePath)
     inputs.file(manifest).withPathSensitivity(PathSensitivity.NONE)
+    // The cases for which manifest applies, shared with the language server.
+    val lookup = rootDir.resolve("../cli/manifest-lookup.json")
+    systemProperty("manifestLookup", lookup.absolutePath)
+    inputs.file(lookup).withPathSensitivity(PathSensitivity.NONE)
     inputs.files(kotlinLibraries).withNormalizer(ClasspathNormalizer::class.java)
     val libraries = kotlinLibraries
     jvmArgumentProviders.add(CommandLineArgumentProvider { listOf("-Dlotek.kotlinLibraries=${libraries.files.joinToString(File.pathSeparator)}") })

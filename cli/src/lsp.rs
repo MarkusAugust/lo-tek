@@ -366,8 +366,10 @@ impl Server {
         // Last, the package the host has given, which the extension points to.
         candidates.extend(self.package_manifest.clone());
         let found = candidates.into_iter().find_map(|path| {
-            let modified = std::fs::metadata(&path).ok()?.modified().ok();
-            Some((path, modified))
+            // A folder with the name is not a manifest, and the next
+            // candidate is tried, as in the IntelliJ plugin.
+            let metadata = std::fs::metadata(&path).ok().filter(|m| m.is_file())?;
+            Some((path, metadata.modified().ok()))
         });
         let (path, modified) = match found {
             Some((path, modified)) => (Some(path), modified),
@@ -1663,6 +1665,158 @@ mod tests {
             count(&mut rootless, &inside),
             0,
             "without a root nothing is searched upwards from the file"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    /// Every case in `cli/manifest-lookup.json`, which the IntelliJ plugin
+    /// builds too (`ManifestLookupTest.kt`), so the two give the same answer.
+    ///
+    /// Each manifest in a case knows one class of its own, and the document
+    /// uses an element of each of them on a line of its own. The line that is
+    /// reported is the manifest that applied.
+    #[test]
+    fn finds_the_manifest_the_shared_table_says() {
+        let table = parse(include_str!("../manifest-lookup.json")).unwrap();
+        let cases = table.get("cases").and_then(Json::as_array).unwrap();
+        let base = std::env::temp_dir().join(format!("lotek-lsp-table-{}", std::process::id()));
+        let paths = |case: &Json, key: &str| -> Vec<String> {
+            case.get(key)
+                .and_then(Json::as_array)
+                .unwrap_or_default()
+                .iter()
+                .map(|p| p.as_str().unwrap().to_string())
+                .collect()
+        };
+        for (number, case) in cases.iter().enumerate() {
+            let name = case.get("name").and_then(Json::as_str).unwrap();
+            let here = base.join(format!("case-{number}"));
+            let project = here.join("project");
+            // `../` is beside the project, written out so the address of a
+            // document outside it does not start with the project's.
+            let placed = |path: &str| match path.strip_prefix("../") {
+                Some(outside) => here.join(outside),
+                None => project.join(path),
+            };
+            std::fs::create_dir_all(&project).unwrap();
+            let manifests = paths(case, "manifests");
+            for (index, path) in manifests.iter().enumerate() {
+                let file = placed(path);
+                std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+                let fragment = format!(
+                    r#"{{"schemaVersion":1,"version":"0","classes":{{"app-m{index}":{{"title":"M","link":"","attributes":{{}}}}}}}}"#
+                );
+                std::fs::write(
+                    file,
+                    manifest::merged(&crate::package::manifest(), &[&fragment])
+                        .unwrap()
+                        .to_pretty(),
+                )
+                .unwrap();
+            }
+            for path in paths(case, "folders") {
+                std::fs::create_dir_all(placed(&path)).unwrap();
+            }
+            let document = placed(case.get("document").and_then(Json::as_str).unwrap());
+            let text = (0..manifests.len())
+                .map(|index| format!(r#"<b class=\"app-m{index}__x\"></b>"#))
+                .collect::<Vec<_>>()
+                .join("\\n");
+
+            let mut server = Server::new();
+            server.handle(&request(
+                1,
+                "initialize",
+                &format!(
+                    r#"{{"rootUri":"file://{}","capabilities":{{}}}}"#,
+                    project.display()
+                ),
+            ));
+            server.take();
+            server.handle(&notification(
+                "textDocument/didOpen",
+                &format!(
+                    r#"{{"textDocument":{{"uri":"file://{}","languageId":"html","version":1,"text":"{text}"}}}}"#,
+                    document.display()
+                ),
+            ));
+            let sent = server.take();
+            let lines: Vec<usize> = sent
+                .iter()
+                .find(|m| {
+                    m.get("method").and_then(Json::as_str)
+                        == Some("textDocument/publishDiagnostics")
+                })
+                .and_then(|m| m.get("params")?.get("diagnostics")?.as_array())
+                .unwrap()
+                .iter()
+                .map(|d| {
+                    d.get("range")
+                        .and_then(|r| r.get("start")?.get("line")?.as_f64())
+                        .unwrap() as usize
+                })
+                .collect();
+            let applied: Vec<&str> = lines.iter().map(|&line| manifests[line].as_str()).collect();
+            let expected: Vec<&str> = case
+                .get("expect")
+                .and_then(Json::as_str)
+                .into_iter()
+                .collect();
+            assert_eq!(applied, expected, "{name}");
+        }
+        assert!(
+            cases.len() >= 10,
+            "the table has lost cases: {}",
+            cases.len()
+        );
+        std::fs::remove_dir_all(base).unwrap();
+    }
+
+    #[test]
+    fn a_manifest_that_cannot_be_read_stops_the_checks_and_says_so() {
+        // The IntelliJ plugin checks against the manifest in the Kotlin
+        // package here, and writes to its log. The server has no package of
+        // its own to go to, so it checks nothing and tells the user.
+        let root =
+            std::env::temp_dir().join(format!("lotek-lsp-unreadable-{}", std::process::id()));
+        let folder = root.join("build/lotek");
+        std::fs::create_dir_all(&folder).unwrap();
+        std::fs::write(folder.join("manifest.json"), "{}").unwrap();
+        let mut server = Server::new();
+        server.handle(&request(
+            1,
+            "initialize",
+            &format!(
+                r#"{{"rootUri":"file://{}","capabilities":{{}}}}"#,
+                root.display()
+            ),
+        ));
+        server.handle(&notification(
+            "textDocument/didOpen",
+            &format!(
+                r#"{{"textDocument":{{"uri":"file://{}/a.html","languageId":"html","version":1,"text":"<b class=\"lt-buton\"></b>"}}}}"#,
+                root.display()
+            ),
+        ));
+        let sent = server.take();
+        let said = sent.iter().any(|m| {
+            m.get("method").and_then(Json::as_str) == Some("window/showMessage")
+                && m.get("params")
+                    .and_then(|p| p.get("message")?.as_str())
+                    .is_some_and(|text| text.contains("checks nothing until it can be read"))
+        });
+        assert!(said, "the user is not told: {sent:?}");
+        let findings = sent
+            .iter()
+            .filter(|m| {
+                m.get("method").and_then(Json::as_str) == Some("textDocument/publishDiagnostics")
+            })
+            .filter_map(|m| m.get("params")?.get("diagnostics")?.as_array())
+            .map(<[Json]>::len)
+            .sum::<usize>();
+        assert_eq!(
+            findings, 0,
+            "nothing is checked against a manifest that is not read"
         );
         std::fs::remove_dir_all(root).unwrap();
     }

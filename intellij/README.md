@@ -87,9 +87,12 @@ from the folder the file is in and upwards to the project folder, first
 `build/lotek/manifest.json`, which the Gradle task `lotekManifest` writes
 when the project has taken over components, then
 `node_modules/@lo-tek/interfaces/manifest/manifest.json`. For an injected
-fragment the search starts from the file the string is in. If neither exists, or the
+fragment the search starts from the file the string is in. A file outside the
+project, such as a scratch file, is checked against the manifest at the project
+folder. If neither exists, or the
 core cannot read the manifest, the manifest in the Kotlin package applies, and the
-latter is written to the IDE's log. See `ProjectManifest.kt`. When the manifest appears, changes or disappears,
+latter is written to the IDE's log. See `ProjectManifest.kt`. The cases in
+`cli/manifest-lookup.json` are run by both the plugin and the language server. When the manifest appears, changes or disappears,
 the open files are checked again (`ManifestListener.kt`).
 Completion reads the classes from the same manifest, see [The data](#the-data).
 
