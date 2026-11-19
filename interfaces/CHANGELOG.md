@@ -143,6 +143,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   against the schema, and the schema no longer lets an undescribed field
   through on the manifest, an element, a class, a builder function or an
   option. A reader that validates against the schema can trust it.
+- **`lotek lsp` passes over a folder named like a manifest.** A folder
+  called `build/lotek/manifest.json` was taken for the manifest, could not be
+  read, and the server then checked nothing. It now goes on to the next
+  place, as the IntelliJ plugin does.
 
 ## 0.45.0 (2026-11-16)
 

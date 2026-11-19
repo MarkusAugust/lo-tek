@@ -4,6 +4,7 @@ import com.intellij.lang.injection.InjectedLanguageManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.guessProjectDir
 import com.intellij.openapi.roots.ProjectFileIndex
+import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
@@ -21,11 +22,19 @@ import java.util.concurrent.ConcurrentHashMap
  * the Gradle task `lotekManifest` writes when the project has taken over
  * components, then the manifest in `node_modules/@lo-tek/interfaces`. Not
  * above it: a package in the home directory is not the project's. A file
- * outside the project, like a scratch file, is therefore checked against the
- * manifest in the Kotlin package. If none of them exists, the same applies.
- * The language server also tries the root of every workspace for such a
- * file, and has an option for a specific manifest, which the plugin does
- * not have.
+ * under none of them, like a scratch file, is checked against the manifest
+ * at the project directory, and then the one at each content root.
+ * If none of them exists, the manifest in the Kotlin package applies.
+ *
+ * The cases in `cli/manifest-lookup.json` are built by both the plugin and
+ * the language server, and the two must give the same answer. They differ
+ * in four things the table does not hold. The server has an option for a
+ * specific manifest, and the plugin has none. When no manifest is found,
+ * the server uses the package its host points to, or checks nothing. A
+ * manifest that cannot be read makes the server check nothing and tell the
+ * user, where the plugin goes to the Kotlin package and writes to the log.
+ * And with several workspaces the server tries the root of each of them for
+ * every file, where the plugin does so only for a file under no root.
  *
  * For an injected fragment the search starts from the file the string is in.
  */
@@ -81,18 +90,31 @@ internal object ProjectManifest {
                 projectDir
             } else {
                 ProjectFileIndex.getInstance(project).getContentRootForFile(virtualFile, false)
-            } ?: return null
-        var dir: VirtualFile? = virtualFile.parent
-        while (dir != null) {
-            for (candidate in CANDIDATES) {
-                val found = dir.findFileByRelativePath(candidate)
-                if (found != null && !found.isDirectory) return load(found)
             }
+        // A file under no root, like a scratch file, has nothing to stop at,
+        // so nothing is searched upwards from it.
+        var dir: VirtualFile? = if (root == null) null else virtualFile.parent
+        while (dir != null) {
+            manifestIn(dir)?.let { return load(it) }
             if (dir == root) break
             dir = dir.parent
         }
+        if (root != null) return null
+        // A file under no root gets the project directory and then every
+        // content root, as the language server tries the root of every
+        // workspace. A scratch file is then checked against the classes the
+        // rest of the project has. Not a file under a root: a module is a
+        // content root too, and a page in one module would otherwise get the
+        // manifest of the module beside it.
+        for (top in listOfNotNull(projectDir) + ProjectRootManager.getInstance(project).contentRoots) {
+            manifestIn(top)?.let { return load(it) }
+        }
         return null
     }
+
+    /** The first candidate that is a file in [dir]. A directory with the name is passed over. */
+    private fun manifestIn(dir: VirtualFile): VirtualFile? =
+        CANDIDATES.firstNotNullOfOrNull { candidate -> dir.findFileByRelativePath(candidate)?.takeUnless { it.isDirectory } }
 
     private fun load(file: VirtualFile): Read? {
         val stamp = file.modificationStamp

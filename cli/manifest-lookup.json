@@ -1,0 +1,81 @@
+{
+  "about": "Which manifest applies to a document. The language server (cli/src/lsp.rs) and the IntelliJ plugin (ProjectManifest.kt) both build every case here and must give the same answer. Paths are relative to the project folder, and `../` is outside it. `folders` are folders that have the name of a manifest. `expect` is the manifest that applies, or null when none of them does.",
+  "cases": [
+    {
+      "name": "the manifest the project built, at its root",
+      "manifests": ["build/lotek/manifest.json"],
+      "document": "page.html",
+      "expect": "build/lotek/manifest.json"
+    },
+    {
+      "name": "in one folder, the one the project built goes before the package",
+      "manifests": [
+        "node_modules/@lo-tek/interfaces/manifest/manifest.json",
+        "build/lotek/manifest.json"
+      ],
+      "document": "page.html",
+      "expect": "build/lotek/manifest.json"
+    },
+    {
+      "name": "the search goes upwards from the folder the document is in",
+      "manifests": ["node_modules/@lo-tek/interfaces/manifest/manifest.json"],
+      "document": "pages/form/page.html",
+      "expect": "node_modules/@lo-tek/interfaces/manifest/manifest.json"
+    },
+    {
+      "name": "the nearest folder that has one wins",
+      "manifests": [
+        "node_modules/@lo-tek/interfaces/manifest/manifest.json",
+        "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+      ],
+      "document": "apps/web/src/page.html",
+      "expect": "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+    },
+    {
+      "name": "a package nearer the document goes before a built manifest further up",
+      "manifests": [
+        "build/lotek/manifest.json",
+        "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+      ],
+      "document": "apps/web/src/page.html",
+      "expect": "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+    },
+    {
+      "name": "a document beside the package that another folder has does not see it",
+      "manifests": [
+        "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+      ],
+      "document": "apps/admin/page.html",
+      "expect": null
+    },
+    {
+      "name": "a package above the project is not the project's",
+      "manifests": [
+        "../node_modules/@lo-tek/interfaces/manifest/manifest.json"
+      ],
+      "document": "page.html",
+      "expect": null
+    },
+    {
+      "name": "a document outside the project gets the project's manifest",
+      "manifests": ["build/lotek/manifest.json"],
+      "document": "../notes/a.html",
+      "expect": "build/lotek/manifest.json"
+    },
+    {
+      "name": "nothing is searched upwards from a document outside the project",
+      "manifests": [
+        "../notes/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+      ],
+      "document": "../notes/pages/a.html",
+      "expect": null
+    },
+    {
+      "name": "a folder with the name of a manifest is passed over",
+      "manifests": ["node_modules/@lo-tek/interfaces/manifest/manifest.json"],
+      "folders": ["build/lotek/manifest.json"],
+      "document": "page.html",
+      "expect": "node_modules/@lo-tek/interfaces/manifest/manifest.json"
+    }
+  ]
+}
