@@ -276,10 +276,8 @@ jobs:
           (cd interfaces && bun run build:browser)
           (cd vscode && bun run build)
 
-      - name: The CLI through npx
-        run: bun interfaces/scripts/check-cli.ts
-
-      # The Windows executable must answer the same, byte for byte.
+      # Every run goes to both: what npx runs must behave as promised, and
+      # the Windows executable must answer the same, byte for byte.
       - name: The executable answers like npx
         run: |
           cargo build --release -p lotek --manifest-path core/Cargo.toml
@@ -329,7 +327,7 @@ jobs:
         run: |
           cargo fmt --all --check
           cargo clippy --release --target wasm32-unknown-unknown -- -D warnings
-          cargo clippy --release -p lotek --tests -- -D warnings
+          cargo clippy --release --workspace --all-targets -- -D warnings
 
       - name: Rust unit tests
         working-directory: core
