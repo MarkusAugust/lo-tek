@@ -281,6 +281,129 @@ async function suite() {
   const outside = await snippetItems("plaintext", "lt-fi")
   assert.strictEqual(outside.length, 0, "no snippet outside the scope")
 
+  // The elements are suggested once in every language, beside the snippet
+  // of the same name. In HTML and
+  // Handlebars VS Code's own HTML service gives them, from `html-data.json`,
+  // and the server must leave them out; in PHP only the server knows them.
+  const elementItems = async (language) => {
+    const doc = await vscode.workspace.openTextDocument({
+      language,
+      content: "<lt-",
+    })
+    await vscode.window.showTextDocument(doc)
+    const labelOf = (item) => item.label.label ?? item.label
+    const ask = async () =>
+      (
+        await vscode.commands.executeCommand(
+          "vscode.executeCompletionItemProvider",
+          doc.uri,
+          doc.positionAt(4),
+        )
+      ).items.filter((item) => item.kind !== snippetKind)
+    const dialogs = (items) =>
+      items.filter((item) => labelOf(item) === "lt-dialog")
+    // The HTML service starts when the first such document is opened, and
+    // the server may answer before it. Where the service answers, `<div>` in
+    // the list shows that it has; elsewhere the question is put again after
+    // a while, in case a second source is slow.
+    const service = ["html", "handlebars"].includes(language)
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const items = await ask()
+      const answered = items.some((item) => labelOf(item) === "div")
+      if (dialogs(items).length > 0 && (answered || !service)) {
+        if (service) return dialogs(items)
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+        return dialogs(await ask())
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250))
+    }
+    return []
+  }
+  // Every promised language VS Code registers on its own, so a language its
+  // HTML service takes on later is caught here. The fixture's blade is in.
+  const known = await vscode.languages.getLanguages()
+  const asked = PROMISED_LANGUAGES.filter((l) => known.includes(l))
+  for (const language of ["html", "handlebars", "php", "razor", "blade"])
+    assert.ok(asked.includes(language), `VS Code does not register ${language}`)
+  // Handlebars first, while the HTML service has not started, so the wait
+  // above is what the answer rests on.
+  for (const language of [
+    "handlebars",
+    ...asked.filter((l) => l !== "handlebars"),
+  ]) {
+    const offered = await elementItems(language)
+    assert.strictEqual(
+      offered.length,
+      1,
+      `<lt-dialog> was suggested ${offered.length} times in ${language}`,
+    )
+  }
+
+  // A manifest that appears in the workspace applies to a document that is
+  // already open, without a keystroke in it, and so does its going away. The
+  // server asks VS Code to watch the manifests; the extension has no watcher
+  // of its own.
+  const folder = vscode.workspace.workspaceFolders?.[0]
+  assert.ok(folder, "the test was started without a workspace folder")
+  const page = vscode.Uri.joinPath(folder.uri, "page.html")
+  fs.writeFileSync(page.fsPath, '<div class="lt-claim">Claim</div>\n')
+  await vscode.window.showTextDocument(
+    await vscode.workspace.openTextDocument(page),
+  )
+  await diagnosticsFor(page, (d) => d.length === 1)
+  // The folders are made one at a time, with a wait after each. On Linux
+  // VS Code watches a new folder only after it has seen it come, and folders
+  // made inside each other in one go are not all watched: what happens in
+  // the innermost is then not reported. Found by running this in VS Code
+  // 1.94 and 1.147 on Linux with one processor; macOS watches the whole tree.
+  const makeFolder = async (relative) => {
+    let here = folder.uri.fsPath
+    for (const part of relative.split("/")) {
+      here = path.join(here, part)
+      if (fs.existsSync(here)) continue
+      fs.mkdirSync(here)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+    return here
+  }
+  const built = await makeFolder("build/lotek")
+  const takenOver = fs
+    .readFileSync(
+      path.join(extension.extensionPath, "dist/manifest/manifest.json"),
+      "utf8",
+    )
+    .replace('"lt-card": {', '"lt-claim": {')
+  fs.writeFileSync(path.join(built, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+  fs.rmSync(path.join(built, "manifest.json"))
+  await diagnosticsFor(page, (d) => d.length === 1)
+  // A whole folder at once, as `gradle clean` and a fresh `npm install` do:
+  // then there is one event for the folder and none for the file in it.
+  fs.writeFileSync(path.join(built, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+  fs.rmSync(path.join(folder.uri.fsPath, "build"), { recursive: true })
+  await diagnosticsFor(page, (d) => d.length === 1)
+  // The installed package, written over where it is. VS Code before 1.94
+  // left `node_modules/*/**` out of what it watches (`files.watcherExclude`),
+  // and saw none of this; it is why 1.94 is the oldest the extension takes.
+  const installed = await makeFolder("node_modules/@lo-tek/interfaces/manifest")
+  fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+  fs.writeFileSync(
+    path.join(installed, "manifest.json"),
+    takenOver.replace('"lt-claim": {', '"lt-card": {'),
+  )
+  await diagnosticsFor(page, (d) => d.length === 1)
+  // The package put in again, as an upgrade with `npm install` does: the
+  // folder goes and comes back with another manifest in it. Folder by
+  // folder here too, which `npm install` is not.
+  fs.rmSync(path.join(folder.uri.fsPath, "node_modules/@lo-tek/interfaces"), {
+    recursive: true,
+  })
+  await makeFolder("node_modules/@lo-tek/interfaces/manifest")
+  fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+
   // The snippet for the field: the id is typed once, and `for` follows.
   const third = await vscode.workspace.openTextDocument({
     language: "html",

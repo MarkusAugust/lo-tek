@@ -14,7 +14,7 @@
   },
   "homepage": "https://lo-tek.sobernetics.no/",
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.94.0"
   },
   "main": "./dist/extension.js",
   "activationEvents": [
@@ -79,7 +79,7 @@
             "nunjucks",
             "edge"
           ],
-          "description": "The languages, as VS Code language ids, in which the extension checks the markup and completes classes and values. The snippets do not follow it: they apply in the languages of this default list. Completion of the <lt-*> elements from VS Code's own HTML service applies only to html."
+          "description": "The languages, as VS Code language ids, in which the extension checks the markup and completes classes and values. The snippets do not follow it: they apply in the languages of this default list. Completion of the <lt-*> elements from VS Code's own HTML service applies only to html and handlebars."
         }
       }
     }
@@ -91,7 +91,7 @@
   },
   "devDependencies": {
     "@types/node": "24.12.4",
-    "@types/vscode": "1.90.0",
+    "@types/vscode": "1.94.0",
     "@vscode/test-electron": "2.5.2",
     "@vscode/vsce": "^4.1.0",
     "vscode-languageclient": "9.0.1"

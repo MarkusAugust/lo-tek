@@ -27,8 +27,8 @@
 //!
 //! `initializationOptions` can have `manifest`, a path to a manifest that
 //! comes before the others, `rendered`, which checks the documents as whole
-//! pages, and `htmlService`, which says the editor completes the `<lt-…>`
-//! elements in HTML files itself, so the server leaves them out there.
+//! pages, and `htmlService`, the languages the editor completes the
+//! `<lt-…>` elements in itself, so the server leaves them out there.
 
 use std::io::{Read, Write};
 use std::rc::Rc;
@@ -46,6 +46,24 @@ const CANDIDATES: [&str; 2] = [
     "build/lotek/manifest.json",
     "node_modules/@lo-tek/interfaces/manifest/manifest.json",
 ];
+
+/// What the editor is asked to watch: the manifests, and every folder on the
+/// way to them. When a whole folder goes or comes at once, as `build` on
+/// `gradle clean` and `node_modules` on a fresh install, the editor says so
+/// for the folder and not for the file in it.
+fn watched() -> Vec<String> {
+    let mut globs = Vec::new();
+    for candidate in CANDIDATES {
+        let parts: Vec<&str> = candidate.split('/').collect();
+        for length in 1..=parts.len() {
+            let glob = format!("**/{}", parts[..length].join("/"));
+            if !globs.contains(&glob) {
+                globs.push(glob);
+            }
+        }
+    }
+    globs
+}
 
 /// What makes the editor ask for suggestions as it is typed: a quote or an
 /// equals sign opens a value, a space a new class or attribute, a hyphen
@@ -72,9 +90,9 @@ pub struct Server {
     roots: Vec<String>,
     preferred: Option<String>,
     rendered: bool,
-    /// The editor has an HTML service that knows the elements, as VS Code
-    /// has with `html-data.json`.
-    html_service: bool,
+    /// The languages the editor has an HTML service for that knows the
+    /// elements, as VS Code has for HTML and Handlebars with `html-data.json`.
+    html_service: Vec<String>,
     /// The manifests that have been read, one per path. In a monorepo two
     /// documents can belong to different packages, each with its own version
     /// of LO-TEK.
@@ -283,7 +301,7 @@ impl Server {
             roots: Vec::new(),
             preferred: None,
             rendered: false,
-            html_service: false,
+            html_service: Vec::new(),
             sources: Vec::new(),
             shut_down: false,
             outgoing: Vec::new(),
@@ -535,7 +553,13 @@ impl Server {
                 .and_then(Json::as_str)
                 .map(|p| manifest_path(p, self.roots.first().map(String::as_str)));
             self.rendered = matches!(options.get("rendered"), Some(Json::Bool(true)));
-            self.html_service = matches!(options.get("htmlService"), Some(Json::Bool(true)));
+            self.html_service = options
+                .get("htmlService")
+                .and_then(Json::as_array)
+                .unwrap_or_default()
+                .iter()
+                .filter_map(|language| language.as_str().map(str::to_string))
+                .collect();
         }
         // The version of LO-TEK the server checks against. Without a manifest
         // it is unknown, and the field is left out, as LSP allows.
@@ -617,9 +641,9 @@ impl Server {
         };
         let document = &self.documents[index];
         let lines = Lines::new(&document.text);
-        // Where the editor has a service of its own for the elements in an
-        // HTML file, they are left to it, or each would be suggested twice.
-        let html = self.html_service && document.language == "html";
+        // Where the editor has a service of its own for the elements in the
+        // language, they are left to it, or each would be suggested twice.
+        let html = self.html_service.contains(&document.language);
         let items = lotek_core::complete::complete(&document.text, offset, html, &vocabulary)
             .iter()
             .map(|s| {
@@ -778,13 +802,10 @@ impl Server {
                                         object(vec![(
                                             "watchers",
                                             Json::Array(
-                                                CANDIDATES
+                                                watched()
                                                     .iter()
-                                                    .map(|c| {
-                                                        object(vec![(
-                                                            "globPattern",
-                                                            text(&format!("**/{c}")),
-                                                        )])
+                                                    .map(|glob| {
+                                                        object(vec![("globPattern", text(glob))])
                                                     })
                                                     .collect(),
                                             ),
@@ -1342,7 +1363,7 @@ mod tests {
         server.handle(&request(
             1,
             "initialize",
-            r#"{"rootUri":null,"capabilities":{},"initializationOptions":{"htmlService":true}}"#,
+            r#"{"rootUri":null,"capabilities":{},"initializationOptions":{"htmlService":["html","handlebars"]}}"#,
         ));
         server.take();
         let html = asked(&mut server, "textDocument/completion", "html", "<lt-|");
@@ -1354,6 +1375,15 @@ mod tests {
             "<lt-popover |",
         );
         assert!(labels(&names).is_empty());
+        // Every language the editor names: VS Code's HTML service has
+        // Handlebars too, and each element came twice there.
+        let handlebars = asked(
+            &mut server,
+            "textDocument/completion",
+            "handlebars",
+            "<lt-|",
+        );
+        assert!(labels(&handlebars).is_empty());
         // The classes are the server's everywhere, and so are the elements
         // in the other languages.
         let classes = asked(
@@ -1870,6 +1900,18 @@ mod tests {
             registration.get("method").unwrap().as_str(),
             Some("client/registerCapability")
         );
+        let globs = registration.to_compact();
+        for glob in [
+            "**/build/lotek/manifest.json",
+            "**/build",
+            "**/node_modules/@lo-tek/interfaces/manifest/manifest.json",
+            "**/node_modules",
+        ] {
+            assert!(
+                globs.contains(&format!(r#"{{"globPattern":"{glob}"}}"#)),
+                "{glob} is not watched: {globs}"
+            );
+        }
 
         for uri in ["file:///a.html", "file:///b.html"] {
             server.handle(&notification(

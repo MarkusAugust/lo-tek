@@ -31,6 +31,9 @@ run.
   registered.
 - **The command line on crates.io.** Today it is installed with
   `cargo install --git`.
+- **Neovim and Helix, tested.** The language server is tested inside VS Code, and
+  the JetBrains plugin on the IntelliJ platform. The setups for Neovim and Helix are written down, and
+  no test starts either editor.
 
 ## What has been delivered
 
@@ -55,7 +58,8 @@ Central, and in the IntelliJ plugin 0.3.0:
   `cargo install`. `lotek takeover` gives the copy its own name, and
   the Gradle plugin checks templates as part of the build. See
   [Command line](../command-line/).
-- **The language server**, `lotek lsp`, for VS Code, Neovim and Helix. See
+- **The language server**, `lotek lsp`, for VS Code, with setups for Neovim and
+  Helix that are not tested yet. See
   [The editor](../the-editor/#the-language-server).
 - **Checking the finished page:** `--css` compares the stylesheets with
   the contract, and `diagnoseRendered(page)` and `assertLotekRendered` check

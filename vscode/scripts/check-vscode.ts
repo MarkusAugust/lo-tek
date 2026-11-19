@@ -8,7 +8,13 @@
  * Run with: bun run build && xvfb-run -a bun scripts/check-vscode.ts
  */
 
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+} from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -70,6 +76,9 @@ const runDir = mkdtempSync(
   join(process.platform === "win32" ? tmpdir() : "/tmp", "lotek-vscode-"),
 )
 const failureFile = join(runDir, "suite-failure.txt")
+// The workspace the suite builds a manifest in.
+const workspace = join(runDir, "workspace")
+mkdirSync(workspace)
 // Removed on every way out. On Ctrl-C the runner stops VS Code first, with
 // its own listener, so no listener for the signal is added here; and VS
 // Code may still be writing, so a folder that cannot be removed is left.
@@ -102,6 +111,7 @@ try {
     // says "Test run failed with code 1".
     extensionTestsEnv: { LOTEK_SUITE_FAILURE: failureFile },
     launchArgs: [
+      workspace,
       "--disable-extensions",
       "--disable-workspace-trust",
       "--user-data-dir",
