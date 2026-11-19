@@ -15,7 +15,7 @@
  *   - hovering over an `lt-` class in a `class` attribute gives the
  *     component, the description and the link.
  *
- * In HTML files the `<lt-…>` elements come from VS Code's HTML service, which
+ * In HTML and Handlebars files the `<lt-…>` elements come from VS Code's HTML service, which
  * reads `html-data.json`, and the snippets from the snippet file. Both are
  * contributed in `package.json`.
  */
@@ -41,13 +41,6 @@ export function activate(context: vscode.ExtensionContext) {
       .fsPath,
     transport: TransportKind.stdio,
   }
-  // A new build or an upgrade of the package changes the manifest. One
-  // watcher for the whole lifetime, not one per restart.
-  const manifests = vscode.workspace.createFileSystemWatcher(
-    "**/{build/lotek/manifest.json,node_modules/@lo-tek/interfaces/manifest/manifest.json}",
-  )
-  context.subscriptions.push(manifests)
-
   /*
    * The restarts are queued. Otherwise two changes to the language list in
    * quick succession both waited for the same old client, and each started
@@ -77,10 +70,14 @@ export function activate(context: vscode.ExtensionContext) {
             { scheme: "file", language },
             { scheme: "untitled", language },
           ]),
-          synchronize: { fileEvents: manifests },
-          // VS Code's HTML service completes the elements in HTML files,
-          // from `html-data.json`, so the server leaves them out there.
-          initializationOptions: { htmlService: true },
+          // VS Code's HTML service completes the elements in HTML and
+          // Handlebars files, from `html-data.json`, so the server leaves
+          // them out there. The suite in `test/suite.cjs` asks VS Code, in
+          // every language it registers, that each element comes once.
+          //
+          // The manifests are watched because the server asks for it, as it
+          // does in Neovim and Helix, so there is no watcher here.
+          initializationOptions: { htmlService: ["html", "handlebars"] },
         } satisfies LanguageClientOptions)
         await client.start()
       })

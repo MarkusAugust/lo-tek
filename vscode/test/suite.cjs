@@ -281,6 +281,79 @@ async function suite() {
   const outside = await snippetItems("plaintext", "lt-fi")
   assert.strictEqual(outside.length, 0, "no snippet outside the scope")
 
+  // The elements are suggested once in every language, beside the snippet
+  // of the same name. In HTML and
+  // Handlebars VS Code's own HTML service gives them, from `html-data.json`,
+  // and the server must leave them out; in PHP only the server knows them.
+  const elementItems = async (language) => {
+    const doc = await vscode.workspace.openTextDocument({
+      language,
+      content: "<lt-",
+    })
+    await vscode.window.showTextDocument(doc)
+    // The HTML service starts when the first such document is opened.
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const list = await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        doc.uri,
+        doc.positionAt(4),
+      )
+      const found = list.items.filter(
+        (item) =>
+          item.kind !== snippetKind &&
+          (item.label.label ?? item.label) === "lt-dialog",
+      )
+      if (found.length > 0) return found
+      await new Promise((resolve) => setTimeout(resolve, 250))
+    }
+    return []
+  }
+  // Every promised language VS Code registers on its own, so a language its
+  // HTML service takes on later is caught here. The fixture's blade is in.
+  const known = await vscode.languages.getLanguages()
+  const asked = PROMISED_LANGUAGES.filter((l) => known.includes(l))
+  for (const language of ["html", "handlebars", "php", "razor", "blade"])
+    assert.ok(asked.includes(language), `VS Code does not register ${language}`)
+  for (const language of asked) {
+    const offered = await elementItems(language)
+    assert.strictEqual(
+      offered.length,
+      1,
+      `<lt-dialog> was suggested ${offered.length} times in ${language}`,
+    )
+  }
+
+  // A manifest that appears in the workspace applies to a document that is
+  // already open, without a keystroke in it, and so does its going away. The
+  // server asks VS Code to watch the manifests; the extension has no watcher
+  // of its own.
+  const folder = vscode.workspace.workspaceFolders?.[0]
+  assert.ok(folder, "the test was started without a workspace folder")
+  const page = vscode.Uri.joinPath(folder.uri, "page.html")
+  fs.writeFileSync(page.fsPath, '<div class="lt-claim">Claim</div>\n')
+  await vscode.window.showTextDocument(
+    await vscode.workspace.openTextDocument(page),
+  )
+  await diagnosticsFor(page, (d) => d.length === 1)
+  const built = path.join(folder.uri.fsPath, "build/lotek")
+  fs.mkdirSync(built, { recursive: true })
+  const takenOver = fs
+    .readFileSync(
+      path.join(extension.extensionPath, "dist/manifest/manifest.json"),
+      "utf8",
+    )
+    .replace('"lt-card": {', '"lt-claim": {')
+  fs.writeFileSync(path.join(built, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+  fs.rmSync(path.join(built, "manifest.json"))
+  await diagnosticsFor(page, (d) => d.length === 1)
+  // A whole folder at once, as `gradle clean` and a fresh `npm install` do:
+  // then there is one event for the folder and none for the file in it.
+  fs.writeFileSync(path.join(built, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+  fs.rmSync(path.join(folder.uri.fsPath, "build"), { recursive: true })
+  await diagnosticsFor(page, (d) => d.length === 1)
+
   // The snippet for the field: the id is typed once, and `for` follows.
   const third = await vscode.workspace.openTextDocument({
     language: "html",
