@@ -64,7 +64,7 @@
     },
     "vscode": {
       "name": "interfaces",
-      "version": "0.14.0",
+      "version": "0.15.0",
       "devDependencies": {
         "@types/node": "24.12.4",
         "@types/vscode": "1.94.0",

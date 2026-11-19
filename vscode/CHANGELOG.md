@@ -3,6 +3,26 @@
 The extension has its own version number. It does not follow the package,
 since it only changes when an element or an attribute does.
 
+## 0.15.0
+
+The checker and the vocabulary from `@lo-tek/interfaces` 0.46.0.
+
+- **The extension needs VS Code 1.94.** Up to 1.93 VS Code left
+  `node_modules/*/**` out of what it watches, so an upgraded package was not
+  seen until the next keystroke.
+- **Completion and hover help come from the language server.** They follow
+  the LO-TEK version the project has installed, and a component taken over
+  with `lotek takeover` is suggested. Before, they came from the version the
+  extension was built with.
+- **Each `<lt-…>` element is suggested once in Handlebars files.** It came
+  twice there.
+- **`class-on-wrong-tag`** reports a class on a tag it does not belong on,
+  as `<div class="lt-button">`.
+- **`invalid-nesting`** reports an element where HTML does not allow it, as
+  a button inside a link.
+- **The findings follow a folder with a manifest that goes or comes,** as
+  after `gradle clean`, without a keystroke.
+
 ## 0.14.0
 
 The checker and the vocabulary from `@lo-tek/interfaces` 0.45.0.

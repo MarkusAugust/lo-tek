@@ -78,6 +78,14 @@ intellijPlatform {
         // Shown on the Marketplace and in the IDE on update, and must be in
         // English like the description. Write a new line for each version.
         changeNotes = """
+            <b>0.10.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
+            0.46.0. <code>class-on-wrong-tag</code> reports a class on a tag it does not
+            belong on, as <code>&lt;div class="lt-button"&gt;</code>, and
+            <code>invalid-nesting</code> an element where HTML does not allow it, as a
+            button inside a link. A file under no content root, like a scratch file, is
+            checked against the project's manifest, and a folder that has the name of a
+            manifest is passed over.
+            <br><br>
             <b>0.9.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
             0.45.0. <code>&lt;lt-toast&gt;</code> has no <code>label</code>: Safari
             announces nothing that is put into a named live region, so VoiceOver said
