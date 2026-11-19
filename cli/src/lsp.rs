@@ -118,16 +118,6 @@ pub struct Server {
     dirty: Vec<String>,
     /// Whether the editor lets the server register file watchers itself.
     can_watch: bool,
-    /// Whether it also takes a watcher from one address.
-    can_watch_manifest: bool,
-    /// The address of each root in `roots`, as the editor gave it. A root
-    /// given as a path has none.
-    root_uris: Vec<Option<String>>,
-    /// The manifests to ask for when the editor has said `initialized`: the
-    /// manifest at the root is read while `initialize` is answered, and a
-    /// request may not be sent before that answer. `None` after that.
-    manifests_to_watch: Option<Vec<String>>,
-    manifests_watched: usize,
 }
 
 fn object(entries: Vec<(&str, Json)>) -> Json {
@@ -325,10 +315,6 @@ impl Server {
             deferred: false,
             dirty: Vec::new(),
             can_watch: false,
-            can_watch_manifest: false,
-            root_uris: Vec::new(),
-            manifests_to_watch: Some(Vec::new()),
-            manifests_watched: 0,
         }
     }
 
@@ -356,18 +342,7 @@ impl Server {
     /// against another manifest, even though `apps/web/node_modules` had the
     /// package.
     fn vocabulary(&mut self, uri: Option<&str>) -> Option<Rc<Vocabulary>> {
-        // Each place with its address, where there is one, for the watcher
-        // below.
-        let mut candidates: Vec<(String, Option<String>)> =
-            self.preferred.iter().map(|p| (p.clone(), None)).collect();
-        let places = |folder: &str, address: Option<&str>| {
-            CANDIDATES.map(|candidate| {
-                (
-                    format!("{}/{candidate}", folder.trim_end_matches('/')),
-                    address.map(|a| format!("{}/{candidate}", a.trim_end_matches('/'))),
-                )
-            })
-        };
+        let mut candidates: Vec<String> = self.preferred.iter().cloned().collect();
         if let Some(file) = uri.and_then(path_of) {
             // Not above the root of the workspace the file is in: a package in
             // the home folder is not the project's, and the editor does not
@@ -390,35 +365,33 @@ impl Server {
             let mut dir = root
                 .as_ref()
                 .and_then(|_| std::path::Path::new(&file).parent());
-            // The address of the same folder: one part shorter for each step
-            // up, as the path is.
-            let mut address = uri.and_then(|u| u.rsplit_once('/')).map(|(above, _)| above);
             while let Some(here) = dir {
                 let here_text = here.to_string_lossy().replace('\\', "/");
-                candidates.extend(places(&here_text, address));
+                for candidate in CANDIDATES {
+                    candidates.push(format!("{}/{candidate}", here_text.trim_end_matches('/')));
+                }
                 if root.as_deref() == Some(here_text.trim_end_matches('/')) {
                     break;
                 }
                 dir = here.parent();
-                address = address
-                    .and_then(|a| a.rsplit_once('/'))
-                    .map(|(above, _)| above);
             }
         }
-        for (root, address) in self.roots.iter().zip(&self.root_uris) {
-            candidates.extend(places(root, address.as_deref()));
+        for root in &self.roots {
+            for candidate in CANDIDATES {
+                candidates.push(format!("{}/{candidate}", root.trim_end_matches('/')));
+            }
         }
         // Last, the package the host has given, which the extension points to.
-        candidates.extend(self.package_manifest.iter().map(|p| (p.clone(), None)));
-        let found = candidates.into_iter().find_map(|(path, address)| {
+        candidates.extend(self.package_manifest.clone());
+        let found = candidates.into_iter().find_map(|path| {
             // A folder with the name is not a manifest, and the next
             // candidate is tried, as in the IntelliJ plugin.
             let metadata = std::fs::metadata(&path).ok().filter(|m| m.is_file())?;
-            Some((path, metadata.modified().ok(), address))
+            Some((path, metadata.modified().ok()))
         });
-        let (path, modified, address) = match found {
-            Some((path, modified, address)) => (Some(path), modified, address),
-            None => (None, None, None),
+        let (path, modified) = match found {
+            Some((path, modified)) => (Some(path), modified),
+            None => (None, None),
         };
         let known = self.sources.iter().position(|s| s.path == path);
         if let Some(index) = known {
@@ -452,60 +425,9 @@ impl Server {
         };
         match known {
             Some(index) => self.sources[index] = source,
-            None => {
-                self.sources.push(source);
-                if let Some(address) = address.filter(|_| self.can_watch_manifest) {
-                    self.watch_manifest(&address);
-                }
-            }
+            None => self.sources.push(source),
         }
         vocabulary
-    }
-
-    /// Asks the editor to watch one manifest by its own address. The
-    /// watchers asked for at the start have `**` in them, and such a watcher
-    /// is a recursive one. Documented for VS Code: a recursive watcher leaves
-    /// out what `files.watcherExclude` names, which in 1.90 has
-    /// `**/node_modules/*/**` in it, so a package written over where it is was
-    /// not seen until the next keystroke. Documented too is the pattern `*`
-    /// from the address of a file, for watching that one file. Undocumented,
-    /// and found by asking VS Code 1.90: a watcher for the folder the file is
-    /// in, with the name of the file as the pattern, is not told either.
-    fn watch_manifest(&mut self, address: &str) {
-        if let Some(waiting) = &mut self.manifests_to_watch {
-            waiting.push(address.to_string());
-            return;
-        }
-        self.manifests_watched += 1;
-        let id = format!("lotek-manifest-{}", self.manifests_watched);
-        self.outgoing.push(object(vec![
-            ("jsonrpc", text("2.0")),
-            ("id", text(&id)),
-            ("method", text("client/registerCapability")),
-            (
-                "params",
-                object(vec![(
-                    "registrations",
-                    Json::Array(vec![object(vec![
-                        ("id", text(&id)),
-                        ("method", text("workspace/didChangeWatchedFiles")),
-                        (
-                            "registerOptions",
-                            object(vec![(
-                                "watchers",
-                                Json::Array(vec![object(vec![(
-                                    "globPattern",
-                                    object(vec![
-                                        ("baseUri", text(address)),
-                                        ("pattern", text("*")),
-                                    ]),
-                                )])]),
-                            )]),
-                        ),
-                    ])]),
-                )]),
-            ),
-        ]));
     }
 
     fn check(&mut self, index: usize) {
@@ -608,42 +530,23 @@ impl Server {
                 .and_then(|d| d.get("dynamicRegistration")),
             Some(Json::Bool(true))
         );
-        self.can_watch_manifest = self.can_watch
-            && matches!(
-                params
-                    .get("capabilities")
-                    .and_then(|c| c.get("workspace"))
-                    .and_then(|w| w.get("didChangeWatchedFiles"))
-                    .and_then(|d| d.get("relativePatternSupport")),
-                Some(Json::Bool(true))
-            );
-        let given: Vec<&str> = params
-            .get("workspaceFolders")
-            .and_then(Json::as_array)
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|folder| folder.get("uri").and_then(Json::as_str))
-            .collect();
-        let rooted = |uris: &[&str]| -> Vec<(String, Option<String>)> {
-            uris.iter()
-                .filter_map(|uri| Some((path_of(uri)?, Some(uri.to_string()))))
-                .collect()
-        };
-        let mut roots = rooted(&given);
-        if roots.is_empty() {
-            let uri: Vec<&str> = params
+        if let Some(folders) = params.get("workspaceFolders").and_then(Json::as_array) {
+            self.roots = folders
+                .iter()
+                .filter_map(|f| f.get("uri").and_then(Json::as_str).and_then(path_of))
+                .collect();
+        }
+        if self.roots.is_empty() {
+            if let Some(root) = params
                 .get("rootUri")
                 .and_then(Json::as_str)
-                .into_iter()
-                .collect();
-            roots = rooted(&uri);
-        }
-        if roots.is_empty() {
-            if let Some(root) = params.get("rootPath").and_then(Json::as_str) {
-                roots.push((root.to_string(), None));
+                .and_then(path_of)
+            {
+                self.roots.push(root);
+            } else if let Some(root) = params.get("rootPath").and_then(Json::as_str) {
+                self.roots.push(root.to_string());
             }
         }
-        (self.roots, self.root_uris) = roots.into_iter().unzip();
         if let Some(options) = params.get("initializationOptions") {
             self.preferred = options
                 .get("manifest")
@@ -882,9 +785,6 @@ impl Server {
             "initialized" => {
                 // The editor watches the manifests and says when they change,
                 // also in Neovim and Helix, where no extension does it.
-                for address in self.manifests_to_watch.take().unwrap_or_default() {
-                    self.watch_manifest(&address);
-                }
                 if self.can_watch {
                     self.outgoing.push(object(vec![
                         ("jsonrpc", text("2.0")),
@@ -1948,66 +1848,6 @@ mod tests {
             findings, 0,
             "nothing is checked against a manifest that is not read"
         );
-        std::fs::remove_dir_all(root).unwrap();
-    }
-
-    #[test]
-    fn asks_the_editor_to_watch_the_manifest_it_reads_by_itself() {
-        // The watchers with `**` are recursive ones, and VS Code 1.90 leaves
-        // `node_modules/*/**` out of those. One for the file by itself is
-        // told, so a package written over in place is seen.
-        let root = std::env::temp_dir().join(format!("lotek-lsp-folder-{}", std::process::id()));
-        let folder = root.join("node_modules/@lo-tek/interfaces/manifest");
-        std::fs::create_dir_all(&folder).unwrap();
-        std::fs::write(folder.join("manifest.json"), crate::package::manifest()).unwrap();
-        let asked_for = |capabilities: &str| -> Vec<String> {
-            let mut server = Server::new();
-            server.handle(&request(
-                1,
-                "initialize",
-                &format!(
-                    r#"{{"rootUri":"file://{}","capabilities":{{"workspace":{{"didChangeWatchedFiles":{capabilities}}}}}}}"#,
-                    root.display()
-                ),
-            ));
-            server.take();
-            server.handle(&notification("initialized", "{}"));
-            // Two documents that read the same manifest: asked for once.
-            for name in ["a", "pages/b"] {
-                server.handle(&notification(
-                    "textDocument/didOpen",
-                    &format!(
-                        r#"{{"textDocument":{{"uri":"file://{}/{name}.html","languageId":"html","version":1,"text":"<b></b>"}}}}"#,
-                        root.display()
-                    ),
-                ));
-            }
-            server
-                .take()
-                .iter()
-                .filter(|m| {
-                    m.get("method").and_then(Json::as_str) == Some("client/registerCapability")
-                })
-                .map(|m| {
-                    m.get("params")
-                        .and_then(|p| p.get("registrations")?.as_array()?.first())
-                        .and_then(|r| r.get("registerOptions")?.get("watchers"))
-                        .unwrap()
-                        .to_compact()
-                })
-                // The one with `**` in it is asked for at the start as before.
-                .filter(|watchers| !watchers.contains("**"))
-                .collect()
-        };
-        assert_eq!(
-            asked_for(r#"{"dynamicRegistration":true,"relativePatternSupport":true}"#),
-            vec![format!(
-                r#"[{{"globPattern":{{"baseUri":"file://{}/node_modules/@lo-tek/interfaces/manifest/manifest.json","pattern":"*"}}}}]"#,
-                root.display()
-            )]
-        );
-        // Not from an editor that has not said it takes such a pattern.
-        assert!(asked_for(r#"{"dynamicRegistration":true}"#).is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 

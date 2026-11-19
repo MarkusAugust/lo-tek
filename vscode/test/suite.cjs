@@ -291,6 +291,7 @@ async function suite() {
       content: "<lt-",
     })
     await vscode.window.showTextDocument(doc)
+    const labelOf = (item) => item.label.label ?? item.label
     const ask = async () =>
       (
         await vscode.commands.executeCommand(
@@ -298,19 +299,21 @@ async function suite() {
           doc.uri,
           doc.positionAt(4),
         )
-      ).items.filter(
-        (item) =>
-          item.kind !== snippetKind &&
-          (item.label.label ?? item.label) === "lt-dialog",
-      )
+      ).items.filter((item) => item.kind !== snippetKind)
+    const dialogs = (items) =>
+      items.filter((item) => labelOf(item) === "lt-dialog")
     // The HTML service starts when the first such document is opened, and
-    // the server may answer before it. So the first answer is not counted:
-    // when one has come, the question is put again after a while, and that
-    // answer has both in it if both give the element.
-    for (let attempt = 0; attempt < 40; attempt++) {
-      if ((await ask()).length > 0) {
+    // the server may answer before it. Where the service answers, `<div>` in
+    // the list shows that it has; elsewhere the question is put again after
+    // a while, in case a second source is slow.
+    const service = ["html", "handlebars"].includes(language)
+    for (let attempt = 0; attempt < 120; attempt++) {
+      const items = await ask()
+      const answered = items.some((item) => labelOf(item) === "div")
+      if (dialogs(items).length > 0 && (answered || !service)) {
+        if (service) return dialogs(items)
         await new Promise((resolve) => setTimeout(resolve, 1500))
-        return ask()
+        return dialogs(await ask())
       }
       await new Promise((resolve) => setTimeout(resolve, 250))
     }
@@ -366,10 +369,9 @@ async function suite() {
   await diagnosticsFor(page, (d) => d.length === 0)
   fs.rmSync(path.join(folder.uri.fsPath, "build"), { recursive: true })
   await diagnosticsFor(page, (d) => d.length === 1)
-  // The installed package, written over where it is. VS Code 1.90 leaves
-  // `node_modules/*/**` out of what it watches recursively
-  // (`files.watcherExclude`), so the server asks for the manifest it reads
-  // by itself, which that setting does not apply to.
+  // The installed package, written over where it is. VS Code before 1.94
+  // left `node_modules/*/**` out of what it watches (`files.watcherExclude`),
+  // and saw none of this; it is why 1.94 is the oldest the extension takes.
   const installed = path.join(
     folder.uri.fsPath,
     "node_modules/@lo-tek/interfaces/manifest",
@@ -377,13 +379,19 @@ async function suite() {
   fs.mkdirSync(installed, { recursive: true })
   fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
   await diagnosticsFor(page, (d) => d.length === 0)
-  // Long enough for the server to have asked for the file.
-  await new Promise((resolve) => setTimeout(resolve, 2000))
   fs.writeFileSync(
     path.join(installed, "manifest.json"),
     takenOver.replace('"lt-claim": {', '"lt-card": {'),
   )
   await diagnosticsFor(page, (d) => d.length === 1)
+  // The package put in again, as an upgrade with `npm install` does: the
+  // folder goes and comes back with another manifest in it.
+  fs.rmSync(path.join(folder.uri.fsPath, "node_modules/@lo-tek/interfaces"), {
+    recursive: true,
+  })
+  fs.mkdirSync(installed, { recursive: true })
+  fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
 
   // The snippet for the field: the id is typed once, and `for` follows.
   const third = await vscode.workspace.openTextDocument({
