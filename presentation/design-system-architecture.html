@@ -271,6 +271,19 @@ a { color: var(--azure-30); }
   margin-block-end: 0.6rem;
 }
 
+/*
+ * LO-TEK's logo on the title slide: the mark, and the name beside it. The
+ * name is Michroma drawn as outlines, since the presentation loads no font,
+ * and the hyphen has the colour of the mark's shadow as on the site. The
+ * positions are the ones the browser gives the name in the documentation.
+ */
+.cover-logo {
+  display: block;
+  block-size: clamp(2.4rem, 4.6vw, 3.6rem);
+  inline-size: auto;
+  margin-block-end: 1.1rem;
+  color: var(--text, currentColor);
+}
 .mark-blue { background: var(--azure-10); color: var(--azure-100); }
 /*
  * The mark on the title slide is too long for one line on a phone, and broken
@@ -537,6 +550,22 @@ tr:last-child td { border-block-end: none; }
 
 <!-- 1 -->
 <section class="slide">
+  <svg class="cover-logo" viewBox="0 0 12998 2793" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LO-TEK">
+    <svg width="2793" height="2793" viewBox="-5 -12.0711 125.071 129.071">
+      <path fill="#111212" d="M7 105L7 117L49.07 117L70 96.07L70 82L70 65L70 35L92.07 35L120.07 7L96.07 7L108.07 -5L23 -5L23 -12.07L-5 15.93L-5 105Z"/>
+      <path fill="#4992e2" d="M49 110L12 110L12 112L47 112ZM54 105L37.07 105L12 105L12 108L51 108ZM59 100L42.07 100L39.07 103L56 103ZM64 95L47.07 95L44.07 98L61 98ZM65 90L52.07 90L49.07 93L65 93ZM65 85L57.07 85L54.07 88L65 88ZM65 80L62.07 80L59.07 83L65 83ZM95 25L58 25L58 28L92 28ZM100 20L83.07 20L80.07 23L97 23ZM105 15L88.07 15L85.07 18L102 18ZM108 12L91.07 12L90.07 13L107 13ZM58 33L65 33L65 30L58 30ZM58 38L65 38L65 35L58 35ZM58 43L65 43L65 40L58 40ZM58 48L65 48L65 45L58 45ZM58 53L65 53L65 50L58 50ZM58 58L65 58L65 55L58 55ZM58 63L65 63L65 60L58 60ZM58 68L65 68L65 65L58 65ZM58 73L65 73L65 70L58 70ZM58 77L65 77L65 75L58 75ZM30 25L23 25L23 28L30 28ZM23 33L30 33L30 30L23 30ZM23 38L30 38L30 35L23 35ZM23 43L30 43L30 40L23 40ZM23 48L30 48L30 45L23 45ZM23 53L30 53L30 50L23 50ZM23 58L30 58L30 55L23 55ZM23 63L30 63L30 60L23 60ZM23 68L30 68L30 65L23 65ZM23 73L30 73L30 70L23 70ZM23 77L30 77L30 75L23 75Z"/>
+      <path fill="#e6e8eb" d="M23 18L35 18L35 77L53 77L53 18L78 18L96 0L23 0ZM0 100L35 100L53 82L18 82L18 0L0 18Z"/>
+    </svg>
+    <g fill="currentColor" transform="translate(3055 2308) scale(1 -1)">
+      <path transform="translate(0)" d="M192 0V1536H384V160H1600V0Z"/>
+      <path transform="translate(1664)" d="M871 -32Q646 -32 501 -2Q356 29 274 111Q193 193 160 347Q128 501 128 748V788Q128 992 148 1130Q168 1269 217 1356Q266 1443 350 1489Q435 1535 563 1552Q691 1568 871 1568H1274Q1454 1568 1582 1552Q1710 1535 1794 1489Q1879 1443 1928 1356Q1977 1269 1997 1130Q2017 992 2017 788V748Q2017 501 1984 347Q1952 193 1870 111Q1789 29 1644 -2Q1499 -32 1274 -32ZM871 134H1274Q1417 134 1515 144Q1613 154 1674 187Q1736 220 1768 287Q1801 354 1813 466Q1825 578 1825 748V788Q1825 964 1813 1078Q1801 1192 1768 1258Q1736 1324 1674 1354Q1613 1385 1515 1394Q1417 1402 1274 1402H871Q728 1402 630 1394Q532 1385 470 1354Q409 1324 376 1258Q344 1192 332 1078Q320 964 320 788V748Q320 578 332 466Q344 354 376 287Q409 220 470 187Q532 154 630 144Q728 134 871 134Z"/>
+      <path transform="translate(3809)" fill="#4992e2" d="M128 512V672H896V512Z"/>
+      <path transform="translate(4219)" d="M862 0V1376H94V1536H1822V1376H1054V0Z"/>
+      <path transform="translate(6135)" d="M192 0V1536H1700V1376H384V864H1645V704H384V160H1728V0Z"/>
+      <path transform="translate(7927)" d="M192 0V1536H384V864H639L1632 1536H1920L832 784L1952 0H1664L640 704H384V0Z"/>
+    </g>
+  </svg>
+
   <span class="mark mark-blue cover-mark">Design system architecture · LO-TEK 0.46.0 · 19 November 2026</span>
   <div class="title-top">
     <h1>Architecture for a design system without a framework</h1>
@@ -710,7 +739,7 @@ tr:last-child td { border-block-end: none; }
   </div>
   <div class="perspective">
     <p><span class="role role-maintainer">Design system team</span><span>Needs a guard for every rule, or the rule is forgotten within a month.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>Around 1,500 tests run in each of the three engines. The styled drop-down is switched on with <code>data-picker="styled"</code>.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>More than 2,000 tests run in each of the three engines. The styled drop-down is switched on with <code>data-picker="styled"</code>.</span></p>
   </div>
 </section>
 
@@ -1787,7 +1816,7 @@ for (let {name: l} of Array.from(<b>r</b>.attributes))
   <div class="perspective">
     <p><span class="role">Product teams</span><span>Get the same wiring whether the markup is made in React, in a Go template or by hand.</span></p>
     <p><span class="role role-maintainer">Design system team</span><span>Has to write the contract as a pure function without a DOM, so that both the code that renders and a web component can call it.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>Kotlin has its own <code>Lt.field()</code>, written by hand. A test runs it against 237 combinations of options with the answer from TypeScript, and one difference stops the build.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>Kotlin has its own <code>Lt.field()</code>, written by hand. A test runs it against 277 combinations of options with the answer from TypeScript, and one difference stops the build.</span></p>
   </div>
 </section>
 
@@ -1827,8 +1856,8 @@ for (let {name: l} of Array.from(<b>r</b>.attributes))
     </div>
     <div>
       <p class="code-title"><span class="lotek-mark">LO-TEK</span>If the markup alone is to decide the state</p>
-      <pre>&lt;lt-field server-controlled&gt;</pre>
-      <p class="muted" style="margin-block-start: 0.6rem;">One attribute on the host element, and the web component repairs nothing. Then what was rendered applies, every time. The name says server, but the attribute applies just as much to CSR.</p>
+      <pre>&lt;lt-tabs server-controlled&gt;</pre>
+      <p class="muted" style="margin-block-start: 0.6rem;">One attribute on the host element, and the web component no longer puts back what the user did, here the selected tab. Then what was rendered applies, every time, and the web component still does the wiring and the keyboard. The name says server, but the attribute applies just as much to CSR.</p>
     </div>
   </div>
   <p style="margin-block-start: 1rem;"><strong>If the web component worked out the attribute, it can work it out again. If the user did something, the web component knows what it was, because it was there when it happened.</strong> That is what makes the repair possible.</p>
@@ -1869,9 +1898,9 @@ for (let {name: l} of Array.from(<b>r</b>.attributes))
     </div>
     <div>
       <p class="code-title"><span class="lotek-mark">LO-TEK</span>What the developer sees</p>
-      <pre>lt-field: found no &lt;label&gt;.
-The field then gets no label, and
-a screen reader reads it out without a name.</pre>
+      <pre>lt-field: found no &lt;label&gt;, so the field
+has no label and a screen reader
+announces it without a name. …</pre>
     </div>
   </div>
   <p style="margin-block-start: 1rem;">A warning that raises false alarms gets ignored. Three choices make this one trustworthy:</p>
@@ -1951,7 +1980,7 @@ lt.input({ type: "email", state: "invalid" })
 lt.button({ variant: "outline" })
 
 <i>$ tsc</i>
-button.ts(2,34): error TS2322: Type '"outline"'
+button.ts(2,13): error TS2322: Type '"outline"'
   is not assignable to type '"danger" | "primary"
   | "secondary" | "ghost" | undefined'.</pre>
       <p class="muted" style="margin-block-start: 0.6rem;">The rulebook, one Markdown file per environment that the agent reads, tells it to use the builder functions. TypeScript does not see a class written by hand in a string.</p>
@@ -1959,11 +1988,11 @@ button.ts(2,34): error TS2322: Type '"outline"'
     <div>
       <p class="code-title"><span class="lotek-mark">LO-TEK</span>Without JavaScript, the design system provides the check itself</p>
       <pre><i>$ npx @lo-tek/interfaces check page.html</i>
-page.html:1:14: warning: The class “lt-modal”
+page.html:1:14: warning: The class "lt-modal"
   does not exist in LO-TEK.
 page.html:2:29: warning: data-variant cannot be
-  “outline” on button. Allowed values:
-  secondary, ghost, danger, and primary with no attribute.
+  "outline" on button. Valid values: secondary,
+  ghost, danger, and primary without the attribute.
 
 2 findings in 1 file.
 <i>$ echo $?</i>
@@ -2123,7 +2152,7 @@ page.html:2:29: warning: data-variant cannot be
     <li><strong>The flicker before registration is solved in CSS.</strong> <code>:not(:defined)</code> applies until the web component is registered. With it, the stylesheet can show only the first panel, so whoever renders does not have to write <code>hidden</code> on the rest.</li>
   </ul>
   <div class="perspective">
-    <p><span class="role role-lotek">In LO-TEK</span><span><code>defineLt()</code> registers all nine, and <code>showToast</code>, <code>reportFailure</code> and the other imperative calls wait by themselves.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span><code>defineLt()</code> registers all ten, and <code>showToast</code>, <code>reportFailure</code> and the other imperative calls wait by themselves.</span></p>
   </div>
 </section>
 
@@ -2146,7 +2175,7 @@ import "@lo-tek/interfaces/field.css"
       <pre>import { defineLtField } from "@lo-tek/interfaces/field"
 defineLtField()
 
-<b>&lt;lt-field invalid&gt;</b>
+<b>&lt;lt-field&gt;</b>
   &lt;label class="lt-label"&gt;Email&lt;/label&gt;
   &lt;input class="lt-input" type="email"&gt;
   &lt;p class="lt-error-text"&gt;Enter a valid address&lt;/p&gt;

@@ -52,7 +52,8 @@ Where a panel would only show that code exists, it is left out.
 
 No web font. The typeface is `Helvetica, Arial, sans-serif`, the stack another
 Norwegian design system specifies for screen. A presentation must not be able
-to fail because of the network access in the meeting room.
+to fail because of the network access in the meeting room. LO-TEK's logo on
+the title slide has its name drawn as outlines for the same reason.
 
 The palette is LO-TEK's own tokens, copied with the same values. The colours of
 the surface, the text and the borders are chosen for a dark slide and belong to
