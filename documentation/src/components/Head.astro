@@ -5,4 +5,13 @@ import FontPreload from "./FontPreload.astro"
 ---
 
 <Default />
+{
+  /*
+   * The first frame of a page waits for the heading of the content, so it
+   * has the header, the sidebar and the title in it, not the header alone
+   * while the rest is still on its way. `_top` is the id Starlight gives
+   * the heading; on a page without it the wait ends when the page is read.
+   */
+}
+<link rel="expect" href="#_top" blocking="render" />
 <FontPreload />
