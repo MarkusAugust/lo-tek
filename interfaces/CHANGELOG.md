@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.46.0 (2026-11-19)
+
 ### Breaking
 
 - **The `Manifest` type is written from `manifest.schema.json`,** and no
