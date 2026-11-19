@@ -291,19 +291,27 @@ async function suite() {
       content: "<lt-",
     })
     await vscode.window.showTextDocument(doc)
-    // The HTML service starts when the first such document is opened.
-    for (let attempt = 0; attempt < 40; attempt++) {
-      const list = await vscode.commands.executeCommand(
-        "vscode.executeCompletionItemProvider",
-        doc.uri,
-        doc.positionAt(4),
-      )
-      const found = list.items.filter(
+    const ask = async () =>
+      (
+        await vscode.commands.executeCommand(
+          "vscode.executeCompletionItemProvider",
+          doc.uri,
+          doc.positionAt(4),
+        )
+      ).items.filter(
         (item) =>
           item.kind !== snippetKind &&
           (item.label.label ?? item.label) === "lt-dialog",
       )
-      if (found.length > 0) return found
+    // The HTML service starts when the first such document is opened, and
+    // the server may answer before it. So the first answer is not counted:
+    // when one has come, the question is put again after a while, and that
+    // answer has both in it if both give the element.
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if ((await ask()).length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+        return ask()
+      }
       await new Promise((resolve) => setTimeout(resolve, 250))
     }
     return []
@@ -314,7 +322,12 @@ async function suite() {
   const asked = PROMISED_LANGUAGES.filter((l) => known.includes(l))
   for (const language of ["html", "handlebars", "php", "razor", "blade"])
     assert.ok(asked.includes(language), `VS Code does not register ${language}`)
-  for (const language of asked) {
+  // Handlebars first, while the HTML service has not started, so the wait
+  // above is what the answer rests on.
+  for (const language of [
+    "handlebars",
+    ...asked.filter((l) => l !== "handlebars"),
+  ]) {
     const offered = await elementItems(language)
     assert.strictEqual(
       offered.length,

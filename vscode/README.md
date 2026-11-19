@@ -43,7 +43,7 @@ attributes.
   their attributes and the allowed values. Inside `class="…"` the
   `lt-` classes are completed, and inside an attribute a class takes, such as `data-variant`
   on `lt-button`, the values the builder function knows are completed.
-- **Hover** over an `lt-` class, and in HTML files
+- **Hover** over an `lt-` class, and in HTML and Handlebars files
   also over an element or an attribute, with a link to the component page.
 - **Snippets**: type `lt-popover`, choose the snippet at the top of the list, and
   the markup from the component page is there. The id is a tab stop: type it
@@ -87,8 +87,8 @@ EJS, Liquid, Nunjucks and Edge, and in HTML. The list is the setting
 `lotek.languages`, with VS Code's language ids, and can be changed. The
 snippets apply in the twenty language ids of the default list, whatever the
 setting says, since their languages are written into the snippet file when the extension is built. Outside
-HTML the `<lt-…>` elements and their attributes are also completed by the language
-server, since VS Code's own HTML service only runs in HTML files.
+HTML and Handlebars the `<lt-…>` elements and their attributes are also completed by the language
+server, since VS Code's own HTML service only runs in those two.
 
 Files with an extension other than the one the language expects can be associated with it in
 the settings, for example `"files.associations": { "*.gohtml": "html" }`.
