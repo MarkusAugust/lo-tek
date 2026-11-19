@@ -152,6 +152,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   stayed as they were until the next keystroke, since the editor then
   reports the folder and not the file in it. The server now asks the editor
   to watch the folders on the way to a manifest too.
+- **`lotek lsp` sees an installed package that is written over where it
+  is.** VS Code 1.90 leaves `node_modules/*/**` out of what it watches
+  across the workspace, so a manifest rewritten in place there was not read
+  until the next keystroke. The server now asks the editor to watch the
+  manifest it reads by that file's own address, in an editor that says it
+  takes such a pattern (`relativePatternSupport`).
 
 ## 0.45.0 (2026-11-16)
 

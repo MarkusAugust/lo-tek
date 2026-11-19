@@ -366,6 +366,24 @@ async function suite() {
   await diagnosticsFor(page, (d) => d.length === 0)
   fs.rmSync(path.join(folder.uri.fsPath, "build"), { recursive: true })
   await diagnosticsFor(page, (d) => d.length === 1)
+  // The installed package, written over where it is. VS Code 1.90 leaves
+  // `node_modules/*/**` out of what it watches recursively
+  // (`files.watcherExclude`), so the server asks for the manifest it reads
+  // by itself, which that setting does not apply to.
+  const installed = path.join(
+    folder.uri.fsPath,
+    "node_modules/@lo-tek/interfaces/manifest",
+  )
+  fs.mkdirSync(installed, { recursive: true })
+  fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
+  await diagnosticsFor(page, (d) => d.length === 0)
+  // Long enough for the server to have asked for the file.
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+  fs.writeFileSync(
+    path.join(installed, "manifest.json"),
+    takenOver.replace('"lt-claim": {', '"lt-card": {'),
+  )
+  await diagnosticsFor(page, (d) => d.length === 1)
 
   // The snippet for the field: the id is typed once, and `for` follows.
   const third = await vscode.workspace.openTextDocument({
