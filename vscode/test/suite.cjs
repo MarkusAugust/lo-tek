@@ -351,8 +351,22 @@ async function suite() {
     await vscode.workspace.openTextDocument(page),
   )
   await diagnosticsFor(page, (d) => d.length === 1)
-  const built = path.join(folder.uri.fsPath, "build/lotek")
-  fs.mkdirSync(built, { recursive: true })
+  // The folders are made one at a time, with a wait after each. On Linux
+  // VS Code watches a new folder only after it has seen it come, and folders
+  // made inside each other in one go are not all watched: what happens in
+  // the innermost is then not reported. Found by running this in VS Code
+  // 1.94 and 1.147 on Linux with one processor; macOS watches the whole tree.
+  const makeFolder = async (relative) => {
+    let here = folder.uri.fsPath
+    for (const part of relative.split("/")) {
+      here = path.join(here, part)
+      if (fs.existsSync(here)) continue
+      fs.mkdirSync(here)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+    return here
+  }
+  const built = await makeFolder("build/lotek")
   const takenOver = fs
     .readFileSync(
       path.join(extension.extensionPath, "dist/manifest/manifest.json"),
@@ -372,11 +386,7 @@ async function suite() {
   // The installed package, written over where it is. VS Code before 1.94
   // left `node_modules/*/**` out of what it watches (`files.watcherExclude`),
   // and saw none of this; it is why 1.94 is the oldest the extension takes.
-  const installed = path.join(
-    folder.uri.fsPath,
-    "node_modules/@lo-tek/interfaces/manifest",
-  )
-  fs.mkdirSync(installed, { recursive: true })
+  const installed = await makeFolder("node_modules/@lo-tek/interfaces/manifest")
   fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
   await diagnosticsFor(page, (d) => d.length === 0)
   fs.writeFileSync(
@@ -385,11 +395,12 @@ async function suite() {
   )
   await diagnosticsFor(page, (d) => d.length === 1)
   // The package put in again, as an upgrade with `npm install` does: the
-  // folder goes and comes back with another manifest in it.
+  // folder goes and comes back with another manifest in it. Folder by
+  // folder here too, which `npm install` is not.
   fs.rmSync(path.join(folder.uri.fsPath, "node_modules/@lo-tek/interfaces"), {
     recursive: true,
   })
-  fs.mkdirSync(installed, { recursive: true })
+  await makeFolder("node_modules/@lo-tek/interfaces/manifest")
   fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
   await diagnosticsFor(page, (d) => d.length === 0)
 
