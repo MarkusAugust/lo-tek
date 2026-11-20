@@ -30,10 +30,14 @@ type Step = {
   uses?: string
   "working-directory"?: string
 }
-type Job = { name?: string; steps: Step[] }
+type Job = { name?: string; if?: string; steps: Step[] }
 
 /** Jobs and steps that are not run locally, with the reason. */
 const SKIPPED: Record<string, string> = {
+  changes:
+    "decides whether CI may skip the heavy jobs because only the presentation changed. Here every job runs",
+  presentation:
+    "runs the wording and version checks when only the presentation changed. Here `check` runs both in its build",
   windows:
     "the job runs on Windows, and the paths and drives it tests do not exist here",
   "check/Update npm": "changes the global npm on the machine",
@@ -69,6 +73,16 @@ const JOB_KEYS = new Set([
   "timeout-minutes",
   "permissions",
 ])
+/*
+ * The one condition on a job the script accepts: CI skips the heavy jobs when
+ * only the presentation changed, and the `changes` job decides it. Here every
+ * job runs, which is more than CI, never less. Any other `if` on a job stops
+ * the script as before.
+ */
+const PRESENTATION_ONLY = "needs.changes.outputs.only-presentation == 'true'"
+const SKIP_WHEN_PRESENTATION =
+  /^\$\{\{ !cancelled\(\) && needs\.changes\.outputs\.only-presentation != 'true' \}\}$/
+
 const WORKFLOW_KEYS = new Set([
   "name",
   "on",
@@ -162,10 +176,18 @@ for (const [file, workflow] of workflows) {
   for (const [jobId, job] of Object.entries(workflow.jobs)) {
     if (jobId in SKIPPED) {
       used.add(jobId)
+      // The light job is skipped here, but its condition must stay the
+      // mirror of the heavy jobs', or CI would run neither or both.
+      if (jobId === "presentation" && job.if !== PRESENTATION_ONLY)
+        unknown.push(`presentation: if is not ${PRESENTATION_ONLY}`)
       continue
     }
     for (const key of Object.keys(job))
-      if (!JOB_KEYS.has(key)) unknown.push(`${jobId}: ${key}`)
+      if (
+        !JOB_KEYS.has(key) &&
+        !(key === "if" && SKIP_WHEN_PRESENTATION.test(String(job.if)))
+      )
+        unknown.push(`${jobId}: ${key}`)
     for (const step of job.steps) {
       for (const key of Object.keys(step))
         if (!STEP_KEYS.has(key))
