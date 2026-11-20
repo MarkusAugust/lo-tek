@@ -250,8 +250,53 @@ a { color: var(--azure-30); }
   .decisions .chapter-icon { width: 40px; height: 40px; }
 }
 
-/* The title on the first slide. It has no logo: the presentation is about
-   the architecture, and LO-TEK is the example, not the sender. */
+/*
+ * A chapter with one slide has no title slide: the icon and the requirement
+ * stand at the top of the slide itself, smaller than on a title slide.
+ */
+.slide:not(.chapter) .chapter-top { margin-block: 0 0.9rem; gap: 0.9rem; }
+.slide:not(.chapter) .chapter-top .chapter-icon { width: 46px; height: 46px; }
+
+/*
+ * The question a reader tries their own design system against. It stands on
+ * the title slide of each chapter, and the checklist at the end collects
+ * them.
+ */
+.ask {
+  margin-block: 1.1rem 0;
+  padding-inline-start: 0.9rem;
+  border-inline-start: 3px solid var(--azure-30);
+  color: var(--text);
+}
+.ask span {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--azure-30);
+  opacity: 0.72;
+}
+
+/* Where a claim about the platform was read, and when. */
+.sources {
+  margin-block-start: 0.9rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.sources a { color: inherit; }
+.sources code { font-size: inherit; }
+
+/*
+ * The version and the date, on the last slide. LO-TEK is the proof and not
+ * the sender, so they are not on the title slide. check-version.ts reads
+ * them from this line, and prepare-version.ts writes them.
+ */
+.colophon {
+  margin-block-start: 1.4rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
 .title-top h1 {
   margin: 0 0 1.2rem;
   font-size: clamp(1.6rem, 2.6vw, 2.2rem);
@@ -288,8 +333,7 @@ a { color: var(--azure-30); }
 /*
  * The mark on the title slide is too long for one line on a phone, and broken
  * over two lines the pill became a big blue box. On a narrow screen it is a
- * plain line of text, like the chapter mark. The text is left untouched,
- * because check-version.ts reads the version and the date from it.
+ * plain line of text, like the chapter mark.
  */
 @media (max-width: 860px) {
   .cover-mark {
@@ -566,39 +610,46 @@ tr:last-child td { border-block-end: none; }
     </g>
   </svg>
 
-  <span class="mark mark-blue cover-mark">Design system architecture · LO-TEK 0.46.0 · 19 November 2026</span>
+  <span class="mark mark-blue cover-mark">Design system architecture</span>
   <div class="title-top">
     <h1>Architecture for a design system without a framework</h1>
   </div>
   <p class="lead">A text field with a label, help text and an error message is HTML and ARIA. In a design system built for one framework, it is still tied to a framework you cannot replace, and has to be rewritten every time the framework changes direction.</p>
-  <p>These are five requirements a design system must meet to avoid that, and two it should meet. For each of them: what it involves and what it costs. None of them is free, and the price is at the bottom of the slides.</p>
-  <p>Everything rests on this one sentence:</p>
+  <p>These are five requirements a design system must meet to avoid that, and two it should meet. For each of them: what it involves and what it costs. None of them is free.</p>
+  <p>The idea fits in one sentence. Making it hold takes the rest of this presentation.</p>
   <div class="box">
     <p style="font-size: clamp(1.05rem, 1.5vw, 1.25rem); margin: 0;"><strong>Markup comes from whoever renders it. The web component adds the behaviour.</strong></p>
   </div>
-  <p class="muted" style="margin-block-start: 1rem;">The example throughout is LO-TEK, a design system built to these requirements and published at <a href="https://lo-tek.sobernetics.no/" target="_blank" rel="noreferrer">lo-tek.sobernetics.no</a> and on npm as <code>@lo-tek/interfaces</code>.</p>
+  <p class="muted" style="margin-block-start: 1rem;">LO-TEK is the proof that it can be done, not the subject: a design system built to these requirements, published at <a href="https://lo-tek.sobernetics.no/" target="_blank" rel="noreferrer">lo-tek.sobernetics.no</a> and on npm as <code>@lo-tek/interfaces</code>.</p>
 </section>
 
 <!-- 2 -->
 <section class="slide">
-  <h2>In short</h2>
-  <p>Frameworks come and go. A design system tied to one of them has to be rewritten every time the framework changes direction. If it is to remain when the apps around it are replaced, it has to build on what the browser already understands.</p>
-  <ol>
-    <li><strong>The browser must be the platform.</strong> The components are CSS classes and web components, and work the same in React, in Astro, in plain HTML and with a server written in Kotlin.</li>
-    <li><strong>Markup must come from whoever renders it.</strong> Whoever renders, with CSR or SSR, creates the elements and the classes. The web component never adds nodes, and everything it writes, it works out from the markup and from what the user does.</li>
-    <li><strong>Accessibility must be written in one place.</strong> The same function works out the wiring, whether it is called where the markup is rendered or by the web component in the browser.</li>
-    <li><strong>The web component must read state from the DOM.</strong> It keeps no copy of the state, and puts back what a re-render tears away.</li>
-    <li><strong>The types should work without a framework.</strong> The builder functions are plain TypeScript functions, so the editor knows the options in every environment.</li>
-    <li><strong>The consumer's CSS must win.</strong> An ordinary rule written by the team must beat the system's, without <code>!important</code>.</li>
-    <li><strong>The team should be able to take over the code.</strong> A single component can be copied into the project the day the system falls short.</li>
-  </ol>
-  <p class="muted">At the bottom of the slides there are up to three lines: what the requirement means for the teams that use the system, what it costs those who maintain it, and how LO-TEK solved it.</p>
+  <h2>Why this is not trivial</h2>
+  <p>The premise: apps in several frameworks, some servers that do not run JavaScript, and a design system that should outlive the apps around it. Where everything is React and will stay React, a React-based design system is a reasonable choice, and this is not for it.</p>
+  <p>A design system for one framework has one caller. This one has all of these at once:</p>
+  <div class="table-scroll">
+  <table>
+    <thead><tr><th>What happens</th><th>What it takes</th></tr></thead>
+    <tbody>
+      <tr><td>React renders a list again and replaces a node</td><td>What the web component set on the old node has to be written again</td></tr>
+      <tr><td>A server sends the HTML again, and every attribute it did not send is removed, with no error</td><td>The same, and the web component can add no nodes of its own</td></tr>
+      <tr><td>The markup comes from a Go template that cannot call a function</td><td>The wiring between label, field and messages (<code>id</code>, <code>for</code>, <code>aria-describedby</code>) is worked out in the browser, from the same source as everywhere else</td></tr>
+      <tr><td>A module is imported on a server that has no DOM</td><td>Nothing may touch <code>HTMLElement</code> when it is imported</td></tr>
+      <tr><td>One browser engine does not have a feature yet</td><td>That engine has to give something that works anyway</td></tr>
+      <tr><td>The consumer writes a CSS rule of their own</td><td>It has to win, without <code>!important</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="box" style="margin-block-start: 1rem;">
+    <p style="margin: 0;"><strong>Each row can be met alone. The work is that all of them hold at the same time, in the same component.</strong></p>
+  </div>
 </section>
 
 <!-- 3 -->
 <section class="slide">
   <h2>Five requirements and two recommendations</h2>
-  <p>The rest of the presentation takes one point at a time. The first makes the others possible, and the last means you can leave the system whenever you want. At the end come the pitfalls, and then LO-TEK in use: a form field and a game that show the architecture works.</p>
+  <p>Without the first five, a design system breaks somewhere or has to be worked around. Without the last two it works, but it is harder to use and harder to leave.</p>
   <ol class="decisions" role="list">
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="foplatform" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="goplatform" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#foplatform)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#goplatform)"/>
       <rect x="14" y="17" width="44" height="38" rx="5" fill="none" stroke="#9ccff2" stroke-width="2.4"/>
@@ -606,48 +657,50 @@ tr:last-child td { border-block-end: none; }
       <circle cx="20.5" cy="22" r="1.9" fill="#cde1f9"/>
       <circle cx="27" cy="22" r="1.9" fill="#b5cbee" opacity="0.75"/>
       <circle cx="33.5" cy="22" r="1.9" fill="#b5cbee" opacity="0.5"/>
-      <path d="M21 36 H41 M21 43 H51 M21 50 H35" stroke="#cde1f9" stroke-width="2.4" stroke-linecap="round" opacity="0.85"/></svg><div><strong>The browser must be the platform</strong><span>5 slides</span></div></li>
+      <path d="M21 36 H41 M21 43 H51 M21 50 H35" stroke="#cde1f9" stroke-width="2.4" stroke-linecap="round" opacity="0.85"/></svg><div><strong>1. The browser must be the platform</strong><span>CSS classes and web components, with no framework underneath.</span></div></li>
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="foownership" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="goownership" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#foownership)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#goownership)"/>
       <rect x="11" y="13" width="50" height="46" rx="8" fill="none" stroke="#b5cbee"
             stroke-width="2.2" stroke-dasharray="7 5" opacity="0.75"/>
       <rect x="23" y="24" width="26" height="24" rx="3.5" fill="#1362ae" stroke="#cde1f9" stroke-width="2.2"/>
-      <path d="M29 32 H43 M29 39 H38" stroke="#cde1f9" stroke-width="2.2" stroke-linecap="round"/></svg><div><strong>Markup must come from whoever renders it</strong><span>6 slides</span></div></li>
+      <path d="M29 32 H43 M29 39 H38" stroke="#cde1f9" stroke-width="2.2" stroke-linecap="round"/></svg><div><strong>2. Markup must come from whoever renders it</strong><span>The web component adds no nodes to markup someone else renders.</span></div></li>
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="focontract" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gocontract" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#focontract)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gocontract)"/>
       <rect x="26" y="45" width="20" height="14" rx="4" fill="#1362ae" stroke="#9ccff2" stroke-width="2.2"/>
       <path d="M20 17 v10 a6 6 0 0 0 6 6 h4 a6 6 0 0 1 6 6 v6" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M52 17 v10 a6 6 0 0 1 -6 6 h-4 a6 6 0 0 0 -6 6 v6" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <circle cx="20" cy="15" r="3.4" fill="#cde1f9"/>
-      <circle cx="52" cy="15" r="3.4" fill="#cde1f9"/></svg><div><strong>Accessibility must be written in one place</strong><span>1 slide</span></div></li>
+      <circle cx="52" cy="15" r="3.4" fill="#cde1f9"/></svg><div><strong>3. The wiring must have one source</strong><span>One function works out the wiring, wherever it is called from.</span></div></li>
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="foexpected" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="goexpected" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#foexpected)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#goexpected)"/>
       <rect x="28" y="13" width="16" height="12" rx="3.5" fill="#1362ae" stroke="#cde1f9" stroke-width="2.2"/>
       <path d="M36 25 v8 M22 41 v-4 a4 4 0 0 1 4-4 h20 a4 4 0 0 1 4 4 v4" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <rect x="14" y="43" width="16" height="12" rx="3.5" fill="none" stroke="#9ccff2" stroke-width="2.2"/>
-      <rect x="42" y="43" width="16" height="12" rx="3.5" fill="none" stroke="#9ccff2" stroke-width="2.2"/></svg><div><strong>The web component must read state from the DOM</strong><span>3 slides</span></div></li>
+      <rect x="42" y="43" width="16" height="12" rx="3.5" fill="none" stroke="#9ccff2" stroke-width="2.2"/></svg><div><strong>4. The web component must be able to write everything again</strong><span>It reads state from the markup, and puts back what a re-render tears away.</span></div></li>
+    <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="folayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="golayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#folayers)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#golayers)"/>
+      <path d="M36 40 L14 50 L36 60 L58 50 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.5" stroke-linejoin="round"/>
+      <path d="M36 28 L14 38 L36 48 L58 38 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.75" stroke-linejoin="round"/>
+      <path d="M36 16 L14 26 L36 36 L58 26 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/></svg><div><strong>5. The consumer's CSS must win</strong><span>An ordinary rule beats the design system's, without <code>!important</code>.</span></div></li>
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fotypes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gotypes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fotypes)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gotypes)"/>
       <path d="M24 17 a8 8 0 0 0 -8 8 v6 a5 5 0 0 1 -5 5 a5 5 0 0 1 5 5 v6 a8 8 0 0 0 8 8"
             fill="none" stroke="#9ccff2" stroke-width="2.6" stroke-linecap="round"/>
       <path d="M48 17 a8 8 0 0 1 8 8 v6 a5 5 0 0 0 5 5 a5 5 0 0 0 -5 5 v6 a8 8 0 0 1 -8 8"
             fill="none" stroke="#9ccff2" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M28 36.5 L34 42.5 L45 29.5" fill="none" stroke="#cde1f9" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>The types should work without a framework</strong><span>2 slides</span></div></li>
-    <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="folayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="golayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#folayers)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#golayers)"/>
-      <path d="M36 40 L14 50 L36 60 L58 50 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.5" stroke-linejoin="round"/>
-      <path d="M36 28 L14 38 L36 48 L58 38 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.75" stroke-linejoin="round"/>
-      <path d="M36 16 L14 26 L36 36 L58 26 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/></svg><div><strong>The consumer's CSS must win</strong><span>1 slide</span></div></li>
+      <path d="M28 36.5 L34 42.5 L45 29.5" fill="none" stroke="#cde1f9" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>6. Mistakes should be caught in every environment</strong><span>By the types, by a check of the markup, and in the console.</span></div></li>
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fotakeover" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gotakeover" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fotakeover)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gotakeover)"/>
       <path d="M16 32 v20 a4 4 0 0 0 4 4 h32 a4 4 0 0 0 4 -4 v-20" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M12 24 h48 v8 h-48 Z" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linejoin="round"/>
       <path d="M36 46 V14" stroke="#cde1f9" stroke-width="3" stroke-linecap="round"/>
-      <path d="M28 21 L36 13 L44 21" fill="none" stroke="#cde1f9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>The team should be able to take over the code</strong><span>1 slide</span></div></li>
+      <path d="M28 21 L36 13 L44 21" fill="none" stroke="#cde1f9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg><div><strong>7. A consumer should be able to take over the code</strong><span>One component can be copied into the project when the design system falls short.</span></div></li>
     <li><svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fotraps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gotraps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fotraps)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gotraps)"/>
       <path d="M36 15 L59 55 H13 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/>
       <path d="M36 29 V42" stroke="#cde1f9" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="36" cy="48.5" r="2.1" fill="#cde1f9"/></svg><div><strong>The pitfalls</strong><span>3 slides</span></div></li>
+      <circle cx="36" cy="48.5" r="2.1" fill="#cde1f9"/></svg><div><strong>A game, the pitfalls and a checklist</strong><span>Three real apps, the bugs they found, and ten questions.</span></div></li>
   </ol>
+  <p class="muted" style="margin-block-start: 1.2rem;">To <strong>render</strong> is to create the markup, in the browser (CSR), on a server (SSR) or both. A <strong>builder function</strong> returns the attributes for one element. A <strong>consumer</strong> is a team that builds an app with the design system.</p>
+  <p class="muted">At the bottom of a slide: what it costs the design system team, what it means for the consumers, and how LO-TEK solved it.</p>
 </section>
 
 <!-- 4 -->
 <section class="slide chapter">
-  <span class="mark mark-blue">Requirement 1 of 7</span>
+  <span class="mark mark-blue">Requirement 1 of 5</span>
   <div class="chapter-top">
     <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fplatform" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gplatform" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fplatform)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gplatform)"/>
       <rect x="14" y="17" width="44" height="38" rx="5" fill="none" stroke="#9ccff2" stroke-width="2.4"/>
@@ -658,114 +711,55 @@ tr:last-child td { border-block-end: none; }
       <path d="M21 36 H41 M21 43 H51 M21 50 H35" stroke="#cde1f9" stroke-width="2.4" stroke-linecap="round" opacity="0.85"/></svg>
     <h2>The browser must be the platform</h2>
   </div>
-  <p class="lead">The system builds only on what the browser can already do. No runtime for appearance, no dependencies, and nothing that has to be rewritten when the apps around it change framework.</p>
+  <p class="lead">The design system builds only on what the browser can already do. No runtime for appearance, no dependencies, and nothing that has to be rewritten when the apps around it change framework.</p>
+  <p class="ask"><span>Ask of your own design system</span>With JavaScript switched off, does every component look as designed, and does the package install with no framework among its dependencies or peer dependencies?</p>
   <ol class="chapter-list">
-      <li>Why platform first, and not React first</li>
-      <li>What the browser does by itself</li>
-      <li>The price of building on the browser itself</li>
-      <li>What it costs your app</li>
-      <li>What one button puts in <code>node_modules</code></li>
+      <li>The apps will be replaced, and the design system is meant to remain</li>
+      <li>The browser already does focus, layers and forms</li>
+      <li>What one button costs the app, in the browser and in the project</li>
+      <li>What the design system team pays</li>
   </ol>
 </section>
 
 <!-- 5 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 1 of 7 · The browser must be the platform</p>
-  <h2>Why platform first, and not React first</h2>
-  <p>The reason not to build on React is not that something else is better today. The reason is that the apps around the system are going to be replaced, and the system is meant to remain.</p>
+  <p class="chapter-mark">Requirement 1 of 5 · The browser must be the platform</p>
+  <h2>The apps will be replaced, and the design system is meant to remain</h2>
+  <p>The reason not to build on React is not that something else is better today. It is that a design system outlives the apps around it.</p>
   <ul>
-    <li><strong>Lifetimes differ.</strong> React has gone from classes via hooks to server components in ten years, and each shift hit everyone who built on it. A CSS class from ten years ago still works unchanged, and so does a web component written to Custom Elements v1.</li>
-    <li><strong>It only goes one way.</strong> From components built on the platform, anyone can make a React package later. From a React library, nobody can make an HTML version.</li>
+    <li><strong>Lifetimes differ.</strong> React has gone from classes via hooks to server components in ten years. Class components still run, but each shift was work for every library built on React: new APIs to support, or being left behind. A CSS class from ten years ago needed none of it, and neither did a web component written to Custom Elements v1.</li>
+    <li><strong>It only goes one way.</strong> From components built on the platform, anyone can make a React package later. A React component can be wrapped as a custom element, but it brings React with it and shows nothing until JavaScript has run, so it never reaches a page that is only HTML from a server.</li>
     <li><strong>The portfolio spans many frameworks at once.</strong> New apps in React, ten-year-old apps in something else, and publishing systems that only send HTML. A design system tied to one framework reaches only the part that uses it.</li>
-    <li><strong>Appearance needs no runtime.</strong> A button, a badge and a card are CSS. If they become React components, the framework has to load and run before they look right.</li>
   </ul>
   <div class="perspective">
-    <p><span class="role">Product teams</span><span>React developers do not get ready-made React components, but classes and attributes with types.</span></p>
     <p><span class="role role-maintainer">Design system team</span><span>Has to make the independence invisible day to day, or it feels like a step backwards compared with a React library.</span></p>
+    <p><span class="role">Consumers</span><span>React developers do not get ready-made React components, but classes and attributes with types.</span></p>
     <p><span class="role role-lotek">In LO-TEK</span><span>The entry point <code>@lo-tek/interfaces/react</code> gives the same builder functions with <code>className</code> and <code>htmlFor</code>.</span></p>
   </div>
+  <p class="sources">Source, read 19 November 2026: <a href="https://react.dev/reference/react/Component" target="_blank" rel="noreferrer">react.dev, Component</a> (class components are still supported).</p>
 </section>
 
 <!-- 6 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 1 of 7 · The browser must be the platform</p>
-  <h2>What the browser does by itself</h2>
-  <p>Most of what is hard in a design system is already solved in the browser. If the system builds on the browser, that is code nobody has to maintain.</p>
-  <div class="rows two">
-    <div class="box">
+  <p class="chapter-mark">Requirement 1 of 5 · The browser must be the platform</p>
+  <h2>The browser already does focus, layers and forms</h2>
+  <p>Most of what is hard in a design system is already solved in the browser. If the design system builds on the browser, that is code nobody has to maintain.</p>
+  <div class="box">
       <h3>What the browser takes care of</h3>
       <ul>
         <li><strong>The focus trap in a dialog.</strong> <code>showModal()</code> makes the rest of the page inert, keeps focus inside and closes with Escape.</li>
-        <li><strong>The top layer.</strong> A dialog and a popover sit above everything else without anyone counting <code>z-index</code>.</li>
-        <li><strong>The form.</strong> Validation, submission and <code>:invalid</code> exist and work without a single line from the system.</li>
+        <li><strong>The top layer.</strong> A modal dialog and a popover sit above everything else without anyone counting <code>z-index</code>.</li>
+        <li><strong>The form.</strong> Validation, submission and <code>:invalid</code> exist and work without a single line from the design system.</li>
         <li><strong>Appearance.</strong> Colour, shape and spacing are CSS, and are in place before any script has had time to run.</li>
       </ul>
-    </div>
-    <div class="box">
-      <h3>What the system does not have to maintain</h3>
-      <ul>
-        <li>No focus trap of its own, no z-index ladder of its own, no form engine of its own.</li>
-        <li>No runtime for what is only appearance.</li>
-        <li>No rewrite when the apps around it change framework.</li>
-        <li>No version of React, Vue or Svelte to keep up with.</li>
-      </ul>
-    </div>
   </div>
-  <p style="margin-block-start: 1.1rem;">What remains is the wiring between the parts, keyboard handling where the browser has no ready-made control, and a consistent look. That is a far smaller job than building focus, layers and forms yourself.</p>
+  <p style="margin-block-start: 1.1rem;">What remains is the part the browser does not do: the wiring between the elements, keyboard handling where the browser has no ready-made control, and a consistent look.</p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to follow what each engine ships, and take its own code out when the browser takes the job over.</span></p>
+  </div>
 </section>
 
 <!-- 7 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 1 of 7 · The browser must be the platform</p>
-  <h2>The price of building on the browser itself</h2>
-  <p>The independence is not free. The design system team pays for it, not the product teams.</p>
-  <div class="rows three">
-    <div class="box">
-      <span class="number">3</span>
-      <p>browser engines in every test run: Chromium, Firefox and WebKit. The whole premise is that the system uses the browser's own APIs, and those are exactly what behave differently from engine to engine.</p>
-    </div>
-    <div class="box">
-      <h3>Waiting for the last engine</h3>
-      <p>The requirement is not that all three engines have the feature. The requirement is that the engine without it gives something that works.</p>
-      <pre>appearance: base-select
-<i>Chromium 148 ✓  WebKit 26.4 ✓</i>
-<i>Firefox 150     ✗</i></pre>
-      <p style="margin-block-start: 0.6rem;">That is why it is optional and not the default. Without support, the user gets the browser's own drop-down.</p>
-    </div>
-    <div class="box">
-      <h3>Names that cannot be renamed</h3>
-      <p>Class names, <code>data-*</code>, token names and the paths in the package are all things a consumer builds on. Breaking them requires a new major version. What the web component does in the browser is behaviour, and can be fixed like an ordinary bug.</p>
-    </div>
-  </div>
-  <div class="perspective">
-    <p><span class="role role-maintainer">Design system team</span><span>Needs a guard for every rule, or the rule is forgotten within a month.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>More than 2,000 tests run in each of the three engines. The styled drop-down is switched on with <code>data-picker="styled"</code>.</span></p>
-  </div>
-</section>
-
-<!-- 8 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 1 of 7 · The browser must be the platform</p>
-  <h2>What it costs your app</h2>
-  <p>A design system makes demands on the app that adopts it. These are the demands LO-TEK makes, and for comparison the demands a React-based design system makes, taken from <code>peerDependencies</code> in <code>@skatteetaten/ds-forms 3.0.0</code>:</p>
-  <p>To use the form components in that system, your app needs twelve packages: React 19, i18next, react-i18next, date-fns and eight packages from the system itself. LO-TEK requires none, and which framework the app uses makes no difference.</p>
-  <p>This is not a criticism. A React-based system is a reasonable choice when everything is React. The question is what it costs those who do not use React.</p>
-  <p class="code-title" style="margin-block-start: 1.1rem;">One button on screen, in an empty app. Built with esbuild, gzipped.</p>
-  <div class="table-scroll">
-  <table>
-    <thead><tr><th>What has to load</th><th>LO-TEK</th><th>A React-based system</th></tr></thead>
-    <tbody>
-      <tr><td>JavaScript</td><td><strong>0 kB</strong>, the button is a class</td><td>119.0 kB</td></tr>
-      <tr><td>CSS</td><td>2.8 kB</td><td>4.3 kB</td></tr>
-      <tr><td>Total</td><td><strong>2.8 kB</strong></td><td><strong>123.3 kB</strong></td></tr>
-    </tbody>
-  </table>
-  </div>
-  <p style="margin-block-start: 1rem;">Of the 119 kilobytes, 67 are React itself. If you already have React, that system adds around 51 kB for the one button. In LO-TEK, the builder functions in <code>lt</code> cost an extra 4.8 kB.</p>
-  <p class="muted" style="margin-block-start: 0.9rem;">The package has <strong>no dependencies</strong>, and no JavaScript module in it does anything just by being imported. Every module can be loaded on a server without a DOM, so <code>import { lt }</code> works with server rendering.</p>
-</section>
-
-<!-- 9 · The dependency graph -->
 <section class="slide deps">
 <style>
 /*
@@ -919,23 +913,33 @@ tr:last-child td { border-block-end: none; }
 .deps-tables h3 { margin-block-start: 0.9rem; }
 .deps-tables table { font-size: 0.86rem; }
 .deps-tables td, .deps-tables th { padding: 0.35rem 0.55rem; }
-.deps-tables td:nth-child(4) { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
-.deps[data-view="table"] .deps-list, .deps[data-view="table"] .deps-scene { display: none; }
+.deps[data-view="table"] .deps-scene { display: none; }
 .deps:not([data-view="table"]) .deps-tables { display: none; }
+.deps-table:not([data-selected]) { display: none; }
+/*
+ * The table takes the place of the graph and no more. The longest list has
+ * twenty rows, and the slide would otherwise outgrow the window; the rows
+ * scroll inside the table instead, and the column headings stay.
+ */
+.deps-tables { max-block-size: 15rem; overflow-y: auto; }
+.deps-tables thead th { position: sticky; inset-block-start: 0; background: var(--surface); }
 @media (max-width: 860px) {
   /* On a narrow screen the table is the view. A graph at 375 pixels says nothing. */
   .deps .deps-list, .deps .deps-scene, .deps .deps-switch, .deps .deps-legend { display: none; }
   .deps:not([data-view="table"]) .deps-tables { display: block; }
+  /* Without the list beside it, every table is shown. */
+  .deps-table:not([data-selected]) { display: block; }
+  .deps-tables { max-block-size: none; overflow-y: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   .deps-edge, .deps-node { transition: none; }
 }
 </style>
 
-  <p class="chapter-mark">Requirement 1 of 7 · The browser must be the platform</p>
-  <h2>What one button puts in <code>node_modules</code></h2>
-  <p>Five copies of a React and TypeScript app that already has React 19. In each of them, what the documentation says is needed for one button is installed, and then <code>package-lock.json</code> is read. Furthest to the right are the packages everything else rests on.</p>
+  <p class="chapter-mark">Requirement 1 of 5 · The browser must be the platform</p>
+  <h2>What one button costs the app, in the browser and in the project</h2>
+  <p>Five copies of an app that already has React 19, each with what the documentation says one button needs. The list says what the browser has to load. The graph shows the packages the app has to install and keep in step: <code>@skatteetaten/ds-buttons 3.2.0</code>, for one, requires three packages of its own in exactly 3.2.0, React 19.2 or later, i18next and react-i18next.</p>
 
   <div class="deps-legend" role="group" aria-label="Legend">
     <span><svg viewBox="0 0 26 14" aria-hidden="true"><circle cx="13" cy="7" r="5.5" fill="#9ccff2" stroke="#171f2b" stroke-width="2"/></svg>The design system's own packages</span>
@@ -950,13 +954,13 @@ tr:last-child td { border-block-end: none; }
   <div class="deps-scene"><div class="deps-graph"></div></div>
   <div class="deps-tables"></div>
 
-  <p class="muted" style="margin-block-start: 0.7rem; font-size: 0.86rem;"><span class="deps-checked">Checked 12 October 2026</span>, with the versions that were the latest then. Aksel and Digdir have no separate button package, so the button costs the whole React package. LO-TEK is the same package whether you use the classes or the builder function: the import decides what loads, not the installation. “CSS for the button” is what has to load for one button when you use only CSS (tokens and button), minified and gzipped as on the previous slide. Dashed lines are peer dependencies, which npm 7 and later install by themselves.</p>
+  <p class="muted" style="margin-block-start: 0.7rem; font-size: 0.86rem;"><span class="deps-checked">Checked 19 November 2026</span>, with the newest versions. One button, built with esbuild and gzipped. The CSS is the smallest set each design system documents for it; Aksel loads its font files from a CDN on top. In the three React-based design systems, 67.7 kB of the JavaScript is React itself. This is not a criticism of them. Dashed lines are peer dependencies, which npm 7 and later install by themselves.</p>
 
 <script>
 (() => {
   // Nodes: [name, version, type, unpacked bytes]. Edges: [from, to, 0 = regular, 1 = peer].
   // The type "base" is what the app already has, and is not counted.
-  const DATA = {"skatt":{"name":"Skatteetaten","scope":"@skatteetaten/","command":"npm install @skatteetaten/ds-{core-designtokens,buttons}","n":[["your app","","app",0],["@babel/runtime","7.29.10","pulled-in",247215],["@skatteetaten/ds-buttons","3.0.0","system",93796],["@skatteetaten/ds-core-designtokens","3.0.0","system",32338],["@skatteetaten/ds-core-utils","3.0.0","system",164875],["@skatteetaten/ds-icons","3.0.0","system",205462],["@skatteetaten/ds-progress","3.0.0","system",10752],["html-parse-stringify","4.0.1","pulled-in",57003],["i18next","26.4.4","pulled-in",524379],["react-i18next","17.0.16","pulled-in",957407],["use-sync-external-store","1.7.0","pulled-in",28183],["react","19.3.0","base",0]],"e":[[0,2,0],[0,3,0],[2,4,1],[2,5,1],[2,6,1],[2,8,1],[2,11,1],[2,9,1],[4,8,1],[4,11,1],[4,9,1],[5,4,1],[5,8,1],[5,11,1],[5,9,1],[6,4,1],[6,8,1],[6,11,1],[6,9,1],[9,1,0],[9,7,0],[9,10,0],[9,8,1],[9,11,1],[10,11,1]]},"aksel":{"name":"Aksel","scope":"@navikt/","command":"npm install @navikt/ds-{react,css}","n":[["your app","","app",0],["@date-fns/tz","1.5.0","pulled-in",100524],["@floating-ui/core","1.8.0","pulled-in",218589],["@floating-ui/dom","1.8.0","pulled-in",174208],["@floating-ui/react","0.27.20","pulled-in",934317],["@floating-ui/react-dom","2.1.9","pulled-in",63904],["@floating-ui/utils","0.2.12","pulled-in",66066],["@navikt/aksel-icons","8.19.1","system",11147411],["@navikt/ds-css","8.19.1","system",1747680],["@navikt/ds-react","8.19.1","system",7369081],["@navikt/ds-tokens","8.19.1","system",439537],["date-fns","4.4.0","pulled-in",10902084],["react-day-picker","10.0.1","pulled-in",987344],["tabbable","6.5.0","pulled-in",427160],["react","19.3.0","base",0],["react-dom","19.3.0","base",0]],"e":[[0,8,0],[0,9,0],[2,6,0],[3,2,0],[3,6,0],[4,5,0],[4,6,0],[4,13,0],[4,14,1],[4,15,1],[5,3,0],[5,14,1],[5,15,1],[9,4,0],[9,5,0],[9,7,0],[9,10,0],[9,11,0],[9,12,0],[9,14,1],[9,15,1],[12,1,0],[12,11,0],[12,14,1]]},"digdir":{"name":"Designsystemet (Digdir)","scope":"@digdir/","command":"npm install @digdir/designsystemet-{react,css}","n":[["your app","","app",0],["@digdir/designsystemet-css","1.23.0","system",509727],["@digdir/designsystemet-react","1.23.0","system",812522],["@digdir/designsystemet-types","1.23.0","system",3454],["@digdir/designsystemet-web","1.23.0","system",971002],["@floating-ui/core","1.8.0","pulled-in",218589],["@floating-ui/dom","1.8.0","pulled-in",174208],["@floating-ui/react","0.26.23","pulled-in",733859],["@floating-ui/react-dom","2.1.9","pulled-in",63904],["@floating-ui/utils","0.2.12","pulled-in",66066],["@navikt/aksel-icons","8.19.1","pulled-in",11147411],["@radix-ui/react-compose-refs","1.1.5","pulled-in",12899],["@radix-ui/react-slot","1.5.0","pulled-in",49653],["@tanstack/react-virtual","3.14.16","pulled-in",63728],["@tanstack/virtual-core","3.19.1","pulled-in",478978],["@u-elements/u-combobox","2.1.5","pulled-in",72957],["@u-elements/u-datalist","2.0.3","pulled-in",54586],["@u-elements/u-details","1.0.0","pulled-in",32981],["@u-elements/u-tabs","1.0.4","pulled-in",53518],["clsx","2.1.1","pulled-in",8555],["tabbable","6.5.0","pulled-in",427160],["react","19.3.0","base",0],["react-dom","19.3.0","base",0]],"e":[[0,1,0],[0,2,0],[1,3,0],[2,3,0],[2,4,0],[2,6,0],[2,7,0],[2,10,0],[2,12,0],[2,13,0],[2,19,0],[2,21,1],[2,22,1],[4,6,0],[4,15,0],[4,16,0],[4,17,0],[4,18,0],[5,9,0],[6,5,0],[6,9,0],[7,8,0],[7,9,0],[7,20,0],[7,21,1],[7,22,1],[8,6,0],[8,21,1],[8,22,1],[11,21,1],[12,11,0],[12,21,1],[13,14,0],[13,21,1],[13,22,1]]},"digdircss":{"name":"Digdir, CSS only","scope":"@digdir/","command":"npm install @digdir/designsystemet-css","buttonCss":5418,"n":[["your app","","app",0],["@digdir/designsystemet-css","1.23.0","system",509727],["@digdir/designsystemet-types","1.23.0","system",3454]],"e":[[0,1,0],[1,2,0]]},"lotek":{"name":"LO-TEK","scope":"@lo-tek/","command":"npm install @lo-tek/interfaces","buttonCss":2838,"n":[["your app","","app",0],["@lo-tek/interfaces","0.32.1","system",3278919]],"e":[[0,1,0]]}}
+  const DATA = {"skatt":{"name":"Skatteetaten","scope":"@skatteetaten/","command":"npm install @skatteetaten/ds-{core-designtokens,buttons}","n":[["your app","","app",0],["@babel/runtime","7.29.14","pulled-in",247201],["@skatteetaten/ds-buttons","3.2.0","system",93972],["@skatteetaten/ds-core-designtokens","3.2.0","system",32338],["@skatteetaten/ds-core-utils","3.2.0","system",161273],["@skatteetaten/ds-icons","3.2.0","system",216522],["@skatteetaten/ds-progress","3.2.0","system",10873],["html-parse-stringify","4.0.1","pulled-in",57003],["i18next","26.7.2","pulled-in",599345],["react-i18next","17.1.13","pulled-in",1055368],["use-sync-external-store","1.7.0","pulled-in",28183],["react","19.3.1","base",0]],"e":[[0,2,0],[0,3,0],[2,4,1],[2,5,1],[2,6,1],[2,8,1],[2,9,1],[2,11,1],[4,8,1],[4,9,1],[4,11,1],[5,4,1],[5,8,1],[5,9,1],[5,11,1],[6,4,1],[6,8,1],[6,9,1],[6,11,1],[9,1,0],[9,7,0],[9,8,1],[9,10,0],[9,11,1],[10,11,1]],"browser":{"js":123762,"css":6108}},"aksel":{"name":"Aksel","scope":"@navikt/","command":"npm install @navikt/ds-{react,css}","n":[["your app","","app",0],["@date-fns/tz","1.5.0","pulled-in",100524],["@floating-ui/core","1.8.0","pulled-in",218589],["@floating-ui/dom","1.8.0","pulled-in",174208],["@floating-ui/react","0.27.20","pulled-in",934317],["@floating-ui/react-dom","2.1.9","pulled-in",63904],["@floating-ui/utils","0.2.12","pulled-in",66066],["@navikt/aksel-icons","8.23.0","system",13195895],["@navikt/ds-css","8.23.0","system",1770304],["@navikt/ds-react","8.23.0","system",7552176],["@navikt/ds-tokens","8.23.0","system",439536],["date-fns","4.4.0","pulled-in",10902084],["react-day-picker","10.0.2","pulled-in",992031],["tabbable","6.5.2","pulled-in",386062],["react","19.3.1","base",0],["react-dom","19.3.1","base",0]],"e":[[0,8,0],[0,9,0],[2,6,0],[3,2,0],[3,6,0],[4,5,0],[4,6,0],[4,13,0],[4,14,1],[4,15,1],[5,3,0],[5,14,1],[5,15,1],[9,4,0],[9,5,0],[9,7,0],[9,10,0],[9,11,0],[9,12,0],[9,14,1],[9,15,1],[12,1,0],[12,11,0],[12,14,1]],"browser":{"js":74766,"css":8761}},"digdir":{"name":"Designsystemet (Digdir)","scope":"@digdir/","command":"npm install @digdir/designsystemet-{react,css}","n":[["your app","","app",0],["@digdir/designsystemet-css","1.24.1","system",523853],["@digdir/designsystemet-react","1.24.1","system",794416],["@digdir/designsystemet-types","1.24.1","system",3454],["@digdir/designsystemet-web","1.24.1","system",1033973],["@floating-ui/core","1.8.0","pulled-in",218589],["@floating-ui/dom","1.8.0","pulled-in",174208],["@floating-ui/react","0.26.23","pulled-in",733859],["@floating-ui/react-dom","2.1.9","pulled-in",63904],["@floating-ui/utils","0.2.12","pulled-in",66066],["@radix-ui/react-compose-refs","1.1.5","pulled-in",12899],["@radix-ui/react-slot","1.5.0","pulled-in",49653],["@tanstack/react-virtual","3.14.26","pulled-in",63729],["@tanstack/virtual-core","3.19.11","pulled-in",660188],["@u-elements/u-combobox","2.1.5","pulled-in",72957],["@u-elements/u-datalist","2.0.3","pulled-in",54586],["@u-elements/u-details","1.0.0","pulled-in",32981],["@u-elements/u-tabs","1.0.4","pulled-in",53518],["clsx","2.1.1","pulled-in",8555],["tabbable","6.5.2","pulled-in",386062],["react","19.3.1","base",0],["react-dom","19.3.1","base",0]],"e":[[0,1,0],[0,2,0],[1,3,0],[2,3,0],[2,4,0],[2,6,0],[2,7,0],[2,11,0],[2,12,0],[2,18,0],[2,20,1],[2,21,1],[4,6,0],[4,14,0],[4,15,0],[4,16,0],[4,17,0],[5,9,0],[6,5,0],[6,9,0],[7,8,0],[7,9,0],[7,19,0],[7,20,1],[7,21,1],[8,6,0],[8,20,1],[8,21,1],[10,20,1],[11,10,0],[11,20,1],[12,13,0],[12,20,1],[12,21,1]],"browser":{"js":139149,"css":25960}},"digdircss":{"name":"Digdir, CSS only","scope":"@digdir/","command":"npm install @digdir/designsystemet-css","buttonCss":5487,"n":[["your app","","app",0],["@digdir/designsystemet-css","1.24.1","system",523853],["@digdir/designsystemet-types","1.24.1","system",3454]],"e":[[0,1,0],[1,2,0]],"browser":{"js":0,"css":25960}},"lotek":{"name":"LO-TEK","scope":"@lo-tek/","command":"npm install @lo-tek/interfaces","buttonCss":3411,"n":[["your app","","app",0],["@lo-tek/interfaces","0.46.0","system",4271142]],"e":[[0,1,0]],"browser":{"js":0,"css":3411},"withBuilder":{"js":5657,"css":3411}}}
 
   const TYPE_NAMES = { system: "The design system's own", "pulled-in": "Pulled in", base: "Already in the app", app: "The app" }
   const WIDTH = 1136 // fixed, so all the graphs have the same scale
@@ -966,11 +970,7 @@ tr:last-child td { border-block-end: none; }
   const R = 6
   const NS = "http://www.w3.org/2000/svg"
 
-  // Everything is divided by 1024, as on the previous slide: then LO-TEK's button is 2.8 kB in both places.
-  const mb = (b) => {
-    if (b >= 1024 * 1024) return (b / 1024 / 1024).toFixed(1) + " MB"
-    return Math.round(b / 1024) + " kB"
-  }
+  // Divided by 1024, as the browser's network panel does.
   const kb = (b) => (b / 1024).toFixed(1) + " kB"
   const el = (name, attr = {}) => {
     const e = document.createElementNS(NS, name)
@@ -1073,10 +1073,11 @@ tr:last-child td { border-block-end: none; }
 
   const tabs = []
   function select(index) {
-    tabs.forEach(({ tab, svg }, i) => {
+    tabs.forEach(({ tab, svg, group }, i) => {
       tab.setAttribute("aria-selected", String(i === index))
       tab.tabIndex = i === index ? 0 : -1
       svg.toggleAttribute("data-selected", i === index)
+      group.toggleAttribute("data-selected", i === index)
     })
     tooltip.hidden = true
   }
@@ -1096,15 +1097,17 @@ tr:last-child td { border-block-end: none; }
     tab.id = `deps-tab-${index}`
     tab.append(make("strong", "", sys.name), make("code", "", sys.command))
     const numbers = make("span", "deps-number")
-    const figures = [[sys.added, sys.added === 1 ? "new package" : "new packages"], [sys.e.length, sys.e.length === 1 ? "link" : "links"], [mb(sys.sum), "unpacked"]]
-    if (sys.buttonCss) figures.push([kb(sys.buttonCss), "CSS for the button"])
+    const packages = `${sys.added === 1 ? "new package" : "new packages"}`
+    const browser = sys.browser.js + sys.browser.css
+    const figures = [[sys.added, packages], [kb(browser), "to the browser"]]
+    if (sys.withBuilder) figures.push([kb(sys.withBuilder.js + sys.withBuilder.css), "with lt.button()"])
     for (const [value, text] of figures) {
       const s = make("span")
       s.append(make("b", "", value), text)
       numbers.append(s)
     }
     tab.append(numbers)
-    tab.setAttribute("aria-label", `${sys.name}, ${sys.command}: ${sys.added} ${sys.added === 1 ? "new package" : "new packages"}, ${sys.e.length} ${sys.e.length === 1 ? "link" : "links"}, ${mb(sys.sum)} unpacked${sys.buttonCss ? `, ${kb(sys.buttonCss)} CSS for the button` : ""}`)
+    tab.setAttribute("aria-label", `${sys.name}, ${sys.command}: ${figures.map(([value, text]) => `${value} ${text}`).join(", ")}`)
     tab.addEventListener("click", () => select(index))
     list.append(tab)
 
@@ -1187,7 +1190,7 @@ tr:last-child td { border-block-end: none; }
       } else if (type === "base") {
         tooltip.append(make("p", "", `${TYPE_NAMES[type]}, ${version}. Not counted.`))
       } else {
-        tooltip.append(make("p", "", `${TYPE_NAMES[type]} · ${mb(bytes)} unpacked`))
+        tooltip.append(make("p", "", TYPE_NAMES[type]))
       }
       if (type !== "app") {
         const requiredBy = make("p")
@@ -1208,27 +1211,30 @@ tr:last-child td { border-block-end: none; }
       tooltip.style.top = Math.max(0, n.top - s.top - 6) + "px"
     }
 
+    // The table: the same, without the drawing. Beside the list only the
+    // selected one is shown, so the slide does not grow by five tables.
+    const group = make("div", "deps-table")
     graph.append(svg)
-    tabs.push({ tab, svg })
+    tabs.push({ tab, svg, group })
 
-    // The table: the same, without the drawing.
-    tables.append(make("h3", "", `${sys.name}: ${sys.added} ${sys.added === 1 ? "new package" : "new packages"}, ${mb(sys.sum)} unpacked`))
+    group.append(make("h3", "", `${sys.name}: ${sys.added} ${packages}, ${kb(browser)} to the browser`))
     const scroller = make("div", "table-scroll")
     const table = make("table")
     const thead = make("thead")
     const hr = make("tr")
-    for (const t of ["Package", "Version", "Type", "Unpacked", "Required by"]) hr.append(make("th", "", t))
+    for (const t of ["Package", "Version", "Type", "Required by"]) hr.append(make("th", "", t))
     thead.append(hr)
     const tbody = make("tbody")
     sys.n.forEach((p, i) => {
       if (i === 0 || p[2] === "base") return
       const tr = make("tr")
-      for (const v of [p[0], p[1], TYPE_NAMES[p[2]], mb(p[3]), incoming[i].map((j) => (j === 0 ? "your app" : short(sys.n[j][0]))).join(", ")]) tr.append(make("td", "", v))
+      for (const v of [p[0], p[1], TYPE_NAMES[p[2]], incoming[i].map((j) => (j === 0 ? "your app" : short(sys.n[j][0]))).join(", ")]) tr.append(make("td", "", v))
       tbody.append(tr)
     })
     table.append(thead, tbody)
     scroller.append(table)
-    tables.append(scroller)
+    group.append(scroller)
+    tables.append(group)
   })
 
   // Up and down arrows switch rows when a row has focus, and Home and End go to
@@ -1258,10 +1264,38 @@ tr:last-child td { border-block-end: none; }
 </script>
 </section>
 
+<!-- 8 -->
+<section class="slide">
+  <p class="chapter-mark">Requirement 1 of 5 · The browser must be the platform</p>
+  <h2>What the design system team pays</h2>
+  <div class="rows three">
+    <div class="box">
+      <span class="number">3</span>
+      <p>browser engines in every test run: Chromium, Firefox and WebKit. The browser's own APIs are exactly what differ between them.</p>
+    </div>
+    <div class="box">
+      <h3>Waiting for the last engine</h3>
+      <p>A styled drop-down is one CSS declaration, and not every engine has it:</p>
+      <pre>appearance: base-select
+<i>Chrome 135 ✓  Safari 27 ✓</i>
+<i>Firefox 149+  behind two flags</i></pre>
+      <p style="margin-block-start: 0.6rem;">So it is optional, and without it the user gets the browser's own drop-down.</p>
+    </div>
+    <div class="box">
+      <h3>Names that cannot be renamed</h3>
+      <p>Class names, <code>data-*</code>, tokens and package paths end up in the consumers' code, so breaking one takes a new major version. Behaviour is fixed like a bug.</p>
+    </div>
+  </div>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to keep each fallback working until the last engine has the feature, and to treat every name a consumer can write as a promise.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>More than 2,000 tests run in each of the three engines. The styled drop-down is switched on with <code>data-picker="styled"</code>.</span></p>
+  </div>
+  <p class="sources">Source, read 19 November 2026: <a href="https://github.com/mdn/browser-compat-data/blob/main/css/properties/appearance.json" target="_blank" rel="noreferrer">browser-compat-data, appearance</a> (Chrome 135, Safari 27; Firefox 149 and later behind two flags).</p>
+</section>
 
-<!-- 10 -->
+<!-- 9 -->
 <section class="slide chapter">
-  <span class="mark mark-blue">Requirement 2 of 7</span>
+  <span class="mark mark-blue">Requirement 2 of 5</span>
   <div class="chapter-top">
     <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fownership" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gownership" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fownership)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gownership)"/>
       <rect x="11" y="13" width="50" height="46" rx="8" fill="none" stroke="#b5cbee"
@@ -1270,51 +1304,51 @@ tr:last-child td { border-block-end: none; }
       <path d="M29 32 H43 M29 39 H38" stroke="#cde1f9" stroke-width="2.2" stroke-linecap="round"/></svg>
     <h2>Markup must come from whoever renders it</h2>
   </div>
-  <p class="lead">Markup comes from whoever renders it: React in the browser, a server, or both. The web component adds no nodes to it. The attributes it sets, such as classes, <code>role</code>, <code>id</code> and <code>aria-selected</code>, it works out from the markup and from what the user does, so it can set them again after every re-render. The markup is in plain DOM, so the web component does not use shadow DOM.</p>
+  <p class="lead">Markup comes from whoever renders it: React in the browser, a server, or both. A web component adds no nodes to markup someone else renders, and the markup is in plain DOM, not in a shadow root.</p>
+  <p class="ask"><span>Ask of your own design system</span>Apart from components that only show their own content, such as a toast, can a template that runs none of your code write every node, in plain DOM, with script adding attributes at most?</p>
   <ol class="chapter-list">
-      <li>Three ways to render</li>
-      <li>The strictest case: SSR with DOM morphing</li>
-      <li>The two layers</li>
-      <li>Three categories, and one question</li>
-      <li>Two paths to the same contract</li>
-      <li>What the web component may write</li>
+      <li>Three ways to render, and all of them render again</li>
+      <li>DOM morphing removes every attribute the server did not send</li>
+      <li>Plain DOM, because a re-render does not reach into a shadow root</li>
+      <li>Two layers, and a component that sends a form value cannot create its own markup</li>
   </ol>
 </section>
 
-<!-- 11 -->
+<!-- 10 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 2 of 7 · Markup must come from whoever renders it</p>
-  <h2>Three ways to render</h2>
-  <p>A design system has to work wherever the markup is rendered. There are three cases, and most teams probably still work with the first.</p>
+  <p class="chapter-mark">Requirement 2 of 5 · Markup must come from whoever renders it</p>
+  <h2>Three ways to render, and all of them render again</h2>
+  <p>A design system has to work wherever the markup is rendered. There are three cases.</p>
   <div class="rows three">
     <div class="box">
       <span class="mark mark-blue">CSR</span>
-      <p>The framework in the browser renders from JSON. When the data changes, React re-renders the results, and nodes a web component has inserted can be thrown away.</p>
+      <p>The framework in the browser renders from JSON. When the data changes, React re-renders the results, and it can replace a node with a new one.</p>
       <pre>const response = await fetch("/api/results")
 setResults(await response.json())</pre>
     </div>
     <div class="box">
       <span class="mark mark-green">SSR</span>
-      <p>The server renders HTML. On an update it sends the HTML again, and a library such as Datastar inserts it with DOM morphing. Attributes that were not in what the server sent are removed.</p>
+      <p>The server renders HTML. When something changes it sends the HTML again, and a library such as Datastar merges it into the page. That is called <i>DOM morphing</i>, and it removes the attributes that were not in what the server sent.</p>
     </div>
     <div class="box">
       <span class="mark mark-yellow">Both</span>
-      <p>The server renders first, React takes over with hydration, and then React renders in the browser. The markup has to be the same in both places, or React reports a hydration mismatch.</p>
+      <p>The server renders first, React takes over the same nodes in the browser, which is called hydration, and then React renders there. The markup has to be the same in both places: React warns of a hydration mismatch in development, and does not promise to fix it.</p>
     </div>
   </div>
   <div class="box" style="margin-block-start: 1.1rem;">
-    <p style="margin: 0;"><strong>In all three, someone other than the web component re-renders the DOM.</strong> If React creates the nodes again, what the web component set on the old ones is gone. DOM morphing removes every attribute that was not in the server's HTML. And if the web component has written anything before hydration, React reports a mismatch. The web component must therefore be able to work out again everything it writes.</p>
+    <p style="margin: 0;"><strong>In all three, someone other than the web component renders the DOM again.</strong> The rest of the presentation calls that a re-render, whichever of the three it is.</p>
   </div>
   <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to test every component under all three, and not only under the one it uses itself.</span></p>
     <p><span class="role role-lotek">In LO-TEK</span><span><code>&lt;lt-suggestion&gt;</code> reads the highlighted option from <code>aria-selected</code> and the number of matches from the list, so it also works when React re-renders the matches after an asynchronous search.</span></p>
   </div>
 </section>
 
-<!-- 12 -->
+<!-- 11 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 2 of 7 · Markup must come from whoever renders it</p>
-  <h2>The strictest case: SSR with DOM morphing</h2>
-  <p>With SSR, the HTML is built on the server. When the page updates, the server sends that piece of HTML again, and a library merges it into the page. This is called <i>DOM morphing</i>. Below are the two lines in Datastar that do it, and they are the reason the system is built the way it is.</p>
+  <p class="chapter-mark">Requirement 2 of 5 · Markup must come from whoever renders it</p>
+  <h2>DOM morphing removes every attribute the server did not send</h2>
+  <p>SSR with DOM morphing is the strictest of the three cases, so it is the one a design system has to be built for. Below are the two lines in Datastar that do the morphing.</p>
 <style>
 /*
  * The morph, step by step.
@@ -1667,127 +1701,75 @@ for (let {name: l} of Array.from(<b>r</b>.attributes))
   restart()
 })()
 </script>
-  <p style="margin-block-start: 1rem;">The emergency exit is <code>data-preserve-attr</code>, where the HTML template on the server lists everything the web component has set. Every template then has to change in step with the web component, with no compiler to say so, so a design system cannot build on it.</p>
-  <p style="margin-block-start: 1rem;">If a web component has added <code>aria-describedby</code> in the browser, it is gone at the next update, and the screen reader loses the wiring without anything reporting it. In React, a re-render of the parent component can throw away nodes a web component has inserted. Therefore:</p>
+  <p style="margin-block-start: 1rem;">The emergency exit is <code>data-preserve-attr</code>: the template lists everything the web component has set, and has to change in step with it, with no compiler to say so.</p>
+  <p style="margin-block-start: 1rem;">If a web component has added <code>aria-describedby</code> in the browser, it is gone at the next morph, and the screen reader loses the wiring without anything reporting it. React keeps the node on an ordinary re-render and leaves alone what it did not render, but replaces the node when the type or the key changes. The result is the same, only later. Therefore:</p>
   <div class="box">
     <p style="margin: 0;"><strong>A web component never adds nodes to markup that someone else renders. Everything it writes there, it works out from the markup and from what the user does, so it can write the same again after every re-render.</strong></p>
   </div>
-  <p style="margin-block-start: 1rem;">Datastar removes every attribute the server did not send. React reports a mismatch if the web component wrote anything before hydration. Whatever the framework, what the web component has set must survive attributes being removed.</p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Cannot count on anything a web component sets staying where it was put.</span></p>
+  </div>
+  <p class="sources">Sources, read 19 November 2026: datastar.js 1.0.4, read in the source · <a href="https://data-star.dev/reference/attributes" target="_blank" rel="noreferrer">data-star.dev, attributes</a> · <a href="https://legacy.reactjs.org/docs/reconciliation.html" target="_blank" rel="noreferrer">React, Reconciliation</a> (keeps the node, updates the changed attributes) · <a href="https://react.dev/learn/preserving-and-resetting-state" target="_blank" rel="noreferrer">react.dev, Preserving and Resetting State</a>.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <p class="chapter-mark">Requirement 2 of 5 · Markup must come from whoever renders it</p>
+  <h2>Plain DOM, because a re-render does not reach into a shadow root</h2>
+  <p>A shadow root can do more today than it could. The web component can join the form around it with <code>ElementInternals</code>, and a server can send the content as a declarative shadow root. Under the premise, four things still stand in the way.</p>
+  <ul>
+    <li><strong>A re-render does not reach inside.</strong> A declarative shadow root is created when the page is first parsed, not when a morph parses what the server sends, and neither Datastar nor idiomorph walks into one. Whoever renders can then neither write nor update what is in there.</li>
+    <li><strong>Ids stop at the shadow root.</strong> A <code>&lt;label for&gt;</code> finds its field only in the same tree, so a label outside cannot point at a field inside. Reference Target, the proposal that would let it, has shipped in one engine.</li>
+    <li><strong>A server without JavaScript has to copy the inside by hand.</strong> From Go, PHP or Kotlin, the template has to repeat each web component's inner markup, and change when it does.</li>
+    <li><strong>The consumer's CSS stops at the shadow root.</strong> Inherited values, custom properties among them, and <code>::part()</code> get through, and little else, which is at odds with requirement 5.</li>
+  </ul>
+  <div class="box">
+    <p style="margin: 0;"><strong>So the field is an <code>&lt;input&gt;</code> you write yourself, in plain DOM, and the web component wraps around it.</strong> The price is that a re-render reaches everything the web component has set. A shadow root would have protected it. Requirement 4 is about paying that price.</p>
+  </div>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Gives up the one place where its own markup and state would have been safe from a re-render.</span></p>
+  </div>
+  <p class="sources">Sources, read 19 November 2026: <a href="https://developer.mozilla.org/en-US/docs/Web/API/ElementInternals" target="_blank" rel="noreferrer">MDN, ElementInternals</a> (in all engines since March 2023) · <a href="https://web.dev/articles/declarative-shadow-dom" target="_blank" rel="noreferrer">web.dev, Declarative Shadow DOM</a> (in all engines since August 2024; not created by <code>innerHTML</code>) · <a href="https://html.spec.whatwg.org/multipage/forms.html#the-label-element" target="_blank" rel="noreferrer">HTML Standard, the label element</a> · <a href="https://caniuse.com/mdn-api_shadowroot_referencetarget" target="_blank" rel="noreferrer">caniuse, referenceTarget</a> (Chrome 152 and Edge; behind a flag in Firefox and Safari) · <a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_components/Using_shadow_DOM" target="_blank" rel="noreferrer">MDN, Using shadow DOM</a> (page CSS does not affect nodes inside) · datastar.js 1.0.4, read in the source.</p>
 </section>
 
 <!-- 13 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 2 of 7 · Markup must come from whoever renders it</p>
-  <h2>The two layers</h2>
-  <p>The rule on the previous slide splits the system into two layers: what is rendered, and what the web component does afterwards. The split is necessary because a re-render can tear away attributes and replace nodes. When a node is replaced, the event listeners on it disappear too, and the web component adds them again when MutationObserver reports the new node. A builder function never sets an event listener, and a web component writes only what it can work out from the markup and from what the user does.</p>
-  <div class="table-scroll">
-  <table>
-    <thead><tr><th>Layer</th><th>Contents</th><th>Who produces it</th></tr></thead>
-    <tbody>
-      <tr><td>The builder functions</td><td>Classes, <code>data-*</code>, the accessibility wiring</td><td>The code that renders, when it can call a JavaScript function. A template in another language writes the classes itself.</td></tr>
-      <tr><td>Web components</td><td>Keyboard, focus, positioning, and the wiring where the markup lacks it</td><td>The component in the browser, once the markup is in place</td></tr>
-    </tbody>
-  </table>
-  </div>
-  <p style="margin-block-start: 1rem;"><strong>No shadow DOM.</strong> Shadow DOM is the reason many have tried web components and given up: a field in a shadow root is outside the form around it, and you have to report the value from the host element with <code>ElementInternals</code> to get it into the submission. Here you write the <code>&lt;input&gt;</code> yourself, in plain DOM, and the web component wraps around it.</p>
-  <div class="perspective">
-    <p><span class="role role-lotek">In LO-TEK</span><span>The builder functions are in <code>lt</code>, for example <code>lt.button()</code> and <code>lt.field()</code>, and every web component is called <code>&lt;lt-…&gt;</code>.</span></p>
-  </div>
-</section>
-
-<!-- 14 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 2 of 7 · Markup must come from whoever renders it</p>
-  <h2>Three categories, and one question</h2>
-  <p>With SSR the server writes all the HTML, and with CSR the framework does. Which category a component belongs to is therefore not about who writes the HTML. It is about <strong>who creates the nodes, and what a web component does with them while the page is alive</strong>.</p>
+  <p class="chapter-mark">Requirement 2 of 5 · Markup must come from whoever renders it</p>
+  <h2>Two layers, and a component that sends a form value cannot create its own markup</h2>
+  <p>Whoever renders writes the markup: classes, <code>data-*</code> and the wiring. The web component adds keyboard, focus and positioning, and the wiring where the markup lacks it. Whether it may create nodes of its own depends on what it is for.</p>
   <div class="rows three">
     <div class="box">
-      <span class="mark mark-blue">CSS only</span>
-      <p>Whoever renders creates everything, and no JavaScript runs. The markup is static: a class and a few <code>data-*</code>.</p>
+      <span class="mark mark-blue">CSS</span>
+      <p>Whoever renders creates everything, and no JavaScript runs.</p>
       <pre>&lt;button class="lt-button"
   data-variant="secondary"&gt;</pre>
     </div>
     <div class="box">
       <span class="mark mark-green">Frame</span>
-      <p>Whoever renders decides which nodes exist. The web component listens, and sets only attributes it works out from them.</p>
+      <p>Whoever renders creates the nodes. The web component sets only attributes it can work out again.</p>
       <pre>&lt;lt-field&gt;
-  &lt;label&gt;…&lt;/label&gt;
-  &lt;input class="lt-input"&gt;
+  &lt;label for="…"&gt;…&lt;/label&gt;
+  &lt;input id="…"&gt;
 &lt;/lt-field&gt;</pre>
     </div>
     <div class="box">
       <span class="mark mark-yellow">Standalone</span>
-      <p>Toasts, and the bar that tells you when the connection drops. They send no value with the form, and they create their content themselves when the app calls them. If a component has more text than a couple of labels, it is a frame.</p>
+      <p>A toast or a connection bar. They create their content inside their own element, and send no form value.</p>
       <pre>toast.show("Saved")</pre>
     </div>
   </div>
-  <p style="margin-block-start: 1.1rem;">One sentence decides where a component ends up.</p>
-  <div class="box">
-    <p style="margin: 0;"><strong>A component that sends a value with the form, or has content that must come from whoever renders, cannot create the markup itself.</strong> It is a frame.</p>
+  <div class="box" style="margin-block-start: 1rem;">
+    <p style="margin: 0;"><strong>A component that sends a form value, or has content that must come from whoever renders, cannot create its own markup. It is a frame.</strong></p>
   </div>
-</section>
-
-<!-- 15 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 2 of 7 · Markup must come from whoever renders it</p>
-  <h2>Two paths to the same contract</h2>
-  <p>What matters is whether the code that creates the markup <strong>can call a function</strong>. Where it runs makes no difference.</p>
-  <div class="rows two">
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>The code can call a function: React, Astro, Node, Kotlin</p>
-      <pre>const field = lt.field({ id: useId(), help: true })
-
-&lt;div&gt;
-  &lt;label {...field.label}&gt;Email&lt;/label&gt;
-  &lt;input {...lt.input({ type: "email" })} {...field.control} /&gt;
-  &lt;p {...lt.helpText()} {...field.help}&gt;We never send spam&lt;/p&gt;
-&lt;/div&gt;
-
-<i>// The wiring is in the markup from the first render.</i>
-<i>// The web component is not needed.</i></pre>
-    </div>
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>The markup is created without JavaScript: Go, PHP, Python, by hand</p>
-      <pre>&lt;lt-field&gt;
-  &lt;label class="lt-label"&gt;Email&lt;/label&gt;
-  &lt;input class="lt-input" type="email"&gt;
-  &lt;p class="lt-help-text"&gt;We never send spam&lt;/p&gt;
-&lt;/lt-field&gt;
-
-<i>// No ids, no for, no aria-describedby.</i>
-<i>// The web component sets the wiring in the browser.</i></pre>
-    </div>
-  </div>
-  <p style="margin-block-start: 1rem;">The two are not a matter of taste. They are two paths for two kinds of code, and both give the same wiring between label, field and help text.</p>
   <div class="perspective">
-    <p><span class="role role-maintainer">Design system team</span><span>Has to test both paths against the same contract.</span></p>
+    <p><span class="role role-maintainer">Design system team</span><span>Has to place every new component in one of the three before it is written.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>The documentation sorts the components the same way. The builder functions are in <code>lt</code> for TypeScript and in <code>Lt</code> for Kotlin, and run on a server without a DOM.</span></p>
   </div>
 </section>
 
-<!-- 16 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 2 of 7 · Markup must come from whoever renders it</p>
-  <h2>What the web component may write</h2>
-  <p>The rule says that everything the web component writes in markup others have rendered is worked out from the markup and from what the user does. This is how <code>&lt;lt-field&gt;</code> from the previous slide sets <code>id</code>, <code>for</code> and <code>aria-describedby</code> on elements it did not render itself.</p>
-  <ul>
-    <li><strong>It reads before it writes.</strong> The id is taken from the field or from the label's <code>for</code>, and ids that were rendered in <code>aria-describedby</code> are included in the result.</li>
-    <li><strong>It compares before it writes.</strong> If the same value is already there, the web component writes nothing.</li>
-    <li><strong>It remembers what it wrote itself, and on which node.</strong> Only that can it put back when an update tears it away. An id it has created comes back as the same id.</li>
-  </ul>
-  <p class="code-title"><span class="lotek-mark">LO-TEK</span>The helper all writes go through, simplified</p>
-  <pre>function setAttr(el, name, value) {
-  if (el.getAttribute(name) !== value) el.setAttribute(name, value)
-}</pre>
-  <div class="perspective">
-    <p><span class="role">Product teams</span><span>Can write as much or as little of the wiring as they like.</span></p>
-    <p><span class="role role-maintainer">Design system team</span><span>Has to build the web component so it keeps track of what it has written itself, node by node. Otherwise it cannot tell what it wrote from what was rendered.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>The memory is a <code>WeakMap</code> keyed by the node. The tabs, the dialog and the others set roles, ids and wiring only when they are missing. The field writes the whole wiring every time, and includes what was rendered.</span></p>
-  </div>
-</section>
-
-<!-- 17 -->
+<!-- 14 -->
 <section class="slide chapter">
-  <span class="mark mark-blue">Requirement 3 of 7</span>
+  <span class="mark mark-blue">Requirement 3 of 5</span>
   <div class="chapter-top">
     <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fcontract" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gcontract" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fcontract)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gcontract)"/>
       <rect x="26" y="45" width="20" height="14" rx="4" fill="#1362ae" stroke="#9ccff2" stroke-width="2.2"/>
@@ -1795,100 +1777,249 @@ for (let {name: l} of Array.from(<b>r</b>.attributes))
       <path d="M52 17 v10 a6 6 0 0 1 -6 6 h-4 a6 6 0 0 0 -6 6 v6" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <circle cx="20" cy="15" r="3.4" fill="#cde1f9"/>
       <circle cx="52" cy="15" r="3.4" fill="#cde1f9"/></svg>
-    <h2>Accessibility must be written in one place</h2>
+    <h2>The wiring must have one source</h2>
   </div>
-  <p class="lead">The rules for how a form field is wired up for a screen reader exist in one place in the code, and both the builder function and the web component use that same code.</p>
+  <p class="lead">The rules for how a form field is wired up for a screen reader are written once. Whoever renders and the web component both get the wiring from there.</p>
+  <p class="ask"><span>Ask of your own design system</span>Are the rules that connect a label, a field and its messages (<code>id</code>, <code>for</code>, <code>aria-describedby</code>) written once, with every way of rendering using them or a copy tested against them?</p>
   <ol class="chapter-list">
-      <li>One function, two entry points</li>
+      <li>Two paths to the same wiring, and one function behind both</li>
   </ol>
 </section>
 
-<!-- 18 -->
+<!-- 15 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 3 of 7 · Accessibility must be written in one place</p>
-  <h2>One function, two entry points</h2>
-  <p>The wiring between label, field, help text and error message is the same whoever writes the markup. That is why it exists in one place, and the two paths are two calls to the same function.</p>
-  <p class="code-title"><span class="lotek-mark">LO-TEK</span>frame/field/field-core.ts</p>
+  <p class="chapter-mark">Requirement 3 of 5 · The wiring must have one source</p>
+  <h2>Two paths to the same wiring, and one function behind both</h2>
+  <p>What matters is whether there is <strong>a builder function for the language</strong> whoever renders is written in.</p>
+  <div class="rows two">
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>There is a builder function: React, Astro, Node, Kotlin</p>
+      <pre>import { lt } from "@lo-tek/interfaces/react"
+const field = lt.field({ id: useId(), help: true })
+
+&lt;label {...field.label}&gt;Email&lt;/label&gt;
+&lt;input {...lt.input({ type: "email" })} {...field.control} /&gt;
+&lt;p {...lt.helpText()} {...field.help}&gt;We never send spam&lt;/p&gt;
+
+<i>// The whole wiring is in the markup from the first render.</i></pre>
+    </div>
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>There is none: Go, PHP, Python, HTML by hand</p>
+      <pre>&lt;lt-field&gt;
+  &lt;label class="lt-label" for="email"&gt;Email&lt;/label&gt;
+  &lt;input class="lt-input" id="email" type="email"&gt;
+  &lt;p class="lt-help-text"&gt;We never send spam&lt;/p&gt;
+&lt;/lt-field&gt;
+
+<i>// The template writes id and for, as HTML requires.</i>
+<i>// The web component adds the rest.</i></pre>
+    </div>
+  </div>
+  <p style="margin-block-start: 1rem;">Both get the same wiring, because both call the same function:</p>
   <pre>computeFieldAttributes(...)
-   ├── lt.field()      <i>← called where the markup is rendered</i>
-   └── &lt;lt-field&gt;      <i>← the web component calls it on elements already in the DOM</i></pre>
-  <p style="margin-block-start: 1rem;">If the contract changes, it changes there, not in the web component. If every server had to write the wiring itself, the system would be for JavaScript only, and everyone else would get a handwritten fallback. That is what breaks first.</p>
+   ├── lt.field()   <i>← called where the markup is rendered</i>
+   └── &lt;lt-field&gt;   <i>← called in the browser, on elements already in the DOM</i></pre>
+  <p style="margin-block-start: 1rem;">Rules of its own in the web component would be a second implementation, and that is the one that breaks first.</p>
   <div class="perspective">
-    <p><span class="role">Product teams</span><span>Get the same wiring whether the markup is made in React, in a Go template or by hand.</span></p>
-    <p><span class="role role-maintainer">Design system team</span><span>Has to write the contract as a pure function without a DOM, so that both the code that renders and a web component can call it.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>Kotlin has its own <code>Lt.field()</code>, written by hand. A test runs it against 277 combinations of options with the answer from TypeScript, and one difference stops the build.</span></p>
+    <p><span class="role role-maintainer">Design system team</span><span>Has to write the wiring as a pure function without a DOM, so that both a builder function and a web component can call it. Every language that cannot call it needs a copy, and a test that holds the copy to the source.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>Kotlin cannot call the TypeScript function, so <code>Lt.field()</code> is written by hand. A test runs it against 277 combinations of options with the answer from TypeScript, and one difference stops the build.</span></p>
   </div>
 </section>
 
-<!-- 19 -->
+<!-- 16 -->
 <section class="slide chapter">
-  <span class="mark mark-blue">Requirement 4 of 7</span>
+  <span class="mark mark-blue">Requirement 4 of 5</span>
   <div class="chapter-top">
     <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="fexpected" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gexpected" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#fexpected)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gexpected)"/>
       <rect x="28" y="13" width="16" height="12" rx="3.5" fill="#1362ae" stroke="#cde1f9" stroke-width="2.2"/>
       <path d="M36 25 v8 M22 41 v-4 a4 4 0 0 1 4-4 h20 a4 4 0 0 1 4 4 v4" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <rect x="14" y="43" width="16" height="12" rx="3.5" fill="none" stroke="#9ccff2" stroke-width="2.2"/>
       <rect x="42" y="43" width="16" height="12" rx="3.5" fill="none" stroke="#9ccff2" stroke-width="2.2"/></svg>
-    <h2>The web component must read state from the DOM</h2>
+    <h2>The web component must be able to write everything again</h2>
   </div>
-  <p class="lead">If the state is in the markup, the web component reads it from there. It never keeps a separate copy of anything that is also rendered, and it puts back what a re-render tears away.</p>
+  <p class="lead">A re-render can tear away anything a web component has set. So the web component writes only what it can work out again, reads state that is in the markup from the markup, and remembers what it wrote itself and what the user did.</p>
+  <p class="ask"><span>Ask of your own design system</span>If a server morph strips the wiring your script wrote, or React replaces the node, is it written back without the template listing it, and is state such as <code>aria-invalid</code> read from the markup rather than kept as a copy?</p>
   <ol class="chapter-list">
-      <li>When a re-render tears away what the web component set</li>
-      <li>The web component must never work out what it can read</li>
+      <li>It reads, compares and remembers, and puts back what a re-render tears away</li>
+      <li>State in the markup is read from the markup, and the web component knows what is its own</li>
+  </ol>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <p class="chapter-mark">Requirement 4 of 5 · The web component must be able to write everything again</p>
+  <h2>It reads, compares and remembers, and puts back what a re-render tears away</h2>
+  <p>A re-render can remove what the web component set: DOM morphing strips the attribute, and React can replace the node. MutationObserver tells the web component, and it writes the attribute again. Three habits make that possible.</p>
+  <ul>
+    <li><strong>It reads before it writes.</strong> Ids and <code>aria-describedby</code> that were rendered are kept.</li>
+    <li><strong>It compares before it writes,</strong> and writes nothing that is already there.</li>
+    <li><strong>It remembers what it wrote, and on which node.</strong> Only that can it put back, and an id it created comes back the same.</li>
+  </ul>
+  <p class="code-title"><span class="lotek-mark">LO-TEK</span>The helper the writes go through, simplified</p>
+  <pre>function setAttr(el, name, value) {
+  if (el.getAttribute(name) !== value) el.setAttribute(name, value)
+}</pre>
+  <p style="margin-block-start: 0.6rem;">It does not flicker: MutationObserver calls the web component in a microtask, before the browser paints again.</p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to compare before every write. A web component that writes the same value again triggers its own MutationObserver, and the test run hangs instead of failing.</span></p>
+    <p><span class="role">Consumers</span><span>Write what HTML requires, such as <code>id</code> and <code>for</code> on a field, and nothing more: no <code>aria-describedby</code> and no list of what has to be preserved.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>Seven of the ten web components keep the memory in a <code>WeakMap</code> keyed by the node. <code>&lt;lt-field&gt;</code> never writes an id on the field: a morph matches nodes by their id and never keeps one whose id the new HTML lacks, so a field with an id the server did not send would be replaced at the next update, with focus and what the user typed.</span></p>
+  </div>
+  <p class="sources">Sources, read 19 November 2026: <a href="https://dom.spec.whatwg.org/#queue-a-mutation-observer-compound-microtask" target="_blank" rel="noreferrer">DOM Standard, mutation observers</a> · <a href="https://html.spec.whatwg.org/multipage/webappapis.html#event-loop-processing-model" target="_blank" rel="noreferrer">HTML Standard, event loop</a>.</p>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <p class="chapter-mark">Requirement 4 of 5 · The web component must be able to write everything again</p>
+  <h2>State in the markup is read from the markup, and the web component knows what is its own</h2>
+  <p>That a field is invalid is stated as <code>aria-invalid</code> on the field. A separate attribute on the web component's own element puts the state in two places, and sooner or later they disagree.</p>
+  <div class="box">
+    <p style="margin: 0;"><strong>If the state is in the markup, the web component reads it from there, and keeps no copy of it.</strong></p>
+  </div>
+  <p style="margin-block-start: 1rem;">Some attributes are written from both sides. <code>aria-selected</code> on a tab can come from whoever renders, and the web component sets it when the user picks another tab. To read it, the web component has to know who set the value that is there now.</p>
+  <div class="box">
+    <p style="margin: 0;"><strong>Note the value the web component wrote, and on which node. If something else is there next time, someone else has touched it.</strong> Never decide it from what the web component believed last time.</p>
+  </div>
+  <p style="margin-block-start: 1rem;">What the user did is the one piece of state the markup never had, and the web component keeps it: which tab was chosen, which option was highlighted. A re-render tears it away, and by default the web component puts it back. Sometimes whoever renders should have the last word instead.</p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to decide, component by component, whether a re-render or the user has the last word, and give the template a way to say which.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>Tabs, suggestion, popover and dialog read <code>server-controlled</code> on their element. Then they no longer put back what the user did, and still do the wiring and the keyboard.</span></p>
+  </div>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <p class="chapter-mark">Requirement 5 of 5</p>
+  <div class="chapter-top">
+    <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="flayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="glayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#flayers)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#glayers)"/>
+      <path d="M36 40 L14 50 L36 60 L58 50 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.5" stroke-linejoin="round"/>
+      <path d="M36 28 L14 38 L36 48 L58 38 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.75" stroke-linejoin="round"/>
+      <path d="M36 16 L14 26 L36 36 L58 26 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/></svg>
+    <h2>The consumer's CSS must win</h2>
+  </div>
+  <p>A consumer who has to write <code>!important</code> to move a button four pixels stops using the design system. So all component CSS is in a layer of its own, and an entirely ordinary rule written by the consumer beats it: a rule outside any layer wins over everything inside one.</p>
+  <p class="ask"><span>Ask of your own design system</span>Does a rule with one class selector in the consumer's CSS beat yours in every state, <code>:disabled</code> included, even when it is loaded first and without <code>!important</code>?</p>
+  <div class="rows two">
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>Without the layer, your rule loses on specificity</p>
+      <pre>.lt-button           <i>(0,1,0)</i>
+.lt-button:disabled  <i>(0,2,0)  ← the design system's wins</i></pre>
+      <p class="code-title" style="margin-block-start: 0.9rem;">With the layer, your rule wins regardless</p>
+      <pre>@layer lotek {
+  .lt-button:disabled { … }
+}
+.lt-button { … }  <i>← unlayered, wins</i></pre>
+    </div>
+    <div>
+      <p class="code-title">Shape and size are read from a variable</p>
+      <pre>padding: var(--lt-button-padding,
+             var(--lt-spacing-2) var(--lt-spacing-4));</pre>
+      <p style="margin-block-start: 0.6rem;">The default value follows the spacing scale, also when the consumer changes <code>--lt-spacing-*</code>. The variables are deliberately not registered with <code>@property</code>: a registered initial value becomes the value when the variable is not set, and then <code>var()</code> never reaches the fallback.</p>
+    </div>
+  </div>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to test the layer and the variables in a browser, not assume they work. Both have their own tests.</span></p>
+  </div>
+</section>
+
+<!-- 20 -->
+<section class="slide chapter">
+  <span class="mark mark-blue">Recommendation 1 of 2</span>
+  <div class="chapter-top">
+    <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="ftypes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gtypes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#ftypes)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gtypes)"/>
+      <path d="M24 17 a8 8 0 0 0 -8 8 v6 a5 5 0 0 1 -5 5 a5 5 0 0 1 5 5 v6 a8 8 0 0 0 8 8"
+            fill="none" stroke="#9ccff2" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M48 17 a8 8 0 0 1 8 8 v6 a5 5 0 0 0 5 5 a5 5 0 0 0 -5 5 v6 a8 8 0 0 1 -8 8"
+            fill="none" stroke="#9ccff2" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M28 36.5 L34 42.5 L45 29.5" fill="none" stroke="#cde1f9" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h2>Mistakes should be caught in every environment</h2>
+  </div>
+  <p class="lead">You should not lose autocompletion and red squiggles because you do not use React, and markup that no compiler reads should be checked too.</p>
+  <p class="ask"><span>Ask of your own design system</span>Are a developer and a coding agent told about an unknown class, an invalid value or a missing label while they write, also in templates and hand-written HTML, while valid markup gives no warning?</p>
+  <ol class="chapter-list">
+      <li>A builder function knows its options, as a component does</li>
+      <li>Where TypeScript does not see, the design system checks the markup</li>
       <li>The web component should speak up when the markup does not fit together</li>
   </ol>
 </section>
 
-<!-- 20 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 4 of 7 · The web component must read state from the DOM</p>
-  <h2>When a re-render tears away what the web component set</h2>
-  <p>A re-render can remove what the web component set: DOM morphing strips the attribute, and React can replace the node. The web component knows what it has worked out itself and writes it back straight away. Whoever renders therefore needs to know nothing about what the web component does:</p>
-  <div class="rows two">
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>The markup, rendered with CSR or SSR</p>
-      <pre>&lt;lt-field&gt;
-  &lt;label class="lt-label"&gt;Email&lt;/label&gt;
-  &lt;input class="lt-input" type="email"&gt;
-  &lt;p class="lt-help-text"&gt;We never send spam&lt;/p&gt;
-&lt;/lt-field&gt;</pre>
-      <p class="muted" style="margin-block-start: 0.6rem;">No ids, no <code>for</code>, no <code>aria-describedby</code> and no list of what has to be preserved. The web component sets the wiring and puts it back every time it disappears.</p>
-    </div>
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>If the markup alone is to decide the state</p>
-      <pre>&lt;lt-tabs server-controlled&gt;</pre>
-      <p class="muted" style="margin-block-start: 0.6rem;">One attribute on the host element, and the web component no longer puts back what the user did, here the selected tab. Then what was rendered applies, every time, and the web component still does the wiring and the keyboard. The name says server, but the attribute applies just as much to CSR.</p>
-    </div>
-  </div>
-  <p style="margin-block-start: 1rem;"><strong>If the web component worked out the attribute, it can work it out again. If the user did something, the web component knows what it was, because it was there when it happened.</strong> That is what makes the repair possible.</p>
-  <p>It does not flicker, and that has been tested. DOM morphing removes the attribute, MutationObserver calls the web component in a microtask before the next paint, and it puts the attribute back. The rendered version is in the DOM for a moment without anyone seeing it.</p>
-  <div class="perspective">
-    <p><span class="role role-maintainer">Design system team</span><span>Has to compare before every write. If the web component writes the same value again, MutationObserver triggers itself, and the test run hangs instead of failing.</span></p>
-  </div>
-</section>
-
 <!-- 21 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 4 of 7 · The web component must read state from the DOM</p>
-  <h2>The web component must never work out what it can read</h2>
-  <p>Whoever renders and the web component look at the same page. If the web component keeps a separate version of something that is also rendered, the state exists in two places, and then it is only a matter of time before the two disagree.</p>
-  <p>That a field is invalid is stated as <code>aria-invalid</code> on the control. If the web component reads it from there, it always agrees with what was rendered. If it reads a separate attribute on the host element instead, sooner or later it will remove something that was just rendered. In React that shows up as a hydration mismatch, in Datastar as an error message on a valid field.</p>
-  <div class="box">
-    <p style="margin: 0;"><strong>If the state is in the markup, the web component must read it from there.</strong></p>
+  <p class="chapter-mark">Recommendation 1 of 2 · Mistakes should be caught in every environment</p>
+  <h2>A builder function knows its options, as a component does</h2>
+  <p>The objection to leaving React is usually the developer experience: you lose components that know their own options. A builder function gives the same, because it is a plain TypeScript function: one object in, attributes out, and the editor knows both.</p>
+  <div class="rows two equal-height" style="margin-block-start: 1.1rem;">
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>The call, and what comes out</p>
+      <pre>lt.button({ variant: "secondary" })
+<i>// { class: "lt-button", "data-variant": "secondary" }</i>
+
+lt.input({ type: "email", state: "invalid" })
+<i>// { class: "lt-input", type: "email",</i>
+<i>//   "data-state": "invalid", "aria-invalid": "true" }</i></pre>
+    </div>
+    <div>
+      <p class="code-title">What every such function has to keep to</p>
+      <div class="box">
+      <ul>
+        <li>Always an object, never positional arguments.</li>
+        <li>A default the CSS already has gives no attribute.</li>
+        <li>The allowed values are in the type, so they show up in the editor.</li>
+        <li>One term means one thing in every function.</li>
+      </ul>
+      </div>
+    </div>
   </div>
-  <p style="margin-block-start: 1rem;">Which tab is selected is therefore read from <code>aria-selected</code> and not from a separate attribute. When the web component both reads and writes an attribute, it also has to know who set it.</p>
-  <div class="box">
-    <p style="margin: 0;"><strong>Note the value the web component wrote, and on which node. If something else is there next time, someone else has touched it.</strong> Never decide who set it from what the web component believed last time.</p>
+  <p style="margin-block-start: 1rem;">If you make a typo, for example <code>variant: "secondry"</code>, you get a red squiggle in the editor before you save, wherever TypeScript sees the code: in JSX, in Astro and in JavaScript with type checking switched on.</p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to keep the allowed values, the types and the CSS in step. A value that does nothing is worse than no value.</span></p>
   </div>
-  <p class="muted" style="margin-block-start: 1rem;">Without that, the same markup gives two different answers, depending on which states the host element has been in before.</p>
 </section>
 
 <!-- 22 -->
 <section class="slide">
-  <p class="chapter-mark">Requirement 4 of 7 · The web component must read state from the DOM</p>
+  <p class="chapter-mark">Recommendation 1 of 2 · Mistakes should be caught in every environment</p>
+  <h2>Where TypeScript does not see, the design system checks the markup</h2>
+  <p>A coding agent fills the gaps with what it has seen in other design systems: <code>lt-modal</code>, <code>data-variant="outline"</code>. It stops only if something tells it while it works, and so does a developer.</p>
+  <div class="rows two">
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>Through a builder function, TypeScript reports it</p>
+      <pre><i>// button.ts</i>
+lt.button({ variant: "outline" })
+
+<i>$ tsc</i>
+button.ts(2,13): error TS2322: Type '"outline"'
+  is not assignable to type '"danger" | "primary"
+  | "secondary" | "ghost" | undefined'.</pre>
+      <p class="muted" style="margin-block-start: 0.6rem;">The rulebook, one Markdown file per environment that the agent reads, tells it to use the builder functions. TypeScript does not see a class written by hand in a string.</p>
+    </div>
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>In markup, the design system provides the check itself</p>
+      <pre><i>$ npx @lo-tek/interfaces check page.html</i>
+page.html:1:14: warning: The class "lt-modal"
+  does not exist in LO-TEK.
+page.html:2:29: warning: data-variant cannot be
+  "outline" on button. Valid values: secondary,
+  ghost, danger, and primary without the attribute.
+
+2 findings in 1 file.
+<i>$ echo $?</i>
+1</pre>
+      <p class="muted" style="margin-block-start: 0.6rem;">The check reads the HTML or the template, skips what is template syntax, and exits with an error code, as <code>tsc</code> does.</p>
+    </div>
+  </div>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to build and maintain the check itself: a reader of HTML and templates, the editor plugins that run it, and rulebooks generated from the code and tested in every build.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>The same check runs in the editors and on the page a server sends. The rulebooks are linked from <code>lo-tek.sobernetics.no/llms.txt</code>.</span></p>
+  </div>
+</section>
+
+<!-- 23 -->
+<section class="slide">
+  <p class="chapter-mark">Recommendation 1 of 2 · Mistakes should be caught in every environment</p>
   <h2>The web component should speak up when the markup does not fit together</h2>
-  <p class="lead">HTML has no compiler. If a team writes a field without a label, nothing stops it, and the page looks entirely right.</p>
-  <p>The one who notices the bug is the one who cannot see the screen: the field is read out without a name. A web component that gives up without a word passes the bug on to the user. Instead it should write one line in the console, while the developer is still working on the code.</p>
+  <p class="lead">HTML has no compiler. If a field is written without a label, nothing stops it, and the page looks entirely right.</p>
+  <p>The one who notices is the one who cannot see the screen. So the web component writes one line in the console, while the developer is still working on the code.</p>
   <div class="rows two">
     <div>
       <p class="code-title"><span class="lotek-mark">LO-TEK</span>The markup that was written</p>
@@ -1905,295 +2036,45 @@ announces it without a name. …</pre>
   </div>
   <p style="margin-block-start: 1rem;">A warning that raises false alarms gets ignored. Three choices make this one trustworthy:</p>
   <ul>
-    <li><strong>It waits until the parser is done and two frames have passed.</strong> HTML from a server arrives in pieces, and a framework can render in several passes, so a moment without a label is entirely normal. The web component looks again and speaks up only if it is still wrong.</li>
-    <li><strong>The same message every time.</strong> A number in the message, as in “Found 3 tabs, but 1 panel”, makes it a new message for every panel, and the one warning becomes twenty.</li>
-    <li><strong>It points at the real bug.</strong> The popover finds its button by looking up the panel's id. If the id is missing, the message should say so, and not that the button is missing. Otherwise the developer looks in the wrong place.</li>
+    <li><strong>It waits until the parser is done and two frames have passed.</strong> HTML arrives in pieces, so a moment without a label is normal.</li>
+    <li><strong>The same text every time.</strong> A number in it, as in “Found 3 tabs, but 1 panel”, makes one warning into twenty.</li>
+    <li><strong>It points at the real bug.</strong> The popover finds its button by looking up the panel's id. If the id is missing, the warning should say so, and not that the button is missing. Otherwise the developer looks in the wrong place.</li>
   </ul>
   <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to keep valid markup free of warnings everywhere, or developers learn to ignore them.</span></p>
     <p><span class="role role-lotek">In LO-TEK</span><span>A check in CI reads the console on every page of the built documentation and fails if there is a warning in it.</span></p>
   </div>
 </section>
 
-<!-- 23 -->
-<section class="slide chapter">
-  <span class="mark mark-blue">Recommendation 5 of 7</span>
-  <div class="chapter-top">
-    <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="ftypes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gtypes" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#ftypes)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gtypes)"/>
-      <path d="M24 17 a8 8 0 0 0 -8 8 v6 a5 5 0 0 1 -5 5 a5 5 0 0 1 5 5 v6 a8 8 0 0 0 8 8"
-            fill="none" stroke="#9ccff2" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M48 17 a8 8 0 0 1 8 8 v6 a5 5 0 0 0 5 5 a5 5 0 0 0 -5 5 v6 a8 8 0 0 1 -8 8"
-            fill="none" stroke="#9ccff2" stroke-width="2.6" stroke-linecap="round"/>
-      <path d="M28 36.5 L34 42.5 L45 29.5" fill="none" stroke="#cde1f9" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <h2>The types should work without a framework</h2>
-  </div>
-  <p class="lead">You should not lose autocompletion and red squiggles in the editor because you do not use React. The builder functions are plain TypeScript functions that return attributes.</p>
-  <p class="muted">This is what stops framework independence from feeling like a step backwards.</p>
-  <ol class="chapter-list">
-      <li>One object in, attributes out</li>
-      <li>Coding agents get a check in every environment</li>
-  </ol>
-</section>
-
 <!-- 24 -->
 <section class="slide">
-  <p class="chapter-mark">Recommendation 5 of 7 · The types should work without a framework</p>
-  <h2>One object in, attributes out</h2>
-  <p>The objection to leaving React is usually the developer experience: you lose components that know their own options. The answer is that a builder function gives the same, because it is a plain TypeScript function. It returns attributes, and the editor knows them.</p>
-  <div class="rows two equal-height" style="margin-block-start: 1.1rem;">
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>The call, and what comes out</p>
-      <pre>lt.button({ variant: "secondary" })
-<i>// { class: "lt-button", "data-variant": "secondary" }</i>
-
-lt.input({ type: "email", state: "invalid" })
-<i>// { class: "lt-input", type: "email",</i>
-<i>//   "data-state": "invalid", "aria-invalid": "true" }</i></pre>
-    </div>
-    <div>
-      <p class="code-title">The shape is fixed</p>
-      <div class="box">
-      <ul>
-        <li>Always an object, never positional arguments.</li>
-        <li>The default value gives no attribute. The CSS already has it.</li>
-        <li>The allowed values are attached to the function, so they show up in the editor.</li>
-        <li>One term, one meaning: <code>variant</code> is visual weight, <code>color</code> is what a status means, <code>state</code> is validation.</li>
-      </ul>
-      </div>
-    </div>
-  </div>
-  <p style="margin-block-start: 1rem;">If you make a typo, for example <code>variant: "secondry"</code>, you get a red squiggle in the editor before you save, wherever TypeScript sees the code: in JSX, in Astro and in JavaScript with type checking switched on. Without type checking, you can check the value at runtime with <code>lt.button.isVariant()</code>.</p>
-  <div class="perspective">
-    <p><span class="role">Product teams</span><span>Get the types without installing a framework, and without anyone having written a component for their particular framework.</span></p>
-    <p><span class="role role-maintainer">Design system team</span><span>Has to keep the allowed values, the types and the CSS in step. A value that does nothing is worse than no value.</span></p>
-  </div>
-</section>
-
-<!-- 25 -->
-<section class="slide">
-  <p class="chapter-mark">Recommendation 5 of 7 · The types should work without a framework</p>
-  <h2>Coding agents should get a check in every environment</h2>
-  <p>A coding agent fills the gaps with what it has seen in other design systems: <code>lt-modal</code>, <code>data-variant="outline"</code>. It stops only if something speaks up while it works.</p>
-  <div class="rows two">
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>With JavaScript, TypeScript speaks up</p>
-      <pre><i>// button.ts</i>
-lt.button({ variant: "outline" })
-
-<i>$ tsc</i>
-button.ts(2,13): error TS2322: Type '"outline"'
-  is not assignable to type '"danger" | "primary"
-  | "secondary" | "ghost" | undefined'.</pre>
-      <p class="muted" style="margin-block-start: 0.6rem;">The rulebook, one Markdown file per environment that the agent reads, tells it to use the builder functions. TypeScript does not see a class written by hand in a string.</p>
-    </div>
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>Without JavaScript, the design system provides the check itself</p>
-      <pre><i>$ npx @lo-tek/interfaces check page.html</i>
-page.html:1:14: warning: The class "lt-modal"
-  does not exist in LO-TEK.
-page.html:2:29: warning: data-variant cannot be
-  "outline" on button. Valid values: secondary,
-  ghost, danger, and primary without the attribute.
-
-2 findings in 1 file.
-<i>$ echo $?</i>
-1</pre>
-      <p class="muted" style="margin-block-start: 0.6rem;">The check reads the HTML or the template, skips what is template syntax, and exits with an error code, as <code>tsc</code> does. With no findings it answers “The markup matches LO-TEK in 1 file.” and exits with 0.</p>
-    </div>
-  </div>
-  <div class="perspective">
-    <p><span class="role role-maintainer">Design system team</span><span>Has to generate the rulebooks from the code and test them in every build. If a rulebook mentions a class, an element or a token that does not exist, the build stops.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>The check is also in VS Code and IntelliJ, and in Kotlin <code>Lotek.diagnosePage()</code> checks the page the server sends. The rulebooks are at <code>lo-tek.sobernetics.no/llms.txt</code>.</span></p>
-  </div>
-</section>
-
-<!-- 26 -->
-<section class="slide chapter">
-  <span class="mark mark-blue">Requirement 6 of 7</span>
-  <div class="chapter-top">
-    <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="flayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="glayers" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#flayers)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#glayers)"/>
-      <path d="M36 40 L14 50 L36 60 L58 50 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.5" stroke-linejoin="round"/>
-      <path d="M36 28 L14 38 L36 48 L58 38 Z" fill="none" stroke="#b5cbee" stroke-width="2.2" opacity="0.75" stroke-linejoin="round"/>
-      <path d="M36 16 L14 26 L36 36 L58 26 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/></svg>
-    <h2>The consumer's CSS must win</h2>
-  </div>
-  <p class="lead">All component CSS is in a layer of its own. An entirely ordinary rule written by the team beats the system's, without <code>!important</code> and without specificity tricks.</p>
-  <ol class="chapter-list">
-      <li>The layer that makes it possible</li>
-  </ol>
-</section>
-
-<!-- 27 -->
-<section class="slide">
-  <p class="chapter-mark">Requirement 6 of 7 · The consumer's CSS must win</p>
-  <h2>The layer that makes it possible</h2>
-  <p>A team that has to write <code>!important</code> to move a button four pixels stops using the system. That is why all component CSS is in a layer of its own, and a rule outside any layer beats everything inside one.</p>
-  <div class="rows two">
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>Without the layer, your rule loses on specificity</p>
-      <pre>.lt-button           <i>(0,1,0)</i>
-.lt-button:disabled  <i>(0,2,0)  ← the system's wins</i></pre>
-      <p class="code-title" style="margin-block-start: 0.9rem;">With the layer, your rule wins regardless</p>
-      <pre>@layer lotek {
-  .lt-button:disabled { … }
-}
-.lt-button { … }  <i>← unlayered, wins</i></pre>
-    </div>
-    <div>
-      <p class="code-title">Shape and size are read from a variable</p>
-      <pre>padding: var(--lt-button-padding,
-             var(--lt-spacing-2) var(--lt-spacing-4));</pre>
-      <p style="margin-block-start: 0.6rem;">The default value follows the spacing scale, also when the consumer changes <code>--lt-spacing-*</code>. The variables are deliberately not registered with <code>@property</code>: a registered initial value becomes the value when the variable is not set, and then <code>var()</code> never reaches the fallback.</p>
-    </div>
-  </div>
-  <div class="perspective">
-    <p><span class="role">Product teams</span><span>Can override everything from their own CSS, without copying the system's code.</span></p>
-    <p><span class="role role-maintainer">Design system team</span><span>Has to test the layer and the variables in a browser, not assume they work. Both have their own tests.</span></p>
-  </div>
-</section>
-
-<!-- 28 -->
-<section class="slide chapter">
-  <span class="mark mark-blue">Recommendation 7 of 7</span>
+  <p class="chapter-mark">Recommendation 2 of 2</p>
   <div class="chapter-top">
     <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="ftakeover" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gtakeover" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#ftakeover)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gtakeover)"/>
       <path d="M16 32 v20 a4 4 0 0 0 4 4 h32 a4 4 0 0 0 4 -4 v-20" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linecap="round"/>
       <path d="M12 24 h48 v8 h-48 Z" fill="none" stroke="#9ccff2" stroke-width="2.4" stroke-linejoin="round"/>
       <path d="M36 46 V14" stroke="#cde1f9" stroke-width="3" stroke-linecap="round"/>
       <path d="M28 21 L36 13 L44 21" fill="none" stroke="#cde1f9" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <h2>The team should be able to take over the code</h2>
+    <h2>A consumer should be able to take over the code</h2>
   </div>
-  <p class="lead">A design system never covers everything. Instead of writing a wrapper around something that falls short, the team should be able to copy the source code of one component into its project.</p>
-  <ol class="chapter-list">
-      <li>When the system falls short</li>
-  </ol>
-</section>
-
-<!-- 29 -->
-<section class="slide">
-  <p class="chapter-mark">Recommendation 7 of 7 · The team should be able to take over the code</p>
-  <h2>When the system falls short</h2>
-  <p>A team that needs something the system has not thought of should be able to move on the same day. If they copy the component by hand, its imports point at files that do not exist in their project. The command below copies the source code and rewrites the imports, so the rest of the system still comes from the package and can be upgraded.</p>
+  <p>A design system never covers everything, and a consumer who needs something it has not thought of should be able to move on the same day. Instead of writing a wrapper around a component that falls short, the consumer copies the source code of that one component into the project.</p>
+  <p class="ask"><span>Ask of your own design system</span>When tokens, variables and their own CSS are not enough, can a consumer copy one component's source into the app, upgrade the package, and still build?</p>
   <div class="box">
-    <p style="margin: 0;">The order the team should try: <strong>first tokens, then component variables, then their own CSS in a layer of its own.</strong> Only when none of these is enough does the team take over the component. The first three cost nothing to upgrade from.</p>
+    <p style="margin: 0;">The order to try: <strong>first tokens, then component variables, then the consumer's own CSS in a layer of its own.</strong> Only when none of these is enough does the consumer take over the component. The first three cost nothing to upgrade from.</p>
   </div>
-  <p style="margin-block-start: 1rem;">What makes the copy usable is that the references out of the component point at the package afterwards, and not at files the team does not have.</p>
-  <p class="code-title"><span class="lotek-mark">LO-TEK</span>The source code of one component, into your project</p>
+  <p class="code-title" style="margin-block-start: 1rem;"><span class="lotek-mark">LO-TEK</span>The source code of one component, into your project</p>
   <pre>npx @lo-tek/interfaces takeover button --out=src/ui</pre>
-  <p style="margin-block-start: 1rem;">The command rewrites the references, so that <code>../shared.js</code> becomes <code>@lo-tek/interfaces/shared</code>. The lookup is built from <code>exports</code> in the package, so what is copied actually works where it lands. Next to the copy it writes a manifest, so <code>check --manifest</code> knows the classes in the copy.</p>
+  <p style="margin-block-start: 1rem;">Copied by hand, the component's imports would point at files the consumer does not have. The command rewrites them, so that <code>../shared.js</code> becomes <code>@lo-tek/interfaces/shared</code>, and the rest of the design system still comes from the package and can be upgraded. The lookup is built from <code>exports</code> in the package.</p>
   <div class="perspective">
-    <p><span class="role">Product teams</span><span>Move on without waiting for the system.</span></p>
-    <p><span class="role role-maintainer">Design system team</span><span>Has to make sure everything a component imports is in <code>exports</code>, or the copy points at something the team does not have.</span></p>
+    <p><span class="role role-maintainer">Design system team</span><span>Has to make sure everything a component imports is in <code>exports</code>, or the copy points at something the consumer does not have.</span></p>
   </div>
 </section>
 
-<!-- 30 -->
-<section class="slide chapter">
-  <span class="mark mark-yellow">Chapter 8</span>
-  <div class="chapter-top">
-    <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="ftraps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gtraps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#ftraps)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gtraps)"/>
-      <path d="M36 15 L59 55 H13 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/>
-      <path d="M36 29 V42" stroke="#cde1f9" stroke-width="3" stroke-linecap="round"/>
-      <circle cx="36" cy="48.5" r="2.1" fill="#cde1f9"/></svg>
-    <h2>The pitfalls</h2>
-  </div>
-  <p class="lead">The requirements are easy to describe. The bugs come where the system meets React, a server without a DOM, or the code that runs before the web component is registered. Most were found in real apps, not in the unit tests.</p>
-  <ol class="chapter-list">
-      <li>React 19 and web components</li>
-      <li>The server and hydration</li>
-      <li>Before the web component is registered</li>
-  </ol>
-</section>
-
-<!-- 31 -->
+<!-- 25 -->
 <section class="slide">
-  <p class="chapter-mark">The pitfalls</p>
-  <h2>React 19 and web components</h2>
-  <p>If a web component has a property with the same name as an attribute, React 19 sets the property and not the attribute. That causes three bugs, and the first two give no error message:</p>
-  <ul>
-    <li><strong>A boolean attribute cannot be sent as an empty string.</strong> <code>el.open = ""</code> is falsy, and the setter removes the attribute again. Send <code>true</code>.</li>
-    <li><strong>An option cannot borrow the name of a standard property.</strong> <code>autofocus="false"</code> becomes <code>el.autofocus = "false"</code>, and a non-empty string is truthy. Put the option in <code>data-*</code>, which React always sends as an attribute.</li>
-    <li><strong>A getter needs a setter.</strong> Without one, React throws “Cannot set property”, and the attribute never arrives.</li>
-  </ul>
-  <p>The spelling differs too. React wants <code>className</code>, <code>htmlFor</code> and <code>tabIndex</code>, and <code>tabIndex</code> as a number. A builder function that returns HTML names therefore needs a separate version for React.</p>
-  <div class="perspective">
-    <p><span class="role role-maintainer">Design system team</span><span>Has to test in a real React app. The bugs showed up there, and not in the unit tests.</span></p>
-    <p><span class="role role-lotek">In LO-TEK</span><span>The flags are sent as <code>true</code>, and the error summary's option is called <code>data-autofocus</code>.</span></p>
-  </div>
-</section>
-
-<!-- 32 -->
-<section class="slide">
-  <p class="chapter-mark">The pitfalls</p>
-  <h2>The server and hydration</h2>
-  <div class="rows two">
-    <div class="box">
-      <h3>An id that is generated automatically</h3>
-      <p>The server and the browser each generate their own id, and React reports a hydration mismatch. React does not promise to patch up attributes that differ, so the wiring between label and field can stay broken. Make <code>id</code> required in the type, and add a console message alongside for those the type does not reach. A check that has to infer from the environment what the developer meant guesses wrong in at least one environment.</p>
-    </div>
-    <div class="box">
-      <h3>A class that extends <code>HTMLElement</code></h3>
-      <p><code>class X extends HTMLElement</code> is evaluated as soon as the module loads, and <code>HTMLElement</code> exists only in the browser. A server then cannot import anything from the package, not even a builder function. Extend a class that falls back to an empty class without a DOM.</p>
-    </div>
-  </div>
-  <p style="margin-block-start: 1rem;">No browser test catches the second, because <code>HTMLElement</code> exists there. It has to be tested in an environment without a DOM.</p>
-  <div class="perspective">
-    <p><span class="role role-lotek">In LO-TEK</span><span><code>HostElement</code> is <code>HTMLElement</code> in the browser and an empty class without a DOM, and a script imports every entry in <code>exports</code> in Bun without a DOM.</span></p>
-  </div>
-</section>
-
-<!-- 33 -->
-<section class="slide">
-  <p class="chapter-mark">The pitfalls</p>
-  <h2>Before the web component is registered</h2>
-  <p>Until a web component is registered, it is a plain <code>HTMLElement</code>, with no methods and no behaviour.</p>
-  <ul>
-    <li><strong>Register on import, never in an effect.</strong> A <code>useEffect</code> runs only after React has put the elements in the DOM. If the app calls a method on the element before that, it gets “reportSuccess is not a function”.</li>
-    <li><strong>An imperative call has to wait for registration.</strong> A helper that waits for <code>customElements.whenDefined()</code> for the element's own tag name makes the order irrelevant. It speaks up in the console if it takes too long.</li>
-    <li><strong>The flicker before registration is solved in CSS.</strong> <code>:not(:defined)</code> applies until the web component is registered. With it, the stylesheet can show only the first panel, so whoever renders does not have to write <code>hidden</code> on the rest.</li>
-  </ul>
-  <div class="perspective">
-    <p><span class="role role-lotek">In LO-TEK</span><span><code>defineLt()</code> registers all ten, and <code>showToast</code>, <code>reportFailure</code> and the other imperative calls wait by themselves.</span></p>
-  </div>
-</section>
-
-<!-- 34 -->
-<section class="slide">
-  <h2>A form field, with and without JavaScript</h2>
-  <p>This is what it looks like for someone using a design system built to these five requirements and two recommendations. The example is LO-TEK. You install one package, import the stylesheet for what you need and write ordinary HTML.</p>
-  <div class="rows two">
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>Classes only: no JavaScript in the browser</p>
-      <pre>import "@lo-tek/interfaces/tokens.css"
-import "@lo-tek/interfaces/field.css"
-
-&lt;label class="lt-label"&gt;Email&lt;/label&gt;
-&lt;input class="lt-input" type="email"&gt;
-&lt;p class="lt-error-text"&gt;Enter a valid address&lt;/p&gt;</pre>
-    </div>
-    <div>
-      <p class="code-title"><span class="lotek-mark">LO-TEK</span>The same markup, with one element around it</p>
-      <pre>import { defineLtField } from "@lo-tek/interfaces/field"
-defineLtField()
-
-<b>&lt;lt-field&gt;</b>
-  &lt;label class="lt-label"&gt;Email&lt;/label&gt;
-  &lt;input class="lt-input" type="email"&gt;
-  &lt;p class="lt-error-text"&gt;Enter a valid address&lt;/p&gt;
-<b>&lt;/lt-field&gt;</b></pre>
-    </div>
-  </div>
-  <p style="margin-block-start: 1rem;">On the left, no code runs. The label, the field and the error message are ordinary HTML elements with classes from the system. They look right, but nothing wires them together: a screen reader reads the field out without a name and does not read the error message. On the right are exactly the same elements, with one element around them. It is <code>&lt;lt-field&gt;</code> that sets <code>id</code>, <code>for</code> and <code>aria-describedby</code>, so that a screen reader reads out both the label and the error message.</p>
-  <div class="perspective">
-    <p><span class="role">Product teams</span><span>Can start with tokens and a few buttons and adopt the rest when they need it.</span></p>
-    <p><span class="role role-maintainer">Design system team</span><span>Has to preserve this simplicity, even when a component gets complicated on the inside.</span></p>
-  </div>
-</section>
-
-<!-- 35 -->
-<section class="slide">
-  <h2>The demo that shows it works</h2>
+  <h2>One game, three stacks, the same components</h2>
   <p><strong>Førstelinja</strong> is a game built with LO-TEK, in three versions: Kotlin with Datastar, React with TanStack Start, and Astro with whole pages from the server. Same game server, same screen, same components, and you can play against someone playing in another version.</p>
-  <p>It is also a stress test. A component can look right in a unit test and still break the moment a real server or React re-renders the page. The TanStack Start version renders in the browser from JSON, as an ordinary CSR app does, and the other two render on the server.</p>
+  <p>It is the test of the requirements. A component can look right in a unit test and still break the moment a real server or React re-renders the page. The TanStack Start version renders in the browser from JSON, as an ordinary CSR app does, and the other two render on the server.</p>
   <p class="code-title">The panel in the game: what actually went over the network, read from the traffic</p>
   <div class="table-scroll">
   <table>
@@ -2205,40 +2086,147 @@ defineLtField()
     </tbody>
   </table>
   </div>
-  <p style="margin-block-start: 1rem;">Three entirely different paths, and the user sees no difference. Play it yourself: <a href="https://forstelinja-react.up.railway.app" target="_blank" rel="noreferrer">forstelinja-react.up.railway.app</a>, and press “Hva skjedde?” (What happened?) at the bottom right to see the traffic while you play.</p>
+  <p style="margin-block-start: 1rem;">Three entirely different ways to get the screen there, and the user sees no difference. Play it yourself: <a href="https://forstelinja-react.up.railway.app" target="_blank" rel="noreferrer">forstelinja-react.up.railway.app</a>, and press “Hva skjedde?” (What happened?) at the bottom right to see the traffic while you play.</p>
   <div class="perspective">
-    <p><span class="role">Product teams</span><span>Can find their own framework in the list and see that the screen is the same.</span></p>
     <p><span class="role role-maintainer">Design system team</span><span>Has to keep three real apps alive alongside the package. Unit tests do not see what these see.</span></p>
   </div>
 </section>
 
-<!-- 36 -->
+<!-- 26 -->
+<section class="slide chapter">
+  <span class="mark mark-yellow">What the requirements did not warn about</span>
+  <div class="chapter-top">
+    <svg class="chapter-icon" viewBox="0 0 72 72" width="72" height="72" aria-hidden="true" focusable="false"><defs><linearGradient id="ftraps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22304a"/><stop offset="1" stop-color="#151d2b"/></linearGradient><linearGradient id="gtraps" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient></defs><rect x="1" y="1" width="70" height="70" rx="17" fill="url(#ftraps)"/><rect x="1" y="1" width="70" height="70" rx="17" fill="none" stroke="#9ccff2" stroke-opacity="0.32" stroke-width="1.5"/><path d="M18 1 H54 a17 17 0 0 1 17 17 v6 H1 v-6 A17 17 0 0 1 18 1 Z" fill="url(#gtraps)"/>
+      <path d="M36 15 L59 55 H13 Z" fill="#1362ae" stroke="#cde1f9" stroke-width="2.4" stroke-linejoin="round"/>
+      <path d="M36 29 V42" stroke="#cde1f9" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="36" cy="48.5" r="2.1" fill="#cde1f9"/></svg>
+    <h2>The pitfalls</h2>
+  </div>
+  <p class="lead">The bugs come where a design system meets React, a server without a DOM, or the code that runs before the web component is registered. Most were found in the three versions of the game, not in the unit tests.</p>
+  <ol class="chapter-list">
+      <li>React 19 and web components</li>
+      <li>The server and hydration</li>
+      <li>Before the web component is registered</li>
+  </ol>
+</section>
+
+<!-- 27 -->
 <section class="slide">
-  <h2>Checklist for your own design system</h2>
-  <p class="lead">One question per requirement and recommendation, and one per pitfall. If you can answer yes to all of them, the system has what it takes.</p>
-  <div class="rows two-skewed">
+  <p class="chapter-mark">The pitfalls</p>
+  <h2>React 19 and web components</h2>
+  <p>If a web component has a property with the same name as an attribute, React 19 sets the property and not the attribute. That causes three bugs, and the first two give no error message:</p>
+  <ul>
+    <li><strong>A boolean attribute cannot be sent as an empty string.</strong> <code>el.open = ""</code> is falsy, and the setter removes the attribute again. Send <code>true</code>.</li>
+    <li><strong>An option cannot borrow the name of a standard property.</strong> <code>autofocus="false"</code> becomes <code>el.autofocus = "false"</code>, and a non-empty string is truthy. Put the option in <code>data-*</code>: no property has that name, so React sets it as an attribute.</li>
+    <li><strong>A getter needs a setter.</strong> Without one, the assignment throws, and the attribute never arrives.</li>
+  </ul>
+  <p>The spelling differs too. React wants <code>className</code>, <code>htmlFor</code> and <code>tabIndex</code>, and <code>tabIndex</code> as a number. A builder function that returns HTML names therefore needs a separate version for React.</p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to test in a real React app.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span>The flags are sent as <code>true</code>, and the error summary's option is called <code>data-autofocus</code>.</span></p>
+  </div>
+</section>
+
+<!-- 28 -->
+<section class="slide">
+  <p class="chapter-mark">The pitfalls</p>
+  <h2>The server and hydration</h2>
+  <div class="rows two">
     <div class="box">
-      <h3>The requirements and recommendations</h3>
-      <ol>
-        <li>Does a button look right before a single script has run?</li>
-        <li>Does what the web component has set survive a re-render, with both CSR and SSR?</li>
-        <li>Does the accessibility wiring exist in one place, and do both the builder function and the web component use it?</li>
-        <li>Does the web component read the state from the markup, and not from a separate copy?</li>
-        <li>Is a developer or a coding agent told about an invalid value, also in markup without JavaScript?</li>
-        <li>Does the team's own CSS beat the system's without <code>!important</code>?</li>
-        <li>Can a team take over one component and still get new versions of the rest?</li>
-      </ol>
+      <h3>An id that is generated automatically</h3>
+      <p>The server and the browser each generate their own id, and React warns of a hydration mismatch in development. React does not promise to patch up attributes that differ, so the wiring between label and field can stay broken. Make <code>id</code> required in the type, and add a console message alongside for those the type does not reach.</p>
     </div>
     <div class="box">
-      <h3>The pitfalls</h3>
-      <ul>
-        <li>Does a boolean option work when React 19 sets it as a property?</li>
-        <li>Can every module be imported on a server without a DOM?</li>
-        <li>Does an imperative call work even before the web component is registered?</li>
-      </ul>
+      <h3>A class that extends <code>HTMLElement</code></h3>
+      <p><code>class X extends HTMLElement</code> is evaluated as soon as the module loads, and <code>HTMLElement</code> exists only in the browser. A server then cannot import anything from the package, not even a builder function. Extend a class that falls back to an empty class without a DOM.</p>
     </div>
   </div>
-  <p style="margin-block-start: 1.2rem;"><strong>LO-TEK:</strong> <a href="https://lo-tek.sobernetics.no/" target="_blank" rel="noreferrer">lo-tek.sobernetics.no</a> · <strong>Package:</strong> <code>@lo-tek/interfaces</code> · <strong>The game:</strong> <a href="https://forstelinja-react.up.railway.app" target="_blank" rel="noreferrer">forstelinja-react.up.railway.app</a></p>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to import every module in an environment without a DOM, because no browser test can fail on this.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span><code>HostElement</code> is <code>HTMLElement</code> in the browser and an empty class without a DOM, and a script imports every entry in <code>exports</code> in Bun without a DOM.</span></p>
+  </div>
+  <p class="sources">Source, read 19 November 2026: <a href="https://react.dev/reference/react-dom/client/hydrateRoot" target="_blank" rel="noreferrer">react.dev, hydrateRoot</a> (warns in development; no guarantee that attribute differences are patched up).</p>
+</section>
+
+<!-- 29 -->
+<section class="slide">
+  <p class="chapter-mark">The pitfalls</p>
+  <h2>Before the web component is registered</h2>
+  <p>Until a web component is registered, it is a plain <code>HTMLElement</code>, with no methods and no behaviour.</p>
+  <ul>
+    <li><strong>Register on import, never in an effect.</strong> A <code>useEffect</code> runs only after React has put the elements in the DOM. If the app calls a method on the element before that, it gets “reportSuccess is not a function”.</li>
+    <li><strong>An imperative call has to wait for registration.</strong> A helper that waits for <code>customElements.whenDefined()</code> for the element's own tag name makes the order irrelevant. It warns in the console if it takes too long.</li>
+    <li><strong>The flicker before registration is solved in CSS.</strong> <code>:not(:defined)</code> applies until the web component is registered. With it, the stylesheet can show only the first panel, so whoever renders does not have to write <code>hidden</code> on the rest.</li>
+  </ul>
+  <div class="perspective">
+    <p><span class="role role-maintainer">Design system team</span><span>Has to give every imperative call a way that works before registration: a helper that waits, or a property that is kept until the upgrade.</span></p>
+    <p><span class="role role-lotek">In LO-TEK</span><span><code>defineLt()</code> registers the web components when the app calls it at start-up. The five exported helpers, such as <code>showToast</code> and <code>reportFailure</code>, wait by themselves and warn after three seconds, and a property set before registration, such as <code>open</code> on a popover or <code>selected</code> on tabs, is applied afterwards. Only a method called on the element itself fails until then, since it does not exist before the class is defined.</span></p>
+  </div>
+</section>
+
+<!-- 30 -->
+<section class="slide">
+  <h2>One element for the consumer, and what it takes behind it</h2>
+  <div class="rows two">
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>What the consumer writes</p>
+      <pre>import "@lo-tek/interfaces/tokens.css"
+import "@lo-tek/interfaces/field.css"
+import { defineLtField } from "@lo-tek/interfaces/field"
+defineLtField()
+
+<b>&lt;lt-field&gt;</b>
+  &lt;label class="lt-label" for="email"&gt;Email&lt;/label&gt;
+  &lt;input class="lt-input" id="email" type="email"&gt;
+  &lt;p class="lt-error-text"&gt;Enter a valid address&lt;/p&gt;
+<b>&lt;/lt-field&gt;</b></pre>
+      <p style="margin-block-start: 0.6rem;">Without the element, the label still names the field, but nothing connects the error message to it. With it, a screen reader reads out both.</p>
+    </div>
+    <div>
+      <p class="code-title"><span class="lotek-mark">LO-TEK</span>What the design system team keeps running</p>
+      <div class="box">
+      <ul>
+        <li>More than 2,000 tests in each of Chromium, Firefox and WebKit.</li>
+        <li>Three real apps, one for each way of rendering.</li>
+        <li>A hand-written copy of the wiring for Kotlin, held to the source by 277 cases.</li>
+        <li>A script that fails the build when a frame component writes an attribute outside its helpers.</li>
+        <li>A check of the markup, and the editor plugins that run it.</li>
+        <li>Rulebooks for coding agents, generated and tested in every build.</li>
+        <li>An import of every entry point without a DOM.</li>
+        <li>A check that fails on a warning in the console on any page of the documentation.</li>
+      </ul>
+      </div>
+    </div>
+  </div>
+  <div class="box" style="margin-block-start: 1rem;">
+    <p style="margin: 0;"><strong>None of the right-hand column is visible to the consumer. That is the point, and it is why this is not trivial.</strong></p>
+  </div>
+</section>
+
+<!-- 31 -->
+<section class="slide">
+  <h2>Checklist for your own design system</h2>
+  <p class="lead">Answer each one by trying it on your own system, not by reading its documentation.</p>
+  <h3>Requirements: without them it breaks</h3>
+      <ol>
+        <li>With JavaScript switched off, does every component look as designed, and does the package install with no framework among its dependencies or peer dependencies?</li>
+        <li>Apart from components that only show their own content, such as a toast, can a template that runs none of your code write every node, in plain DOM, with script adding attributes at most?</li>
+        <li>Are the rules that connect a label, a field and its messages (<code>id</code>, <code>for</code>, <code>aria-describedby</code>) written once, with every way of rendering using them or a copy tested against them?</li>
+        <li>If a server morph strips the wiring your script wrote, or React replaces the node, is it written back without the template listing it, and is state such as <code>aria-invalid</code> read from the markup rather than kept as a copy?</li>
+        <li>Does a rule with one class selector in the consumer's CSS beat yours in every state, <code>:disabled</code> included, even when it is loaded first and without <code>!important</code>?</li>
+      </ol>
+  <h3 style="margin-block-start: 1rem;">Recommendations: without them it is harder to use and to leave</h3>
+      <ol start="6">
+        <li>Are a developer and a coding agent told about an unknown class, an invalid value or a missing label while they write, also in templates and hand-written HTML, while valid markup gives no warning?</li>
+        <li>When tokens, variables and their own CSS are not enough, can a consumer copy one component's source into the app, upgrade the package, and still build?</li>
+      </ol>
+  <h3 style="margin-block-start: 1rem;">Pitfalls: where it breaks in practice</h3>
+      <ul>
+        <li>In a real React 19 app, does every option still work when React sets it as a property: booleans, names that are also standard properties, and getters without setters?</li>
+        <li>Does every module import on a server without a DOM, and are the ids the wiring needs the same on the server and in the browser?</li>
+        <li>Does an imperative call, such as showing a toast, work even when it runs before the custom element is defined, with no flicker before it?</li>
+      </ul>
+  <p class="colophon">Design system architecture · LO-TEK 0.46.0 · 19 November 2026</p>
 </section>
 
 
@@ -2278,10 +2266,48 @@ function show(index) {
   const active = document.activeElement
   if (active && active !== document.body && !slides[current].contains(active) && !active.closest(".controls")) active.blur()
   counter.textContent = `${current + 1} / ${slides.length}`
+  fit(slides[current])
   slides[current].scrollTop = 0
   window.scrollTo(0, 0)
   history.replaceState(null, "", `#slide-${current + 1}`)
 }
+
+/*
+ * A slide fits the window and does not scroll. Where its content is taller
+ * than the window, the content is zoomed down until it fits, but not below
+ * 80 %: under that the text is too small to read, and the slide scrolls
+ * instead. The padding of the card is left as it is. On a narrow screen the
+ * slide is plain text on the page and scrolls as a page does, so nothing is
+ * zoomed there.
+ */
+const narrow = matchMedia("(max-width: 860px)")
+const SMALLEST = 0.8
+
+function fit(slide) {
+  const parts = [...slide.children]
+  for (const part of parts) part.style.zoom = ""
+  if (narrow.matches) return
+  const fits = () => slide.scrollHeight <= slide.clientHeight + 1
+  if (fits()) return
+  const set = (zoom) => { for (const part of parts) part.style.zoom = String(zoom) }
+  // The largest zoom that fits, to a hundredth. The padding does not zoom,
+  // so the height does not shrink in proportion and has to be tried.
+  let low = SMALLEST
+  let high = 1
+  set(low)
+  if (!fits()) return
+  while (high - low > 0.01) {
+    const mid = (low + high) / 2
+    set(mid)
+    if (fits()) low = mid
+    else high = mid
+  }
+  set(low)
+}
+
+window.addEventListener("resize", () => fit(slides[current]))
+// A graph or a demo on the slide can change its height when it is used.
+document.addEventListener("click", () => requestAnimationFrame(() => fit(slides[current])))
 
 function fromAddress() {
   const match = /^#(?:slide|lysbilde)-(\d+)$/.exec(location.hash)
