@@ -34,14 +34,16 @@ from day one. The jobs run one after another:
 | `check` | the Node and Bun versions against every package's engines, lint, type checking of the code and the tests, the browser tests in Chromium, Firefox and WebKit, the build, the CLI and the language server in every host, the rendered page, the VS Code extension, that nothing is left ungenerated, the site built with Netlify's command, and axe against it |
 | `core` | Rust formatting and clippy, the Rust tests, the WASI module, the core against the expected results, and the Kotlin tests |
 
-Three things do not run locally, and are listed with the reason in `SKIPPED` in the script:
-the Windows job, the upgrade of the global npm, and the browser
+In CI, a pull request that changes nothing but `presentation/` runs only the wording and version checks, in the job `presentation`, and skips `check`, `windows` and `core`. The job `changes` decides it, and anything it cannot compare counts as more than the presentation. A skipped job counts as passed for the required checks, so such a pull request can be merged on the two checks that read the presentation. Locally, every job runs as before.
+
+These do not run locally, and are listed with the reason in `SKIPPED` in the script:
+the jobs `changes` and `presentation`, which only decide and run less in CI, the Windows job, the upgrade of the global npm, and the browser
 download. If a name there does not exist in `ci.yml`, the run stops,
 so the list cannot linger after a step has been renamed. The steps with
 `uses`, such as the caches and the Java setup, are skipped too: they give
 the CI machine what your machine already has. Locally, the Java you
 have installed is used. If `ci.yml` contains something the script does not understand, such as `env`,
-`if` or `defaults`, it stops before it runs anything.
+`if` or `defaults`, it stops before it runs anything. The one `if` it accepts is the condition that skips the heavy jobs when only the presentation changed.
 
 `ci-intellij.yml` runs after them when the branch touches one of the paths in its filter, as it would on the pull request, committed or not. It takes a couple of minutes, and needs the IDE in `intellij/.intellijPlatform`, which the first run downloads.
 

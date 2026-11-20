@@ -10,9 +10,13 @@ on:
 
 # A new push to the same branch cancels the previous run. There is no point in
 # running three browsers over a version nobody will look at again.
+#
+# Not on master: there every merge is tested to the end. A run that only
+# checks the presentation compares with the commit before it, and must be
+# able to trust that the run for that commit was not cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # No commit may have a coding agent as its author. See CONTRIBUTING.md.
@@ -38,8 +42,80 @@ jobs:
       - name: No agent as author
         run: bun interfaces/scripts/check-authors.ts
 
+  # Whether only the presentation changed. It is one HTML file with no build
+  # and no dependencies, and only two checks read it: the wording and the
+  # version mark. When nothing else changed, those two run in `presentation`
+  # below, and the browsers, Rust, Kotlin and Windows are skipped.
+  #
+  # Skipped with `if:`, and not with a path filter on the workflow: GitHub
+  # reports a job skipped by a condition as "Success", also when it is a
+  # required check, while a workflow skipped by a path filter leaves its
+  # checks pending and the pull request blocked. (Documented: "Using
+  # conditions to control job execution" and "Troubleshooting required status
+  # checks" in GitHub's documentation.)
+  #
+  # Anything it cannot compare, a first push, a run started by hand or a base
+  # it does not have, counts as more than the presentation.
+  #
+  # The heavy jobs ask `!cancelled()` and not only for the output: a job whose
+  # `needs` failed is skipped, and a skipped job counts as passed. Should this
+  # job fail, its output is empty, and the heavy jobs run.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    outputs:
+      only-presentation: ${{ steps.files.outputs.only-presentation }}
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Only the presentation?
+        id: files
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          only=false
+          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            # Both sides of a rename, so a file moved into presentation/
+            # still counts where it came from, and names unquoted.
+            changed="$(git -c core.quotePath=false diff --no-renames --name-only "$BASE" HEAD)"
+            printf '%s\n' "$changed"
+            # No pipe: with pipefail, grep leaving early could make printf
+            # fail on a long list, and the ! would turn that into a yes.
+            if [ -n "$changed" ] && ! grep -qv '^presentation/' <<<"$changed"; then
+              only=true
+            fi
+          fi
+          echo "only-presentation=$only" >> "$GITHUB_OUTPUT"
+          echo "Only the presentation changed: $only"
+
+  # The two checks that read the presentation, when nothing else changed.
+  # Neither needs an install: they read files and ask git.
+  presentation:
+    name: Presentation
+    needs: changes
+    if: needs.changes.outputs.only-presentation == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Wording
+        run: bun interfaces/scripts/check-wording.ts
+
+      - name: The version mark
+        run: bun interfaces/scripts/check-version.ts
+
   check:
     name: Lint, types and tests
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.only-presentation != 'true' }}
     runs-on: ubuntu-latest
     # Playwright's own image, with the browsers and every library they need
     # already in it. `playwright install --with-deps` fetched those libraries
@@ -244,6 +320,8 @@ jobs:
   # without Linux noticing.
   windows:
     name: Windows
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.only-presentation != 'true' }}
     runs-on: windows-latest
     defaults:
       run:
@@ -293,9 +371,12 @@ jobs:
   # No path filter, unlike the IntelliJ plugin: the core reads the manifest,
   # and a change in a component should be able to fail it even when nobody
   # touched the Rust code. A job that always runs can also be made required
-  # without being left waiting.
+  # without being left waiting. It is skipped, and so counts as passed, when
+  # only the presentation changed.
   core:
     name: Rust core and Kotlin
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.only-presentation != 'true' }}
     runs-on: ubuntu-latest
 
     steps:
