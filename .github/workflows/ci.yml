@@ -10,13 +10,9 @@ on:
 
 # A new push to the same branch cancels the previous run. There is no point in
 # running three browsers over a version nobody will look at again.
-#
-# Not on master: there every merge is tested to the end. A run that only
-# checks the presentation compares with the commit before it, and must be
-# able to trust that the run for that commit was not cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   # No commit may have a coding agent as its author. See CONTRIBUTING.md.
@@ -42,10 +38,18 @@ jobs:
       - name: No agent as author
         run: bun interfaces/scripts/check-authors.ts
 
-  # Whether only the presentation changed. It is one HTML file with no build
-  # and no dependencies, and only two checks read it: the wording and the
-  # version mark. When nothing else changed, those two run in `presentation`
-  # below, and the browsers, Rust, Kotlin and Windows are skipped.
+  # Whether a pull request changes only the presentation. It is one HTML file
+  # with no build and no dependencies, and only two checks read it: the
+  # wording and the version mark. When nothing else changed, those two run in
+  # `presentation` below, and the browsers, Rust, Kotlin and Windows are
+  # skipped.
+  #
+  # Only on a pull request. A push to master, and a run started by hand, always
+  # run everything: on master a run can be cancelled while it waits for the
+  # one before it, even with cancel-in-progress off, so the commit before is
+  # not known to be tested, and a run that skipped the heavy jobs would show a
+  # master that is green without having been. The pull request's merge commit,
+  # compared with its first parent, says exactly what the pull request adds.
   #
   # Skipped with `if:`, and not with a path filter on the workflow: GitHub
   # reports a job skipped by a condition as "Success", also when it is a
@@ -54,8 +58,7 @@ jobs:
   # conditions to control job execution" and "Troubleshooting required status
   # checks" in GitHub's documentation.)
   #
-  # Anything it cannot compare, a first push, a run started by hand or a base
-  # it does not have, counts as more than the presentation.
+  # Anything it cannot compare counts as more than the presentation.
   #
   # The heavy jobs ask `!cancelled()` and not only for the output: a job whose
   # `needs` failed is skipped, and a skipped job counts as passed. Should this
@@ -67,20 +70,23 @@ jobs:
       only-presentation: ${{ steps.files.outputs.only-presentation }}
 
     steps:
+      # The pull request's merge commit and its first parent, the base it was
+      # merged onto, are all the comparison needs.
       - uses: actions/checkout@v7
+        if: github.event_name == 'pull_request'
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Only the presentation?
         id: files
         env:
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          EVENT: ${{ github.event_name }}
         run: |
           only=false
-          if [ -n "$BASE" ] && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+          if [ "$EVENT" = pull_request ] && git cat-file -e "HEAD^1^{commit}" 2>/dev/null; then
             # Both sides of a rename, so a file moved into presentation/
             # still counts where it came from, and names unquoted.
-            changed="$(git -c core.quotePath=false diff --no-renames --name-only "$BASE" HEAD)"
+            changed="$(git -c core.quotePath=false diff --no-renames --name-only HEAD^1 HEAD)"
             printf '%s\n' "$changed"
             # No pipe: with pipefail, grep leaving early could make printf
             # fail on a long list, and the ! would turn that into a yes.

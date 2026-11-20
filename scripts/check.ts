@@ -79,6 +79,7 @@ const JOB_KEYS = new Set([
  * job runs, which is more than CI, never less. Any other `if` on a job stops
  * the script as before.
  */
+const PRESENTATION_ONLY = "needs.changes.outputs.only-presentation == 'true'"
 const SKIP_WHEN_PRESENTATION =
   /^\$\{\{ !cancelled\(\) && needs\.changes\.outputs\.only-presentation != 'true' \}\}$/
 
@@ -175,6 +176,10 @@ for (const [file, workflow] of workflows) {
   for (const [jobId, job] of Object.entries(workflow.jobs)) {
     if (jobId in SKIPPED) {
       used.add(jobId)
+      // The light job is skipped here, but its condition must stay the
+      // mirror of the heavy jobs', or CI would run neither or both.
+      if (jobId === "presentation" && job.if !== PRESENTATION_ONLY)
+        unknown.push(`presentation: if is not ${PRESENTATION_ONLY}`)
       continue
     }
     for (const key of Object.keys(job))

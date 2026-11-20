@@ -203,6 +203,38 @@ if (!engine) {
       )
 }
 
+/*
+ * The presentation's favicon is LO-TEK's mark, inline as a data address so
+ * the presentation stays one file. It is a copy of the documentation's
+ * favicon.svg, and the two are held equal here, comments and spacing apart,
+ * so a change to the mark cannot leave the presentation with the old one.
+ */
+const markOnly = (svg: string) =>
+  svg
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/>\s+</g, "><")
+    .replace(/\s+/g, " ")
+    .trim()
+const icon =
+  /<link rel="icon" type="image\/svg\+xml" href="data:image\/svg\+xml,([^"]+)">/.exec(
+    deck,
+  )
+const favicon = await Bun.file(
+  join(ROOT, "../documentation/public/favicon.svg"),
+).text()
+if (!icon) {
+  errors.push(
+    "Found no inline SVG favicon in presentation/design-system-architecture.html. Is it still there, with the same markup?",
+  )
+} else if (
+  markOnly(decodeURIComponent(icon[1]).replaceAll("'", '"')) !==
+  markOnly(favicon)
+) {
+  errors.push(
+    "The presentation's favicon is not the mark in documentation/public/favicon.svg. Copy the file into the data address again.",
+  )
+}
+
 if (errors.length > 0) {
   console.error(
     `The changelog does not match:\n\n${errors.map((e) => `  ${e}`).join("\n")}\n`,
