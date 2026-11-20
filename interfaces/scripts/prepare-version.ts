@@ -127,8 +127,8 @@ if (!webTypes.includes(webTypesBefore)) {
 }
 
 /*
- * The badge at the top of the presentation carries the version and the day
- * it came out.
+ * The badge on the last slide of the presentation carries the version and
+ * the day it came out.
  *
  * It said "LO-TEK 0.15.0 · 26 September 2026" while the package was at
  * 0.19.0, four versions behind, and nothing updated it. The presentation has

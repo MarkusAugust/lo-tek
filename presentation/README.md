@@ -24,26 +24,64 @@ the folder's git history.
 
 ## What it says
 
-Thirty-six slides about what is required and why, not about how we got there.
-An audience does not need to know what we tried first, only what applies and
-what it is good for.
+Thirty-one slides about what it takes to build a design system that does
+not depend on a framework. The point is that this is not trivial: many things
+have to hold at the same time. LO-TEK is the proof that it can be done, not
+the subject. It is read alone, in a browser, at the reader's own pace, and is
+not given as a talk, so a slide may hold more text than a projected one could.
 
-They are divided into seven chapters, one per requirement, and an eighth about
-the pitfalls that are easy to fall into. Each chapter opens with a title slide
-that states the requirement in one sentence. The title slide has an icon drawn
-in the presentation's own colour palette: a glass surface with a light edge and
-a highlight on top. The motif is close to the platform and not a desktop
-metaphor, for example a browser window, a DOM tree or a package with a way
-out. A separate slide before the chapters shows all eight, each with its icon.
-At the end comes LO-TEK in use, with a form field and the demo game, and a
-checklist the audience can apply to their own system.
+The second slide states the premise, a mixed portfolio and a design system
+meant to outlive the apps around it, and what a component has to survive at
+once under it. Then comes one slide with the five requirements and the two
+recommendations, and each of the seven has a chapter. A chapter with several
+slides opens with a title slide that states it in one sentence and gives the
+question a reader can try their own design system against; a chapter with one
+slide has the icon, the sentence and the question on that slide. The icons
+are drawn in the presentation's own colour palette: a glass surface with a
+light edge and a highlight on top, with a motif close to the platform and not
+a desktop metaphor, for example a browser window, a DOM tree or a package
+with a way out. After the chapters come the demo game in its three versions,
+the pitfalls that were found there, one slide with what a consumer writes
+beside what the design system team has to keep running, and the checklist.
+
+The slide titles are claims, so the argument can be followed from the titles
+alone. One thing has one name throughout: whoever renders, the wiring, a
+re-render, the consumer, the design system.
 
 The requirement and LO-TEK's solution are kept apart. At the bottom of a slide
-there are up to three lines: what the requirement means for the product teams,
-what it costs the design system team, and "In LO-TEK", which says how LO-TEK
-solved it. Code that is LO-TEK's own API has a green LO-TEK mark above it. The
+there are up to three lines: what it costs the design system team, which comes
+first because that is where the difficulty is, what it means for the
+consumers, and "In LO-TEK", which says how LO-TEK solved it. Code that is
+LO-TEK's own API has a green LO-TEK mark above it, and it is there as proof
+that the thing can be done, not as instructions for using LO-TEK. The
 requirement should make sense without the example, and the example should be
 easy to tell apart from the requirement.
+
+Where a slide says what the platform or another library does, it says where
+that was read and when, in a line of sources at the bottom. The other routes,
+a React-based design system and web components with shadow DOM, are given
+what they can do today before the slide says what still stands in the way.
+
+A slide does not scroll. Where its text is taller than the window, the content
+is zoomed down until it fits, to no less than 80 %, and on 1280 × 720 every
+slide fits at 84 % or more. On a phone the slides are plain text on the page,
+which scrolls as a page does.
+
+One slide says what one button costs an app, measured on 19 November 2026 for
+five design systems. For each, an app that already has React 19 and
+TypeScript gets the documented install for one button. What the browser has to
+load is the button built with esbuild and gzipped, with the smallest CSS each
+design system's own documentation gives for it: Skatteetaten's design tokens
+and the CSS the button imports, Aksel's fonts, tokens and baseline with the
+button, loader and typography, Digdir's `index.css` and theme, and LO-TEK's
+`tokens.css` and `button.css`. The graph is the packages in `package-lock.json` that the app then
+has to keep in step; optional peer dependencies are left out, since npm does
+not install them. The app's `package.json` has no `"type": "commonjs"`: with
+it, esbuild did not tree-shake `lt`, and the builder functions measured 27.8 kB
+instead of 5.5 kB.
+
+The version and the date stand on the last line of the last slide.
+`prepare-version` writes them there and `check-version.ts` reads them.
 
 Code panels appear where the code **is** the point, and nowhere else. The two
 lines from Datastar that remove an attribute the server did not send are the
@@ -52,7 +90,8 @@ Where a panel would only show that code exists, it is left out.
 
 No web font. The typeface is `Helvetica, Arial, sans-serif`, the stack another
 Norwegian design system specifies for screen. A presentation must not be able
-to fail because of the network access in the meeting room.
+to fail because of the network access in the meeting room. LO-TEK's logo on
+the title slide has its name drawn as outlines for the same reason.
 
 The palette is LO-TEK's own tokens, copied with the same values. The colours of
 the surface, the text and the borders are chosen for a dark slide and belong to

@@ -63,7 +63,8 @@ if (!(pkg.files as string[]).includes("CHANGELOG.md")) {
 /*
  * The badge in the presentation carries the version, and nothing kept it in
  * step. It said 0.15.0 while the package was at 0.19.0, four versions
- * behind, and it is the first thing an audience sees.
+ * behind. It stood on the title slide then, and is the last line of the last
+ * slide now.
  *
  * `prepare-version` writes it now. But a rewrite step has to find the old
  * value to replace it, and that is exactly what fails silently, as it did for
