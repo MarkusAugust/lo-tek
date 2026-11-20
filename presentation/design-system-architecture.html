@@ -587,9 +587,206 @@ tr:last-child td { border-block-end: none; }
   h1 { font-size: 1.8rem; }
   .number { font-size: 1.7rem; }
 }
+/*
+ * The contents: every slide with its number and heading, opened from the
+ * button by the counter or with M. A native modal dialog, so focus stays in
+ * it and Escape closes it. A new part starts with a little space and its
+ * mark, so the list reads as the parts the line along the top shows.
+ */
+.contents {
+  inline-size: min(40rem, calc(100vw - 2rem));
+  max-block-size: min(46rem, calc(100dvh - 2rem));
+  margin: auto;
+  padding: 0;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(23, 31, 43, 0.97), rgba(16, 22, 31, 0.98));
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 40px 90px -40px rgba(0, 0, 0, 0.95);
+  overflow: hidden;
+}
+.contents[open] { display: flex; flex-direction: column; }
+.contents::backdrop {
+  background: rgba(8, 12, 18, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.contents__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.75rem;
+  border-block-end: 1px solid var(--border);
+}
+.contents__head h2 { margin: 0; font-size: 1.25rem; }
+.contents__close {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  color: var(--text);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+.contents__close:hover { border-color: var(--azure-30); }
+.contents__close:focus-visible { outline: 2px solid var(--azure-30); outline-offset: 2px; }
+.contents__list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0.5rem 1rem;
+  overflow-y: auto;
+  flex: 1;
+  min-block-size: 0;
+  font-size: 0.95rem;
+}
+.contents__list li { margin: 0; }
+.contents__list .contents__part { margin-block-start: 0.7rem; }
+.contents__mark {
+  display: block;
+  padding: 0.2rem 0.75rem 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--azure-30);
+  opacity: 0.75;
+}
+.contents__list a {
+  display: grid;
+  grid-template-columns: 2.2rem 1fr;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 0.5rem;
+  line-height: 1.35;
+}
+.contents__list a:hover { background: rgba(205, 225, 249, 0.07); }
+.contents__list a:focus-visible { outline: 2px solid var(--azure-30); outline-offset: -2px; }
+.contents__list a[aria-current] { background: rgba(156, 207, 242, 0.14); color: var(--graphite-0); }
+.contents__n {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: end;
+  padding-block-start: 0.1rem;
+}
+
+/* ---------- The world, the transitions and the progress line ---------- */
+
+/*
+ * The world behind the slides is drawn in the canvas by the script at the
+ * end. It fades in once it has drawn, and the two patches of light dim
+ * behind it. Without it, nothing here changes the page.
+ */
+.world {
+  position: fixed;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+html.has-world .world { opacity: 1; }
+html.has-world body::before,
+html.has-world body::after { opacity: 0.4; }
+/*
+ * With the world behind it, the card becomes frosted glass: the movement is
+ * seen through it, blurred enough that the text stands as clearly as on the
+ * solid card. The lines of light on the floor are a little stronger towards
+ * the bottom, where the card ends.
+ */
+html.has-world .slide {
+  background: linear-gradient(180deg, rgba(23, 31, 43, 0.84), rgba(16, 22, 31, 0.9));
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+
+/*
+ * The parts of the presentation along the top: the opening, each
+ * requirement and recommendation, the game, the pitfalls and the end. Each
+ * part fills as the reader goes through it, so the length of what is left is
+ * always in view.
+ */
+.progress {
+  position: fixed;
+  inset-block-start: 0;
+  inset-inline: 0;
+  z-index: 3;
+  display: flex;
+  gap: 3px;
+  padding-inline: 0.75rem;
+  pointer-events: none;
+}
+.progress span {
+  flex: var(--slides) 1 0;
+  block-size: 3px;
+  background: rgba(205, 225, 249, 0.12);
+  border-end-start-radius: 2px;
+  border-end-end-radius: 2px;
+  overflow: hidden;
+}
+.progress span::after {
+  content: "";
+  display: block;
+  block-size: 100%;
+  inline-size: calc(var(--fill, 0) * 100%);
+  background: var(--azure-30);
+  transition: inline-size 0.7s cubic-bezier(0.2, 0, 0, 1);
+}
+
+/*
+ * The card in a transition, with the View Transitions API. The old card
+ * falls back into the fog and the new one comes forward out of it, while the
+ * camera behind them moves on. Within a part, the line above the heading
+ * stays where it is and the card moves under it. Going back plays the same
+ * movement backwards. The old picture of the page itself is hidden at once,
+ * so what is behind the cards is the live page with the world moving in it.
+ */
+/* Clicks go through the transition to the buttons, so Next twice is two slides. */
+::view-transition { pointer-events: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .slide[data-shown] { view-transition-name: card; }
+  html.same-part .slide[data-shown] .chapter-mark { view-transition-name: chapter-mark; }
+
+  ::view-transition-old(root) { animation: none; opacity: 0; }
+  ::view-transition-new(root) { animation: none; }
+  ::view-transition-group(card),
+  ::view-transition-group(chapter-mark) {
+    animation-duration: var(--step, 700ms);
+    animation-timing-function: cubic-bezier(0.3, 0, 0, 1);
+  }
+  ::view-transition-old(card) { animation: card-out var(--step, 700ms) cubic-bezier(0.5, 0, 0.75, 0) both; }
+  ::view-transition-new(card) { animation: card-in var(--step, 700ms) cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+  html[data-way="back"]::view-transition-old(card) { animation-name: card-in-reversed; animation-timing-function: cubic-bezier(0.5, 0, 0.75, 0); }
+  html[data-way="back"]::view-transition-new(card) { animation-name: card-out-reversed; animation-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1); }
+}
+
+@keyframes card-out {
+  to { opacity: 0; transform: perspective(1400px) translateZ(-480px) translateY(4%); filter: blur(6px); }
+}
+@keyframes card-in {
+  0%, 25% { opacity: 0; transform: perspective(1400px) translateZ(-900px) translateY(8%); filter: blur(10px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes card-in-reversed {
+  to { opacity: 0; transform: perspective(1400px) translateZ(-900px) translateY(8%); filter: blur(10px); }
+}
+@keyframes card-out-reversed {
+  0%, 25% { opacity: 0; transform: perspective(1400px) translateZ(-480px) translateY(4%); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+
 </style>
 </head>
 <body>
+<canvas class="world" id="world" aria-hidden="true"></canvas>
+<div class="progress" id="progress" aria-hidden="true"></div>
 <div class="deck" id="deck">
 
 <!-- 1 -->
@@ -2071,7 +2268,7 @@ announces it without a name. …</pre>
 </section>
 
 <!-- 25 -->
-<section class="slide">
+<section class="slide" data-part="The game">
   <h2>One game, three stacks, the same components</h2>
   <p><strong>Førstelinja</strong> is a game built with LO-TEK, in three versions: Kotlin with Datastar, React with TanStack Start, and Astro with whole pages from the server. Same game server, same screen, same components, and you can play against someone playing in another version.</p>
   <p>It is the test of the requirements. A component can look right in a unit test and still break the moment a real server or React re-renders the page. The TanStack Start version renders in the browser from JSON, as an ordinary CSR app does, and the other two render on the server.</p>
@@ -2165,7 +2362,7 @@ announces it without a name. …</pre>
 </section>
 
 <!-- 30 -->
-<section class="slide">
+<section class="slide" data-part="In closing">
   <h2>One element for the consumer, and what it takes behind it</h2>
   <div class="rows two">
     <div>
@@ -2235,10 +2432,348 @@ defineLtField()
 </div>
 
 <div class="controls">
+  <button type="button" id="contents-open" aria-haspopup="dialog" aria-keyshortcuts="M">Contents</button>
   <button type="button" id="previous" aria-label="Previous slide">Previous</button>
   <span class="counter" id="counter" aria-live="polite"></span>
   <button type="button" id="next" aria-label="Next slide">Next</button>
 </div>
+
+<dialog class="contents" id="contents" aria-labelledby="contents-title">
+  <div class="contents__head">
+    <h2 id="contents-title">Contents</h2>
+    <button type="button" class="contents__close" id="contents-close">Close</button>
+  </div>
+  <ol class="contents__list" id="contents-list"></ol>
+</dialog>
+
+<script>
+/*
+ * The world behind the slides.
+ *
+ * A floor of light lines that fades into the dark, and particles in the air,
+ * drawn with WebGL and no library: the presentation argues against carrying a
+ * framework, and does not carry one itself. The camera glides one step
+ * forward for every slide, turns towards a new direction where a new part
+ * begins, and a ring of light pulses out from the floor there.
+ *
+ * The floor is one triangle over the whole window: each pixel casts a ray,
+ * finds where it meets the floor, and draws the lines there, fading with the
+ * distance. The particles are points in a box that moves with the camera, so
+ * the air never runs out.
+ *
+ * It is only there on a wide screen, with motion allowed and WebGL 2 in the
+ * browser, and it stops itself on a machine that cannot keep up. Without it
+ * the two patches of light are the background, as before.
+ */
+const World = (() => {
+  const canvas = document.getElementById("world")
+  const narrow = matchMedia("(max-width: 860px)")
+  const still = matchMedia("(prefers-reduced-motion: reduce)")
+
+  const STEP = 7        // how far the camera moves for one slide
+  const TURN = 0.55     // how far it turns, in radians, for a new part
+  const FOCAL = 1.7     // the lens: larger is narrower
+  const FLOOR = -1.4    // the floor, below the camera
+  const BOX = 36        // the box of air the particles live in
+  const COUNT = 1400
+
+  let gl = null
+  let floor = null
+  let points = null
+  let path = []
+  let running = false
+  let frame = 0
+  let from = { x: 0, z: 0, yaw: 0 }
+  let to = { x: 0, z: 0, yaw: 0 }
+  let move = { t0: 0, ms: 0 }
+  let ring = { x: 0, z: 0, t0: -1 }
+  let drawn = 0
+  const times = []
+
+  const VERTEX = `#version 300 es
+    void main() {
+      vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
+      gl_Position = vec4(p, 0.0, 1.0);
+    }`
+
+  const FLOOR_SHADER = `#version 300 es
+    precision highp float;
+    uniform vec2 uRes;
+    uniform vec3 uCam;
+    uniform float uYaw;
+    uniform float uTime;
+    uniform vec3 uRing;
+    out vec4 colour;
+
+    float grid(vec2 g) {
+      vec2 d = abs(fract(g - 0.5) - 0.5) / fwidth(g);
+      return 1.0 - min(min(d.x, d.y), 1.0);
+    }
+
+    void main() {
+      vec2 p = (gl_FragCoord.xy * 2.0 - uRes) / uRes.y;
+      vec3 right = vec3(cos(uYaw), 0.0, sin(uYaw));
+      vec3 ahead = normalize(vec3(sin(uYaw) * 0.993, -0.12, -cos(uYaw) * 0.993));
+      vec3 up = cross(right, ahead);
+      vec3 ray = normalize(ahead * ${FOCAL.toFixed(2)} + right * p.x + up * p.y);
+
+      float horizon = exp(-abs(ray.y) * 16.0) * 0.32;
+      vec3 rgb = vec3(0.07, 0.24, 0.46) * horizon;
+      float alpha = horizon;
+
+      if (ray.y < -0.001) {
+        float t = (${FLOOR.toFixed(1)} - uCam.y) / ray.y;
+        vec3 hit = uCam + ray * t;
+        float fog = exp(-t * 0.07);
+        float sweep = 0.7 + 0.3 * sin(hit.z * 0.5 + hit.x * 0.2 - uTime * 0.8);
+        float lines = (grid(hit.xz) * 0.22 + grid(hit.xz / 5.0) * 0.55) * fog * sweep;
+        float pulse = 0.0;
+        if (uRing.z >= 0.0) {
+          float reach = length(hit.xz - uRing.xy) - uRing.z * 7.0;
+          pulse = exp(-reach * reach * 7.0) * exp(-uRing.z * 0.75) * fog * 1.6;
+        }
+        rgb += vec3(0.61, 0.81, 0.95) * lines + vec3(0.82, 0.92, 1.0) * pulse;
+        alpha = max(alpha, max(lines, pulse));
+      }
+      colour = vec4(rgb, clamp(alpha, 0.0, 1.0));
+    }`
+
+  const POINT_VERTEX = `#version 300 es
+    in vec4 aPoint;
+    uniform mat4 uView;
+    uniform vec3 uCam;
+    uniform float uTime;
+    uniform float uSize;
+    out float vLight;
+    void main() {
+      vec3 drift = vec3(0.0, sin(uTime * 0.25 + aPoint.w * 40.0) * 0.25, 0.0);
+      vec3 near = mod(aPoint.xyz - uCam + ${(BOX / 2).toFixed(1)}, ${BOX.toFixed(1)}) - ${(BOX / 2).toFixed(1)};
+      vec3 world = uCam + near + drift;
+      world.y = ${FLOOR.toFixed(1)} + 0.2 + fract(aPoint.y / ${BOX.toFixed(1)}) * 6.5 + drift.y;
+      vec4 clip = uView * vec4(world, 1.0);
+      gl_Position = clip;
+      float depth = max(clip.w, 0.2);
+      gl_PointSize = (1.0 + aPoint.w * 2.4) * uSize / depth;
+      vLight = (0.35 + 0.65 * abs(sin(uTime * 0.6 + aPoint.w * 90.0)))
+        * exp(-depth * 0.08) * smoothstep(0.4, 2.0, depth);
+    }`
+
+  const POINT_SHADER = `#version 300 es
+    precision mediump float;
+    in float vLight;
+    out vec4 colour;
+    void main() {
+      float soft = smoothstep(0.5, 0.0, length(gl_PointCoord - 0.5)) * vLight;
+      colour = vec4(vec3(0.6, 0.8, 1.0) * soft, soft);
+    }`
+
+  function program(vertex, fragment) {
+    const make = (type, source) => {
+      const shader = gl.createShader(type)
+      gl.shaderSource(shader, source)
+      gl.compileShader(shader)
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(shader))
+      return shader
+    }
+    const p = gl.createProgram()
+    gl.attachShader(p, make(gl.VERTEX_SHADER, vertex))
+    gl.attachShader(p, make(gl.FRAGMENT_SHADER, fragment))
+    gl.linkProgram(p)
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p))
+    const where = {}
+    const count = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS)
+    for (let i = 0; i < count; i++) {
+      const name = gl.getActiveUniform(p, i).name
+      where[name] = gl.getUniformLocation(p, name)
+    }
+    return { p, where }
+  }
+
+  /* Where the camera stands for each slide: one step on, turned at each new part. */
+  function plan(parts) {
+    let x = 0
+    let z = 0
+    let yaw = 0
+    path = parts.map((part, i) => {
+      if (i > 0 && part !== parts[i - 1]) yaw += part % 2 ? TURN : -TURN
+      if (i > 0) {
+        x += Math.sin(yaw) * STEP
+        z -= Math.cos(yaw) * STEP
+      }
+      return { x, z, yaw }
+    })
+  }
+
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
+
+  function camera(now) {
+    const t = move.ms ? Math.min(1, (now - move.t0) / move.ms) : 1
+    const e = ease(t)
+    return {
+      x: from.x + (to.x - from.x) * e,
+      z: from.z + (to.z - from.z) * e,
+      yaw: from.yaw + (to.yaw - from.yaw) * e,
+      // A slight rise in the middle of the move, so it reads as travel.
+      y: Math.sin(Math.PI * e) * 0.35,
+    }
+  }
+
+  function view(cam) {
+    const w = canvas.width
+    const h = canvas.height
+    const r = [Math.cos(cam.yaw), 0, Math.sin(cam.yaw)]
+    const f = [Math.sin(cam.yaw) * 0.993, -0.12, -Math.cos(cam.yaw) * 0.993]
+    const fl = Math.hypot(...f)
+    for (let i = 0; i < 3; i++) f[i] /= fl
+    const u = [r[1] * f[2] - r[2] * f[1], r[2] * f[0] - r[0] * f[2], r[0] * f[1] - r[1] * f[0]]
+    const e = [cam.x, cam.y, cam.z]
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+    const aspect = w / h
+    const near = 0.05
+    const far = 80
+    const A = (far + near) / (near - far)
+    const B = (2 * far * near) / (near - far)
+    // The projection times the view, written out, column by column.
+    const P = [FOCAL / aspect, FOCAL, A, B]
+    const V = [
+      r[0], u[0], -f[0], 0,
+      r[1], u[1], -f[1], 0,
+      r[2], u[2], -f[2], 0,
+      -dot(r, e), -dot(u, e), dot(f, e), 1,
+    ]
+    const M = new Float32Array(16)
+    for (let c = 0; c < 4; c++) {
+      M[c * 4] = P[0] * V[c * 4]
+      M[c * 4 + 1] = P[1] * V[c * 4 + 1]
+      M[c * 4 + 2] = P[2] * V[c * 4 + 2] + P[3] * V[c * 4 + 3]
+      M[c * 4 + 3] = -V[c * 4 + 2]
+    }
+    return M
+  }
+
+  function size() {
+    const scale = Math.min(devicePixelRatio || 1, 1.5)
+    canvas.width = Math.round(innerWidth * scale)
+    canvas.height = Math.round(innerHeight * scale)
+  }
+
+  function draw(now) {
+    if (!running) return
+    frame = requestAnimationFrame(draw)
+    // A machine that cannot keep up gets the still background instead.
+    if (times.length < 90) {
+      times.push(now)
+      if (times.length === 90 && (times[89] - times[29]) / 60 > 34) return stop()
+    } else {
+      // While nothing moves but the slow drift, a frame every 50 ms is
+      // enough, and spares the battery and the fans in a long talk.
+      const moving = now - move.t0 < move.ms || (ring.t0 >= 0 && now - ring.t0 < 4000)
+      if (!moving && now - drawn < 50) return
+    }
+    drawn = now
+    const cam = camera(now)
+    const time = now / 1000
+    gl.viewport(0, 0, canvas.width, canvas.height)
+    gl.clearColor(0, 0, 0, 0)
+    gl.clear(gl.COLOR_BUFFER_BIT)
+
+    gl.useProgram(floor.p)
+    gl.uniform2f(floor.where.uRes, canvas.width, canvas.height)
+    gl.uniform3f(floor.where.uCam, cam.x, cam.y, cam.z)
+    gl.uniform1f(floor.where.uYaw, cam.yaw)
+    gl.uniform1f(floor.where.uTime, time)
+    gl.uniform3f(floor.where.uRing, ring.x, ring.z, ring.t0 < 0 ? -1 : (now - ring.t0) / 1000)
+    gl.drawArrays(gl.TRIANGLES, 0, 3)
+
+    gl.useProgram(points.p)
+    gl.uniformMatrix4fv(points.where.uView, false, view(cam))
+    gl.uniform3f(points.where.uCam, cam.x, cam.y, cam.z)
+    gl.uniform1f(points.where.uTime, time)
+    gl.uniform1f(points.where.uSize, canvas.height * 0.5 * FOCAL * 0.012)
+    gl.bindVertexArray(points.vao)
+    gl.drawArrays(gl.POINTS, 0, COUNT)
+    gl.bindVertexArray(null)
+  }
+
+  function stop() {
+    running = false
+    cancelAnimationFrame(frame)
+    document.documentElement.classList.remove("has-world")
+  }
+
+  function start(parts, index) {
+    if (narrow.matches || still.matches || !canvas) return false
+    gl = canvas.getContext("webgl2", { antialias: true, premultipliedAlpha: true, powerPreference: "low-power" })
+    if (!gl) return false
+    try {
+      floor = program(VERTEX, FLOOR_SHADER)
+      points = program(POINT_VERTEX, POINT_SHADER)
+    } catch (error) {
+      console.warn("The world behind the slides could not be drawn.", error)
+      return false
+    }
+    const data = new Float32Array(COUNT * 4)
+    for (let i = 0; i < COUNT; i++) {
+      data[i * 4] = Math.random() * BOX
+      data[i * 4 + 1] = Math.random() * BOX
+      data[i * 4 + 2] = Math.random() * BOX
+      data[i * 4 + 3] = Math.random()
+    }
+    points.vao = gl.createVertexArray()
+    gl.bindVertexArray(points.vao)
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer())
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW)
+    const at = gl.getAttribLocation(points.p, "aPoint")
+    gl.enableVertexAttribArray(at)
+    gl.vertexAttribPointer(at, 4, gl.FLOAT, false, 0, 0)
+    gl.bindVertexArray(null)
+    gl.enable(gl.BLEND)
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+
+    plan(parts)
+    from = to = { ...path[index] }
+    size()
+    addEventListener("resize", size)
+    // A hidden tab draws nothing. The frame-rate sample starts again on
+    // return, so the time the tab was hidden never counts as a slow frame,
+    // and the loop is only started when none is running.
+    document.addEventListener("visibilitychange", () => {
+      if (!gl) return
+      if (document.hidden) {
+        running = false
+        cancelAnimationFrame(frame)
+        times.length = 0
+      } else if (!running && document.documentElement.classList.contains("has-world")) {
+        running = true
+        frame = requestAnimationFrame(draw)
+      }
+    })
+    // A narrower window or a change to reduced motion takes the world away.
+    narrow.addEventListener("change", (e) => e.matches && stop())
+    still.addEventListener("change", (e) => e.matches && stop())
+    document.documentElement.classList.add("has-world")
+    if (!document.hidden) {
+      running = true
+      frame = requestAnimationFrame(draw)
+    }
+    return true
+  }
+
+  /* Moves the camera to a slide. A move that is already under way starts the next from where it is. */
+  function goTo(index, ms, newPart) {
+    if (!running || !path[index]) return
+    const now = performance.now()
+    from = camera(now)
+    to = { ...path[index] }
+    move = { t0: now, ms }
+    if (newPart) {
+      ring = { x: to.x + Math.sin(to.yaw) * 3, z: to.z - Math.cos(to.yaw) * 3, t0: now + ms * 0.35 }
+    }
+  }
+
+  return { start, goTo, narrow, still, on: () => running }
+})()
+</script>
 
 <script>
 /*
@@ -2253,8 +2788,75 @@ const slides = [...document.querySelectorAll(".slide")]
 const counter = document.getElementById("counter")
 let current = 0
 
+/*
+ * The parts: a new one begins at every chapter title, at every chapter that
+ * has its own icon at the top of a single slide, and at a slide marked
+ * data-part, whose value names the part in the contents. The slides before
+ * the first are the opening.
+ */
+const parts = []
+slides.forEach((slide, i) => {
+  const begins = i > 0 && (slide.querySelector(".chapter-top") || slide.hasAttribute("data-part"))
+  parts.push(i === 0 ? 0 : parts[i - 1] + (begins ? 1 : 0))
+})
+const progress = document.getElementById("progress")
+const bars = []
+parts.forEach((part, i) => {
+  if (i > 0 && part === parts[i - 1]) return bars[part].count++
+  const element = document.createElement("span")
+  progress.append(element)
+  bars.push({ element, first: i, count: 1 })
+})
+for (const bar of bars) bar.element.style.setProperty("--slides", String(bar.count))
+function fill(index) {
+  for (const bar of bars) {
+    const done = Math.max(0, Math.min(bar.count, index - bar.first + 1))
+    bar.element.style.setProperty("--fill", String(done / bar.count))
+  }
+}
+
+let transition = null
+
+/*
+ * Moves to a slide. Where the world is drawn, the change happens inside a
+ * view transition, and the camera behind moves with it: 0.7 seconds for a
+ * step, 1 second into a new part. Where it is not, on a narrow screen, with
+ * reduced motion, without WebGL 2 or on a slow machine, the slide just
+ * changes. A key or a click in the middle of a transition ends it at once,
+ * and the next one starts from there.
+ */
 function show(index) {
-  current = Math.max(0, Math.min(index, slides.length - 1))
+  const next = Math.max(0, Math.min(index, slides.length - 1))
+  const previous = current
+  // Set at once, so a key pressed before the transition has drawn counts from here.
+  current = next
+  const newPart = parts[next] !== parts[previous]
+  const ms = newPart ? 1000 : 700
+  if (next !== previous && World.on() && document.startViewTransition) {
+    const root = document.documentElement
+    transition?.skipTransition()
+    root.style.setProperty("--step", `${ms}ms`)
+    root.dataset.way = next < previous ? "back" : "on"
+    root.classList.toggle("same-part", !newPart)
+    const started = document.startViewTransition(place)
+    transition = started
+    // A transition ended by the next key rejects these; that is expected.
+    started.ready.catch(() => {})
+    started.finished.catch(() => {}).finally(() => {
+      if (transition === started) transition = null
+    })
+  } else {
+    place()
+  }
+  World.goTo(next, ms, newPart && next > previous)
+}
+
+/*
+ * Shows the slide in current. It takes no index: a transition ended by the
+ * next key still runs its update afterwards, and must then show where the
+ * reader is now, not where they were going.
+ */
+function place() {
   slides.forEach((l, i) => {
     if (i === current) l.setAttribute("data-shown", "")
     else l.removeAttribute("data-shown")
@@ -2266,6 +2868,7 @@ function show(index) {
   const active = document.activeElement
   if (active && active !== document.body && !slides[current].contains(active) && !active.closest(".controls")) active.blur()
   counter.textContent = `${current + 1} / ${slides.length}`
+  fill(current)
   fit(slides[current])
   slides[current].scrollTop = 0
   window.scrollTo(0, 0)
@@ -2280,16 +2883,16 @@ function show(index) {
  * slide is plain text on the page and scrolls as a page does, so nothing is
  * zoomed there.
  */
-const narrow = matchMedia("(max-width: 860px)")
+const narrow = World.narrow
 const SMALLEST = 0.8
 
 function fit(slide) {
-  const parts = [...slide.children]
-  for (const part of parts) part.style.zoom = ""
+  const children = [...slide.children]
+  for (const child of children) child.style.zoom = ""
   if (narrow.matches) return
   const fits = () => slide.scrollHeight <= slide.clientHeight + 1
   if (fits()) return
-  const set = (zoom) => { for (const part of parts) part.style.zoom = String(zoom) }
+  const set = (zoom) => { for (const child of children) child.style.zoom = String(zoom) }
   // The largest zoom that fits, to a hundredth. The padding does not zoom,
   // so the height does not shrink in proportion and has to be tried.
   let low = SMALLEST
@@ -2315,11 +2918,69 @@ function fromAddress() {
 }
 
 document.getElementById("next").addEventListener("click", () => show(current + 1))
+
+/*
+ * The contents. Each entry is a link to #slide-N, so choosing one goes
+ * through the address like any other link, and the dialog closes. The slide
+ * the reader is on is marked, and in view when the list opens.
+ */
+const contents = document.getElementById("contents")
+const list = document.getElementById("contents-list")
+const entries = slides.map((slide, i) => {
+  const item = document.createElement("li")
+  if (i > 0 && parts[i] !== parts[i - 1]) {
+    item.className = "contents__part"
+    const name = slide.dataset.part || slide.querySelector(".mark, .chapter-mark")?.textContent.split(" · ")[0]
+    if (name) {
+      const label = document.createElement("span")
+      label.className = "contents__mark"
+      label.textContent = name
+      item.append(label)
+    }
+  }
+  const link = document.createElement("a")
+  link.href = `#slide-${i + 1}`
+  const n = document.createElement("span")
+  n.className = "contents__n"
+  n.textContent = String(i + 1)
+  const title = document.createElement("span")
+  title.textContent = slide.querySelector("h1, h2")?.textContent.trim() ?? `Slide ${i + 1}`
+  link.append(n, title)
+  link.addEventListener("click", () => {
+    contents.close()
+    document.getElementById("contents-open").blur()
+  })
+  item.append(link)
+  list.append(item)
+  return link
+})
+function openContents() {
+  entries.forEach((link, i) => {
+    if (i === current) link.setAttribute("aria-current", "page")
+    else link.removeAttribute("aria-current")
+  })
+  contents.showModal()
+  entries[current].focus()
+  entries[current].scrollIntoView({ block: "center" })
+}
+document.getElementById("contents-open").addEventListener("click", openContents)
+document.getElementById("contents-close").addEventListener("click", () => contents.close())
+// A click on the backdrop, outside the box, closes it too.
+contents.addEventListener("click", (e) => {
+  if (e.target === contents) contents.close()
+})
 document.getElementById("previous").addEventListener("click", () => show(current - 1))
 
 document.addEventListener("keydown", (e) => {
   // Cmd+arrow and Alt+arrow are the browser's own forward and back, and must not move slides.
   if (e.altKey || e.ctrlKey || e.metaKey) return
+  // With the contents open, the keys belong to the list.
+  if (contents.open) return
+  if (e.key === "m" || e.key === "M") {
+    e.preventDefault()
+    openContents()
+    return
+  }
   // Enter on a link should follow the link, and Space on a button should press
   // it. Without this line the presentation moved on instead, and the links on
   // the first and last slides could not be followed with the keyboard.
@@ -2345,7 +3006,10 @@ document.addEventListener("keydown", (e) => {
 // replaceState does not fire hashchange, so there is no loop.
 window.addEventListener("hashchange", () => show(fromAddress()))
 
-show(fromAddress())
+// The first slide is placed without a transition, and the world starts there.
+current = Math.max(0, Math.min(fromAddress(), slides.length - 1))
+World.start(parts, current)
+place()
 </script>
 </body>
 </html>

@@ -62,6 +62,21 @@ that was read and when, in a line of sources at the bottom. The other routes,
 a React-based design system and web components with shadow DOM, are given
 what they can do today before the slide says what still stands in the way.
 
+Behind the slides is a world drawn with WebGL and no library: a floor of
+light lines that fades into the dark, and particles in the air. The camera
+glides one step forward for every slide and turns where a new part begins,
+where a ring of light pulses out from the floor. The card falls back into the
+fog and the next comes forward out of it, with the View Transitions API, and
+within a part the line above the heading stays where it is. A line along the
+top shows the parts and how far the reader has come. On a narrow screen, with
+reduced motion, without WebGL 2, or on a machine that draws fewer than about
+30 frames a second, there is no world and no movement, and the slides change
+as before. A key pressed during a transition ends it at once.
+
+The contents, opened with the button by the counter or with M, lists every
+slide with its number and heading, grouped by part, and goes to the one
+chosen.
+
 A slide does not scroll. Where its text is taller than the window, the content
 is zoomed down until it fits, to no less than 80 %, and on 1280 × 720 every
 slide fits at 84 % or more. On a phone the slides are plain text on the page,
