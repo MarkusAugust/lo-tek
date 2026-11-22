@@ -27,6 +27,8 @@ export type { Manifest } from "../vocabulary/types.js"
 import { defaultCore } from "./default-core.js"
 
 export {
+  type Brand,
+  type BrandFill,
   type Core,
   type CoreStyles,
   type CoreTheme,

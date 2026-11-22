@@ -22,7 +22,8 @@ import org.junit.jupiter.params.provider.MethodSource
  * No recipe in the expected results gives a non-empty `violations`, and
  * that is not a gap in them: the promises hold by construction, so the core
  * gives none for a recipe it accepts. The fields of [ThemeViolation] are
- * read against `build_theme_raw` in `core/src/lib.rs`, not against a case.
+ * held to a case all the same, by `breaks` in `brands`: what the brand
+ * colour would have broken had it been the fill itself.
  */
 class ThemeParityTest {
     @ParameterizedTest(name = "{0}")
@@ -36,16 +37,46 @@ class ThemeParityTest {
             return
         }
         val expected = case["theme"] as Map<*, *>
-        assertEquals(setOf("light", "dark", "violations", "css"), expected.keys, "the expected results have a field the reader does not compare")
+        assertEquals(setOf("light", "dark", "violations", "brands", "css"), expected.keys, "the expected results have a field the reader does not compare")
         val theme = Lotek.buildTheme(recipe)
         assertEquals(expected["light"], theme.light, "light")
         assertEquals(expected["dark"], theme.dark, "dark")
-        assertEquals(
-            expected["violations"],
-            theme.violations.map { mapOf("family" to it.family, "promise" to it.promise, "ratio" to it.ratio, "required" to it.required) },
-            "violations",
+        assertAnswer(expected["violations"], theme.violations.map { violation(it) }, "violations")
+        assertAnswer(
+            expected["brands"],
+            theme.brands.map { mapOf("family" to it.family, "given" to it.given, "light" to side(it.light), "dark" to side(it.dark)) },
+            "brands",
         )
         assertEquals(expected["css"], theme.css, "css")
+    }
+
+    private fun violation(v: ThemeViolation) =
+        mapOf("family" to v.family, "promise" to v.promise, "ratio" to v.ratio, "required" to v.required)
+
+    private fun side(f: ThemeBrandFill) =
+        mapOf("fill" to f.fill, "chromaKept" to f.chromaKept, "breaks" to f.breaks.map { violation(it) })
+
+    /**
+     * Requires the answer to be the expected one, by the rule of `same` in
+     * `check-core.ts`: a number with decimals may differ by [FLOAT], since
+     * the ratios and `chromaKept` in the expected results were worked out by
+     * another implementation than the core. A whole number, and everything
+     * that is not a number, must be exactly the expected.
+     */
+    private fun assertAnswer(expected: Any?, answer: Any?, path: String) {
+        when {
+            expected is Double && answer is Double ->
+                if (expected % 1.0 == 0.0) assertEquals(expected, answer, path) else assertEquals(expected, answer, FLOAT, path)
+            expected is List<*> && answer is List<*> -> {
+                assertEquals(expected.size, answer.size, "$path: the number of entries")
+                expected.forEachIndexed { i, value -> assertAnswer(value, answer[i], "$path[$i]") }
+            }
+            expected is Map<*, *> && answer is Map<*, *> -> {
+                assertEquals(expected.keys, answer.keys, "$path: the keys")
+                for ((key, value) in expected) assertAnswer(value, answer[key], "$path.$key")
+            }
+            else -> assertEquals(expected, answer, path)
+        }
     }
 
     @ParameterizedTest(name = "{0}")
@@ -86,6 +117,7 @@ class ThemeParityTest {
 
     companion object {
         private val DIR = File(System.getProperty("theme"))
+        private const val FLOAT = 1e-6
 
         @Suppress("UNCHECKED_CAST")
         private val RECIPES = Json.parse(File(DIR, "recipes.json").readText()) as Map<String, Any?>

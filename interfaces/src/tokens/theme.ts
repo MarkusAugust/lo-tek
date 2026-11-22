@@ -1,8 +1,8 @@
-import type { Violation } from "../diagnostics/core.js"
+import type { Brand, BrandFill, Violation } from "../diagnostics/core.js"
 import { defaultCore } from "../diagnostics/default-core.js"
 import type { Family } from "./matrix.js"
 
-export type { Violation }
+export type { Brand, BrandFill, Violation }
 
 /**
  * Builds a complete colour theme from a few brand colours.
@@ -10,7 +10,8 @@ export type { Violation }
  * The theme is the contract applied to the consumer's hues. The hue comes
  * from the consumer, the lightness from the role, and the promises hold by
  * construction. That is why there is no adjustment pass here: there is
- * nothing to move.
+ * nothing to adjust afterwards. The brand colour itself is moved to the
+ * lightness of the role, and `brands` says how far.
  *
  * ```ts
  * const theme = buildTheme({ accent: "#7c3aed", danger: "#b3261e" })
@@ -87,6 +88,11 @@ export type Theme = {
   dark: Record<string, string>
   /** Promises that do not hold. Empty when the theme is sound. */
   violations: Violation[]
+  /**
+   * What became of each brand colour you gave: the fill it got in each
+   * appearance, and why it could not be the fill as it was.
+   */
+  brands: Brand[]
   css: string
 }
 

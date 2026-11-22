@@ -33,7 +33,9 @@
 
 use std::sync::{Arc, RwLock};
 
-use super::color::{contrast_ratio, oklch_to_rgb, parse_hex, rgb_to_oklch, to_hex, Oklch};
+use super::color::{
+    chroma_kept, contrast_ratio, oklch_to_rgb, parse_hex, rgb_to_oklch, to_hex, Oklch,
+};
 use crate::json::{parse, Json};
 
 /// Light or dark. A theme is one or the other, never both.
@@ -231,21 +233,39 @@ pub fn role_to_css(role: &str) -> String {
     out
 }
 
+/// The colour a role asks for from a brand colour, before it is fitted into
+/// sRGB: the hue of the brand, the lightness of the role, and the chroma of
+/// the brand times the share of the role.
+fn asked(brand: Oklch, spec: &Spec, appearance: Appearance) -> Oklch {
+    Oklch {
+        l: spec.lightness(appearance),
+        c: brand.c * spec.chroma,
+        h: brand.h,
+    }
+}
+
 /// Builds one family from one brand colour.
 pub fn build_family(brand: &str, appearance: Appearance) -> Result<Family, String> {
-    let Oklch { c, h, .. } = rgb_to_oklch(parse_hex(brand)?);
+    let brand = rgb_to_oklch(parse_hex(brand)?);
     Ok(contract()
         .roles
         .iter()
         .map(|(name, spec)| {
-            let color = oklch_to_rgb(Oklch {
-                l: spec.lightness(appearance),
-                c: c * spec.chroma,
-                h,
-            });
+            let color = oklch_to_rgb(asked(brand, spec, appearance));
             (name.clone(), to_hex(color))
         })
         .collect())
+}
+
+/// The share of the chroma `fill` asks for that the fill of a brand colour
+/// has. Below 1 when sRGB cannot show that much at the lightness of the role.
+pub fn fill_chroma_kept(brand: &str, appearance: Appearance) -> Result<f64, String> {
+    let brand = rgb_to_oklch(parse_hex(brand)?);
+    Ok(contract()
+        .roles
+        .iter()
+        .find(|(role, _)| role == "fill")
+        .map_or(1.0, |(_, spec)| chroma_kept(asked(brand, spec, appearance))))
 }
 
 /// The page, the card and the raised surface, which only the neutral family has.
@@ -327,6 +347,46 @@ pub struct Matrix {
     pub tokens: Vec<(String, String)>,
     /// Promises that do not hold. Empty when the matrix is in order.
     pub violations: Vec<Violation>,
+    /// The families the tokens were written from, and the layers they are
+    /// checked against.
+    pub families: Vec<(String, Family)>,
+    pub layers: Layers,
+}
+
+/// The promises about `fill` that would break if `given` itself were the
+/// fill of `family`, with every other role and layer as the matrix has them.
+///
+/// The lightness of the fill is the role's, so the brand colour is moved.
+/// This is the reason, in the contract's own terms.
+pub fn breaks_as_fill(
+    matrix: &Matrix,
+    family: &str,
+    given: &str,
+) -> Result<Vec<Violation>, String> {
+    let Some((_, roles)) = matrix.families.iter().find(|(n, _)| n == family) else {
+        return Ok(Vec::new());
+    };
+    let as_fill: Family = roles
+        .iter()
+        .map(|(role, value)| {
+            let value = if role == "fill" { given } else { value };
+            (role.clone(), value.to_string())
+        })
+        .collect();
+    let contract = contract();
+    Ok(promises_for(&as_fill, &matrix.layers)?
+        .into_iter()
+        .zip(&contract.promises)
+        .filter(|((_, ratio, required), promise)| {
+            (promise.foreground == "fill" || promise.background == "fill") && ratio < required
+        })
+        .map(|((promise, ratio, required), _)| Violation {
+            family: family.to_string(),
+            promise,
+            ratio,
+            required,
+        })
+        .collect())
 }
 
 /// Builds the whole matrix for one appearance.
@@ -373,5 +433,7 @@ pub fn build_matrix(brands: &[(String, String)], appearance: Appearance) -> Resu
     Ok(Matrix {
         violations: check_promises(&families, &layers)?,
         tokens,
+        families,
+        layers,
     })
 }

@@ -13,7 +13,7 @@
 use crate::output::{error, fail, log, shown};
 use crate::{refuse_unknown_flags, refuse_without_value, Arguments};
 use lotek_core::json::{parse, Json};
-use lotek_core::theme::{build_theme, js_number, to_fixed2};
+use lotek_core::theme::{build_theme, js_number, to_fixed2, Brand, BrandFill};
 
 /// The colour families. The flag, the recipe key and the family have the
 /// same name.
@@ -99,6 +99,54 @@ fn read_recipe(file: &str) -> Object {
         )),
         Err(reason) => fail(&format!("\"{path}\" is not valid JSON: {reason}\n")),
     }
+}
+
+/// What became of each brand colour, as the lines the run writes.
+///
+/// The lightness is the role's, so the colour is moved, and a light one is
+/// moved far. The run says so, with the reason in the contract's own terms,
+/// rather than answering only that every promise holds.
+fn brand_lines(brands: &[Brand]) -> Vec<String> {
+    let mut lines = Vec::new();
+    for brand in brands {
+        let appearances: [(&str, &BrandFill); 2] = [("light", &brand.light), ("dark", &brand.dark)];
+        lines.push(format!(
+            "{}: {} gives the fill {} in the light theme and {} in the dark theme.",
+            brand.family, brand.given, brand.light.fill, brand.dark.fill
+        ));
+        for (appearance, fill) in appearances {
+            if fill.breaks.is_empty() {
+                continue;
+            }
+            let breaks: Vec<String> = fill
+                .breaks
+                .iter()
+                .map(|v| {
+                    format!(
+                        "{} would be {}:1, the requirement is {}:1",
+                        v.promise,
+                        to_fixed2(v.ratio),
+                        js_number(v.required)
+                    )
+                })
+                .collect();
+            lines.push(format!(
+                "  In the {appearance} theme {} could not be the fill itself: {}.",
+                brand.given,
+                breaks.join("; ")
+            ));
+        }
+        for (appearance, fill) in appearances {
+            let percent = (fill.chroma_kept * 100.0).round();
+            if percent < 100.0 {
+                lines.push(format!(
+                    "  In the {appearance} theme the fill has {percent}% of the chroma of {}: sRGB cannot show more at that lightness and hue.",
+                    brand.given
+                ));
+            }
+        }
+    }
+    lines
 }
 
 pub fn run(arguments: &[String]) {
@@ -249,13 +297,21 @@ pub fn run(arguments: &[String]) {
         ));
     }
 
+    let became = brand_lines(&theme.brands);
+    for line in &became {
+        error(line);
+    }
+
     match arguments.flag("out") {
         Some(path) => {
             if let Err(e) = std::fs::write(path, &theme.css) {
                 fail(&format!("Could not write {}: {e}", shown(path)));
             }
+            // The blank line sets the message apart when it stands alone.
+            // After the lines about the brand colours it belongs with them.
             error(&format!(
-                "\nWrote {}. {} colours in each theme, every promise holds.",
+                "{}Wrote {}. {} colours in each theme, every promise holds.",
+                if became.is_empty() { "\n" } else { "" },
                 shown(path),
                 theme.light.len()
             ));
