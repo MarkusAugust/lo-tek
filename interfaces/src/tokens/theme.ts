@@ -46,23 +46,23 @@ export type ThemeTypography = {
  * and fields with almost square corners, and one shared number would have
  * turned the fields into capsules.
  *
- * The checkbox, the badge, the tag, the toggle group, the avatar and the
- * skeleton are left out on purpose. There the corner is not a style choice
+ * The checkbox, the badge, the tag, the toggle group, the avatar, the
+ * skeleton and the progress bar are left out on purpose. There the corner is not a style choice
  * but the shape itself: a checkbox that turns round looks like a radio
  * button, and a badge that turns square looks like a button.
  */
 export type ThemeShape = {
   /** Corners on the button, the pagination and the skip link. */
-  buttonRadius?: string | number
+  buttonRadius?: string | 0
   /** Corners on the field, the text area and the select. */
-  fieldRadius?: string | number
+  fieldRadius?: string | 0
   /**
    * Corners on the card, dialog, popover, alert, accordion, error summary,
    * file upload, session timeout, suggestion list, toast and tooltip.
    */
-  surfaceRadius?: string | number
+  surfaceRadius?: string | 0
   /** The border width of the button. */
-  buttonBorderWidth?: string | number
+  buttonBorderWidth?: string | 0
   /** The font weight of the button text. */
   buttonFontWeight?: string | number
 }

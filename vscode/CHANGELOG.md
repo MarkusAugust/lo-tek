@@ -1,7 +1,7 @@
 # Changes in LO-TEK for VS Code
 
 The extension has its own version number. It does not follow the package,
-since it only changes when an element or an attribute does.
+since it only changes when what the editor shows does.
 
 ## 0.16.0
 

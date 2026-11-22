@@ -70,7 +70,7 @@
           "additionalProperties": false,
           "properties": {
             "regular": {
-              "description": "The markers for required and optional on a label and a fieldset. 400 if left out.",
+              "description": "The words that mark a field as required or optional, on a label and a fieldset. 400 if left out.",
               "type": ["string", "number"]
             },
             "medium": {
@@ -82,7 +82,7 @@
               "type": ["string", "number"]
             },
             "bold": {
-              "description": "Headings. 700 if left out.",
+              "description": "Headings, and the asterisk that marks a required field. 700 if left out.",
               "type": ["string", "number"]
             }
           }
@@ -118,20 +118,52 @@
       "additionalProperties": false,
       "properties": {
         "buttonRadius": {
-          "description": "The corners of the button, the pagination and the skip link, as a CSS length.",
-          "type": ["string", "number"]
+          "description": "The corners of the button, the pagination and the skip link, as a CSS length, or the number 0.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number",
+              "const": 0
+            }
+          ]
         },
         "fieldRadius": {
-          "description": "The corners of the input, the textarea and the select, as a CSS length.",
-          "type": ["string", "number"]
+          "description": "The corners of the input, the textarea and the select, as a CSS length, or the number 0.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number",
+              "const": 0
+            }
+          ]
         },
         "surfaceRadius": {
-          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast and tooltip, as a CSS length.",
-          "type": ["string", "number"]
+          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast and tooltip, as a CSS length, or the number 0.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number",
+              "const": 0
+            }
+          ]
         },
         "buttonBorderWidth": {
-          "description": "The border width of the button, as a CSS length.",
-          "type": ["string", "number"]
+          "description": "The border width of the button, as a CSS length, or the number 0.",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number",
+              "const": 0
+            }
+          ]
         },
         "buttonFontWeight": {
           "description": "The weight of the button text, as a number or a keyword.",

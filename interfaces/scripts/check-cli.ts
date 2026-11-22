@@ -1233,6 +1233,33 @@ block(async () => {
   }
 })
 
+/*
+ * The help names every rulebook `agent --framework=<name>` can write.
+ *
+ * The names are read from the folder the rulebooks are in, so one that is
+ * added is held too: the help listed six while there were seven, and the one
+ * who read it could not know the seventh existed.
+ */
+block(async () => {
+  const books = (await readdir(join(packageDir, "agent")))
+    .filter((file) => file.endsWith(".md"))
+    .map((file) => file.slice(0, -".md".length))
+    .sort()
+  expect(books.length > 5, `found only ${books.length} rulebooks in agent/`)
+
+  const { out } = await run(["--help"])
+  // The list after "Names:", up to the full stop, across the line break.
+  const named = (/Names:([^.]*)\./.exec(out)?.[1] ?? "")
+    .split(",")
+    .map((name) => name.trim())
+    .filter((name) => name !== "")
+    .sort()
+  expect(
+    named.join(", ") === books.join(", "),
+    `the help names the rulebooks ${named.join(", ")}, and there are ${books.join(", ")}`,
+  )
+})
+
 // The old Norwegian verbs and help flags are gone, not kept as aliases
 block(async () => {
   for (const old of [

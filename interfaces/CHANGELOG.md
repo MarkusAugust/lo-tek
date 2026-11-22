@@ -42,8 +42,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `lotek theme` and `Lotek.buildTheme` dropped `{"accent": 12}` without a
   word, and the theme got LO-TEK's own accent. They now answer that `"12"`
   is not a valid hexadecimal colour, as `buildTheme` in TypeScript did. A
-  list or an object is refused too. A colour that is `""`, `0`, `false` or
-  `null` is still a colour that is not given.
+  list or an object is refused too, as `""`. A colour that is `""`, `0`,
+  `false` or `null` is still a colour that is not given.
 - **Text or a list for `typography.weights` or `typography.lineHeights` is
   refused by `lotek theme`.** `{"typography": {"weights": "ab"}}` built a
   theme on the command line, while Kotlin refused it. Both now answer
@@ -69,9 +69,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   with a description of every key. The core's tests hold it to the keys the
   core knows, in both directions. LO-TEK for VS Code and the IntelliJ plugin
   complete and check a file named `lotek.theme.json` against it, with
-  nothing to set up: no `$schema` in the file and no setting.
-- **The corners and the border width in `ThemeShape` can be a number,** as
-  the core already took them: `fieldRadius: 0`.
+  nothing to set up: no `$schema` in the file and no setting. The schema is
+  stricter than `lotek theme` about a colour: it asks for text with a `#`,
+  where the command also takes one without, and reads an empty one as not
+  given.
+- **The corners and the border width in `ThemeShape` can be the number
+  `0`,** as the core already took it: `fieldRadius: 0`. Any other length is
+  text with its unit.
 
 ### Fixed
 
@@ -88,6 +92,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the run, that a light colour gives a darker fill and the command says so,
   that the fill is not to be overridden with the brand colour, and that
   `check-theme` checks a theme written by hand.
+- **`lotek --help` names the Kotlin rulebook** among those `agent` can write.
+  It was there, and the help text left it out.
+- **The schemas are served at the addresses they name.**
+  `https://lo-tek.sobernetics.no/manifest.schema.json`, the `$id` of the
+  manifest's schema, gave 404. It and the theme recipe's schema are now on
+  the documentation site.
 - **Getting started said that `defineLt()` registers nine elements.** It
   registers ten.
 

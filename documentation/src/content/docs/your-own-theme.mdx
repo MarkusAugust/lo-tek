@@ -149,6 +149,8 @@ The keys are written in one schema, `@lo-tek/interfaces/theme.schema.json`, and 
 }
 ```
 
+The schema is stricter than the generator about how a colour is written. The generator also takes a colour without the `#`, and reads an empty one as not given. The schema asks for text with a `#`, so an editor marks the others.
+
 These are the keys inside the two blocks, and a key that does not exist stops the run rather than being ignored:
 
 | Key | What it sets |
@@ -184,7 +186,7 @@ A theme with no content at all throws. Give a colour, a font or a shape.
 
 A single shared number would be simpler and wrong. Another design system has fully round buttons and fields with almost square corners, and with one number the fields become capsules.
 
-The checkbox, the badge, the tag, the toggle group, the avatar, the skeleton and the progress bar are left out. There the corner is not a style choice but the shape itself: a checkbox that turns round looks like a radio button, and a badge that turns square looks like a button.
+The checkbox, the badge, the tag, the toggle group, the avatar, the skeleton and the progress bar are left out. There the corner is not a style choice but the shape itself: a checkbox that turns round looks like a radio button, and a badge that turns square looks like a button. The panel of a term is a surface, but `surfaceRadius` does not reach it yet: it keeps its own corner, `--lt-term-radius`.
 
 ### The theme beats the defaults
 
