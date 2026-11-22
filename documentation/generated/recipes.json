@@ -8882,6 +8882,9 @@
         "lt-popover",
         "for",
         "href",
+        "lotek.theme.json",
+        "lotek theme",
+        "@lo-tek/interfaces",
         "lotek.languages",
         "lotek lsp",
         "@lo-tek/interfaces",
@@ -8895,6 +8898,8 @@
         "@Language(\"HTML\")",
         "lt-field",
         "for",
+        "@lo-tek/interfaces",
+        "lotek.theme.json",
         "@lo-tek/interfaces",
         "lt-button",
         "<div>",
@@ -9244,6 +9249,12 @@
           "section": "Typography and shape"
         },
         {
+          "lang": "json",
+          "meta": null,
+          "code": "{\n  \"$schema\": \"./node_modules/@lo-tek/interfaces/src/tokens/theme.schema.json\",\n  \"accent\": \"#7c3aed\"\n}",
+          "section": "Typography and shape"
+        },
+        {
           "lang": "bash",
           "meta": null,
           "code": "npx @lo-tek/interfaces theme \\\n  --font=\"Helvetica, Arial, sans-serif\" \\\n  --button-radius=2.75rem \\\n  --out=theme.css",
@@ -9315,6 +9326,8 @@
         "--button-border",
         "--button-weight",
         "$schema",
+        "@lo-tek/interfaces/theme.schema.json",
+        "lotek.theme.json",
         "typography.fontFamily",
         ":root",
         "typography.weights.regular",

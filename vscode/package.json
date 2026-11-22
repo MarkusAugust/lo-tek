@@ -39,6 +39,12 @@
         "./dist/html-data.json"
       ]
     },
+    "jsonValidation": [
+      {
+        "fileMatch": "lotek.theme.json",
+        "url": "./dist/theme.schema.json"
+      }
+    ],
     "snippets": [
       {
         "path": "./dist/lotek.code-snippets"
@@ -85,8 +91,8 @@
     }
   },
   "scripts": {
-    "build": "bun build src/extension.ts --outfile dist/extension.js --target node --format cjs --external vscode && bun build src/server.ts --outfile dist/server.js --target node --format cjs && rm -f dist/lotek-core.wasm dist/snippets.json && cp ../interfaces/core/lotek.wasm dist/ && mkdir -p dist/manifest && cp ../interfaces/manifest/manifest.json dist/manifest/ && cp ../interfaces/html-data.json dist/ && bun scripts/build-snippets.ts",
-    "check": "bun run build && vsce package --no-dependencies --out lotek.vsix",
+    "build": "bun build src/extension.ts --outfile dist/extension.js --target node --format cjs --external vscode && bun build src/server.ts --outfile dist/server.js --target node --format cjs && rm -f dist/lotek-core.wasm dist/snippets.json && cp ../interfaces/core/lotek.wasm dist/ && mkdir -p dist/manifest && cp ../interfaces/manifest/manifest.json dist/manifest/ && cp ../interfaces/html-data.json dist/ && cp ../interfaces/src/tokens/theme.schema.json dist/ && bun scripts/build-snippets.ts",
+    "check": "bun run build && vsce package --no-dependencies --out lotek.vsix && bun scripts/check-package.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

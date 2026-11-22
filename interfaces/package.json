@@ -44,6 +44,7 @@
     },
     "./manifest.json": "./manifest/manifest.json",
     "./color-contract.json": "./src/tokens/color-contract.json",
+    "./theme.schema.json": "./src/tokens/theme.schema.json",
     "./core.wasm": "./core/lotek-core.wasm",
     "./tokens.css": "./src/tokens/tokens.css",
     "./boundary.css": "./src/tokens/boundary.css",

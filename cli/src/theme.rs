@@ -13,11 +13,12 @@
 use crate::output::{error, fail, log, shown};
 use crate::{refuse_unknown_flags, refuse_without_value, Arguments};
 use lotek_core::json::{parse, Json};
-use lotek_core::theme::{build_theme, js_number, to_fixed2, Brand, BrandFill};
+use lotek_core::theme::contract::contract;
+use lotek_core::theme::{build_theme, js_number, to_fixed2, unknown_recipe_keys, Brand, BrandFill};
 
-/// The colour families. The flag, the recipe key and the family have the
-/// same name.
-const COLORS: [&str; 9] = [
+/// The order the colour flags are listed in, as in `lotek --help`. Which
+/// families exist is the contract's to say, not this list's.
+const SHOWN: [&str; 9] = [
     "accent", "danger", "success", "warning", "neutral", "visited", "brand1", "brand2", "brand3",
 ];
 
@@ -29,17 +30,6 @@ const SHAPE_FLAGS: [(&str, &str); 5] = [
     ("surface-radius", "surfaceRadius"),
     ("button-border", "buttonBorderWidth"),
     ("button-weight", "buttonFontWeight"),
-];
-
-const TYPOGRAPHY_KEYS: [&str; 3] = ["fontFamily", "weights", "lineHeights"];
-const WEIGHT_KEYS: [&str; 4] = ["regular", "medium", "semibold", "bold"];
-const LINE_KEYS: [&str; 4] = ["default", "heading", "article", "compact"];
-const SHAPE_KEYS: [&str; 5] = [
-    "buttonRadius",
-    "fieldRadius",
-    "surfaceRadius",
-    "buttonBorderWidth",
-    "buttonFontWeight",
 ];
 
 type Object = Vec<(String, Json)>;
@@ -67,19 +57,6 @@ fn spread(value: Option<&Json>) -> Object {
             .collect(),
         _ => Vec::new(),
     }
-}
-
-/// The keys in an object that are not in the list, with the path in front.
-fn unknown_keys(value: Option<&Json>, allowed: &[&str], path: &str) -> Vec<String> {
-    let keys: Vec<String> = match value {
-        Some(Json::Object(entries)) => entries.iter().map(|(k, _)| k.clone()).collect(),
-        Some(Json::Array(items)) => (0..items.len()).map(|i| i.to_string()).collect(),
-        _ => Vec::new(),
-    };
-    keys.into_iter()
-        .filter(|k| !allowed.contains(&k.as_str()))
-        .map(|k| format!("{path}.{k}"))
-        .collect()
 }
 
 /// The recipe in a JSON file, or an explanation and an error code.
@@ -173,99 +150,67 @@ pub fn run(arguments: &[String]) {
     };
     let from_file = Json::Object(recipe.clone());
 
-    let mut input: Object = Vec::new();
-    for family in COLORS {
-        let value = match arguments.flag(family) {
-            Some(v) => Some(Json::String(v.to_string())),
-            None => from_file.get(family).cloned(),
-        };
-        if let Some(Json::String(s)) = value {
-            if !s.is_empty() {
-                set(&mut input, family, Json::String(s));
-            }
-        }
-    }
-
-    // Font and shape can come from the file or from flags, and the flag wins.
-    let mut typography = spread(from_file.get("typography"));
-    for (flag, key) in TYPOGRAPHY_FLAGS {
-        if let Some(v) = arguments.flag(flag) {
-            set(&mut typography, key, Json::String(v.to_string()));
-        }
-    }
-    let mut shape = spread(from_file.get("shape"));
-    for (flag, key) in SHAPE_FLAGS {
-        if let Some(v) = arguments.flag(flag) {
-            set(&mut shape, key, Json::String(v.to_string()));
-        }
-    }
-    let typography = Json::Object(typography);
-    let shape = Json::Object(shape);
-    if typography.as_object().is_some_and(|o| !o.is_empty()) {
-        set(&mut input, "typography", typography.clone());
-    }
-    if shape.as_object().is_some_and(|o| !o.is_empty()) {
-        set(&mut input, "shape", shape.clone());
-    }
-
-    let known: Vec<&str> = COLORS
-        .iter()
-        .copied()
-        .chain(TYPOGRAPHY_FLAGS.iter().map(|(n, _)| *n))
-        .chain(SHAPE_FLAGS.iter().map(|(n, _)| *n))
-        .chain(["out"])
-        .collect();
-
     // The keys in the recipe file, which can come from another repository,
-    // where a typo is harder to spot than one on the command line.
-    let top_level: Vec<&str> = COLORS
-        .iter()
-        .copied()
-        .chain(["typography", "shape", "$schema"])
-        .collect();
-    let mut unknown: Vec<String> = recipe
-        .iter()
-        .map(|(k, _)| k.clone())
-        .filter(|k| !top_level.contains(&k.as_str()))
-        .collect();
-    unknown.extend(unknown_keys(
-        Some(&typography),
-        &TYPOGRAPHY_KEYS,
-        "typography",
-    ));
-    unknown.extend(unknown_keys(
-        typography.get("weights"),
-        &WEIGHT_KEYS,
-        "typography.weights",
-    ));
-    unknown.extend(unknown_keys(
-        typography.get("lineHeights"),
-        &LINE_KEYS,
-        "typography.lineHeights",
-    ));
-    unknown.extend(unknown_keys(Some(&shape), &SHAPE_KEYS, "shape"));
-
+    // where a typo is harder to spot than one on the command line. The core
+    // knows the keys, and is asked before the flags are, so a mistake in the
+    // recipe is reported before an unknown flag.
+    crate::package::load_contract();
+    let unknown = unknown_recipe_keys(&from_file);
     if !unknown.is_empty() {
         fail(&format!(
             "Unknown key in the recipe: {}\n\nFull overview: lotek --help\n",
             unknown.join(", ")
         ));
     }
-    // After the keys, so a mistake in the recipe is reported before an
-    // unknown flag.
+
+    // The colour families. The flag, the recipe key and the family have the
+    // same name, and the contract says which exist. `SHOWN` is only the
+    // order they are listed in when a flag is unknown, the one in the help
+    // text. A family the contract has and `SHOWN` lacks comes after them.
+    let contract = contract();
+    let families = || contract.families.iter().map(String::as_str);
+    let known: Vec<&str> = SHOWN
+        .into_iter()
+        .filter(|shown| families().any(|family| family == *shown))
+        .chain(families().filter(|family| !SHOWN.contains(family)))
+        .chain(TYPOGRAPHY_FLAGS.iter().map(|(n, _)| *n))
+        .chain(SHAPE_FLAGS.iter().map(|(n, _)| *n))
+        .chain(["out"])
+        .collect();
     refuse_unknown_flags(&arguments, &known);
 
-    crate::package::load_contract();
+    // The recipe goes to the core as it is written, and a flag wins over the
+    // same key in the file.
+    let mut input = recipe;
+    for family in &contract.families {
+        if let Some(v) = arguments.flag(family) {
+            set(&mut input, family, Json::String(v.to_string()));
+        }
+    }
+    for (block, flags) in [
+        ("typography", &TYPOGRAPHY_FLAGS[..]),
+        ("shape", &SHAPE_FLAGS[..]),
+    ] {
+        let mut keys = spread(from_file.get(block));
+        let mut flagged = false;
+        for (flag, key) in flags {
+            if let Some(v) = arguments.flag(flag) {
+                set(&mut keys, key, Json::String(v.to_string()));
+                flagged = true;
+            }
+        }
+        if flagged {
+            set(&mut input, block, Json::Object(keys));
+        }
+    }
+
     let theme = match build_theme(&Json::Object(input)) {
         Ok(theme) => theme,
         Err(message) => {
-            // The hint about hexadecimal colours is shown only when the error
-            // is about a colour, not about a font or shape value that could
-            // break out of its CSS rule. Those errors name the recipe key.
-            let about_colors = !TYPOGRAPHY_KEYS
-                .iter()
-                .chain(SHAPE_KEYS.iter())
-                .any(|key| message.contains(key));
+            // The hint about hexadecimal colours is left out when the error
+            // is about a font or shape value that could break out of its CSS
+            // rule. Those errors name the value, and start that way.
+            let about_colors = !message.starts_with("The value of ");
             fail(&format!(
                 "\n{message}\n{}",
                 if about_colors {

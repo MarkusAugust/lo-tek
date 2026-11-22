@@ -404,6 +404,113 @@ async function suite() {
   fs.writeFileSync(path.join(installed, "manifest.json"), takenOver)
   await diagnosticsFor(page, (d) => d.length === 0)
 
+  /*
+   * The recipe file, `lotek.theme.json`, is completed and checked against
+   * the schema of the recipe by VS Code's own JSON service, with the
+   * extension and nothing else: no `$schema` in the file and no setting.
+   *
+   * The schema is the one in the npm package, copied in by the build. `dist`
+   * is not in git, so a file there can only have come from the build, and a
+   * copy kept by hand anywhere else would be a second schema to keep right.
+   */
+  const schemas = extension.packageJSON.contributes.jsonValidation
+  assert.ok(
+    Array.isArray(schemas) && schemas.length === 1,
+    `the manifest should contribute one schema, for the recipe: ${JSON.stringify(schemas)}`,
+  )
+  const carried = path.join(extension.extensionPath, schemas[0].url)
+  assert.ok(
+    path
+      .relative(path.join(extension.extensionPath, "dist"), carried)
+      .match(/^[^.]/),
+    `the schema should be in dist, where the build writes it, not ${schemas[0].url}`,
+  )
+  assert.ok(
+    fs.existsSync(carried),
+    `contributes.jsonValidation points at ${schemas[0].url}, which the build has not written`,
+  )
+  assert.ok(
+    fs
+      .readFileSync(carried)
+      .equals(
+        fs.readFileSync(
+          path.join(__dirname, "../../interfaces/src/tokens/theme.schema.json"),
+        ),
+      ),
+    "the schema in the extension is not the one in the npm package, byte for byte",
+  )
+
+  const recipeFile = async (relative, content) => {
+    const parts = relative.split("/")
+    const name = parts.pop()
+    const at = parts.length
+      ? await makeFolder(parts.join("/"))
+      : folder.uri.fsPath
+    fs.writeFileSync(path.join(at, name), content)
+    const opened = await vscode.workspace.openTextDocument(path.join(at, name))
+    await vscode.window.showTextDocument(opened)
+    return opened
+  }
+  const typo = '{\n  "acent": "#7c3aed"\n}\n'
+  // The files with another name first, so the JSON service has had them the
+  // longest when the recipe gets its finding.
+  const otherNames = []
+  for (const name of ["theme.json", "my-lotek.theme.json"])
+    otherNames.push(await recipeFile(name, typo))
+  const recipe = await recipeFile("lotek.theme.json", typo)
+  const [unknownKey] = await diagnosticsFor(recipe.uri, (d) => d.length > 0)
+  assert.ok(
+    unknownKey.message.includes("acent"),
+    `the finding in the recipe is not about the unknown key: ${unknownKey.message}`,
+  )
+  assert.strictEqual(unknownKey.range.start.line, 1)
+  assert.strictEqual(
+    recipe.getText(unknownKey.range),
+    '"acent"',
+    "the finding is not on the unknown key",
+  )
+  assert.strictEqual(
+    vscode.languages.getDiagnostics(recipe.uri).length,
+    1,
+    "one finding in the recipe",
+  )
+  await new Promise((resolve) => setTimeout(resolve, 2000))
+  for (const other of otherNames)
+    assert.deepStrictEqual(
+      vscode.languages.getDiagnostics(other.uri).map((d) => d.message),
+      [],
+      `${path.basename(other.fileName)} is not a recipe, and was checked as one`,
+    )
+  // The key written right is a recipe without findings: the schema is what
+  // refused it, not the file name.
+  const corrected = new vscode.WorkspaceEdit()
+  corrected.replace(recipe.uri, unknownKey.range, '"accent"')
+  await vscode.workspace.applyEdit(corrected)
+  await diagnosticsFor(recipe.uri, (d) => d.length === 0)
+
+  // In any folder, and the keys are suggested with what they are.
+  const nested = await recipeFile(
+    "config/themes/lotek.theme.json",
+    "{\n  \n}\n",
+  )
+  let suggested = []
+  for (let attempt = 0; attempt < 40 && suggested.length === 0; attempt++) {
+    suggested = (
+      await vscode.commands.executeCommand(
+        "vscode.executeCompletionItemProvider",
+        nested.uri,
+        new vscode.Position(1, 2),
+      )
+    ).items.map((item) => item.label.label ?? item.label)
+    if (suggested.length === 0)
+      await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  for (const key of ["accent", "neutral", "typography", "shape"])
+    assert.ok(
+      suggested.includes(key),
+      `${key} is not suggested in a recipe in a folder: ${suggested.join(", ")}`,
+    )
+
   // The snippet for the field: the id is typed once, and `for` follows.
   const third = await vscode.workspace.openTextDocument({
     language: "html",

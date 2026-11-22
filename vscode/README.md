@@ -51,6 +51,9 @@ attributes.
   The extension puts snippets at the top in HTML files, because otherwise Emmet is
   there: `lt-popover` is also an Emmet abbreviation, and Tab takes whatever is
   at the top.
+- **The theme recipe**: a file named `lotek.theme.json` is completed and checked
+  against the schema of a theme recipe, the one in the npm package, with nothing
+  to set up.
 - **Diagnostics**, as red and yellow squiggles with the component page as a link: an
   `<lt-…>` element that does not exist, an attribute the element does not have, a value
   outside the list, a number that is not a number, a boolean attribute with a value,

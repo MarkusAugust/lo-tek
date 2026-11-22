@@ -5,13 +5,18 @@
  * The rows are worked out in the core, and `core/scripts/check-core.ts` holds
  * the core to the expected results. What is tested here is the way out: that
  * the rows come through the entry point a consumer imports, with the names
- * the types give them.
+ * the types give them, and that a recipe the core refuses is refused there.
  *
  * Run with: bun test ./scripts/, or as part of `bun run build`.
  */
 
 import { expect, test } from "bun:test"
-import { type Brand, type BrandFill, buildTheme } from "../src/tokens/theme.js"
+import {
+  type Brand,
+  type BrandFill,
+  buildTheme,
+  type ThemeInput,
+} from "../src/tokens/theme.js"
 
 test("a light brand colour comes back with what became of it", () => {
   const brands: Brand[] = buildTheme({ brand1: "#F7DF1E" }).brands
@@ -59,4 +64,31 @@ test("the rows are the given families, in the order of the contract", () => {
 
 test("a theme without colours has no rows, and still has the field", () => {
   expect(buildTheme({ shape: { buttonRadius: "1rem" } }).brands).toEqual([])
+})
+
+// The types refuse these, but a recipe read from a file has no types, and a
+// typo that is dropped looks like a recipe that worked.
+test("a key the recipe does not have is refused, and named", () => {
+  expect(() => buildTheme({ acent: "#7c3aed" } as ThemeInput)).toThrow(
+    new Error("Unknown key in the recipe: acent"),
+  )
+  expect(() =>
+    buildTheme({
+      accent: "#7c3aed",
+      shape: { radius: "0" },
+      typography: { weights: { blod: 700 } },
+    } as ThemeInput),
+  ).toThrow(
+    new Error(
+      "Unknown key in the recipe: typography.weights.blod, shape.radius",
+    ),
+  )
+})
+
+test("typography and shape without keys are not a theme", () => {
+  expect(() => buildTheme({ typography: {}, shape: {} })).toThrow(
+    new Error(
+      "The theme is empty. Give either brand colours, or typography and shape.",
+    ),
+  )
 })

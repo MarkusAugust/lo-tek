@@ -140,6 +140,15 @@ Six of the values also exist as flags: `--font`, `--button-radius`, `--field-rad
 
 A flag that does not exist stops the run rather than being ignored, so a typo is reported. The same goes for a key in the recipe file. The exception is `$schema`, which editors insert by themselves and which says nothing about the theme.
 
+The keys are written in one schema, `@lo-tek/interfaces/theme.schema.json`, and the generator's tests hold it to the keys the generator knows. [LO-TEK for VS Code and the JetBrains plugin](../the-editor/) complete and check a file named `lotek.theme.json` against it, with nothing to set up. In another editor, name the schema in the file, with the path from the recipe to the package. For a recipe at the root of the project:
+
+```json
+{
+  "$schema": "./node_modules/@lo-tek/interfaces/src/tokens/theme.schema.json",
+  "accent": "#7c3aed"
+}
+```
+
 These are the keys inside the two blocks, and a key that does not exist stops the run rather than being ignored:
 
 | Key | What it sets |
@@ -232,7 +241,7 @@ theme.brands     // what became of each colour you gave
 
 Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`.
 
-The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line.
+The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 
 The theme is computed by the core, written in Rust and compiled to WebAssembly, the same one `lotek theme` and LO-TEK for Kotlin use. `buildTheme` loads it from the package in Node, Bun and Deno. In the browser, for example in a theme picker, you load it yourself:
 

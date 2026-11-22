@@ -461,6 +461,76 @@ fn brand_fill(
     })
 }
 
+/// The keys a recipe has besides the families: the two blocks, and `$schema`,
+/// which editors write in by themselves and which says nothing about the theme.
+const BLOCKS: [&str; 3] = ["typography", "shape", "$schema"];
+
+const TYPOGRAPHY_KEYS: [&str; 3] = ["fontFamily", "weights", "lineHeights"];
+const WEIGHT_KEYS: [&str; 4] = ["regular", "medium", "semibold", "bold"];
+const LINE_KEYS: [&str; 4] = ["default", "heading", "article", "compact"];
+const SHAPE_KEYS: [&str; 5] = [
+    "buttonRadius",
+    "fieldRadius",
+    "surfaceRadius",
+    "buttonBorderWidth",
+    "buttonFontWeight",
+];
+
+/// The keys of a value, as `{ ...value }` gives them in JavaScript: a list
+/// has its indices and a string one key per UTF-16 code unit. That way
+/// `"typography": "Inter"` is reported as unknown keys rather than vanishing.
+fn spread_keys(value: Option<&Json>) -> Vec<String> {
+    match value {
+        Some(Json::Object(entries)) => entries.iter().map(|(key, _)| key.clone()).collect(),
+        Some(Json::Array(items)) => (0..items.len()).map(|i| i.to_string()).collect(),
+        Some(Json::String(text)) => (0..text.encode_utf16().count())
+            .map(|i| i.to_string())
+            .collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The keys in the recipe the theme does not have: those at the top in the
+/// order they stand, then those in each block, with the path in front.
+///
+/// Every host builds its theme here, so this is where a key is known or not.
+fn unknown_keys(input: &Json, families: &[String]) -> Vec<String> {
+    let mut unknown: Vec<String> = spread_keys(Some(input))
+        .into_iter()
+        .filter(|key| !families.contains(key) && !BLOCKS.contains(&key.as_str()))
+        .collect();
+    let typography = input.get("typography");
+    for (at, value, allowed) in [
+        ("typography", typography, &TYPOGRAPHY_KEYS[..]),
+        (
+            "typography.weights",
+            path(typography, "weights"),
+            &WEIGHT_KEYS[..],
+        ),
+        (
+            "typography.lineHeights",
+            path(typography, "lineHeights"),
+            &LINE_KEYS[..],
+        ),
+        ("shape", input.get("shape"), &SHAPE_KEYS[..]),
+    ] {
+        unknown.extend(
+            spread_keys(value)
+                .into_iter()
+                .filter(|key| !allowed.contains(&key.as_str()))
+                .map(|key| format!("{at}.{key}")),
+        );
+    }
+    unknown
+}
+
+/// The keys in a recipe the theme does not have, for a host that has more
+/// to refuse before it builds: the command line reports a mistake in the
+/// recipe file before an unknown flag. `build_theme` refuses the same keys.
+pub fn unknown_recipe_keys(input: &Json) -> Vec<String> {
+    unknown_keys(input, &contract().families)
+}
+
 /// Builds the theme, and checks every promise while it is built.
 ///
 /// `input` is the recipe: the brand colours per family, and `typography` and
@@ -470,6 +540,12 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
         return Err(contract::NOT_LOADED.into());
     }
     let contract = contract();
+    // Before anything else: a typo must not look like a recipe that worked,
+    // and it is the most likely reason for whatever else is wrong.
+    let unknown = unknown_keys(input, &contract.families);
+    if !unknown.is_empty() {
+        return Err(format!("Unknown key in the recipe: {}", unknown.join(", ")));
+    }
     let given_families: Vec<(&str, String)> = contract
         .families
         .iter()
@@ -483,8 +559,8 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
             _ => None,
         })
         .collect();
-    let typography = input.get("typography").filter(|v| truthy(v));
-    let shape = input.get("shape").filter(|v| truthy(v));
+    let typography = given_block(input.get("typography"));
+    let shape = given_block(input.get("shape"));
 
     if given_families.is_empty() && typography.is_none() && shape.is_none() {
         return Err(
@@ -537,14 +613,11 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
     })
 }
 
-fn truthy(v: &Json) -> bool {
-    match v {
-        Json::Null => false,
-        Json::Bool(b) => *b,
-        Json::Number(n) => *n != 0.0 && !n.is_nan(),
-        Json::String(s) => !s.is_empty(),
-        _ => true,
-    }
+/// A block of the recipe, when it has at least one key. An empty object, a
+/// number, a boolean and `null` have none, and are as if the block were not
+/// in the recipe: the hosts left them out before the core checked the keys.
+fn given_block(value: Option<&Json>) -> Option<&Json> {
+    value.filter(|v| !spread_keys(Some(v)).is_empty())
 }
 
 #[cfg(test)]
@@ -610,6 +683,279 @@ mod recipe_tests {
             .err()
             .unwrap()
             .contains("valid hexadecimal"));
+    }
+
+    #[test]
+    fn an_unknown_key_in_the_recipe_is_an_error() {
+        // A typo must not look like a recipe that worked: the colour was
+        // dropped without a word, and the theme came out with LO-TEK's own.
+        let error = theme(r##"{"accent": "#7c3aed", "dangr": "#b3261e"}"##)
+            .err()
+            .unwrap();
+        assert_eq!(error, "Unknown key in the recipe: dangr");
+    }
+
+    #[test]
+    fn the_unknown_keys_come_in_the_order_of_the_recipe() {
+        // A key is known as it is written in the contract, not in another
+        // case or another language.
+        let error = theme(
+            r##"{"radius": "4px", "accent": "#7c3aed", "aksent": "#000", "Accent": "#fff"}"##,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(error, "Unknown key in the recipe: radius, aksent, Accent");
+    }
+
+    #[test]
+    fn an_unknown_key_is_reported_before_anything_else() {
+        // Before the colour is read, and before the recipe is found empty:
+        // "The theme is empty" to someone who wrote `acent` sends them to
+        // the wrong place.
+        let error = theme(r##"{"accent": "#zzz", "acent": "#7c3aed"}"##)
+            .err()
+            .unwrap();
+        assert_eq!(error, "Unknown key in the recipe: acent");
+        let error = theme(r##"{"acent": "#7c3aed"}"##).err().unwrap();
+        assert_eq!(error, "Unknown key in the recipe: acent");
+    }
+
+    #[test]
+    fn the_schema_is_a_known_key_that_says_nothing_about_the_theme() {
+        let t = theme(r##"{"$schema": "https://example.com/recipe.json", "accent": "#7c3aed"}"##)
+            .unwrap();
+        assert_eq!(t.brands.len(), 1);
+        assert!(!t.css.contains("example.com"), "{}", t.css);
+        let error = theme(r#"{"$schema": "https://example.com/recipe.json"}"#)
+            .err()
+            .unwrap();
+        assert!(error.starts_with("The theme is empty"), "{error}");
+    }
+
+    #[test]
+    fn a_recipe_with_every_known_key_builds() {
+        // The families are read from the contract, so a family that is added
+        // there and forgotten in the list of known keys turns this red.
+        let colors: Vec<String> = contract()
+            .families
+            .iter()
+            .map(|family| format!(r##""{family}": "#7c3aed""##))
+            .collect();
+        let recipe = format!(
+            r#"{{"$schema": "https://example.com/recipe.json", {}, "typography": {{"fontFamily": "Georgia, serif"}}, "shape": {{"buttonRadius": "1rem"}}}}"#,
+            colors.join(", ")
+        );
+        let t = theme(&recipe).unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(t.brands.len(), contract().families.len());
+        assert!(t.css.contains("--lt-button-radius: 1rem;"), "{}", t.css);
+    }
+
+    #[test]
+    fn an_unknown_nested_key_is_named_with_its_path() {
+        // `radius` alone would send the reader looking at the top of the file.
+        for (recipe, key) in [
+            (
+                r#"{"typography": {"fontFamly": "Georgia"}}"#,
+                "typography.fontFamly",
+            ),
+            (
+                r#"{"typography": {"weights": {"blod": 700}}}"#,
+                "typography.weights.blod",
+            ),
+            (
+                r#"{"typography": {"lineHeights": {"body": 1.5}}}"#,
+                "typography.lineHeights.body",
+            ),
+            (r#"{"shape": {"radius": "0"}}"#, "shape.radius"),
+        ] {
+            let error = theme(recipe).err().unwrap();
+            assert_eq!(error, format!("Unknown key in the recipe: {key}"));
+        }
+    }
+
+    #[test]
+    fn the_unknown_keys_at_the_top_come_before_the_nested_ones() {
+        let error = theme(r##"{"accent": "#7c3aed", "acent": "#000", "shape": {"radius": "0"}}"##)
+            .err()
+            .unwrap();
+        assert_eq!(error, "Unknown key in the recipe: acent, shape.radius");
+        // Then typography, its weights, its line heights and the shape,
+        // wherever they stand in the recipe, each in the order of its keys.
+        let error = theme(
+            r##"{"shape": {"radius": "0", "corner": "0"}, "acent": "#000", "typography": {"lineHeights": {"body": 1.5}, "weights": {"blod": 700}, "font": "Inter"}, "form": {}}"##,
+        )
+        .err()
+        .unwrap();
+        assert_eq!(
+            error,
+            "Unknown key in the recipe: acent, form, typography.font, typography.weights.blod, typography.lineHeights.body, shape.radius, shape.corner"
+        );
+    }
+
+    #[test]
+    fn a_string_or_a_list_where_an_object_should_be_is_unknown_keys() {
+        // The keys are the ones `{ ...value }` gives in JavaScript, so
+        // `"typography": "Inter"` is reported rather than vanishing: one key
+        // per UTF-16 code unit of a string, and the indices of a list.
+        let error = theme(r##"{"accent": "#7c3aed", "typography": "Inter"}"##)
+            .err()
+            .unwrap();
+        assert_eq!(
+            error,
+            "Unknown key in the recipe: typography.0, typography.1, typography.2, typography.3, typography.4"
+        );
+        let error = theme(r#"{"typography": {"weights": [400]}}"#)
+            .err()
+            .unwrap();
+        assert_eq!(error, "Unknown key in the recipe: typography.weights.0");
+        let error = theme(r##"{"accent": "#7c3aed", "shape": "😀"}"##)
+            .err()
+            .unwrap();
+        assert_eq!(error, "Unknown key in the recipe: shape.0, shape.1");
+    }
+
+    #[test]
+    fn a_number_a_boolean_and_null_have_no_keys_to_refuse() {
+        let t = theme(
+            r##"{"accent": "#7c3aed", "typography": {"weights": 400, "lineHeights": true}, "shape": null}"##,
+        );
+        assert!(t.is_ok(), "{:?}", t.err());
+    }
+
+    #[test]
+    fn a_recipe_with_every_known_nested_key_builds() {
+        let t = theme(
+            r#"{
+                "typography": {
+                    "fontFamily": "Georgia, serif",
+                    "weights": {"regular": 400, "medium": 500, "semibold": 600, "bold": 700},
+                    "lineHeights": {"default": 1.5, "heading": 1.2, "article": 1.7, "compact": 1.3}
+                },
+                "shape": {
+                    "buttonRadius": "1rem",
+                    "fieldRadius": "2px",
+                    "surfaceRadius": "4px",
+                    "buttonBorderWidth": "2px",
+                    "buttonFontWeight": 600
+                }
+            }"#,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        for declaration in [
+            "--lt-font-weight-medium: 500;",
+            "--lt-line-height-compact: 1.3;",
+            "--lt-button-border-width: 2px;",
+            "--lt-button-font-weight: 600;",
+        ] {
+            assert!(t.css.contains(declaration), "{declaration}\n{}", t.css);
+        }
+    }
+
+    #[test]
+    fn the_schema_of_the_recipe_has_the_keys_the_core_knows() {
+        // The schema is what an editor completes and checks the recipe file
+        // with, and it is written by hand. A key the core knows and the
+        // schema lacks is underlined in a recipe that works, and one the
+        // schema has and the core lacks is suggested and then refused. Both
+        // ways, in every place the core reads keys.
+        let schema = parse(&crate::package_file("src/tokens/theme.schema.json")).unwrap();
+        let families = contract().families.clone();
+        let top: Vec<&str> = families.iter().map(String::as_str).chain(BLOCKS).collect();
+        for (place, mut known) in [
+            (vec![], top),
+            (vec!["typography"], TYPOGRAPHY_KEYS.to_vec()),
+            (vec!["typography", "weights"], WEIGHT_KEYS.to_vec()),
+            (vec!["typography", "lineHeights"], LINE_KEYS.to_vec()),
+            (vec!["shape"], SHAPE_KEYS.to_vec()),
+        ] {
+            let mut object = &schema;
+            for key in &place {
+                object = object
+                    .get("properties")
+                    .and_then(|properties| properties.get(key))
+                    .unwrap_or_else(|| panic!("the schema has no {place:?}"));
+            }
+            let mut described: Vec<&str> = object
+                .get("properties")
+                .and_then(Json::as_object)
+                .unwrap_or_else(|| panic!("{place:?} has no properties in the schema"))
+                .iter()
+                .map(|(key, _)| key.as_str())
+                .collect();
+            described.sort_unstable();
+            known.sort_unstable();
+            assert_eq!(described, known, "{place:?}");
+            // Without this the schema lets through the key the core refuses.
+            assert!(
+                matches!(object.get("additionalProperties"), Some(Json::Bool(false))),
+                "{place:?} is open to other keys in the schema"
+            );
+        }
+    }
+
+    #[test]
+    fn a_color_that_is_false_zero_or_null_is_not_given() {
+        // Next to a real colour: the theme is the one that colour gives
+        // alone, and the families keep LO-TEK's own.
+        let alone = theme(r##"{"accent": "#7c3aed"}"##).unwrap();
+        let t = theme(r##"{"accent": "#7c3aed", "danger": false, "success": 0, "warning": null}"##)
+            .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(t.css, alone.css);
+        assert_eq!(t.brands.len(), 1);
+        assert_eq!(t.brands[0].family, "accent");
+    }
+
+    #[test]
+    fn a_block_without_keys_is_not_given() {
+        // A theme with nothing in it is not a theme, whatever stands where
+        // the typography or the shape should have been.
+        for value in ["{}", "12", "true", "false", "null", r#""""#, "[]"] {
+            for recipe in [
+                format!(r#"{{"typography": {value}}}"#),
+                format!(r#"{{"shape": {value}}}"#),
+                format!(r#"{{"typography": {value}, "shape": {value}}}"#),
+            ] {
+                assert_eq!(
+                    theme(&recipe).err().as_deref(),
+                    Some("The theme is empty. Give either brand colours, or typography and shape."),
+                    "{recipe}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn a_block_without_keys_next_to_colors_changes_nothing() {
+        let alone = theme(r##"{"accent": "#7c3aed"}"##).unwrap().css;
+        for blocks in [
+            r#""typography": {}, "shape": {}"#,
+            r#""typography": 12, "shape": true"#,
+            r#""typography": [], "shape": null"#,
+        ] {
+            let css = theme(&format!(r##"{{"accent": "#7c3aed", {blocks}}}"##))
+                .unwrap_or_else(|error| panic!("{blocks}: {error}"))
+                .css;
+            assert_eq!(css, alone, "{blocks}");
+        }
+    }
+
+    #[test]
+    fn one_block_with_one_key_is_a_theme() {
+        for (recipe, declaration) in [
+            (
+                r#"{"typography": {"fontFamily": "Georgia, serif"}}"#,
+                "--lt-font-family-base: Georgia, serif;",
+            ),
+            (
+                r#"{"shape": {"buttonRadius": "1rem"}, "typography": {}}"#,
+                "--lt-button-radius: 1rem;",
+            ),
+        ] {
+            let css = theme(recipe)
+                .unwrap_or_else(|error| panic!("{recipe}: {error}"))
+                .css;
+            assert!(css.contains(declaration), "{css}");
+        }
     }
 
     #[test]

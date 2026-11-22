@@ -45,6 +45,14 @@
         without Kotlin, such as WebStorm or PyCharm.
     -->
     <depends optional="true" config-file="lotek-kotlin.xml">org.jetbrains.kotlin</depends>
+    <!--
+        The schema of a theme recipe, lotek.theme.json. Optional for the same
+        reason. Documented: JSON support is a plugin a dependency must name,
+        "Add an explicit dependency on the newly extracted JSON plugin
+        (com.intellij.modules.json) in plugin.xml",
+        https://plugins.jetbrains.com/docs/intellij/api-changes-list-2024.html
+    -->
+    <depends optional="true" config-file="lotek-json.xml">com.intellij.modules.json</depends>
 
     <!--
         The Kotlin part reads the code through the PSI and works in K2 mode,

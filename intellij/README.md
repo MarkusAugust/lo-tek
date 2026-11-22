@@ -24,6 +24,16 @@ same recipes as the snippets in VS Code, and Gradle copies the file in as
 `liveTemplates/Lotek.xml`. A new component gets a template by itself on the next
 `generate`, but the plugin has to be released again for users to get it.
 
+## The theme recipe
+
+A file named `lotek.theme.json` is held to the schema of a theme recipe: the
+keys are completed, and one that does not exist is marked, without a `$schema`
+in the file or a mapping in the settings. The schema is
+`interfaces/src/tokens/theme.schema.json`, copied in by Gradle as
+`schemas/theme.schema.json`, and `ThemeSchemaTest` requires the plugin's copy to
+be that file. JSON support is a plugin of its own in the platform, so the
+dependency is optional, in `lotek-json.xml`, like Kotlin's.
+
 ## The builder functions in Kotlin
 
 When the Kotlin plugin is there, `lotek-kotlin.xml` adds four things for the

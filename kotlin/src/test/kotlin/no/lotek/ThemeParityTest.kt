@@ -104,7 +104,7 @@ class ThemeParityTest {
     }
 
     @Test
-    fun `a recipe with an unknown key throws before the core sees it`() {
+    fun `a recipe with an unknown key is refused, with the path to the key`() {
         val error = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme("""{"accent": "#7c3aed", "acent": "#000", "shape": {"radius": "0"}}""") }
         assertEquals("Unknown key in the recipe: acent, shape.radius", error.message)
         // A string or list where an object should have been, as `lotek theme` reports it.
@@ -112,7 +112,26 @@ class ThemeParityTest {
         assertEquals("Unknown key in the recipe: typography.0, typography.1, typography.2, typography.3, typography.4", text.message)
         val list = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme("""{"typography": {"weights": [400]}}""") }
         assertEquals("Unknown key in the recipe: typography.weights.0", list.message)
-        assertFailsWith<IllegalArgumentException> { Lotek.buildTheme("[]") }
+    }
+
+    @Test
+    fun `a colour that is false, 0 or null is a colour that is not given`() {
+        // Next to a real colour: the theme is the one that colour gives
+        // alone, and the families keep LO-TEK's own.
+        val alone = Lotek.buildTheme("""{"accent": "#7c3aed"}""")
+        val theme = Lotek.buildTheme("""{"accent": "#7c3aed", "danger": false, "success": 0, "warning": null}""")
+        assertEquals(alone, theme)
+        assertEquals(listOf("accent"), theme.brands.map { it.family })
+    }
+
+    @Test
+    fun `a recipe that is not an object is refused before the core sees it`() {
+        // The answer is about the text that was given, and is this package's
+        // own: the core is only ever given an object.
+        for (recipe in listOf("[]", "12", "\"#7c3aed\"", "null")) {
+            val error = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme(recipe) }
+            assertEquals("The recipe is valid JSON, but not an object with the colours in it.", error.message, recipe)
+        }
     }
 
     companion object {
