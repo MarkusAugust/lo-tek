@@ -3,6 +3,16 @@
 The extension has its own version number. It does not follow the package,
 since it only changes when an element or an attribute does.
 
+## 0.16.0
+
+The checker and the vocabulary from `@lo-tek/interfaces` 0.47.0.
+
+- **A theme recipe is completed and checked.** A file named
+  `lotek.theme.json` is held to the schema of a theme recipe, the one in the
+  npm package: the keys are completed, each with its description, and a key
+  that does not exist is marked before `lotek theme` refuses it. Nothing to
+  set up: no `$schema` in the file and no setting.
+
 ## 0.15.0
 
 The checker and the vocabulary from `@lo-tek/interfaces` 0.46.0.

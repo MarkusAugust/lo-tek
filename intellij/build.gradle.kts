@@ -81,6 +81,11 @@ intellijPlatform {
         // Shown on the Marketplace and in the IDE on update, and must be in
         // English like the description. Write a new line for each version.
         changeNotes = """
+            <b>0.11.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
+            0.47.0. A file named <code>lotek.theme.json</code> is held to the schema of a
+            theme recipe: the keys are completed, and one that does not exist is marked,
+            with nothing to set up. It uses the IDE's own JSON support.
+            <br><br>
             <b>0.10.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
             0.46.0. <code>class-on-wrong-tag</code> reports a class on a tag it does not
             belong on, as <code>&lt;div class="lt-button"&gt;</code>, and
