@@ -82,6 +82,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   generator does not move your colour.** Neither holds for a light brand
   colour. The page now says what happens to it, and that a light colour
   cannot be the fill.
+- **The rulebooks for coding agents say what `lotek theme` does with a
+  brand colour.** They had one sentence about the theme. They now say that
+  the recipe can be in `lotek.theme.json`, that a key it does not have stops
+  the run, that a light colour gives a darker fill and the command says so,
+  that the fill is not to be overridden with the brand colour, and that
+  `check-theme` checks a theme written by hand.
+- **Getting started said that `defineLt()` registers nine elements.** It
+  registers ten.
 
 ## 0.46.0 (2026-11-19)
 

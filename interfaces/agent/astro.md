@@ -397,6 +397,13 @@ needs a build step. It is renamed from `lt-` to `app-`, and a
 `lotek-manifest.json` next to it teaches the check the new names:
 `npx @lo-tek/interfaces check --manifest=src/lotek/<component>/lotek-manifest.json <files>`.
 A complete colour theme from your brand colours is made with
-`npx @lo-tek/interfaces theme`.
+`npx @lo-tek/interfaces theme`, from flags or from a recipe in
+`lotek.theme.json`. A key the recipe does not have stops the run. The
+lightness of every colour is the role's, so a brand colour is moved, and a
+light one far: a yellow gives an olive fill. The command says what each colour
+became, and why. Do not put the brand colour back by overriding
+`--lt-color-<family>-fill`: the fill alone carries the state of a checkbox, a
+radio button and a switch, and has to stand out from the page.
+`npx @lo-tek/interfaces check-theme theme.css` checks a theme written by hand.
 
 All of this, with live examples: https://lo-tek.sobernetics.no/

@@ -91,8 +91,11 @@ The rules are in `src/types.rs` (`RULES`).
 - `src/theme/tests.rs`: the contract and the checking of a theme, with twelve
   accent colours, from bright red and neon to almost black, against ten neutrals, from
   black and white to tinted grey, in both appearances: 240 combinations.
-- `theme/`: recipes and themes with the answer next to them, written by
-  the TypeScript version of the theme before it was deleted. `check-core.ts` requires
+- `theme/`: recipes and themes with the answer next to them. The colours
+  were written by the TypeScript version of the theme before it was deleted.
+  `brands` and the recipes the core refuses were worked out with the colour
+  functions in TypeScript and the numbers in the contract, not by the core,
+  so a number with decimals is compared within 1e-6. `check-core.ts` requires
   the same answer, and that 2000 broken themes do not crash the core.
 - `../kotlin`: the same expected results from the JVM.
 

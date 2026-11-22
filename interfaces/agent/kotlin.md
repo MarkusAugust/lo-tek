@@ -617,6 +617,13 @@ an element its part cannot be, such as `label { lt(field.control) }`, about
 
 The components are customised with tokens and `--lt-` variables. A complete
 colour theme from your brand colours is made with `Lotek.buildTheme(recipe)`,
-or with the Gradle plugin's `lotekTheme` task from a `lotek.theme.json`.
+or with the Gradle plugin's `lotekTheme` task from a `lotek.theme.json`. A key
+the recipe does not have throws. The lightness of every colour is the role's,
+so a brand colour is moved, and a light one far: a yellow gives an olive fill.
+`Theme.brands` and the task's output say what each colour became, and why. Do
+not put the brand colour back by overriding `--lt-color-<family>-fill`: the
+fill alone carries the state of a checkbox, a radio button and a switch, and
+has to stand out from the page. `Lotek.inspectTheme(css)` checks a theme
+written by hand.
 
 All of this, with live examples: https://lo-tek.sobernetics.no/kotlin/
