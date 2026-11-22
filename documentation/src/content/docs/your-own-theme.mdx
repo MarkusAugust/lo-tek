@@ -80,15 +80,32 @@ LO-TEK sets it wherever someone has chosen a theme: on `[data-theme="light"]`, o
 
 **It fills the matrix.** Every family you give gets the nine roles, and every role gets its fixed lightness. If you give only some of the families, the rest inherit LO-TEK's own hues.
 
-**The hue and chroma are yours, the lightness is the role's.** Give a light purple or a dark purple and you get the same purple family: the role decides how light each cell is, and that is what lets the contrast be guaranteed. The chroma carries over, so a muted brand colour gives a muted family.
+**The hue is yours, the lightness is the role's.** Give a light purple or a dark purple and you get the same purple family: the role decides how light each cell is, and that is what lets the contrast be guaranteed. The chroma is yours too, as far as sRGB can show it at the role's lightness: a muted brand colour gives a muted family, and a vivid one is lowered until it fits.
 
 The computation happens in OKLCH, not in HSL. In HSL, lightness means something different for each hue: `hsl(60 100% 50%)` is bright yellow and `hsl(240 100% 50%)` is almost black, with the same numbers. In OKLCH, lightness is the same perceived lightness whatever the hue, so one lightness per role can apply to every colour.
 
-**Contrast is guaranteed, not adjusted.** The lightnesses are computed against a sweep around the whole colour wheel, at the highest chroma sRGB can show for each hue. That is why the promises hold whatever brand colour you give, and the generator does not need to move your colour afterwards. It used to, every single time, because one step had been chosen too light.
+**Contrast is guaranteed, not adjusted.** The lightnesses are computed against a sweep around the whole colour wheel, at the highest chroma sRGB can show for each hue. That is why the promises hold whatever brand colour you give, and there is no pass that adjusts the theme afterwards. There used to be one, and it ran every single time, because one step had been chosen too light.
 
 Every theme is still checked against the promises before it is written out, and the run exits with an error if one breaks, rather than delivering a theme that only looks right. With an almost white or almost black brand colour that does not happen: the lightness is the role's, so such a colour just gives a grey family.
 
+## What became of your colour
+
+Since the lightness is the role's, the colour you gave is rarely one of the cells. A colour in the middle barely moves. A light one moves far: a yellow accent gives an olive fill. The run says so on standard error, for every colour you gave:
+
+```
+accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.
+  In the light theme #f7df1e could not be the fill itself: fill on canvas would be 1.35:1, the requirement is 3.1:1; fill on raised would be 1.06:1, the requirement is 3.1:1; content on top of fill would be 1.32:1, the requirement is 4.6:1.
+  In the light theme the fill has 61% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.
+  In the dark theme the fill has 74% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.
+```
+
+The first line is also written at the top of the generated file, so the file still says it later.
+
+The second line is the reason, in the contract's own terms: the promises about `fill` your colour would break if it were the fill itself. The theme does not break them. A colour that fits as the fill on a light page is too dark on a dark one, and the other way round, so every colour gets such a line for at least one of the themes.
+
 ## What the generator does not do
+
+**It does not keep a light brand colour as the fill.** `fill` alone carries the state of a checked checkbox, a radio button, a switch and a progress bar. WCAG 1.4.11 requires 3:1 against the page there, and a yellow on white gives 1.35:1. A light brand colour therefore gives a darker family, and the colour itself belongs in the logo and in illustrations. If you write a light fill by hand, `lotek check-theme` reports the promises it breaks.
 
 It does not pick colours for you. If you give a hue that is too close to another, for example an orange danger and a yellow warning, the two look alike in use even though both meet the contrast requirement. The colours have to be distinguishable from each other, and that is a judgement, not a calculation.
 
@@ -210,7 +227,10 @@ theme.css        // finished CSS
 theme.light      // the cells in the light theme, as an object
 theme.dark       // the cells in the dark theme
 theme.violations // promises that do not hold. Empty when the theme is fine
+theme.brands     // what became of each colour you gave
 ```
+
+Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`.
 
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line.
 

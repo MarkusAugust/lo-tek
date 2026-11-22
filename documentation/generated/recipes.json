@@ -8031,6 +8031,7 @@
         "--lt-color-*",
         "violations",
         "css",
+        "brands",
         "violations",
         "lotek theme",
         "buildTheme",
@@ -9231,6 +9232,12 @@
           "section": "Using it"
         },
         {
+          "lang": null,
+          "meta": null,
+          "code": "accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.\n  In the light theme #f7df1e could not be the fill itself: fill on canvas would be 1.35:1, the requirement is 3.1:1; fill on raised would be 1.06:1, the requirement is 3.1:1; content on top of fill would be 1.32:1, the requirement is 4.6:1.\n  In the light theme the fill has 61% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.\n  In the dark theme the fill has 74% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.",
+          "section": "What became of your colour"
+        },
+        {
           "lang": "json",
           "meta": null,
           "code": "{\n  \"accent\": \"#1362ae\",\n  \"danger\": \"#a82e39\",\n  \"success\": \"#316f2a\",\n  \"warning\": \"#9f7509\",\n  \"typography\": {\n    \"fontFamily\": \"Helvetica, Arial, sans-serif\",\n    \"weights\": { \"bold\": 700 },\n    \"lineHeights\": { \"default\": 1.666, \"heading\": 1.333, \"article\": 1.666 }\n  },\n  \"shape\": {\n    \"buttonRadius\": \"2.75rem\",\n    \"fieldRadius\": \"0.25rem\",\n    \"surfaceRadius\": \"0.5rem\",\n    \"buttonBorderWidth\": \"3px\",\n    \"buttonFontWeight\": 700\n  }\n}",
@@ -9263,7 +9270,7 @@
         {
           "lang": "ts",
           "meta": null,
-          "code": "import { buildTheme } from \"@lo-tek/interfaces/theme\"\n\nconst theme = buildTheme({\n  accent: \"#7c3aed\",\n  danger: \"#b3261e\",\n  success: \"#2b6940\",\n  warning: \"#8a5a00\",\n})\n\ntheme.css        // finished CSS\ntheme.light      // the cells in the light theme, as an object\ntheme.dark       // the cells in the dark theme\ntheme.violations // promises that do not hold. Empty when the theme is fine",
+          "code": "import { buildTheme } from \"@lo-tek/interfaces/theme\"\n\nconst theme = buildTheme({\n  accent: \"#7c3aed\",\n  danger: \"#b3261e\",\n  success: \"#2b6940\",\n  warning: \"#8a5a00\",\n})\n\ntheme.css        // finished CSS\ntheme.light      // the cells in the light theme, as an object\ntheme.dark       // the cells in the dark theme\ntheme.violations // promises that do not hold. Empty when the theme is fine\ntheme.brands     // what became of each colour you gave",
           "section": "Programmatic use"
         },
         {
@@ -9297,6 +9304,9 @@
         "@layer lotek",
         "hsl(60 100% 50%)",
         "hsl(240 100% 50%)",
+        "fill",
+        "fill",
+        "lotek check-theme",
         "tokens.css",
         "--font",
         "--button-radius",
@@ -9338,6 +9348,16 @@
         "fontFamily",
         "@layer lotek-theme",
         "utilities",
+        "brands",
+        "family",
+        "given",
+        "#rrggbb",
+        "light",
+        "dark",
+        "fill",
+        "chromaKept",
+        "breaks",
+        "violations",
         "accent",
         "visited",
         "brand1",

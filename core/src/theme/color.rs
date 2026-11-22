@@ -139,6 +139,15 @@ pub fn oklch_to_rgb(color: Oklch) -> Rgb {
     if !outside(attempt) {
         return attempt;
     }
+    oklch_to_rgb_raw(Oklch {
+        c: fitting_chroma(color),
+        ..color
+    })
+}
+
+/// The highest chroma, up to the colour's own, that sRGB can show at its
+/// lightness and hue.
+fn fitting_chroma(color: Oklch) -> f64 {
     let mut low = 0.0;
     let mut high = color.c;
     for _ in 0..24 {
@@ -149,7 +158,19 @@ pub fn oklch_to_rgb(color: Oklch) -> Rgb {
             low = middle;
         }
     }
-    oklch_to_rgb_raw(Oklch { c: low, ..color })
+    low
+}
+
+/// The share of the chroma that is left when the colour is turned into rgb.
+///
+/// Exactly 1 when nothing had to be lowered. That is asked of the colour
+/// itself and not found by dividing: a grey has only rounding noise for
+/// chroma, and the quotient of two such numbers says nothing.
+pub fn chroma_kept(color: Oklch) -> f64 {
+    if !outside(oklch_to_rgb_raw(color)) {
+        return 1.0;
+    }
+    fitting_chroma(color) / color.c
 }
 
 fn luminance(rgb: Rgb) -> f64 {

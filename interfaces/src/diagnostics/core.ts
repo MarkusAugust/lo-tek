@@ -82,12 +82,42 @@ export type Violation = {
   required: number
 }
 
-/** The theme `buildTheme` returns: the tokens per appearance, the promises that break, and the CSS. */
+/** The fill a brand colour got in one appearance. */
+export type BrandFill = {
+  /** The value of `--lt-color-<family>-fill`. */
+  fill: string
+  /**
+   * The share of the brand colour's chroma the fill has. Below 1 when sRGB
+   * cannot show that much chroma at the lightness of the role.
+   */
+  chromaKept: number
+  /**
+   * The promises about `fill` the given colour would break if it were the
+   * fill itself. Empty when it could have been.
+   */
+  breaks: Violation[]
+}
+
+/**
+ * What became of one brand colour. The lightness is the role's, so a light
+ * brand colour comes out much darker as a fill.
+ */
+export type Brand = {
+  family: string
+  /** The colour the recipe gave, as `#rrggbb`. */
+  given: string
+  light: BrandFill
+  dark: BrandFill
+}
+
+/** The theme `buildTheme` returns: the tokens per appearance, the promises that break, what became of the brand colours, and the CSS. */
 export type CoreTheme = {
   light: Record<string, string>
   dark: Record<string, string>
   /** Promises that do not hold. Empty when the theme is sound. */
   violations: Violation[]
+  /** One row per family the recipe gave a colour for, in the order of the families. */
+  brands: Brand[]
   css: string
 }
 

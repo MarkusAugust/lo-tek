@@ -116,17 +116,38 @@ object Lotek {
         return Theme(
             light = theme["light"].texts(),
             dark = theme["dark"].texts(),
-            violations =
-                (theme["violations"] as List<*>).map { v ->
-                    val m = v as Map<*, *>
-                    ThemeViolation(
+            violations = theme["violations"].violations(),
+            brands =
+                (theme["brands"] as List<*>).map { b ->
+                    val m = b as Map<*, *>
+                    ThemeBrand(
                         family = m["family"] as String,
-                        promise = m["promise"] as String,
-                        ratio = m["ratio"] as Double,
-                        required = m["required"] as Double,
+                        given = m["given"] as String,
+                        light = m["light"].brandFill(),
+                        dark = m["dark"].brandFill(),
                     )
                 },
             css = theme["css"] as String,
+        )
+    }
+
+    private fun Any?.violations(): List<ThemeViolation> =
+        (this as List<*>).map { v ->
+            val m = v as Map<*, *>
+            ThemeViolation(
+                family = m["family"] as String,
+                promise = m["promise"] as String,
+                ratio = m["ratio"] as Double,
+                required = m["required"] as Double,
+            )
+        }
+
+    private fun Any?.brandFill(): ThemeBrandFill {
+        val m = this as Map<*, *>
+        return ThemeBrandFill(
+            fill = m["fill"] as String,
+            chromaKept = m["chromaKept"] as Double,
+            breaks = m["breaks"].violations(),
         )
     }
 
@@ -328,7 +349,8 @@ data class Finding(
 
 /**
  * A theme built by [Lotek.buildTheme]: the tokens per scheme, the promises
- * that break, and the CSS, the same fields as `CoreTheme` in TypeScript.
+ * that break, what became of the brand colours, and the CSS, the same fields
+ * as `CoreTheme` in TypeScript.
  */
 data class Theme(
     /** Every `--lt-color-*` token with its value in the light scheme. */
@@ -336,8 +358,32 @@ data class Theme(
     val dark: Map<String, String>,
     /** Promises that do not hold. Empty when the theme is in order. */
     val violations: List<ThemeViolation>,
+    /** What became of each brand colour the recipe gave, in the order of the families. */
+    val brands: List<ThemeBrand>,
     /** The theme as CSS, ready to be linked after `tokens.css`. */
     val css: String,
+)
+
+/**
+ * What became of one brand colour: the colour the recipe [given], as
+ * `#rrggbb`, and the fill it got in each scheme. The lightness is the role's,
+ * so a light brand colour comes out much darker as a fill.
+ */
+data class ThemeBrand(
+    val family: String,
+    val given: String,
+    val light: ThemeBrandFill,
+    val dark: ThemeBrandFill,
+)
+
+/** The fill a brand colour got in one scheme, the same fields as `BrandFill` in TypeScript. */
+data class ThemeBrandFill(
+    /** The value of `--lt-color-<family>-fill`. */
+    val fill: String,
+    /** The share of the brand colour's chroma the fill has. Below 1 when sRGB cannot show that much at the lightness of the role. */
+    val chromaKept: Double,
+    /** The promises about `fill` the given colour would break if it were the fill itself. Empty when it could have been. */
+    val breaks: List<ThemeViolation>,
 )
 
 /** A promise that breaks: the contrast [ratio] against the requirement [required], for [promise] in [family]. */

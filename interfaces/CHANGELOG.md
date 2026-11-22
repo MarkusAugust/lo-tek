@@ -24,6 +24,38 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **`Theme` in Kotlin has a new property, `brands`,** between `violations`
+  and `css`. Code that constructs a `Theme` or destructures one must follow.
+- **`Theme` and `CoreTheme` in TypeScript have a required `brands`.** Code
+  that only reads a theme is unaffected. Code that builds one by hand, or
+  implements `Core` itself, must add it.
+
+### Added
+
+- **The theme says what became of each brand colour.** The lightness is the
+  role's, so the colour you give is moved, and a light one is moved far:
+  `--accent=#f7df1e` gives the fill `#7a6d00`. The run used to answer only
+  that every promise holds. `lotek theme` now says three things for each
+  colour, on standard error: the fill it became in each theme, the promises
+  about `fill` the colour would have broken as the fill itself, and how much
+  of its chroma sRGB could show. The line about the fills is also written in
+  a comment at the top of the generated file. `buildTheme` in TypeScript and
+  `Lotek.buildTheme` in Kotlin return the same as `brands`, with the types
+  `Brand` and `BrandFill`, and `ThemeBrand` and `ThemeBrandFill`. The theme
+  itself is unchanged: every token has the value it had.
+
+### Fixed
+
+- **The Gradle task `lotekTheme` shows what the command wrote.** It was
+  logged at `info`, so the line about the file, and now the lines about the
+  brand colours, were only seen with `--info`.
+- **Your own theme no longer says that the chroma carries over, or that the
+  generator does not move your colour.** Neither holds for a light brand
+  colour. The page now says what happens to it, and that a light colour
+  cannot be the fill.
+
 ## 0.46.0 (2026-11-19)
 
 ### Breaking

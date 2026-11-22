@@ -358,6 +358,33 @@ fn json_object(entries: &[(String, String)]) -> String {
     format!("{{{}}}", fields.join(","))
 }
 
+/// Promises that break, as a JSON array: the violations of a theme, and the
+/// promises a brand colour would break as the fill.
+fn json_violations(violations: &[theme::contract::Violation]) -> String {
+    let entries: Vec<String> = violations
+        .iter()
+        .map(|v| {
+            format!(
+                "{{\"family\":{},\"promise\":{},\"ratio\":{},\"required\":{}}}",
+                json_string(&v.family),
+                json_string(&v.promise),
+                theme::js_number(v.ratio),
+                theme::js_number(v.required)
+            )
+        })
+        .collect();
+    format!("[{}]", entries.join(","))
+}
+
+fn json_brand_fill(fill: &theme::BrandFill) -> String {
+    format!(
+        "{{\"fill\":{},\"chromaKept\":{},\"breaks\":{}}}",
+        json_string(&fill.fill),
+        theme::js_number(fill.chroma_kept),
+        json_violations(&fill.breaks)
+    )
+}
+
 /// Builds a theme from the recipe the host has written in, as JSON: the same
 /// fields as `ThemeInput` in TypeScript. Answers 0 with the theme, or 1 with
 /// `{"error": …}`, like `load_manifest_raw`.
@@ -372,24 +399,25 @@ pub unsafe extern "C" fn build_theme_raw(ptr: *mut u8, length: usize) -> u32 {
     let built = json::parse(&read_input(ptr, length)).and_then(|input| theme::build_theme(&input));
     match built {
         Ok(t) => {
-            let violations: Vec<String> = t
-                .violations
+            let brands: Vec<String> = t
+                .brands
                 .iter()
-                .map(|v| {
+                .map(|b| {
                     format!(
-                        "{{\"family\":{},\"promise\":{},\"ratio\":{},\"required\":{}}}",
-                        json_string(&v.family),
-                        json_string(&v.promise),
-                        theme::js_number(v.ratio),
-                        theme::js_number(v.required)
+                        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{}}}",
+                        json_string(&b.family),
+                        json_string(&b.given),
+                        json_brand_fill(&b.light),
+                        json_brand_fill(&b.dark)
                     )
                 })
                 .collect();
             respond(format!(
-                "{{\"light\":{},\"dark\":{},\"violations\":[{}],\"css\":{}}}",
+                "{{\"light\":{},\"dark\":{},\"violations\":{},\"brands\":[{}],\"css\":{}}}",
                 json_object(&t.light),
                 json_object(&t.dark),
-                violations.join(","),
+                json_violations(&t.violations),
+                brands.join(","),
                 json_string(&t.css)
             ));
             0

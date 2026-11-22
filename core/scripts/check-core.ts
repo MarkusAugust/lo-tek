@@ -218,6 +218,47 @@ const sorted = (value: unknown): string =>
         )
       : v,
   )
+/**
+ * Whether the answer is the expected one. Everything is compared exactly but
+ * a number with decimals, which may differ by `FLOAT`.
+ *
+ * The ratios and `chromaKept` in `brands` were not written by the core: they
+ * were worked out with the TypeScript colour functions, and two
+ * implementations of a cube root and a power do not agree on the last digit.
+ * `chromaKept` is also not defined more finely than the search that fits the
+ * chroma, 24 halvings: measured on the fitted colour instead, it differs by
+ * up to 1.4e-7. A whole number in the expected results, a count or a
+ * `chromaKept` of 1, must be exactly that.
+ */
+const FLOAT = 1e-6
+function same(expected: unknown, answer: unknown): boolean {
+  if (typeof expected === "number" && typeof answer === "number")
+    return Number.isInteger(expected)
+      ? expected === answer
+      : Math.abs(expected - answer) <= FLOAT
+  if (Array.isArray(expected) || Array.isArray(answer))
+    return (
+      Array.isArray(expected) &&
+      Array.isArray(answer) &&
+      expected.length === answer.length &&
+      expected.every((value, i) => same(value, answer[i]))
+    )
+  if (
+    expected &&
+    answer &&
+    typeof expected === "object" &&
+    typeof answer === "object"
+  ) {
+    const a = expected as Record<string, unknown>
+    const b = answer as Record<string, unknown>
+    const keys = Object.keys(a).sort()
+    return (
+      keys.join() === Object.keys(b).sort().join() &&
+      keys.every((key) => same(a[key], b[key]))
+    )
+  }
+  return expected === answer
+}
 const recipes: Record<
   string,
   { recipe: unknown; theme?: unknown; error?: string }
@@ -234,7 +275,7 @@ for (const [name, { recipe, theme, error: expectedError }] of Object.entries(
   }
   const expected =
     expectedError === undefined ? { theme } : { error: expectedError }
-  if (sorted(answer) !== sorted(expected))
+  if (!same(expected, answer))
     failures.push(
       `theme/recipes.json, ${name}\n  Expected: ${sorted(expected).slice(0, 400)}\n  Core:     ${sorted(answer).slice(0, 400)}`,
     )

@@ -180,7 +180,9 @@ abstract class LotekTheme : DefaultTask() {
         val (code, text) =
             run(listOf("theme", shown(recipe.get().asFile, directory), "--out=${target.absolutePath}"), directory)
         if (code != 0) throw GradleException("The theme could not be built:\n\n$text")
-        logger.info(text)
+        // At the default level, not `info`: the lines say what became of the
+        // brand colours, and nobody reads them behind a flag.
+        logger.lifecycle(text)
     }
 }
 

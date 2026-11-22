@@ -87,6 +87,22 @@ class LotekPluginTest {
     }
 
     @Test
+    fun `the theme task shows what became of the brand colours`() {
+        // At the log level a build has when nobody asks for another one: the
+        // brand colour was moved, and the one who gave it must not need
+        // `--info` to be told.
+        setUp("themeRecipe = file(\"lotek.theme.json\")")
+        file("lotek.theme.json", "{\"accent\": \"#7c3aed\"}\n")
+
+        val lines = gradle("lotekTheme").build().output.lines()
+        assertContains(lines, "accent: #7c3aed gives the fill #7935e9 in the light theme and #986eff in the dark theme.")
+        assertTrue(
+            lines.any { it.startsWith("Wrote ") && it.endsWith("theme.css. 83 colours in each theme, every promise holds.") },
+            "the build does not show the line about the file:\n${lines.joinToString("\n")}",
+        )
+    }
+
+    @Test
     fun `the theme is skipped without a recipe`() {
         setUp()
         assertEquals(TaskOutcome.SKIPPED, gradle("lotekTheme").build().task(":lotekTheme")?.outcome)
