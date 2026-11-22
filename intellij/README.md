@@ -180,7 +180,7 @@ The plugin ends up in `build/distributions/` as a zip you can install with
 
 ## Releasing
 
-The plugin is on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/34764-lotek)
+The plugin is on [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/35516-lo-tek-interfaces)
 with the ID `no.lotek`. Three things are worth knowing:
 
 - **The ID can never be changed** after the first upload.
