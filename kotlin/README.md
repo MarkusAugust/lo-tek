@@ -58,7 +58,7 @@ idle instances as the machine has processors.
 ## The theme
 
 `Lotek.buildTheme(recipe)` builds the colour theme from the JSON text of a
-recipe, with Norwegian or English keys like `lotek theme`, and
+recipe, with the keys `lotek theme` reads, and
 `Lotek.inspectTheme(css)` checks a hand-written theme. The answers,
 `Theme` and `ThemeReport`, have the same fields as `CoreTheme` and
 `CoreThemeReport` in TypeScript. The colour contract is in the jar like

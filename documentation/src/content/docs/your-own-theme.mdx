@@ -149,6 +149,8 @@ The keys are written in one schema, `@lo-tek/interfaces/theme.schema.json`, and 
 }
 ```
 
+The schema is stricter than the generator about how a colour is written. The generator also takes a colour without the `#`, and reads an empty one as not given. The schema asks for text with a `#`, so an editor marks the others.
+
 These are the keys inside the two blocks, and a key that does not exist stops the run rather than being ignored:
 
 | Key | What it sets |
@@ -161,7 +163,7 @@ These are the keys inside the two blocks, and a key that does not exist stops th
 | `typography.lineHeights.compact` | small surfaces: help text, tooltip, card title |
 | `shape.buttonRadius` | the button, pagination and the skip link |
 | `shape.fieldRadius` | the input, the textarea and the select |
-| `shape.surfaceRadius` | card, dialog, popover, alert, accordion, error summary, file upload, session timeout, the suggestion list, the toast and the tooltip |
+| `shape.surfaceRadius` | card, dialog, popover, alert, accordion, error summary, file upload, session timeout, the suggestion list, the toast, the tooltip and the panel of a term |
 | `shape.buttonBorderWidth` | the border width of the button |
 | `shape.buttonFontWeight` | the weight of the button text |
 

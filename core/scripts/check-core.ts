@@ -206,8 +206,9 @@ function requireSameKeys(
 }
 
 // The theme: the recipes and themes in `theme/` against the expected results
-// next to them. They were written by the TypeScript version of the theme
-// before it was deleted.
+// next to them. The colours were written by the TypeScript version of the
+// theme before it was deleted, and `brands` and the recipes the core refuses
+// were worked out outside the core.
 const THEME = join(ROOT, "core/theme")
 /** JSON with the keys sorted: the order in an object is not part of the answer. */
 const sorted = (value: unknown): string =>

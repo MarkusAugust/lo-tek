@@ -185,7 +185,7 @@ bun run check
 git push -u origin release-0.4.0 && gh pr create --fill
 ```
 
-The commit comes before `check`, not after: `Generated files are up to date` asks git whether the build changed anything, and `prepare-version` has just written fourteen tracked files, so run before the commit, `check` stops on them several minutes into the run.
+The commit comes before `check`, not after: `Generated files are up to date` asks git whether the build changed anything, and `prepare-version` has just written every tracked file that carries the version, so run before the commit, `check` stops on them several minutes into the run.
 
 `prepare-version` renames the heading `Unreleased` to the number and the date, adds a new empty one above it, and sets the same number in `interfaces/package.json`, `bun.lock`, `web-types.json`, `kotlin/gradle.properties` and the presentation. Finally it runs `generate-agent.ts` and `generate-manifest.ts`, so `interfaces/agent/*.md` and `interfaces/manifest/*.json`, which also contain the version, carry the new number in the same commit. It refuses to set a version that is not higher than the current one, and to release an empty `Unreleased`, and all the checks come before it writes anything, so an aborted attempt leaves no half-written files.
 

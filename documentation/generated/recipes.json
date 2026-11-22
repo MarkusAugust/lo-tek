@@ -9328,6 +9328,8 @@
         "$schema",
         "@lo-tek/interfaces/theme.schema.json",
         "lotek.theme.json",
+        "#",
+        "#",
         "typography.fontFamily",
         ":root",
         "typography.weights.regular",

@@ -137,33 +137,48 @@ test("a weight and a line height are text or a number", () => {
   }
 })
 
-test("the font, the corners and the border are text, and never a list", () => {
+test("the font is text, and never a list", () => {
   expect(
-    valid({
-      typography: { fontFamily: '"Segoe UI", Arial, sans-serif' },
-      shape: {
-        buttonRadius: "999px",
-        fieldRadius: "0",
-        surfaceRadius: "calc(0.5rem + 2px)",
-        buttonBorderWidth: "2px",
-      },
-    }),
+    valid({ typography: { fontFamily: '"Segoe UI", Arial, sans-serif' } }),
   ).toBe(true)
   expect(valid({ typography: { fontFamily: ["Arial"] } })).toBe(false)
-  for (const key of [
-    "buttonRadius",
-    "fieldRadius",
-    "surfaceRadius",
-    "buttonBorderWidth",
-  ])
-    expect([key, valid({ shape: { [key]: true } })]).toEqual([key, false])
+})
+
+/*
+ * A corner and a border width are written into the CSS as they stand, and
+ * `--lt-button-radius: 1;` is not a length: `0` is the only number CSS takes
+ * without a unit. The schema is what tells the one who writes `4` before the
+ * theme is built and the corners are simply not there.
+ */
+const LENGTHS = [
+  "buttonRadius",
+  "fieldRadius",
+  "surfaceRadius",
+  "buttonBorderWidth",
+]
+
+test("a corner and a border width are text, or the number 0", () => {
+  for (const key of LENGTHS) {
+    for (const value of ["999px", "0", "calc(0.5rem + 2px)", 0])
+      expect([key, value, valid({ shape: { [key]: value } })]).toEqual([
+        key,
+        value,
+        true,
+      ])
+    for (const value of [1, 4, 0.5, -1, true, null, ["4px"]])
+      expect([key, value, valid({ shape: { [key]: value } })]).toEqual([
+        key,
+        value,
+        false,
+      ])
+  }
 })
 
 /*
  * The keys of the schema and of `ThemeInput`, both ways, in the five places.
  * `$schema` belongs to the file and not to the object `buildTheme` takes.
- * What a value may be is not compared: the schema describes JSON and the
- * type describes what TypeScript code should write.
+ * What a value may be is not compared, with one exception below: the schema
+ * describes JSON and the type describes what TypeScript code should write.
  */
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
 type Keys<S extends { properties: object }> = keyof S["properties"]
@@ -184,6 +199,19 @@ const sameKeys: [
   >,
   Same<Keys<Shape>, keyof ThemeShape>,
 ] = [true, true, true, true, true]
+
+// The exception: a length is text or `0` in the type too, so `tsc` stops
+// `buttonRadius: 4` where the schema would have.
+const lengths: [
+  Same<NonNullable<ThemeShape["buttonRadius"]>, string | 0>,
+  Same<NonNullable<ThemeShape["fieldRadius"]>, string | 0>,
+  Same<NonNullable<ThemeShape["surfaceRadius"]>, string | 0>,
+  Same<NonNullable<ThemeShape["buttonBorderWidth"]>, string | 0>,
+] = [true, true, true, true]
+
+test("a length is text or 0 in ThemeShape, which tsc has checked", () => {
+  expect(lengths).toEqual([true, true, true, true])
+})
 
 test("the keys are the keys of ThemeInput, which tsc has checked", () => {
   expect(sameKeys).toEqual([true, true, true, true, true])

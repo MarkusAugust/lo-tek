@@ -43,7 +43,8 @@ pub const HELP: &str = r#"lotek <command>
   agent                Writes the rulebook for coding agents to standard
     --framework=<name> output. No file is written anywhere. Without the flag,
                        the environment is read from package.json. Names:
-                       astro, bundles, datastar, html, react, templates.
+                       astro, bundles, datastar, html, kotlin, react,
+                       templates.
                        Vue, Svelte, Solid and Lit share "bundles"
 
   takeover <component> Copies the source of one component into the project,
