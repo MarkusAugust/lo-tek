@@ -24,6 +24,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Fixed
+
+- **The links to the IntelliJ plugin led to the plugin it replaced.** The
+  editor page and the Kotlin page pointed at the earlier plugin on JetBrains
+  Marketplace, which stops at 0.4.0. They point at LO-TEK Interfaces now.
+
 ## 0.47.0 (2026-11-22)
 
 ### Breaking
