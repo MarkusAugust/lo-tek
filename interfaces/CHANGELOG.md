@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.47.0 (2026-11-22)
+
 ### Breaking
 
 - **`Theme` in Kotlin has a new property, `brands`,** between `violations`
