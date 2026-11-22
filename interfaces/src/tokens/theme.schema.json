@@ -142,7 +142,7 @@
           ]
         },
         "surfaceRadius": {
-          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast and tooltip, as a CSS length, or the number 0.",
+          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast, tooltip and the panel of a term, as a CSS length, or the number 0.",
           "anyOf": [
             {
               "type": "string"

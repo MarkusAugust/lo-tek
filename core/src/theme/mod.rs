@@ -101,7 +101,7 @@ pub fn to_fixed2(n: f64) -> String {
 /// The buttons, fields and surfaces that share a corner radius in the theme.
 const BUTTONS: [&str; 3] = ["button", "pagination", "skip-link"];
 const FIELDS: [&str; 3] = ["input", "select", "textarea"];
-const SURFACES: [&str; 11] = [
+const SURFACES: [&str; 12] = [
     "card",
     "dialog",
     "popover",
@@ -113,6 +113,7 @@ const SURFACES: [&str; 11] = [
     "suggestion",
     "toast",
     "tooltip",
+    "term",
 ];
 
 /// The name the user wrote, for the error message.
@@ -891,6 +892,114 @@ mod recipe_tests {
                 "{place:?} is open to other keys in the schema"
             );
         }
+    }
+
+    #[test]
+    fn the_radius_of_the_surfaces_reaches_the_panel_of_a_term() {
+        // The panel is a surface like the popover, and was left behind when
+        // the component came: a theme with square surfaces had one round one.
+        let css = theme(r#"{"shape": {"surfaceRadius": "4px"}}"#).unwrap().css;
+        assert!(
+            css.contains("    --lt-tooltip-radius: 4px;\n    --lt-term-radius: 4px;\n"),
+            "{css}"
+        );
+        assert_eq!(css.matches("-radius: 4px;").count(), 12, "{css}");
+        // And only that key: the button and the field have their own.
+        let css = theme(r#"{"shape": {"buttonRadius": "1rem", "fieldRadius": "2px"}}"#)
+            .unwrap()
+            .css;
+        assert!(!css.contains("--lt-term-radius"), "{css}");
+    }
+
+    /// The corners the recipe leaves alone on purpose. There the corner is
+    /// not a style choice but the shape itself: a checkbox that turns round
+    /// looks like a radio button, and a badge that turns square looks like a
+    /// button. The page about your own theme says the same in prose.
+    const LEFT_OUT: [&str; 7] = [
+        "checkbox",
+        "badge",
+        "tag",
+        "toggle-group",
+        "avatar",
+        "skeleton",
+        "progress",
+    ];
+
+    /// Every `<name>` in a `var(--lt-<name>-radius` in the stylesheets of
+    /// the components, sorted, each once.
+    fn radius_hooks() -> Vec<String> {
+        fn sheets(folder: &std::path::Path, out: &mut Vec<String>) {
+            for entry in std::fs::read_dir(folder).unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir() {
+                    sheets(&path, out);
+                } else if path.extension().is_some_and(|e| e == "css") {
+                    out.push(std::fs::read_to_string(&path).unwrap());
+                }
+            }
+        }
+        let mut css = Vec::new();
+        sheets(
+            std::path::Path::new(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../interfaces/src/components"
+            )),
+            &mut css,
+        );
+        let mut hooks: Vec<String> = css
+            .iter()
+            .flat_map(|sheet| sheet.split("var(").skip(1))
+            .filter_map(|after| {
+                let name: String = after
+                    .trim_start()
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '-')
+                    .collect();
+                Some(
+                    name.strip_prefix("--lt-")?
+                        .strip_suffix("-radius")?
+                        .to_string(),
+                )
+            })
+            .collect();
+        hooks.sort_unstable();
+        hooks.dedup();
+        hooks
+    }
+
+    #[test]
+    fn every_corner_in_the_stylesheets_is_set_by_the_recipe_or_left_out_on_purpose() {
+        // A component with a corner of its own is either reached by one of
+        // the three keys or named among those left out, and someone has to
+        // decide which: the panel of a term was neither for nine versions,
+        // and nothing said so. Both ways, so a list cannot keep a name the
+        // stylesheets no longer read, and no name is in two lists.
+        let hooks = radius_hooks();
+        assert!(hooks.len() > 20, "found only {hooks:?}");
+        let mut decided: Vec<String> = BUTTONS
+            .iter()
+            .chain(&FIELDS)
+            .chain(&SURFACES)
+            .chain(&LEFT_OUT)
+            .map(|name| name.to_string())
+            .collect();
+        decided.sort_unstable();
+        let twice: Vec<&String> = decided
+            .windows(2)
+            .filter(|pair| pair[0] == pair[1])
+            .map(|pair| &pair[0])
+            .collect();
+        assert!(twice.is_empty(), "in two lists: {twice:?}");
+        let undecided: Vec<&String> = hooks.iter().filter(|h| !decided.contains(h)).collect();
+        assert!(
+            undecided.is_empty(),
+            "a stylesheet reads the corner of {undecided:?}, which no key of the recipe sets and which is not left out on purpose"
+        );
+        let gone: Vec<&String> = decided.iter().filter(|d| !hooks.contains(d)).collect();
+        assert!(
+            gone.is_empty(),
+            "no stylesheet reads the corner of {gone:?}"
+        );
     }
 
     #[test]

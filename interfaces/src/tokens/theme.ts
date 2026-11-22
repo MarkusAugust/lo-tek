@@ -58,7 +58,8 @@ export type ThemeShape = {
   fieldRadius?: string | 0
   /**
    * Corners on the card, dialog, popover, alert, accordion, error summary,
-   * file upload, session timeout, suggestion list, toast and tooltip.
+   * file upload, session timeout, suggestion list, toast, tooltip and the
+   * panel of a term.
    */
   surfaceRadius?: string | 0
   /** The border width of the button. */

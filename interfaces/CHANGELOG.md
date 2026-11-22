@@ -92,6 +92,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the run, that a light colour gives a darker fill and the command says so,
   that the fill is not to be overridden with the brand colour, and that
   `check-theme` checks a theme written by hand.
+- **`surfaceRadius` reaches the panel of a term.** It set the corner of
+  eleven surfaces and left `--lt-term-radius` alone, so the panel kept its own
+  corner in a theme with another shape. A theme that sets `surfaceRadius`
+  gets that corner on the panel too.
 - **`lotek --help` names the Kotlin rulebook** among those `agent` can write.
   It was there, and the help text left it out.
 - **The schemas are served at the addresses they name.**

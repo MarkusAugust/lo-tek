@@ -9345,8 +9345,6 @@
         "shape.surfaceRadius",
         "shape.buttonBorderWidth",
         "shape.buttonFontWeight",
-        "surfaceRadius",
-        "--lt-term-radius",
         "</head>",
         "<link>",
         "lotek-theme",

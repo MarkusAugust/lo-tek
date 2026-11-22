@@ -163,7 +163,7 @@ These are the keys inside the two blocks, and a key that does not exist stops th
 | `typography.lineHeights.compact` | small surfaces: help text, tooltip, card title |
 | `shape.buttonRadius` | the button, pagination and the skip link |
 | `shape.fieldRadius` | the input, the textarea and the select |
-| `shape.surfaceRadius` | card, dialog, popover, alert, accordion, error summary, file upload, session timeout, the suggestion list, the toast and the tooltip |
+| `shape.surfaceRadius` | card, dialog, popover, alert, accordion, error summary, file upload, session timeout, the suggestion list, the toast, the tooltip and the panel of a term |
 | `shape.buttonBorderWidth` | the border width of the button |
 | `shape.buttonFontWeight` | the weight of the button text |
 
@@ -186,7 +186,7 @@ A theme with no content at all throws. Give a colour, a font or a shape.
 
 A single shared number would be simpler and wrong. Another design system has fully round buttons and fields with almost square corners, and with one number the fields become capsules.
 
-The checkbox, the badge, the tag, the toggle group, the avatar, the skeleton and the progress bar are left out. There the corner is not a style choice but the shape itself: a checkbox that turns round looks like a radio button, and a badge that turns square looks like a button. The panel of a term is a surface, but `surfaceRadius` does not reach it yet: it keeps its own corner, `--lt-term-radius`.
+The checkbox, the badge, the tag, the toggle group, the avatar, the skeleton and the progress bar are left out. There the corner is not a style choice but the shape itself: a checkbox that turns round looks like a radio button, and a badge that turns square looks like a button.
 
 ### The theme beats the defaults
 
