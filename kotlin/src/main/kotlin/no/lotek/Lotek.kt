@@ -412,59 +412,15 @@ data class ThemeProblem(
 )
 
 /**
- * The recipe as `lotek theme` reads it, translated to what the core takes.
- *
- * The keys are the same as in `cli/src/theme.rs`, and a key that is not
- * there throws, since a typo would otherwise look like a recipe that worked.
+ * The recipe as `lotek theme` reads it. The core knows the keys, and a key
+ * that is not there throws, since a typo would otherwise look like a recipe
+ * that worked. Only a recipe that is not an object is answered here: that is
+ * about the file, and the core is never asked.
  */
 internal object ThemeRecipe {
-    private val COLORS =
-        listOf("accent", "danger", "success", "warning", "neutral", "visited", "brand1", "brand2", "brand3")
-    private val TYPOGRAPHY_KEYS = listOf("fontFamily", "weights", "lineHeights")
-    private val WEIGHT_KEYS = listOf("regular", "medium", "semibold", "bold")
-    private val LINE_KEYS = listOf("default", "heading", "article", "compact")
-    private val SHAPE_KEYS = listOf("buttonRadius", "fieldRadius", "surfaceRadius", "buttonBorderWidth", "buttonFontWeight")
-
-    fun toCore(recipe: String): Map<String, Any?> {
-        val parsed = Json.parse(recipe)
-        val file =
-            parsed as? Map<*, *>
-                ?: throw IllegalArgumentException("The recipe is valid JSON, but not an object with the colours in it.")
-        val topLevel = COLORS + listOf("typography", "shape", "\$schema")
-        val unknown = file.keys.map { it.toString() }.filter { it !in topLevel }.toMutableList()
-        val typography = spread(file["typography"])
-        val shape = spread(file["shape"])
-        unknown += unknownKeys(typography, TYPOGRAPHY_KEYS, "typography")
-        unknown += unknownKeys(spread(typography["weights"]), WEIGHT_KEYS, "typography.weights")
-        unknown += unknownKeys(spread(typography["lineHeights"]), LINE_KEYS, "typography.lineHeights")
-        unknown += unknownKeys(shape, SHAPE_KEYS, "shape")
-        if (unknown.isNotEmpty()) throw IllegalArgumentException("Unknown key in the recipe: ${unknown.joinToString(", ")}")
-
-        val input = linkedMapOf<String, Any?>()
-        for (color in COLORS) {
-            val value = file[color]
-            if (value is String && value.isNotEmpty()) input[color] = value
-        }
-        if (typography.isNotEmpty()) input["typography"] = typography
-        if (shape.isNotEmpty()) input["shape"] = shape
-        return input
-    }
-
-    /**
-     * `{ ...value }` as JavaScript spreads it, like `spread` in `theme.rs`: a
-     * list gets its indices as keys and a string one character per key, so
-     * `"typography": "Inter"` is reported as unknown keys rather than vanishing.
-     */
-    private fun spread(value: Any?): Map<String, Any?> =
-        when (value) {
-            is Map<*, *> -> value.entries.associate { (k, v) -> k.toString() to v }
-            is List<*> -> value.withIndex().associate { (i, v) -> i.toString() to v }
-            is String -> value.withIndex().associate { (i, c) -> i.toString() to c.toString() }
-            else -> emptyMap()
-        }
-
-    private fun unknownKeys(value: Map<String, Any?>, allowed: List<String>, path: String): List<String> =
-        value.keys.filter { it !in allowed }.map { "$path.$it" }
+    fun toCore(recipe: String): Map<*, *> =
+        Json.parse(recipe) as? Map<*, *>
+            ?: throw IllegalArgumentException("The recipe is valid JSON, but not an object with the colours in it.")
 }
 
 /** One edit in a fix: replace the text from `start` to `end` with `text`. */

@@ -53,16 +53,16 @@ export type ThemeTypography = {
  */
 export type ThemeShape = {
   /** Corners on the button, the pagination and the skip link. */
-  buttonRadius?: string
+  buttonRadius?: string | number
   /** Corners on the field, the text area and the select. */
-  fieldRadius?: string
+  fieldRadius?: string | number
   /**
    * Corners on the card, dialog, popover, alert, accordion, error summary,
    * file upload, session timeout, suggestion list, toast and tooltip.
    */
-  surfaceRadius?: string
+  surfaceRadius?: string | number
   /** The border width of the button. */
-  buttonBorderWidth?: string
+  buttonBorderWidth?: string | number
   /** The font weight of the button text. */
   buttonFontWeight?: string | number
 }

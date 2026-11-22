@@ -1,0 +1,13 @@
+<idea-plugin>
+    <!-- Loaded only when the JSON plugin is there; see plugin.xml. -->
+    <extensions defaultExtensionNs="JavaScript">
+        <!--
+            The schema of a theme recipe, for a file named lotek.theme.json:
+            completion of the keys and a warning on one that does not exist,
+            without a "$schema" in the file or a mapping in the settings.
+            Documented: the extension point and the class it takes,
+            https://plugins.jetbrains.com/docs/intellij/intellij-community-plugins-extension-point-list.html
+        -->
+        <JsonSchema.ProviderFactory implementation="no.lotek.intellij.json.ThemeSchemaProviderFactory" />
+    </extensions>
+</idea-plugin>

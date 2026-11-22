@@ -31,6 +31,24 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`Theme` and `CoreTheme` in TypeScript have a required `brands`.** Code
   that only reads a theme is unaffected. Code that builds one by hand, or
   implements `Core` itself, must add it.
+- **`buildTheme` in TypeScript refuses a key it does not know.**
+  `buildTheme({ acent: "#7c3aed" })` returned a theme without the colour, and
+  now throws `Unknown key in the recipe: acent`, as `lotek theme` and Kotlin
+  did. The keys are checked by the core, so every host answers the same, and
+  the command line and Kotlin no longer keep lists of their own.
+- **A number or `true` for a colour in a recipe file is an error.**
+  `lotek theme` and `Lotek.buildTheme` dropped `{"accent": 12}` without a
+  word, and the theme got LO-TEK's own accent. They now answer that `"12"`
+  is not a valid hexadecimal colour, as `buildTheme` in TypeScript did. A
+  list or an object is refused too. A colour that is `""`, `0`, `false` or
+  `null` is still a colour that is not given.
+- **Text or a list for `typography.weights` or `typography.lineHeights` is
+  refused by `lotek theme`.** `{"typography": {"weights": "ab"}}` built a
+  theme on the command line, while Kotlin refused it. Both now answer
+  `Unknown key in the recipe: typography.weights.0, typography.weights.1`.
+- **A `typography` or `shape` without keys is not given, in TypeScript too.**
+  `buildTheme({ typography: {} })` returned a theme with nothing in it, and
+  now throws that the theme is empty, as the command line did.
 
 ### Added
 
@@ -45,6 +63,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `Lotek.buildTheme` in Kotlin return the same as `brands`, with the types
   `Brand` and `BrandFill`, and `ThemeBrand` and `ThemeBrandFill`. The theme
   itself is unchanged: every token has the value it had.
+- **A JSON Schema for the theme recipe,** `@lo-tek/interfaces/theme.schema.json`,
+  with a description of every key. The core's tests hold it to the keys the
+  core knows, in both directions. LO-TEK for VS Code and the IntelliJ plugin
+  complete and check a file named `lotek.theme.json` against it, with
+  nothing to set up: no `$schema` in the file and no setting.
+- **The corners and the border width in `ThemeShape` can be a number,** as
+  the core already took them: `fieldRadius: 0`.
 
 ### Fixed
 

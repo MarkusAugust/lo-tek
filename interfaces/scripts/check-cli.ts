@@ -492,6 +492,214 @@ block(async () => {
   await rm(folder, { recursive: true, force: true })
 })
 
+/*
+ * The recipe file reaches the core as it is written, and the answers are the
+ * ones the command had while it read the keys itself.
+ *
+ * A mistake in the file is reported before an unknown flag, and an unknown
+ * flag before a colour that is not valid: the one who gets all three is told
+ * about the file first, since the rest may follow from it.
+ */
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  await writeFile(
+    path,
+    JSON.stringify({ aksent: "#7c3aed", typography: { fontFamly: "Georgia" } }),
+  )
+
+  const key = await run([
+    "theme",
+    path,
+    "--button-radii=2rem",
+    "--accent=purple",
+  ])
+  expect(key.code === 1, `a recipe with unknown keys gave code ${key.code}`)
+  expect(
+    key.err ===
+      "Unknown key in the recipe: aksent, typography.fontFamly\n\nFull overview: lotek --help\n\n",
+    `the answer to an unknown key has changed: ${JSON.stringify(key.err)}`,
+  )
+  expect(key.out === "", "a recipe with unknown keys wrote a theme anyway")
+
+  const flag = await run(["theme", "--button-radii=2rem", "--accent=purple"])
+  expect(flag.code === 1, `an unknown flag gave code ${flag.code}`)
+  expect(
+    flag.err.startsWith("Unknown flag: --button-radii\n") &&
+      !flag.err.includes("purple"),
+    `an unknown flag was not reported before the colour: ${flag.err.slice(0, 160)}`,
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+// A flag wins over the same key in the file, also over one the core refuses
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  await writeFile(
+    path,
+    JSON.stringify({ accent: 12, shape: { buttonRadius: "1rem" } }),
+  )
+
+  const { code, out, err } = await run([
+    "theme",
+    path,
+    "--accent=#7c3aed",
+    "--button-radius=2rem",
+  ])
+
+  expect(code === 0, `a flag over the file exited with code ${code}: ${err}`)
+  expect(
+    out.includes("--lt-color-accent-fill: #7935e9;"),
+    "the colour in the flag did not win over the one in the file",
+  )
+  expect(
+    out.includes("--lt-button-radius: 2rem;") && !out.includes("1rem"),
+    "the radius in the flag did not win over the one in the file",
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+/*
+ * A colour in the file that is not text is not dropped without a word.
+ *
+ * `"danger": 12` used to give a theme with LO-TEK's own red, as if the key
+ * had not been there. A colour that is empty, `0`, `false` or `null` is
+ * still a colour that is not given.
+ */
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  const answer = (value: string) =>
+    `\n"${value}" is not a valid hexadecimal colour\n\nColours are written as hexadecimal values, for example #7c3aed.\n\n`
+
+  await writeFile(path, JSON.stringify({ accent: "#7c3aed", danger: 12 }))
+  const number = await run(["theme", path])
+  expect(number.code === 1, `a colour that is a number gave ${number.code}`)
+  expect(
+    number.err === answer("12") && number.out === "",
+    `a colour that is a number was not refused: ${JSON.stringify(number.err.slice(0, 200))}`,
+  )
+
+  await writeFile(path, JSON.stringify({ accent: true }))
+  const boolean = await run(["theme", path])
+  expect(boolean.code === 1, `a colour that is true gave ${boolean.code}`)
+  expect(
+    boolean.err === answer("true"),
+    `a colour that is true was not refused: ${JSON.stringify(boolean.err.slice(0, 200))}`,
+  )
+
+  await writeFile(
+    path,
+    JSON.stringify({
+      accent: "",
+      danger: 0,
+      success: false,
+      warning: null,
+      shape: { buttonRadius: "1rem" },
+    }),
+  )
+  const none = await run(["theme", path])
+  expect(none.code === 0, `colours that are not given gave ${none.code}`)
+  expect(
+    none.out.includes("--lt-button-radius: 1rem;") &&
+      !none.out.includes("--lt-color-"),
+    "a colour that is empty, 0, false or null was read as a colour",
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+// Typography and shape without keys are still a theme with nothing in it
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+
+  for (const recipe of [{ typography: 12 }, { shape: {} }]) {
+    await writeFile(path, JSON.stringify(recipe))
+    const { code, err } = await run(["theme", path])
+    expect(code === 1, `${JSON.stringify(recipe)} alone gave code ${code}`)
+    expect(
+      err ===
+        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\nColours are written as hexadecimal values, for example #7c3aed.\n\n",
+      `${JSON.stringify(recipe)} alone is not the empty theme: ${JSON.stringify(err.slice(0, 200))}`,
+    )
+  }
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+/*
+ * The whole answer to an unknown flag, with the known ones in the order the
+ * command has always listed them: the colours as `lotek --help` has them,
+ * then the font, the shape and the file. The order of the families in the
+ * colour contract is another one, and it is not this message's.
+ */
+block(async () => {
+  const { code, err } = await run(["theme", "--button-radii=2rem"])
+
+  expect(code === 1, `an unknown flag gave code ${code}`)
+  expect(
+    err ===
+      "Unknown flag: --button-radii\n\nKnown flags: --accent, --danger, --success, --warning, --neutral, --visited, --brand1, --brand2, --brand3, --font, --button-radius, --field-radius, --surface-radius, --button-border, --button-weight, --out\n\nFull overview: lotek --help\n\n",
+    `the answer to an unknown flag has changed: ${JSON.stringify(err)}`,
+  )
+})
+
+// A colour in the file that is false, 0 or null, next to one that is a
+// colour: the theme is the one the real colour gives alone
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  await writeFile(
+    path,
+    JSON.stringify({
+      accent: "#7c3aed",
+      danger: false,
+      success: 0,
+      warning: null,
+    }),
+  )
+
+  const alone = await run(["theme", "--accent=#7c3aed"])
+  const { code, out, err } = await run(["theme", path])
+
+  expect(code === 0, `a colour next to ones not given gave code ${code}`)
+  expect(
+    alone.code === 0 && out === alone.out && err === alone.err,
+    `a colour that is false, 0 or null changed the theme: ${err.slice(0, 200)}`,
+  )
+  expect(
+    out.includes("--lt-color-accent-fill: #7935e9;"),
+    "the colour that was given is missing from the theme",
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+// Text where the weights or the line heights should be an object is
+// unknown keys, one per character, as it is in Kotlin
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+
+  for (const block of ["weights", "lineHeights"]) {
+    await writeFile(path, JSON.stringify({ typography: { [block]: "ab" } }))
+    const { code, out, err } = await run(["theme", path])
+    expect(code === 1, `text for ${block} gave code ${code}`)
+    expect(
+      err ===
+        `Unknown key in the recipe: typography.${block}.0, typography.${block}.1\n\nFull overview: lotek --help\n\n` &&
+        out === "",
+      `text for ${block} was not refused as unknown keys: ${JSON.stringify(err.slice(0, 200))}`,
+    )
+  }
+
+  await rm(folder, { recursive: true, force: true })
+})
+
 // Says so when a flag does not exist, rather than ignoring it
 block(async () => {
   // A misspelt flag went quietly through once, and the theme came out

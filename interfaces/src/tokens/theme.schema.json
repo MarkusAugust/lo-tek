@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lo-tek.sobernetics.no/theme.schema.json",
+  "title": "A LO-TEK theme recipe",
+  "description": "What `lotek theme` builds a theme from: a brand colour per family, and typography and shape. Everything is optional, and a family that is left out keeps LO-TEK's own hue. Written by hand. The core holds the keys, and its tests hold this file to them.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "description": "The address of this schema, for the editor. It says nothing about the theme.",
+      "type": "string"
+    },
+    "accent": {
+      "description": "Links, buttons and focus indication. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "visited": {
+      "description": "Visited links. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "brand1": {
+      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "brand2": {
+      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "brand3": {
+      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "neutral": {
+      "description": "The page, body text and borders. Almost without hue. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "danger": {
+      "description": "Errors, deletion and rejection. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "warning": {
+      "description": "Something that needs attention. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "success": {
+      "description": "Completed and approved. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
+    },
+    "typography": {
+      "description": "The font, the weights and the line heights. Left out, LO-TEK's own typography stays.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fontFamily": {
+          "description": "The font stack the whole theme uses, written as in CSS. It is set as a token and as a rule on :root.",
+          "type": "string"
+        },
+        "weights": {
+          "description": "The four font weights, as numbers or keywords.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "regular": {
+              "description": "The markers for required and optional on a label and a fieldset. 400 if left out.",
+              "type": ["string", "number"]
+            },
+            "medium": {
+              "description": "Buttons and error text. 500 if left out.",
+              "type": ["string", "number"]
+            },
+            "semibold": {
+              "description": "Labels, titles of cards and dialogs, table headers and tabs. 600 if left out.",
+              "type": ["string", "number"]
+            },
+            "bold": {
+              "description": "Headings. 700 if left out.",
+              "type": ["string", "number"]
+            }
+          }
+        },
+        "lineHeights": {
+          "description": "The four line heights, as numbers without a unit or as CSS values.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "default": {
+              "description": "Controls: button, input, table. 1.5 if left out.",
+              "type": ["string", "number"]
+            },
+            "heading": {
+              "description": "Headings. 1.2 if left out.",
+              "type": ["string", "number"]
+            },
+            "article": {
+              "description": "Body text and lists. 1.6 if left out.",
+              "type": ["string", "number"]
+            },
+            "compact": {
+              "description": "Small surfaces: help text, tooltip, card title. 1.4 if left out.",
+              "type": ["string", "number"]
+            }
+          }
+        }
+      }
+    },
+    "shape": {
+      "description": "Corners and borders. Left out, LO-TEK's own shape stays.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "buttonRadius": {
+          "description": "The corners of the button, the pagination and the skip link, as a CSS length.",
+          "type": ["string", "number"]
+        },
+        "fieldRadius": {
+          "description": "The corners of the input, the textarea and the select, as a CSS length.",
+          "type": ["string", "number"]
+        },
+        "surfaceRadius": {
+          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast and tooltip, as a CSS length.",
+          "type": ["string", "number"]
+        },
+        "buttonBorderWidth": {
+          "description": "The border width of the button, as a CSS length.",
+          "type": ["string", "number"]
+        },
+        "buttonFontWeight": {
+          "description": "The weight of the button text, as a number or a keyword.",
+          "type": ["string", "number"]
+        }
+      }
+    }
+  }
+}

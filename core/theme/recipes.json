@@ -1446,5 +1446,67 @@
       }
     },
     "error": "The value of surfaceRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 1px</style><script>"
+  },
+  "unknown-key": {
+    "recipe": {
+      "acent": "#7c3aed"
+    },
+    "error": "Unknown key in the recipe: acent"
+  },
+  "unknown-nested-key": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "acent": "#000",
+      "shape": {
+        "radius": "0"
+      }
+    },
+    "error": "Unknown key in the recipe: acent, shape.radius"
+  },
+  "text-for-typography": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "typography": "Inter"
+    },
+    "error": "Unknown key in the recipe: typography.0, typography.1, typography.2, typography.3, typography.4"
+  },
+  "list-for-weights": {
+    "recipe": {
+      "typography": {
+        "weights": [
+          400
+        ]
+      }
+    },
+    "error": "Unknown key in the recipe: typography.weights.0"
+  },
+  "blocks-without-keys": {
+    "recipe": {
+      "typography": 12,
+      "shape": {}
+    },
+    "error": "The theme is empty. Give either brand colours, or typography and shape."
+  },
+  "colour-is-a-number": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "danger": 12
+    },
+    "error": "\"12\" is not a valid hexadecimal colour"
+  },
+  "colour-is-true": {
+    "recipe": {
+      "accent": true
+    },
+    "error": "\"true\" is not a valid hexadecimal colour"
+  },
+  "colours-not-given": {
+    "recipe": {
+      "accent": "",
+      "danger": 0,
+      "success": false,
+      "warning": null
+    },
+    "error": "The theme is empty. Give either brand colours, or typography and shape."
   }
 }

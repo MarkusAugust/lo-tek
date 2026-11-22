@@ -42,6 +42,9 @@ dependencies {
         // optional in plugin.xml, so the plugin still loads in WebStorm and the
         // other IDEs without Kotlin.
         bundledPlugin("org.jetbrains.kotlin")
+        // For the schema of a theme recipe. JSON support is a plugin of its
+        // own, and the dependency is optional in plugin.xml like Kotlin's.
+        bundledPlugin("com.intellij.modules.json")
         testFramework(TestFrameworkType.Platform)
     }
     testImplementation("junit:junit:4.13.2")
@@ -165,6 +168,10 @@ tasks.processResources {
     from(rootDir.resolve("../interfaces/live-templates-kotlin.xml")) {
         into("liveTemplates")
         rename { "LotekKotlin.xml" }
+    }
+    // The schema of a theme recipe, the one in the npm package. `ThemeSchema.kt` reads it from here.
+    from(rootDir.resolve("../interfaces/src/tokens/theme.schema.json")) {
+        into("schemas")
     }
 }
 
