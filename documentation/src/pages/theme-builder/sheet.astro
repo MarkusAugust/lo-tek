@@ -1,0 +1,325 @@
+---
+/**
+ * The component sheet of the theme builder: every component on one page, to
+ * look at a theme on.
+ *
+ * The page is shown in a frame by `/theme-builder/`, which gives it the
+ * theme it has built, and it can be opened on its own, where it shows
+ * LO-TEK's own colours. It writes no markup of its own for the components.
+ * The manifest says which components there are, and each one's page says
+ * what it looks like: its examples, or, for a web component whose page has a
+ * live demo and no example, the recipe in its "Plain HTML" tab. A new
+ * component is on the sheet when it has a page, and `check-theme-sheet.ts`
+ * fails when one is missing.
+ *
+ * Each example is shown with `Preview.astro`, as on its component page, and
+ * with what the page gave it: the stylesheets, the layout, the width and the
+ * CSS that forces a dialog or a skip link into view. So it stands in a
+ * shadow root of its own. An example is a fragment and not a page: the same
+ * id is in several of them, and side by side in one document the labels
+ * would point at each other's fields. The tokens are set on the document
+ * and inherited into every root, so the theme reaches all of them.
+ *
+ * The web components are the real ones, registered here. Some of them show
+ * nothing until something happens: a toast has no message, a popover is
+ * closed. The script at the foot puts each of those in the state where it
+ * can be seen.
+ */
+
+import "@lo-tek/interfaces/tokens.css"
+import manifest from "../../../../interfaces/manifest/manifest.json"
+import recipes from "../../../generated/recipes.json"
+import Preview, { type Stylesheet } from "../../components/Preview.astro"
+
+/**
+ * The components left off on purpose, with why. `check-theme-sheet.ts` has
+ * the same list, and fails if the sheet shows one of them.
+ */
+const LEFT_OUT = new Set([
+  // The theme control switches the theme of the page it is on, and the
+  // builder has set each frame to light or to dark.
+  "customising",
+])
+
+/** The component and the page of each, as the manifest links them. */
+const pages = new Map<string, string>()
+const linked = (name: string, link: string) =>
+  pages.set(name, `${new URL(link).pathname.replace(/^\/|\/$/g, "")}.mdx`)
+for (const { component, link } of Object.values(manifest.classes))
+  linked(component, link)
+for (const [tag, { link }] of Object.entries(manifest.elements))
+  linked(tag.replace(/^lt-/, ""), link)
+
+/**
+ * The scripts of a recipe register the component and wire the page. On the
+ * sheet that is this page's work, and they would fetch the package from a
+ * network address.
+ */
+const withoutScripts = (code: string) =>
+  code.replace(/<script\b[\s\S]*?<\/script>/g, "")
+
+/** `button.css` as `Preview.astro` names it. The tokens are on the document. */
+const sheets = (names: string[] = []) =>
+  names
+    .filter((name) => name !== "tokens.css")
+    .map((name) => name.replace(/\.css$/, "")) as Stylesheet[]
+
+/*
+ * What a page never had to force, because its demo shows it by being used.
+ * A toast and the bar of the connection status are fixed to the window, and
+ * in a frame they would lie over whatever is scrolled past. The bubble of a
+ * tooltip is there on hover and on focus. The dialog of the session timeout
+ * is opened above everything.
+ *
+ * The panel of a popover and a list of suggestions are placed by their web
+ * components against the window, and kept inside it. In a frame that is
+ * scrolled, that leaves them at its lower edge long before their own
+ * component has come into view. Here they stand where they are written,
+ * below the button and the field, and move with the page.
+ */
+const IN_PLACE = `
+	.lt-toast,
+	.lt-connection-status__bar {
+		position: static;
+	}
+
+	/* As wide as the window allows in use. Here, as its own section does. */
+	.lt-toast {
+		inline-size: auto;
+		max-inline-size: 100%;
+	}
+
+	.lt-tooltip__bubble {
+		position: static;
+		display: block;
+		opacity: 1;
+		transform: none;
+	}
+
+	.lt-session-timeout__dialog {
+		position: static;
+		margin: 0;
+	}
+
+	.lt-popover:popover-open,
+	.lt-suggestion__list:popover-open {
+		position: absolute;
+		inset: auto;
+	}
+`
+
+type Shown = {
+  code: string
+  styles: Stylesheet[]
+  layout?: "row" | "stack" | "flow"
+  maxWidth?: string
+  css: string
+}
+
+type Recorded = {
+  code: string
+  styles?: string[]
+  layout?: string
+  maxWidth?: string
+  previewCss?: string
+  customCss?: string
+  setup?: { stylesheets: string[] } | null
+}
+
+const components = [...pages]
+  .filter(([name]) => !LEFT_OUT.has(name))
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([name, path]) => {
+    const page = recipes.pages.find((p) => p.path === path)
+    const examples: Shown[] = ((page?.examples ?? []) as Recorded[]).map(
+      (e) => ({
+        code: e.code,
+        styles: e.styles
+          ? (e.styles as Stylesheet[])
+          : sheets(e.setup?.stylesheets),
+        layout: e.layout as Shown["layout"],
+        maxWidth: e.maxWidth,
+        css: [e.customCss, e.previewCss, IN_PLACE].filter(Boolean).join("\n"),
+      }),
+    )
+    // A web component's page has a live demo and no example. Its recipe
+    // is what the reader is told to write, one piece below the other.
+    const recipe: Shown[] = (page?.tabs ?? [])
+      .filter((tab) => tab.label === "Plain HTML")
+      .flatMap((tab) =>
+        tab.blocks
+          .filter(
+            (b) =>
+              b.lang === "html" && !/<link\s[^>]*rel="stylesheet"/.test(b.code),
+          )
+          .map((b) => ({
+            code: withoutScripts(b.code),
+            styles: sheets(tab.setup?.stylesheets),
+            layout: "stack" as const,
+            css: IN_PLACE,
+          })),
+      )
+    return { name, shown: examples.length > 0 ? examples : recipe }
+  })
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<title>Every component, to look at a theme on</title>
+	</head>
+	<body>
+		<main class="sheet">
+			<h1 class="sheet__title">Every component, to look at a theme on</h1>
+			{
+				components.map(({ name, shown }) => (
+					<section class="sheet__component" data-component={name}>
+						<h2 class="sheet__name">{name}</h2>
+						{shown.map(({ code, styles, layout, maxWidth, css }) => (
+							<Preview styles={styles} layout={layout} maxWidth={maxWidth} extraCss={css}>
+								<Fragment set:html={code} />
+							</Preview>
+						))}
+					</section>
+				))
+			}
+		</main>
+	</body>
+</html>
+
+<style is:global>
+	body {
+		margin: 0;
+		/* LO-TEK inherits the font of the page it is on, and has none of its
+		   own. The sheet has the system's until a theme names one. */
+		font-family: var(--lt-font-family-base, system-ui, sans-serif);
+		color: var(--lt-color-neutral-text-strong);
+		background: var(--lt-color-neutral-canvas);
+	}
+
+	.sheet {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+		gap: var(--lt-spacing-6);
+		padding: var(--lt-spacing-6);
+	}
+
+	/* For a screen reader and an outline. The page is looked at, not read. */
+	.sheet__title {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.sheet__component {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-4);
+		min-inline-size: 0;
+		padding-block-start: var(--lt-spacing-3);
+		border-block-start: var(--lt-spacing-px) solid
+			var(--lt-color-neutral-border-subtle);
+	}
+
+	.sheet__name {
+		margin: 0;
+		font-size: var(--lt-font-size-xs);
+		font-weight: var(--lt-font-weight-regular);
+		line-height: var(--lt-line-height-compact);
+		color: var(--lt-color-neutral-text-subtle);
+	}
+
+	/* A panel that opens below its button lies above the page, and takes no
+	   room in it. The room is left here, so it does not cover the next
+	   component, and the button stands where the panel has room to open. */
+	[data-component="popover"] .lt-preview,
+	[data-component="suggestion"] .lt-preview {
+		padding-block-end: 9rem;
+	}
+</style>
+
+<script>
+	import { defineLt } from "@lo-tek/interfaces/register"
+
+	defineLt()
+
+	/** The first match in the examples of one component, each in its own root. */
+	const find = <T extends Element>(name: string, selector: string) => {
+		for (const host of document.querySelectorAll(
+			`[data-component="${name}"] .lt-preview`,
+		)) {
+			const match = host.shadowRoot?.querySelector<T>(selector)
+			if (match) return match
+		}
+		return null
+	}
+
+	// A toast has no message until the app has something to say.
+	const toast = find<
+		HTMLElement & { show: (message: string, options: object) => void }
+	>("toast", "lt-toast")
+	toast?.show("Relay 14 is back", { color: "success", duration: 0 })
+	toast?.show("The fixer did not answer", { color: "danger", duration: 0 })
+
+	// The bar is empty while the connection holds.
+	find<HTMLElement & { reportFailure: () => void }>(
+		"connection-status",
+		"lt-connection-status",
+	)?.reportFailure()
+
+	// Open, as after a press on the button.
+	find("popover", "lt-popover")?.setAttribute("open", "")
+
+	// The error summary is empty and hidden until the server answers that
+	// the form failed. Written here as the recipe's own script writes it, and
+	// without moving focus into the frame.
+	const summary = find<HTMLElement>("error-summary", "lt-error-summary")
+	if (summary) {
+		const field = find("error-summary", "input")
+		summary.setAttribute("data-autofocus", "false")
+		const title = summary.querySelector("h2")
+		if (title) title.textContent = "The form has one error"
+		const item = document.createElement("li")
+		const link = document.createElement("a")
+		link.href = `#${field?.id ?? ""}`
+		link.textContent = "Enter the fixer's address with an @"
+		item.append(link)
+		summary.querySelector("ul")?.append(item)
+		summary.hidden = false
+	}
+
+	// A suggestion list is closed until someone types, and shows either the
+	// matches or that there are none. Both are shown, each in its own field:
+	// the recipe's as it is, and a copy of it with nothing in the list. The
+	// attribute says that something else decides whether the list is open,
+	// which is true here, so neither needs focus.
+	const suggestion = find<HTMLElement>("suggestion", "lt-suggestion")
+	if (suggestion) {
+		const none = suggestion.cloneNode(true) as HTMLElement
+		for (const element of [none, ...none.querySelectorAll<HTMLElement>("*")]) {
+			if (element.id) element.id = `${element.id}-none`
+			for (const name of ["for", "aria-controls", "aria-describedby"]) {
+				const value = element.getAttribute(name)
+				if (value) element.setAttribute(name, `${value}-none`)
+			}
+		}
+		for (const option of none.querySelectorAll("li")) option.remove()
+		suggestion.after(none)
+		for (const host of [suggestion, none]) {
+			host.setAttribute("server-controlled", "")
+			host.querySelector(".lt-suggestion__list")?.removeAttribute("hidden")
+			host.querySelector(".lt-suggestion__empty")?.removeAttribute("hidden")
+		}
+	}
+
+	// The dialog of the session timeout, shown where it stands rather than
+	// above everything: `open` and not `showModal()`.
+	find("session-timeout", "dialog")?.setAttribute("open", "")
+</script>
