@@ -88,7 +88,9 @@ const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
  * and `built` is the core's answer to it: the theme, what is wrong with
  * each field, in the shape of `fields`, and what became of each colour.
  * `shown` is the theme the frames have, the last one that was built, and
- * `view` which page they frame.
+ * `view` which page they frame. `copied` is the recipe that was last
+ * copied. `pasted` is the text in the field a recipe
+ * can be pasted into, and `pasteError` why it was not taken.
  *
  * A signal an action answers into always has the same keys, and only text,
  * numbers and booleans at its leaves. Datastar merges what is assigned into
@@ -129,10 +131,20 @@ const signals = {
   },
   shown: "",
   view: "sheet",
+  copied: "",
+  pasted: "",
+  pasteError: "",
 }
 
 /** The two appearances a theme has, each in a frame of its own. */
 const APPEARANCES = ["light", "dark"] as const
+
+/**
+ * The command that builds the theme from the recipe file, with the version
+ * the page is built with: the page shows what that version makes of the
+ * recipe, and a newer or an older one may make something else.
+ */
+const COMMAND = `npx @lo-tek/interfaces@${pkg.version} theme lotek.theme.json --out=theme.css`
 
 const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 ---
@@ -387,9 +399,22 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<section class="builder__out" aria-labelledby="out-title">
 					<h2 class="profile-label" id="out-title">lotek.theme.json</h2>
 					<pre class="builder__json" data-recipe tabindex="0" data-text="$recipe">{"{}"}</pre>
+					<!-- What was chosen is remembered in this browser. `copied` is the
+					     recipe that was copied, so "Copied" is said only of that one. -->
+					<div hidden data-effect="$ready && @remember($own, $fields)"></div>
 					<p class="builder__actions">
+						<button
+							class="lt-button"
+							type="button"
+							disabled
+							data-attr:disabled="!$built.ok"
+							data-on:click="@copy($recipe); $copied = $recipe"
+						>
+							Copy the recipe
+						</button>
 						<a
 							class="lt-button"
+							data-variant="secondary"
 							download="theme.css"
 							style="display: none"
 							data-show="$built.ok"
@@ -397,6 +422,57 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						>
 							Download theme.css
 						</a>
+						<button
+							class="lt-button"
+							data-variant="ghost"
+							type="button"
+							data-on:click="@startAgain()"
+						>
+							Start again
+						</button>
+						<span class="builder__said" role="status" data-text="$copied !== '' && $copied === $recipe ? 'Copied.' : ''"></span>
+					</p>
+					<p class="builder__line">
+						Keep the recipe in the repository as <code>lotek.theme.json</code>,
+						and build the theme from it:
+					</p>
+					<pre class="builder__json" tabindex="0"><code>{COMMAND}</code></pre>
+				</section>
+
+				<section class="builder__out" aria-labelledby="paste-title">
+					<h2 class="profile-label" id="paste-title">A recipe you have</h2>
+					<div class="builder__field">
+						<label class="lt-label" for="paste">Paste a recipe</label>
+						<textarea
+							class="lt-textarea"
+							id="paste"
+							rows="6"
+							spellcheck="false"
+							aria-describedby="paste-help paste-error"
+							data-bind="pasted"
+							data-attr:aria-invalid="$pasteError !== '' && 'true'"
+							data-attr:data-state="$pasteError !== '' && 'invalid'"></textarea>
+						<p
+							class="lt-error-text"
+							id="paste-error"
+							style="display: none"
+							data-show="$pasteError !== ''"
+							data-text="$pasteError"
+						>
+						</p>
+						<p class="lt-help-text" id="paste-help">
+							The text of a <code>lotek.theme.json</code>. It replaces what is chosen above.
+						</p>
+					</div>
+					<p class="builder__actions">
+						<button
+							class="lt-button"
+							data-variant="secondary"
+							type="button"
+							data-on:click="@useRecipe($pasted)"
+						>
+							Use this recipe
+						</button>
 					</p>
 				</section>
 				</div>
@@ -597,6 +673,12 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		inline-size: 100%;
 		block-size: min(46rem, 80vh);
 		border: var(--profile-rule);
+	}
+
+	.builder__said {
+		font-family: var(--profile-font-data);
+		font-size: var(--lt-font-size-s);
+		color: var(--lt-color-neutral-text);
 	}
 
 	.builder__actions {
@@ -812,6 +894,106 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			lay(frame)
 		},
 	})
+
+	/*
+	 * The page as on a first visit: what the markup itself says the signals
+	 * are. It is the shape of `own` and `fields`, for a recipe that is pasted
+	 * in and for what was remembered, and what "Start again" goes back to.
+	 */
+	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
+		own: Record<string, boolean>
+		fields: Fields
+	}
+	const REMEMBERED = "lotek-theme-builder"
+
+	/** The values of `from` laid into the shape of `blank`, as text. Anything else is left out. */
+	const laid = (blank: Fields, from: unknown): Fields =>
+		Object.fromEntries(
+			Object.entries(blank).map(([name, value]) => {
+				const given = (from as Record<string, unknown> | null)?.[name]
+				if (typeof value !== "string") return [name, laid(value, given)]
+				return [
+					name,
+					typeof given === "string" || typeof given === "number" ? String(given) : "",
+				]
+			}),
+		)
+
+	// What is chosen is kept in this browser and nowhere else. Storage can be
+	// switched off, and then the page works without remembering.
+	action({
+		name: "remember",
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields) {
+			try {
+				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields }))
+			} catch {
+				// Nothing to do: the page is as useful, only not next time.
+			}
+		},
+	})
+
+	action({
+		name: "startAgain",
+		apply() {
+			try {
+				localStorage.removeItem(REMEMBERED)
+			} catch {
+				// As above.
+			}
+			mergePatch({ own: first.own, fields: first.fields, pasted: "", pasteError: "" })
+		},
+	})
+
+	action({
+		name: "copy",
+		apply(_: unknown, text: string) {
+			return navigator.clipboard.writeText(text)
+		},
+	})
+
+	// A recipe file pasted in becomes what is chosen. A text that is not a
+	// recipe changes nothing and says why. A key the core does not know is
+	// the core's to name. A value it refuses is taken: the field then holds
+	// it, and says what is wrong with it.
+	action({
+		name: "useRecipe",
+		apply(_: unknown, text: string) {
+			const refuse = (pasteError: string) => mergePatch({ pasteError })
+			let recipe: unknown
+			try {
+				recipe = JSON.parse(text)
+			} catch {
+				return refuse("This is not JSON. Paste the text of a lotek.theme.json.")
+			}
+			if (recipe === null || typeof recipe !== "object" || Array.isArray(recipe))
+				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
+			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
+			const answer = refusal(keys as Fields)
+			if (answer.startsWith("Unknown key in the recipe")) return refuse(answer)
+			const fields = laid(first.fields, keys)
+			mergePatch({
+				own: Object.fromEntries(
+					Object.keys(first.own).map((name) => [name, fields[name] !== ""]),
+				),
+				fields,
+				pasteError: "",
+			})
+		},
+	})
+
+	// What was left the last time, before Datastar is told the core is here.
+	try {
+		const kept = JSON.parse(localStorage.getItem(REMEMBERED) ?? "null")
+		if (kept)
+			mergePatch({
+				own: Object.fromEntries(
+					Object.keys(first.own).map((name) => [name, kept.own?.[name] === true]),
+				),
+				fields: laid(first.fields, kept.fields),
+			})
+	} catch {
+		// Nothing remembered that can be read. The page starts empty.
+	}
 
 	mergePatch({ ready: true })
 </script>
