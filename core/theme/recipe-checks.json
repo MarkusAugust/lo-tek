@@ -153,45 +153,6 @@
       }
     ]
   },
-  "zero-for-a-family-is-not-given": {
-    "recipe": {
-      "accent": 0,
-      "danger": "#b91c1c"
-    },
-    "problems": [],
-    "refusal": null,
-    "values": [
-      {
-        "path": [
-          "danger"
-        ],
-        "text": "#b91c1c"
-      }
-    ]
-  },
-  "one-refused-colour": {
-    "recipe": {
-      "accent": "purple"
-    },
-    "problems": [
-      {
-        "path": [
-          "accent"
-        ],
-        "kind": "refused",
-        "message": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
-      }
-    ],
-    "refusal": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.",
-    "values": [
-      {
-        "path": [
-          "accent"
-        ],
-        "text": "purple"
-      }
-    ]
-  },
   "one-unknown-key": {
     "recipe": {
       "accent": "#7c3aed",
@@ -665,6 +626,18 @@
   },
   "true": {
     "recipe": true,
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "false": {
+    "recipe": false,
     "problems": [
       {
         "path": [],

@@ -25,6 +25,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { nested, themesInFrames } from "./theme-page"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -50,20 +51,6 @@ if (typeof checkRecipe !== "function") {
   process.exit(1)
 }
 
-/** Paths and values as the recipe nests them. */
-function nestedOf(values: Record<string, string>) {
-  const recipe: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(values)) {
-    const parts = key.split(".")
-    let at = recipe
-    for (const part of parts.slice(0, -1)) {
-      at[part] ??= {}
-      at = at[part] as Record<string, unknown>
-    }
-    at[parts[parts.length - 1]] = value
-  }
-  return recipe
-}
 const contract = JSON.parse(
   readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
 ) as { families: string[] }
@@ -152,23 +139,7 @@ function marks() {
   }
 }
 
-/** The theme each frame holds: the text of its styles with the generator's layer in them. */
-async function themes(): Promise<string[][]> {
-  return Promise.all(
-    ["light", "dark"].map(async (appearance) => {
-      const handle = await page
-        .locator(`iframe[data-appearance="${appearance}"]`)
-        .elementHandle()
-      const frame = await handle?.contentFrame()
-      if (!frame) return ["(no document)"]
-      return frame.evaluate(() =>
-        [...document.querySelectorAll("style")]
-          .map((style) => style.textContent ?? "")
-          .filter((text) => text.includes("lotek-theme")),
-      )
-    }),
-  )
-}
+const themes = () => themesInFrames(page)
 
 /** Waits for a state of the page, and gives the state it came to. */
 async function until<T>(read: () => Promise<T>, done: (state: T) => boolean) {
@@ -307,7 +278,7 @@ const code = await s.run(async () => {
     if (contract.families.includes(key)) await own(key).check()
     await field(key).fill(value)
   }
-  const recipe = { ...built, ...nestedOf(several) }
+  const recipe = { ...built, ...nested(several) }
   // The refused values of the recipe, by the name of the field each is
   // under: a field is named by the parts of its key's path, with dots.
   const problems = checkRecipe(recipe)
