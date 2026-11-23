@@ -279,7 +279,22 @@ theme.violations // promises that do not hold. Empty when the theme is fine
 theme.brands     // what became of each colour you gave
 ```
 
-Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`.
+Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`. It also has what the core says about the colour, ready to show: `summary`, the first line `lotek theme` writes, and `reasons`, the sentences under it. Show them as they are rather than writing your own from the numbers.
+
+If you build a form over the recipe, `checkRecipe` says what is wrong with every key at once, where `buildTheme` stops at the first:
+
+```ts
+import { checkRecipe } from "@lo-tek/interfaces/theme"
+
+checkRecipe({ accent: "purple", shape: { buttonRadius: "1px (" }, colour: "#000" })
+// {
+//   colour: "Unknown key in the recipe: colour",
+//   accent: "\"purple\" is not a valid hexadecimal colour",
+//   "shape.buttonRadius": "The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …"
+// }
+```
+
+The answer is empty when `buildTheme` would take the recipe, and each reason is the one `buildTheme` gives for that key alone.
 
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 

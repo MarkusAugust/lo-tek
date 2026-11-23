@@ -1,0 +1,158 @@
+{
+  "nothing-wrong": {
+    "recipe": {
+      "$schema": "https://lo-tek.sobernetics.no/theme.schema.json",
+      "accent": "#7c3aed",
+      "typography": {
+        "weights": {
+          "bold": 700
+        }
+      },
+      "shape": {
+        "fieldRadius": 0
+      }
+    },
+    "wrong": {}
+  },
+  "empty": {
+    "recipe": {},
+    "wrong": {}
+  },
+  "not-given": {
+    "recipe": {
+      "accent": "",
+      "danger": null,
+      "success": 0,
+      "warning": false,
+      "typography": {
+        "fontFamily": ""
+      },
+      "shape": {}
+    },
+    "wrong": {}
+  },
+  "one-refused-colour": {
+    "recipe": {
+      "accent": "purple"
+    },
+    "wrong": {
+      "accent": "\"purple\" is not a valid hexadecimal colour"
+    }
+  },
+  "one-unknown-key": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "acent": "#000"
+    },
+    "wrong": {
+      "acent": "Unknown key in the recipe: acent"
+    }
+  },
+  "three-at-once": {
+    "recipe": {
+      "accent": "purple",
+      "acent": "#000",
+      "danger": "#b91c1c",
+      "shape": {
+        "buttonRadius": "4px; } html { display: none"
+      }
+    },
+    "wrong": {
+      "accent": "\"purple\" is not a valid hexadecimal colour",
+      "acent": "Unknown key in the recipe: acent",
+      "shape.buttonRadius": "The value of buttonRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 4px; } html { display: none"
+    }
+  },
+  "every-place": {
+    "recipe": {
+      "brand1": "zz",
+      "form": {},
+      "typography": {
+        "fontFamily": "Arial (",
+        "weights": {
+          "bold": "a;b",
+          "blod": 700
+        },
+        "lineHeights": {
+          "body": 1.5,
+          "article": "1.6<"
+        }
+      },
+      "shape": {
+        "radius": "0",
+        "surfaceRadius": "1px</style>"
+      }
+    },
+    "wrong": {
+      "brand1": "\"zz\" is not a valid hexadecimal colour",
+      "form": "Unknown key in the recipe: form",
+      "typography.fontFamily": "The value of fontFamily has an unbalanced parenthesis, bracket or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: Arial (",
+      "typography.weights.bold": "The value of weights.bold cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: a;b",
+      "typography.weights.blod": "Unknown key in the recipe: typography.weights.blod",
+      "typography.lineHeights.body": "Unknown key in the recipe: typography.lineHeights.body",
+      "typography.lineHeights.article": "The value of lineHeights.article cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 1.6<",
+      "shape.radius": "Unknown key in the recipe: shape.radius",
+      "shape.surfaceRadius": "The value of surfaceRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 1px</style>"
+    }
+  },
+  "colours-that-are-not-text": {
+    "recipe": {
+      "accent": 12,
+      "danger": true,
+      "brand1": [
+        "#fff"
+      ]
+    },
+    "wrong": {
+      "accent": "\"12\" is not a valid hexadecimal colour",
+      "danger": "\"true\" is not a valid hexadecimal colour",
+      "brand1": "\"\" is not a valid hexadecimal colour"
+    }
+  },
+  "text-for-typography": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "typography": "x"
+    },
+    "wrong": {
+      "typography.0": "Unknown key in the recipe: typography.0"
+    }
+  },
+  "list-for-weights": {
+    "recipe": {
+      "typography": {
+        "weights": [
+          400
+        ]
+      }
+    },
+    "wrong": {
+      "typography.weights.0": "Unknown key in the recipe: typography.weights.0"
+    }
+  },
+  "a-text": {
+    "recipe": "text",
+    "wrong": {
+      "0": "Unknown key in the recipe: 0",
+      "1": "Unknown key in the recipe: 1",
+      "2": "Unknown key in the recipe: 2",
+      "3": "Unknown key in the recipe: 3"
+    }
+  },
+  "a-list": {
+    "recipe": [
+      1
+    ],
+    "wrong": {
+      "0": "Unknown key in the recipe: 0"
+    }
+  },
+  "null": {
+    "recipe": null,
+    "wrong": {}
+  },
+  "a-number": {
+    "recipe": 12,
+    "wrong": {}
+  }
+}

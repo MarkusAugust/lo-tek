@@ -8406,6 +8406,10 @@
         "violations",
         "css",
         "brands",
+        "summary",
+        "reasons",
+        "Lotek.checkRecipe(recipe)",
+        "buildTheme",
         "violations",
         "lotek theme",
         "buildTheme",
@@ -9673,6 +9677,12 @@
         {
           "lang": "ts",
           "meta": null,
+          "code": "import { checkRecipe } from \"@lo-tek/interfaces/theme\"\n\ncheckRecipe({ accent: \"purple\", shape: { buttonRadius: \"1px (\" }, colour: \"#000\" })\n// {\n//   colour: \"Unknown key in the recipe: colour\",\n//   accent: \"\\\"purple\\\" is not a valid hexadecimal colour\",\n//   \"shape.buttonRadius\": \"The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …\"\n// }",
+          "section": "Programmatic use"
+        },
+        {
+          "lang": "ts",
+          "meta": null,
           "code": "import { loadCore } from \"@lo-tek/interfaces/diagnostics\"\nimport wasmUrl from \"@lo-tek/interfaces/core.wasm?url\"\nimport contract from \"@lo-tek/interfaces/color-contract.json?raw\"\n\nconst core = loadCore(await WebAssembly.compileStreaming(fetch(wasmUrl)))\ncore.loadContract(contract)\nconst theme = core.buildTheme({ accent: \"#7c3aed\" })",
           "section": "Programmatic use"
         }
@@ -9767,6 +9777,13 @@
         "chromaKept",
         "breaks",
         "violations",
+        "summary",
+        "lotek theme",
+        "reasons",
+        "checkRecipe",
+        "buildTheme",
+        "buildTheme",
+        "buildTheme",
         "accent",
         "visited",
         "brand1",

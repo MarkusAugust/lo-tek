@@ -281,6 +281,56 @@ for (const [name, { recipe, theme, error: expectedError }] of Object.entries(
       `theme/recipes.json, ${name}\n  Expected: ${sorted(expected).slice(0, 400)}\n  Core:     ${sorted(answer).slice(0, 400)}`,
     )
 }
+/*
+ * `checkRecipe`: what is wrong with a recipe, per key and all at once. The
+ * expected answers are in a file of their own, since these recipes are
+ * there for what is wrong with them, several things at a time, and some
+ * are not objects at all; `recipes.json` is what `buildTheme` gives, and is
+ * read as such by more than this check.
+ *
+ * And the tie between the two, over both files: `checkRecipe` finds
+ * something exactly when `buildTheme` refuses the recipe, apart from the
+ * empty theme, which is about no key.
+ */
+const recipeChecks: Record<string, { recipe: unknown; wrong: unknown }> =
+  JSON.parse(readFileSync(join(THEME, "recipe-checks.json"), "utf8"))
+for (const [name, { recipe, wrong }] of Object.entries(recipeChecks)) {
+  count += 1
+  let answer: unknown
+  try {
+    answer = core.checkRecipe(recipe)
+  } catch (e) {
+    answer = `threw: ${e instanceof Error ? e.message : e}`
+  }
+  if (sorted(answer) !== sorted(wrong))
+    failures.push(
+      `theme/recipe-checks.json, ${name}\n  Expected: ${sorted(wrong).slice(0, 400)}\n  Core:     ${sorted(answer).slice(0, 400)}`,
+    )
+}
+for (const [file, cases] of [
+  ["recipes.json", recipes],
+  ["recipe-checks.json", recipeChecks],
+] as const)
+  for (const [name, { recipe }] of Object.entries(cases)) {
+    count += 1
+    let refuses = false
+    try {
+      core.buildTheme(recipe)
+    } catch (e) {
+      refuses = !String(e instanceof Error ? e.message : e).startsWith(
+        "The theme is empty",
+      )
+    }
+    let found = -1
+    try {
+      found = Object.keys(core.checkRecipe(recipe)).length
+    } catch {}
+    if (found < 0 || found > 0 !== refuses)
+      failures.push(
+        `theme/${file}, ${name}: buildTheme ${refuses ? "refuses" : "takes"} the recipe, and checkRecipe ${found < 0 ? "threw" : `finds ${found} things wrong`}`,
+      )
+  }
+
 const reports: Record<string, unknown> = JSON.parse(
   readFileSync(join(THEME, "reports.json"), "utf8"),
 )

@@ -342,7 +342,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<!-- What was chosen becomes the recipe, and the recipe becomes the
 				     theme. The core is asked only when it has been loaded. -->
 				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
-				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own, $fields))"></div>
+				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own))"></div>
 				<div hidden data-effect="$ready && ($built.ok ? ($shown = $built.css) : $built.error === '' && ($shown = ''))"></div>
 
 				<section class="builder__recipe" aria-labelledby="recipe-title">
@@ -1146,8 +1146,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 
 	type Row = Record<string, string>
 
-	/** What the core answers to a recipe of one key, when it refuses it. */
-	const refusal = (recipe: Fields): string => {
+	/** What `buildTheme` says when it refuses a recipe, or nothing when it takes it. */
+	const refusal = (recipe: unknown): string => {
 		try {
 			core.buildTheme(recipe)
 			return ""
@@ -1156,18 +1156,27 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		}
 	}
 
-	/** What is wrong with every field of a block, in the shape of the block. */
-	const wrongIn = (block: Fields, alone: (leaf: Fields) => Fields): Fields =>
+	/**
+	 * What the core finds wrong, laid at the fields: the reason at every
+	 * field whose path the core names, and nothing at the others, in the
+	 * shape of `blank`.
+	 */
+	const atFields = (blank: Fields, wrong: Record<string, string>, at = ""): Fields =>
 		Object.fromEntries(
-			Object.entries(block).map(([name, value]) => [
+			Object.entries(blank).map(([name, value]) => [
 				name,
-				typeof value !== "string"
-					? wrongIn(value, (leaf) => alone({ [name]: leaf }))
-					: value.trim() === ""
-						? ""
-						: refusal(alone({ [name]: value.trim() })),
+				typeof value === "string"
+					? (wrong[at + name] ?? "")
+					: atFields(value, wrong, `${at}${name}.`),
 			]),
 		)
+
+	/** Whether the builder has a field for the key at `path`. */
+	const hasField = (blank: Fields, path: string) =>
+		typeof path.split(".").reduce<string | Fields | undefined>(
+			(inner, name) => (typeof inner === "object" ? inner[name] : undefined),
+			blank,
+		) === "string"
 
 	// The report of the last theme that was built: what the rows hold while
 	// a field is being typed in and the recipe does not build, for the
@@ -1180,28 +1189,14 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	// the note at the signals.
 	action({
 		name: "buildTheme",
-		apply(_: unknown, recipe: string, own: Record<string, boolean>, fields: Fields) {
+		apply(_: unknown, recipe: string, own: Record<string, boolean>) {
 			const families = Object.keys(own)
 			const noRow = { given: "", light: "", dark: "", reason1: "", reason2: "", reason3: "", reason4: "" }
 			const empty = Object.fromEntries(families.map((name) => [name, { ...noRow }]))
-			// A field is asked about alone, so the answer is about that field:
-			// the core stops at the first thing it refuses.
-			const wrong: Fields = {
-				...Object.fromEntries(
-					families.map((name) => {
-						const value = fields[name]
-						return [
-							name,
-							own[name] && typeof value === "string" && value.trim() !== ""
-								? refusal({ [name]: value.trim() })
-								: "",
-						]
-					}),
-				),
-				typography: wrongIn(fields.typography as Fields, (leaf) => ({ typography: leaf })),
-				shape: wrongIn(fields.shape as Fields, (leaf) => ({ shape: leaf })),
-			}
 			const chosen = JSON.parse(recipe)
+			// The core says what is wrong with every key at once, and the
+			// page lays each reason at its field.
+			const wrong = atFields(first.fields, core.checkRecipe(chosen))
 			if (Object.keys(chosen).length === 0) {
 				lastReport = undefined
 				return { ok: false, css: "", error: "", wrong, report: empty }
@@ -1366,10 +1361,15 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			if (recipe === null || typeof recipe !== "object" || Array.isArray(recipe))
 				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
 			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
-			const answer = refusal(keys as Fields)
+			const answer = refusal(keys)
 			const strange = odd(first.fields, keys)
-			if (answer.startsWith("Unknown key in the recipe") || (answer !== "" && strange))
-				return refuse(answer)
+			// A key the builder has no field for cannot be shown, and neither
+			// can a value that is not text. The core says what it makes of
+			// the recipe as a whole, and that is what is shown.
+			const stranger = Object.keys(core.checkRecipe(keys)).some(
+				(path) => !hasField(first.fields, path),
+			)
+			if (stranger || (answer !== "" && strange)) return refuse(answer)
 			// The core writes `true` where it is given `true`. No field can
 			// hold it, and to leave it out without a word would be to change
 			// the recipe.

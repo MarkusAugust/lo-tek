@@ -590,6 +590,72 @@ pub fn unknown_recipe_keys(input: &Json) -> Vec<String> {
     unknown_keys(input, &contract().families)
 }
 
+/// What `build_theme` answers to a recipe that gives nothing. It is about no
+/// key, so `check_recipe` has nothing to say of such a recipe.
+const EMPTY: &str = "The theme is empty. Give either brand colours, or typography and shape.";
+
+/// The recipe that has `value` at `path` and nothing else.
+fn alone(path: &[&str], value: &Json) -> Json {
+    path.iter().rev().fold(value.clone(), |inner, key| {
+        Json::Object(vec![(key.to_string(), inner)])
+    })
+}
+
+/// What is wrong with a recipe, per key and all at once: the path of each
+/// key the theme does not have or whose value it refuses, with the reason.
+/// Empty when `build_theme` would take the recipe.
+///
+/// `build_theme` stops at the first thing it refuses, which is right for a
+/// run and wrong for a form: a host with a field per key would have to ask
+/// once per field, and would have to know that. So the core asks itself.
+/// A value is refused here exactly when a recipe holding it alone is, and
+/// with the same words, because that recipe is what is built.
+pub fn check_recipe(input: &Json) -> Vec<(String, String)> {
+    let contract = contract();
+    let mut wrong: Vec<(String, String)> = unknown_keys(input, &contract.families)
+        .into_iter()
+        .map(|key| {
+            let message = format!("Unknown key in the recipe: {key}");
+            (key, message)
+        })
+        .collect();
+    let typography = input.get("typography");
+    let shape = input.get("shape");
+    let mut known: Vec<(Vec<&str>, Option<&Json>)> = contract
+        .families
+        .iter()
+        .map(|name| (vec![name.as_str()], input.get(name)))
+        .collect();
+    known.push((
+        vec!["typography", "fontFamily"],
+        path(typography, "fontFamily"),
+    ));
+    for (block, keys) in [
+        ("weights", &WEIGHT_KEYS[..]),
+        ("lineHeights", &LINE_KEYS[..]),
+    ] {
+        let values = path(typography, block);
+        known.extend(
+            keys.iter()
+                .map(|key| (vec!["typography", block, *key], path(values, key))),
+        );
+    }
+    known.extend(
+        SHAPE_KEYS
+            .iter()
+            .map(|key| (vec!["shape", *key], path(shape, key))),
+    );
+    for (at, value) in known {
+        let Some(value) = value else { continue };
+        if let Err(message) = build_theme(&alone(&at, value)) {
+            if message != EMPTY {
+                wrong.push((at.join("."), message));
+            }
+        }
+    }
+    wrong
+}
+
 /// Builds the theme, and checks every promise while it is built.
 ///
 /// `input` is the recipe: the brand colours per family, and `typography` and
@@ -622,9 +688,7 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
     let shape = given_block(input.get("shape"));
 
     if given_families.is_empty() && typography.is_none() && shape.is_none() {
-        return Err(
-            "The theme is empty. Give either brand colours, or typography and shape.".into(),
-        );
+        return Err(EMPTY.into());
     }
     // A theme without colours is not a curiosity: when the organisation
     // already uses LO-TEK's colours, the font and the corners are what set it apart.
@@ -1092,6 +1156,137 @@ mod recipe_tests {
             gone.is_empty(),
             "no stylesheet reads the corner of {gone:?}"
         );
+    }
+
+    /// What `check_recipe` finds wrong, sorted by the path of the key.
+    fn wrong(recipe: &Json) -> Vec<(String, String)> {
+        let mut found = check_recipe(recipe);
+        found.sort();
+        found
+    }
+
+    /// A file of expected results in `core/theme/`, as its cases by name.
+    fn expected(file: &str) -> Vec<(String, Json)> {
+        let path = format!("{}/theme/{file}", env!("CARGO_MANIFEST_DIR"));
+        let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}"));
+        parse(&text).unwrap().as_object().unwrap().to_vec()
+    }
+
+    #[test]
+    fn check_recipe_says_everything_that_is_wrong_at_once() {
+        // `build_theme` stops at the first thing it refuses, which is right
+        // for one answer and useless for a form: with two fields wrong, the
+        // second is told nothing until the first is put right. Here every
+        // key has its own answer, and the answer is the one `build_theme`
+        // gives for that key alone.
+        let recipe = parse(
+            r##"{"accent": "purple", "acent": "#000", "danger": "#b91c1c", "shape": {"buttonRadius": "4px; } html { display: none"}}"##,
+        )
+        .unwrap();
+        let alone = |recipe: &str| theme(recipe).err().unwrap();
+        assert_eq!(
+            wrong(&recipe),
+            [
+                ("accent".to_string(), alone(r#"{"accent": "purple"}"#)),
+                (
+                    "acent".to_string(),
+                    "Unknown key in the recipe: acent".to_string()
+                ),
+                (
+                    "shape.buttonRadius".to_string(),
+                    alone(r#"{"shape": {"buttonRadius": "4px; } html { display: none"}}"#)
+                ),
+            ]
+        );
+        // And nothing about a recipe that is in order, or about its schema.
+        let fine = parse(
+            r##"{"$schema": "https://example.com/recipe.json", "accent": "#7c3aed", "shape": {"fieldRadius": 0}}"##,
+        )
+        .unwrap();
+        assert!(wrong(&fine).is_empty(), "{:?}", wrong(&fine));
+    }
+
+    #[test]
+    fn check_recipe_answers_as_the_expected_results_say() {
+        // The same file the package and Kotlin are held to.
+        let cases = expected("recipe-checks.json");
+        assert!(cases.len() > 10, "only {} cases", cases.len());
+        for (name, case) in &cases {
+            let mut wanted: Vec<(String, String)> = case
+                .get("wrong")
+                .and_then(Json::as_object)
+                .unwrap()
+                .iter()
+                .map(|(path, message)| (path.clone(), message.as_str().unwrap().to_string()))
+                .collect();
+            wanted.sort();
+            assert_eq!(wrong(case.get("recipe").unwrap()), wanted, "{name}");
+        }
+    }
+
+    #[test]
+    fn check_recipe_finds_something_exactly_when_build_theme_refuses() {
+        // The two never disagree about whether a recipe is in order. The one
+        // refusal that is about no key is the empty theme. Over every recipe
+        // of the expected results, those that build and those that do not.
+        let mut refused = 0;
+        let mut taken = 0;
+        for file in ["recipes.json", "recipe-checks.json"] {
+            for (name, case) in expected(file) {
+                let recipe = case.get("recipe").unwrap();
+                let refuses = match build_theme(recipe) {
+                    Ok(_) => false,
+                    Err(message) => !message.starts_with("The theme is empty"),
+                };
+                assert_eq!(
+                    !check_recipe(recipe).is_empty(),
+                    refuses,
+                    "{file}, {name}: {:?}",
+                    check_recipe(recipe)
+                );
+                if refuses {
+                    refused += 1;
+                } else {
+                    taken += 1;
+                }
+            }
+        }
+        assert!(
+            refused > 10 && taken > 8,
+            "{refused} refused, {taken} taken"
+        );
+    }
+
+    #[test]
+    fn what_check_recipe_says_of_a_value_is_what_build_theme_says_of_it_alone() {
+        // For every value it refuses, in every recipe of the expected
+        // results: the recipe with only that key gets that message.
+        let mut held = 0;
+        for file in ["recipes.json", "recipe-checks.json"] {
+            for (name, case) in expected(file) {
+                let recipe = case.get("recipe").unwrap();
+                for (path, message) in check_recipe(recipe) {
+                    if message == format!("Unknown key in the recipe: {path}") {
+                        continue;
+                    }
+                    let parts: Vec<&str> = path.split('.').collect();
+                    let value = parts
+                        .iter()
+                        .try_fold(recipe, |at, part| at.get(part))
+                        .unwrap_or_else(|| panic!("{file}, {name}: the recipe has no {path}"));
+                    let alone = parts.iter().rev().fold(value.clone(), |inner, part| {
+                        Json::Object(vec![(part.to_string(), inner)])
+                    });
+                    assert_eq!(
+                        build_theme(&alone).err(),
+                        Some(message),
+                        "{file}, {name}: {path}"
+                    );
+                    held += 1;
+                }
+            }
+        }
+        assert!(held > 12, "only {held} refused values");
     }
 
     #[test]

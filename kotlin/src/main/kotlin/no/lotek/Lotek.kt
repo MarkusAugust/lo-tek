@@ -95,6 +95,26 @@ object Lotek {
         )
 
     /**
+     * Says what is wrong with a recipe, per key and all at once.
+     *
+     * [buildTheme] stops at the first thing it refuses. This answers with
+     * every reason, from the path of a key, `typography.weights.bold`, to the
+     * reason, in the words [buildTheme] would refuse it with. The map is empty
+     * when [buildTheme] would take the recipe.
+     *
+     * [recipe] is the JSON text of a recipe. It is handed to the core as it
+     * is: a key the theme does not have is one of the things reported, and so
+     * is a recipe that is a list or a text. Only text that is not JSON throws
+     * [IllegalArgumentException]. If the colour contract is missing from the
+     * jar, it throws [IllegalStateException].
+     */
+    fun checkRecipe(recipe: String): Map<String, String> {
+        val (status, answer) = withCore { it.useContract(); it.callWithStatus(CHECK_RECIPE, recipe) }
+        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        return (Json.parse(answer) as Map<*, *>).entries.associate { (path, message) -> path as String to message as String }
+    }
+
+    /**
      * Builds a colour theme from the recipe, as `lotek theme` does.
      *
      * [recipe] is the JSON text of a recipe file: the nine colours
@@ -251,6 +271,7 @@ object Lotek {
     private const val PAGE = "diagnose_page_raw"
     private const val STYLED = "diagnose_styled_raw"
     private const val BUILD_THEME = "build_theme_raw"
+    private const val CHECK_RECIPE = "check_recipe_raw"
     private const val INSPECT_THEME = "inspect_theme_raw"
 
     private fun finding(f: Map<*, *>): Finding =

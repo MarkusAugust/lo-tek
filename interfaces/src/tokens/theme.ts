@@ -109,3 +109,17 @@ export type Theme = {
 export function buildTheme(input: ThemeInput): Theme {
   return defaultCore().buildTheme(input)
 }
+
+/**
+ * Says what is wrong with a recipe, per key and all at once.
+ *
+ * `buildTheme` stops at the first thing it refuses. A form with a field per
+ * key wants every reason, each at its field: the answer is an object from
+ * the path of a key, `typography.weights.bold`, to the reason, in the words
+ * `buildTheme` would refuse it with. It is empty when `buildTheme` would take
+ * the recipe, and it never throws for a recipe: a key the theme does not
+ * have is one of the things it reports.
+ */
+export function checkRecipe(input: unknown): Record<string, string> {
+  return defaultCore().checkRecipe(input)
+}

@@ -24,6 +24,27 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **Each row of `brands` has two more fields, `summary` and `reasons`.**
+  They are required in `Brand` in TypeScript and in `ThemeBrand` in Kotlin,
+  where they come after `dark`. Code that only reads a theme is unaffected.
+  Code that builds a row by hand, or implements `Core` itself, must add them.
+
+### Added
+
+- **The theme says in words what became of a brand colour.** `summary` is
+  the first line `lotek theme` writes about the colour, and `reasons` the
+  sentences under it. They are written by the core, so the command line, the
+  theme builder, TypeScript and Kotlin give the same text, and a host shows
+  it rather than composing its own from the numbers.
+- **`checkRecipe` says what is wrong with every key of a recipe at once.**
+  `buildTheme` stops at the first thing it refuses. `checkRecipe` answers
+  with an object from the path of each key, `shape.buttonRadius`, to the
+  reason, and with an empty one when `buildTheme` would take the recipe. It
+  is `checkRecipe` from `@lo-tek/interfaces/theme`, `Lotek.checkRecipe` in
+  Kotlin, and on the `Core` that `loadCore` gives.
+
 ## 0.48.0 (2026-11-23)
 
 ### Added

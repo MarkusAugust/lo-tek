@@ -15,6 +15,7 @@ import {
   type Brand,
   type BrandFill,
   buildTheme,
+  checkRecipe,
   type ThemeInput,
 } from "../src/tokens/theme.js"
 
@@ -107,4 +108,32 @@ test("typography and shape without keys are not a theme", () => {
       "The theme is empty. Give either brand colours, or typography and shape.",
     ),
   )
+})
+
+/*
+ * What is wrong with a recipe, per key and all at once: for a form, where
+ * `buildTheme` would stop at the first thing and say nothing of the rest.
+ */
+test("checkRecipe says what is wrong with each key, in the core's words", () => {
+  const wrong: Record<string, string> = checkRecipe({
+    accent: "purple",
+    acent: "#000",
+    shape: { buttonRadius: "4px;" },
+  })
+  const alone = (recipe: unknown) => {
+    try {
+      buildTheme(recipe as ThemeInput)
+    } catch (error) {
+      return (error as Error).message
+    }
+    return "(the core takes it)"
+  }
+  expect(wrong).toEqual({
+    accent: alone({ accent: "purple" }),
+    acent: "Unknown key in the recipe: acent",
+    "shape.buttonRadius": alone({ shape: { buttonRadius: "4px;" } }),
+  })
+  expect(checkRecipe({ accent: "#7c3aed" })).toEqual({})
+  // Never a refusal of its own: also what is no recipe at all is answered.
+  expect(checkRecipe([1])).toEqual({ "0": "Unknown key in the recipe: 0" })
 })

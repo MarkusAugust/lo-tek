@@ -227,7 +227,19 @@ const CORE_SAYS = [
   "cannot be the fill as it is",
   "is less saturated than",
   "against a raised surface it",
+  // A host that reads this off an answer is telling the core's refusals
+  // apart by their wording. `checkRecipe` says which key is which.
+  "Unknown key in the recipe",
 ]
+/*
+ * One host still writes one of them, and is named so it is seen: the
+ * command puts "Unknown key in the recipe: …" together itself, from the
+ * keys the core lists, to add where the full overview is. Take the line
+ * out when the command shows the core's own message.
+ */
+const STILL_SAID_BY = new Map([
+  ["Unknown key in the recipe", "cli/src/theme.rs"],
+])
 /** Where a host's own code is. A test in it is not the host. */
 const isHost = (rel: string) =>
   (/^(cli\/src|interfaces\/src|documentation\/src\/pages|documentation\/src\/components)\//.test(
@@ -242,6 +254,7 @@ const hostFiles = new Map<string, number>(
   ),
 )
 const saidByTheCore = new Map<string, number>(CORE_SAYS.map((p) => [p, 0]))
+let stillSaid = 0
 
 let searched = 0
 for (const rel of new Set(listed.stdout.toString().split("\0"))) {
@@ -257,6 +270,7 @@ for (const rel of new Set(listed.stdout.toString().split("\0"))) {
       if (!source.includes(phrase)) continue
       if (rel.startsWith("core/src/"))
         saidByTheCore.set(phrase, (saidByTheCore.get(phrase) ?? 0) + 1)
+      else if (STILL_SAID_BY.get(phrase) === rel) stillSaid += 1
       else {
         const line = source.slice(0, source.indexOf(phrase)).split("\n").length
         findings.push(
@@ -295,6 +309,12 @@ const empty = [...read].filter(([, count]) => count === 0)
 // phrase the core does not write is one that has changed under the guard.
 for (const [host, count] of hostFiles)
   if (count === 0) empty.push([`${host} (what only the core says)`, 0])
+// An exception nothing uses any more is an exception to take out.
+if (stillSaid !== STILL_SAID_BY.size)
+  empty.push([
+    `the hosts named as still writing a sentence of the core's (${[...STILL_SAID_BY.values()].join(", ")} no longer does)`,
+    0,
+  ])
 for (const [phrase, count] of saidByTheCore)
   if (count === 0)
     empty.push([`core/src/ for "${phrase}" (the core no longer says it)`, 0])

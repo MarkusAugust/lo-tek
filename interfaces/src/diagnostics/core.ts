@@ -161,6 +161,12 @@ export type Core = {
   version(): CoreVersion
   /** Builds a theme from the recipe. Throws without a colour contract, or when the recipe cannot be used. */
   buildTheme(recipe: unknown): CoreTheme
+  /**
+   * What is wrong with a recipe, per key and all at once: from the path of a
+   * key, `shape.buttonRadius`, to the reason. Empty when `buildTheme` would
+   * take the recipe. Throws without a colour contract.
+   */
+  checkRecipe(recipe: unknown): Record<string, string>
   /** Checks every promise in a theme written as CSS. Throws without a colour contract. */
   inspectTheme(css: string): CoreThemeReport
   /** The classes and attribute values a stylesheet styles, read with the core's CSS reader. */
@@ -182,6 +188,7 @@ type Exports = {
   load_contract_raw(pointer: number, length: number): number
   version_raw(): void
   build_theme_raw(pointer: number, length: number): number
+  check_recipe_raw(pointer: number, length: number): number
   inspect_theme_raw(pointer: number, length: number): number
   inspect_styles_raw(pointer: number, length: number): void
   diagnose_styled_raw(pointer: number, length: number): number
@@ -251,6 +258,8 @@ export function loadCore(source: BufferSource | WebAssembly.Module): Core {
     },
     buildTheme: (recipe) =>
       answer(e.build_theme_raw(...write(JSON.stringify(recipe)))),
+    checkRecipe: (recipe) =>
+      answer(e.check_recipe_raw(...write(JSON.stringify(recipe)))),
     inspectTheme: (css) => answer(e.inspect_theme_raw(...write(css))),
     inspectStyles: (css) => {
       e.inspect_styles_raw(...write(css))

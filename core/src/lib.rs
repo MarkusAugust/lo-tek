@@ -429,6 +429,31 @@ pub unsafe extern "C" fn build_theme_raw(ptr: *mut u8, length: usize) -> u32 {
     }
 }
 
+/// Says what is wrong with a recipe, per key and all at once, as an object
+/// from the path of a key to the reason. Answers 0 with the object, empty when
+/// nothing is wrong, or 1 when the recipe is not JSON or the core has not
+/// been given a colour contract.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn check_recipe_raw(ptr: *mut u8, length: usize) -> u32 {
+    if !theme::contract::loaded() {
+        return refuse(NO_CONTRACT);
+    }
+    match json::parse(&read_input(ptr, length)) {
+        Ok(input) => {
+            let wrong: Vec<String> = theme::check_recipe(&input)
+                .iter()
+                .map(|(path, message)| format!("{}:{}", json_string(path), json_string(message)))
+                .collect();
+            respond(format!("{{{}}}", wrong.join(",")));
+            0
+        }
+        Err(error) => refuse(&error),
+    }
+}
+
 /// Checks a theme the host has written in, as CSS text. Returns 0 with the
 /// report, or 1 when the core has not been given a colour contract.
 ///
