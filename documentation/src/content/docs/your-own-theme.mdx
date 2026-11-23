@@ -281,20 +281,22 @@ theme.brands     // what became of each colour you gave
 
 Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`. It also has what the core says about the colour, ready to show: `summary`, the first line `lotek theme` writes, and `reasons`, the sentences under it. Show them as they are rather than writing your own from the numbers.
 
-If you build a form over the recipe, `checkRecipe` says what is wrong with every key at once, where `buildTheme` stops at the first:
+If you build a form over the recipe, `checkRecipe` says everything that is wrong with it at once, where `buildTheme` refuses with one sentence:
 
 ```ts
 import { checkRecipe } from "@lo-tek/interfaces/theme"
 
 checkRecipe({ accent: "purple", shape: { buttonRadius: "1px (" }, colour: "#000" })
-// {
-//   colour: "Unknown key in the recipe: colour",
-//   accent: "\"purple\" is not a valid hexadecimal colour",
-//   "shape.buttonRadius": "The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …"
-// }
+// [
+//   { path: ["colour"], kind: "unknown", message: "Unknown key in the recipe: colour" },
+//   { path: ["accent"], kind: "refused", message: "\"purple\" is not a valid hexadecimal colour" },
+//   { path: ["shape", "buttonRadius"], kind: "refused", message: "The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …" }
+// ]
 ```
 
-The answer is empty when `buildTheme` would take the recipe, and each reason is the one `buildTheme` gives for that key alone.
+Each problem has the `path` of its key as segments, since a key may have a dot in its name, the `kind`, and the `message` for a person. `unknown` is a key the recipe does not have and `refused` a value the core does not take. Two kinds are about the recipe as a whole and have an empty path: `empty`, when it gives nothing, and `notARecipe`, when it is not an object. Decide on `kind`, and show `message` as it is: its wording may change.
+
+The list is empty exactly when `buildTheme` takes the recipe.
 
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 

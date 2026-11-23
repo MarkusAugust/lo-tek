@@ -635,8 +635,12 @@ block(async () => {
   await writeFile(path, JSON.stringify({ accent: true }))
   const boolean = await run(["theme", path])
   expect(boolean.code === 1, `a colour that is true gave ${boolean.code}`)
+  // `true` is not text, and the core says so, where it used to try to read
+  // the word as a colour.
   expect(
-    boolean.err === answer("true"),
+    boolean.err.includes(
+      "The value of accent must be text or a number. Got: true",
+    ) && boolean.out === "",
     `a colour that is true was not refused: ${JSON.stringify(boolean.err.slice(0, 200))}`,
   )
 
@@ -666,7 +670,7 @@ block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
 
-  for (const recipe of [{ typography: 12 }, { shape: {} }]) {
+  for (const recipe of [{ typography: null }, { shape: {} }]) {
     await writeFile(path, JSON.stringify(recipe))
     const { code, err } = await run(["theme", path])
     expect(code === 1, `${JSON.stringify(recipe)} alone gave code ${code}`)
@@ -729,7 +733,7 @@ block(async () => {
 })
 
 // Text where the weights or the line heights should be an object is
-// unknown keys, one per character, as it is in Kotlin
+// refused where it stands, in the core's words, as it is in Kotlin
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
@@ -739,12 +743,23 @@ block(async () => {
     const { code, out, err } = await run(["theme", path])
     expect(code === 1, `text for ${block} gave code ${code}`)
     expect(
-      err ===
-        `Unknown key in the recipe: typography.${block}.0, typography.${block}.1\n\nFull overview: lotek --help\n\n` &&
-        out === "",
-      `text for ${block} was not refused as unknown keys: ${JSON.stringify(err.slice(0, 200))}`,
+      err.includes(
+        `typography.${block} is not an object with its keys in it. Got: "ab"`,
+      ) && out === "",
+      `text for ${block} was not refused as a block that is not an object: ${JSON.stringify(err.slice(0, 200))}`,
     )
   }
+  // And a number, which used to be passed over without a word.
+  await writeFile(path, JSON.stringify({ accent: "#7c3aed", typography: 12 }))
+  const number = await run(["theme", path])
+  expect(
+    number.code === 1 &&
+      number.err.includes(
+        "typography is not an object with its keys in it. Got: 12",
+      ) &&
+      number.out === "",
+    `a number for typography was not refused: ${JSON.stringify(number.err.slice(0, 200))}`,
+  )
 
   await rm(folder, { recursive: true, force: true })
 })

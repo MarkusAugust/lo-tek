@@ -16,6 +16,7 @@ import {
   type BrandFill,
   buildTheme,
   checkRecipe,
+  type RecipeProblem,
   type ThemeInput,
 } from "../src/tokens/theme.js"
 
@@ -111,14 +112,17 @@ test("typography and shape without keys are not a theme", () => {
 })
 
 /*
- * What is wrong with a recipe, per key and all at once: for a form, where
- * `buildTheme` would stop at the first thing and say nothing of the rest.
+ * What is wrong with a recipe, problem by problem and all at once: for a
+ * form, where `buildTheme` would stop at the first thing and say nothing of
+ * the rest. Each problem says which key, as the parts of its path, what
+ * kind it is, and the sentence for a person, so nobody reads the sentence
+ * to tell an unknown key from a refused value.
  */
-test("checkRecipe says what is wrong with each key, in the core's words", () => {
-  const wrong: Record<string, string> = checkRecipe({
-    accent: "purple",
-    acent: "#000",
+test("checkRecipe says what is wrong, problem by problem, in the core's words", () => {
+  const problems: RecipeProblem[] = checkRecipe({
     shape: { buttonRadius: "4px;" },
+    acent: "#000",
+    accent: "purple",
   })
   const alone = (recipe: unknown) => {
     try {
@@ -128,12 +132,50 @@ test("checkRecipe says what is wrong with each key, in the core's words", () => 
     }
     return "(the core takes it)"
   }
-  expect(wrong).toEqual({
-    accent: alone({ accent: "purple" }),
-    acent: "Unknown key in the recipe: acent",
-    "shape.buttonRadius": alone({ shape: { buttonRadius: "4px;" } }),
-  })
-  expect(checkRecipe({ accent: "#7c3aed" })).toEqual({})
-  // Never a refusal of its own: also what is no recipe at all is answered.
-  expect(checkRecipe([1])).toEqual({ "0": "Unknown key in the recipe: 0" })
+  // The unknown keys first, then the refused values in the order of the
+  // schema: the order is part of the answer.
+  expect(problems).toEqual([
+    {
+      path: ["acent"],
+      kind: "unknown",
+      message: "Unknown key in the recipe: acent",
+    },
+    {
+      path: ["accent"],
+      kind: "refused",
+      message: alone({ accent: "purple" }),
+    },
+    {
+      path: ["shape", "buttonRadius"],
+      kind: "refused",
+      message: alone({ shape: { buttonRadius: "4px;" } }),
+    },
+  ])
+  // The kinds are a closed set, and the type says which.
+  const kind: "unknown" | "refused" | "empty" | "notARecipe" = problems[0].kind
+  expect(kind).toBe("unknown")
+  expect(checkRecipe({ accent: "#7c3aed" })).toEqual([])
+})
+
+test("checkRecipe answers for what is no recipe, and for none at all", () => {
+  // Never a refusal of its own: a list is answered, as a problem with the
+  // whole recipe, which has no path.
+  expect(checkRecipe([1]).map((p) => [p.path, p.kind])).toEqual([
+    [[], "notARecipe"],
+  ])
+  expect(checkRecipe({}).map((p) => [p.path, p.kind])).toEqual([[[], "empty"]])
+  // What cannot be written as JSON cannot be asked about: that is the one
+  // thing the call itself refuses, and it says why.
+  expect(() => checkRecipe(undefined)).toThrow(/JSON/)
+})
+
+test("a key with a dot in its name is not the key it looks like", () => {
+  const paths = checkRecipe({
+    "shape.buttonRadius": "4px",
+    shape: { buttonRadius: "4px;" },
+  }).map((p) => [p.path, p.kind])
+  expect(paths).toEqual([
+    [["shape.buttonRadius"], "unknown"],
+    [["shape", "buttonRadius"], "refused"],
+  ])
 })

@@ -95,23 +95,30 @@ object Lotek {
         )
 
     /**
-     * Says what is wrong with a recipe, per key and all at once.
+     * Says what is wrong with a recipe, all at once.
      *
-     * [buildTheme] stops at the first thing it refuses. This answers with
-     * every reason, from the path of a key, `typography.weights.bold`, to the
-     * reason, in the words [buildTheme] would refuse it with. The map is empty
-     * when [buildTheme] would take the recipe.
+     * [buildTheme] refuses with one sentence. This answers with every
+     * problem: the path of its key as segments, the kind, and the message
+     * for a person. The problems about the recipe as a whole come first, then
+     * the keys the recipe does not have, then the values the core refuses, in
+     * the order of the keys. The list is empty exactly when [buildTheme]
+     * takes the recipe.
      *
-     * [recipe] is the JSON text of a recipe. It is handed to the core as it
-     * is: a key the theme does not have is one of the things reported, and so
-     * is a recipe that is a list or a text. Only text that is not JSON throws
-     * [IllegalArgumentException]. If the colour contract is missing from the
-     * jar, it throws [IllegalStateException].
+     * [recipe] is the JSON text of a recipe, handed to the core as it is.
+     * Text that is not JSON throws [IllegalArgumentException]. If the colour
+     * contract is missing from the jar, it throws [IllegalStateException].
      */
-    fun checkRecipe(recipe: String): Map<String, String> {
+    fun checkRecipe(recipe: String): List<RecipeProblem> {
         val (status, answer) = withCore { it.useContract(); it.callWithStatus(CHECK_RECIPE, recipe) }
         if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
-        return (Json.parse(answer) as Map<*, *>).entries.associate { (path, message) -> path as String to message as String }
+        return (Json.parse(answer) as List<*>).map { p ->
+            val m = p as Map<*, *>
+            RecipeProblem(
+                path = (m["path"] as List<*>).map { it as String },
+                kind = m["kind"] as String,
+                message = m["message"] as String,
+            )
+        }
     }
 
     /**
@@ -129,8 +136,7 @@ object Lotek {
      * [IllegalStateException].
      */
     fun buildTheme(recipe: String): Theme {
-        val input = Json.write(ThemeRecipe.toCore(recipe))
-        val (status, answer) = withCore { it.useContract(); it.callWithStatus(BUILD_THEME, input) }
+        val (status, answer) = withCore { it.useContract(); it.callWithStatus(BUILD_THEME, recipe) }
         if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
         val theme = Json.parse(answer) as Map<*, *>
         return Theme(
@@ -388,6 +394,20 @@ data class Theme(
 )
 
 /**
+ * One thing that is wrong with a recipe, the same fields as `RecipeProblem`
+ * in TypeScript. [kind] is what code decides on: `unknown` is a key the
+ * recipe does not have, `refused` a value the core does not take, and `empty`
+ * and `notARecipe` are about the recipe as a whole, with an empty [path].
+ * [message] is the sentence for a person, and its wording may change.
+ */
+data class RecipeProblem(
+    /** The key it is about, as the segments of its path. A key may have a dot in its name. */
+    val path: List<String>,
+    val kind: String,
+    val message: String,
+)
+
+/**
  * What became of one brand colour: the colour the recipe [given], as
  * `#rrggbb`, the fill it got in each scheme, and what the core says about
  * it, as a [summary] and the [reasons]. The lightness is the role's,
@@ -438,18 +458,6 @@ data class ThemeProblem(
     val selector: String,
     val message: String,
 )
-
-/**
- * The recipe as `lotek theme` reads it. The core knows the keys, and a key
- * that is not there throws, since a typo would otherwise look like a recipe
- * that worked. Only a recipe that is not an object is answered here: that is
- * about the file, and the core is never asked.
- */
-internal object ThemeRecipe {
-    fun toCore(recipe: String): Map<*, *> =
-        Json.parse(recipe) as? Map<*, *>
-            ?: throw IllegalArgumentException("The recipe is valid JSON, but not an object with the colours in it.")
-}
 
 /** One edit in a fix: replace the text from `start` to `end` with `text`. */
 data class Edit(

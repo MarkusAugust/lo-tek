@@ -29,7 +29,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **Each row of `brands` has two more fields, `summary` and `reasons`.**
   They are required in `Brand` in TypeScript and in `ThemeBrand` in Kotlin,
   where they come after `dark`. Code that only reads a theme is unaffected.
-  Code that builds a row by hand, or implements `Core` itself, must add them.
+  Code that builds a row by hand must add them.
+- **`Core` has a new operation, `checkRecipe`.** Code that implements `Core`
+  itself must add it.
 
 ### Added
 
@@ -38,12 +40,26 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   sentences under it. They are written by the core, so the command line, the
   theme builder, TypeScript and Kotlin give the same text, and a host shows
   it rather than composing its own from the numbers.
-- **`checkRecipe` says what is wrong with every key of a recipe at once.**
-  `buildTheme` stops at the first thing it refuses. `checkRecipe` answers
-  with an object from the path of each key, `shape.buttonRadius`, to the
-  reason, and with an empty one when `buildTheme` would take the recipe. It
-  is `checkRecipe` from `@lo-tek/interfaces/theme`, `Lotek.checkRecipe` in
+- **`checkRecipe` says everything that is wrong with a recipe at once.**
+  `buildTheme` refuses with one sentence. `checkRecipe` answers with a list
+  of problems, each with the `path` of its key as segments, a `kind`
+  (`unknown`, `refused`, `empty` or `notARecipe`) and the `message`, and with
+  an empty list exactly when `buildTheme` takes the recipe. It is
+  `checkRecipe` from `@lo-tek/interfaces/theme`, `Lotek.checkRecipe` in
   Kotlin, and on the `Core` that `loadCore` gives.
+
+### Changed
+
+- **A recipe that is not an object is refused as that.** A text was refused
+  for unknown keys `0, 1, 2, 3`, and `null` as an empty theme. Both are now
+  `The recipe is not an object. …`, from every host: Kotlin no longer has a
+  sentence of its own for it.
+- **A block that is not an object is refused at the block.**
+  `"typography": "Inter"` was refused for the unknown key `typography.0`,
+  and `"shape": 5` was passed over in silence.
+- **A value that is `true`, a list or an object is refused.** `true` was
+  written into the CSS as `true`. In a block, `null` and `false` are now not
+  given, as they are for a colour, where `null` was written as `null`.
 
 ## 0.48.0 (2026-11-23)
 

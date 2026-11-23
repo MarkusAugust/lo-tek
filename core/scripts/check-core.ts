@@ -282,19 +282,34 @@ for (const [name, { recipe, theme, error: expectedError }] of Object.entries(
     )
 }
 /*
- * `checkRecipe`: what is wrong with a recipe, per key and all at once. The
- * expected answers are in a file of their own, since these recipes are
- * there for what is wrong with them, several things at a time, and some
- * are not objects at all; `recipes.json` is what `buildTheme` gives, and is
- * read as such by more than this check.
+ * `checkRecipe`: what is wrong with a recipe, problem by problem and all at
+ * once. Each problem has the path of its key as a list of parts, its kind,
+ * and the sentence, and the order is part of the answer. The expected
+ * answers are in a file of their own, since these recipes are there for
+ * what is wrong with them, several things at a time, and some are not
+ * objects at all; `recipes.json` is what `buildTheme` gives, and is read as
+ * such by more than this check. Each case also has the one sentence
+ * `buildTheme` refuses the same recipe with, or `null` when it takes it.
  *
- * And the tie between the two, over both files: `checkRecipe` finds
- * something exactly when `buildTheme` refuses the recipe, apart from the
- * empty theme, which is about no key.
+ * And the tie between the two, over both files and both ways: `checkRecipe`
+ * finds nothing exactly when `buildTheme` takes the recipe.
  */
-const recipeChecks: Record<string, { recipe: unknown; wrong: unknown }> =
-  JSON.parse(readFileSync(join(THEME, "recipe-checks.json"), "utf8"))
-for (const [name, { recipe, wrong }] of Object.entries(recipeChecks)) {
+const recipeChecks: Record<
+  string,
+  { recipe: unknown; problems: unknown; refusal: string | null }
+> = JSON.parse(readFileSync(join(THEME, "recipe-checks.json"), "utf8"))
+/** What `buildTheme` refuses a recipe with, or `null` when it takes it. */
+const refusalOf = (recipe: unknown): string | null => {
+  try {
+    core.buildTheme(recipe)
+    return null
+  } catch (e) {
+    return e instanceof Error ? e.message : String(e)
+  }
+}
+for (const [name, { recipe, problems, refusal }] of Object.entries(
+  recipeChecks,
+)) {
   count += 1
   let answer: unknown
   try {
@@ -302,9 +317,13 @@ for (const [name, { recipe, wrong }] of Object.entries(recipeChecks)) {
   } catch (e) {
     answer = `threw: ${e instanceof Error ? e.message : e}`
   }
-  if (sorted(answer) !== sorted(wrong))
+  if (sorted(answer) !== sorted(problems))
     failures.push(
-      `theme/recipe-checks.json, ${name}\n  Expected: ${sorted(wrong).slice(0, 400)}\n  Core:     ${sorted(answer).slice(0, 400)}`,
+      `theme/recipe-checks.json, ${name}\n  Expected: ${sorted(problems).slice(0, 400)}\n  Core:     ${sorted(answer).slice(0, 400)}`,
+    )
+  if (refusalOf(recipe) !== refusal)
+    failures.push(
+      `theme/recipe-checks.json, ${name}: buildTheme answers ${JSON.stringify(refusalOf(recipe))}, expected ${JSON.stringify(refusal)}`,
     )
 }
 for (const [file, cases] of [
@@ -313,21 +332,14 @@ for (const [file, cases] of [
 ] as const)
   for (const [name, { recipe }] of Object.entries(cases)) {
     count += 1
-    let refuses = false
-    try {
-      core.buildTheme(recipe)
-    } catch (e) {
-      refuses = !String(e instanceof Error ? e.message : e).startsWith(
-        "The theme is empty",
-      )
-    }
+    const refuses = refusalOf(recipe) !== null
     let found = -1
     try {
-      found = Object.keys(core.checkRecipe(recipe)).length
+      found = core.checkRecipe(recipe).length
     } catch {}
     if (found < 0 || found > 0 !== refuses)
       failures.push(
-        `theme/${file}, ${name}: buildTheme ${refuses ? "refuses" : "takes"} the recipe, and checkRecipe ${found < 0 ? "threw" : `finds ${found} things wrong`}`,
+        `theme/${file}, ${name}: buildTheme ${refuses ? "refuses" : "takes"} the recipe, and checkRecipe ${found < 0 ? "threw" : `finds ${found} problems`}`,
       )
   }
 

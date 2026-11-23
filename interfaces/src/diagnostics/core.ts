@@ -117,6 +117,26 @@ export type Brand = {
   reasons: string[]
 }
 
+/**
+ * One thing that is wrong with a recipe.
+ *
+ * `kind` says what sort of problem it is, and is what code decides on:
+ * `unknown` is a key the recipe does not have, `refused` a value the core
+ * does not take, and `empty` and `notARecipe` are about the recipe as a
+ * whole. `message` is the sentence for a person, and is not to be read by
+ * code: its wording may change.
+ */
+export type RecipeProblem = {
+  /**
+   * The key it is about, as the segments of its path: `["shape",
+   * "buttonRadius"]`. Empty for `empty` and `notARecipe`. A key may have a
+   * dot in its name, which is why the path is not one text.
+   */
+  path: string[]
+  kind: "unknown" | "refused" | "empty" | "notARecipe"
+  message: string
+}
+
 /** The theme `buildTheme` returns: the tokens per appearance, the promises that break, what became of the brand colours, and the CSS. */
 export type CoreTheme = {
   light: Record<string, string>
@@ -162,11 +182,11 @@ export type Core = {
   /** Builds a theme from the recipe. Throws without a colour contract, or when the recipe cannot be used. */
   buildTheme(recipe: unknown): CoreTheme
   /**
-   * What is wrong with a recipe, per key and all at once: from the path of a
-   * key, `shape.buttonRadius`, to the reason. Empty when `buildTheme` would
-   * take the recipe. Throws without a colour contract.
+   * What is wrong with a recipe, all at once. Empty exactly when `buildTheme`
+   * takes the recipe. Throws without a colour contract, and for a value that
+   * cannot be written as JSON.
    */
-  checkRecipe(recipe: unknown): Record<string, string>
+  checkRecipe(recipe: unknown): RecipeProblem[]
   /** Checks every promise in a theme written as CSS. Throws without a colour contract. */
   inspectTheme(css: string): CoreThemeReport
   /** The classes and attribute values a stylesheet styles, read with the core's CSS reader. */

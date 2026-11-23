@@ -105,7 +105,7 @@ test("every recipe that gives a theme is valid", () => {
 
 test("every recipe the core refuses for an unknown key is invalid", () => {
   const refused = cases.filter(([, c]) => c.error?.startsWith(UNKNOWN_KEY))
-  expect(refused.length).toBeGreaterThan(3)
+  expect(refused.length).toBeGreaterThan(1)
   expect(
     refused.filter(([, c]) => valid(c.recipe)).map(([name]) => name),
   ).toEqual([])

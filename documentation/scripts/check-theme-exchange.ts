@@ -116,13 +116,32 @@ function refusal(recipe: unknown): string {
   throw new Error(`the core takes ${JSON.stringify(recipe)}`)
 }
 const UNKNOWN = { acent: "#7c3aed", shape: { radius: "0" } }
+/*
+ * A key with a dot in its name, at the top of the recipe. It is not the
+ * corner of the button, which is `buttonRadius` inside `shape`: it is a key
+ * the recipe does not have. Told apart only by its dots, it was taken, and
+ * the value vanished without a word.
+ */
+const NOT_RECIPES_DOTTED = "Unknown key in the recipe: shape.buttonRadius"
+const DOTTED = { "shape.buttonRadius": "4px", accent: "#7c3aed" }
 /** What is not a recipe, and what the text area must at least say about it. */
 const NOT_RECIPES: [string, string, string][] = [
   ["text that is not JSON", '{"accent": "#7c3aed"', ""],
   ["JSON that is a list", '["#7c3aed"]', ""],
   ["JSON that is a text", '"#7c3aed"', ""],
   ["a key the core does not know", JSON.stringify(UNKNOWN), refusal(UNKNOWN)],
+  [
+    "a key with a dot in its name",
+    JSON.stringify(DOTTED),
+    "Unknown key in the recipe: shape.buttonRadius",
+  ],
 ]
+if (refusal(DOTTED) !== NOT_RECIPES_DOTTED) {
+  console.error(
+    `✗ The core answers ${JSON.stringify(refusal(DOTTED))} for a key with a dot in its name. The check is older than the core.`,
+  )
+  process.exit(1)
+}
 if (!NOT_RECIPES[3][2].startsWith("Unknown key in the recipe: acent")) {
   console.error(
     `✗ The core answers ${JSON.stringify(NOT_RECIPES[3][2])} for an unknown key. The check is older than the core.`,

@@ -39,7 +39,9 @@ const { buildTheme, checkRecipe } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
 )) as {
   buildTheme(recipe: unknown): { css: string }
-  checkRecipe(recipe: unknown): Record<string, string>
+  checkRecipe(
+    recipe: unknown,
+  ): { path: string[]; kind: string; message: string }[]
 }
 if (typeof checkRecipe !== "function") {
   console.error(
@@ -290,9 +292,9 @@ const code = await s.run(async () => {
 
   /*
    * Several things wrong at once: each field is told its own, and at the
-   * same time. The core says what is wrong with every key of a recipe in
-   * one answer, `checkRecipe`, and the page shows that answer where each
-   * key's field is. The expected texts are the package's, for the recipe
+   * same time. The core says what is wrong with a recipe in one answer,
+   * `checkRecipe`, problem by problem, and the page shows the sentence of
+   * each refused value under the field of its key. The expected texts are the package's, for the recipe
    * that is on the page.
    */
   const several: Record<string, string> = {
@@ -306,7 +308,19 @@ const code = await s.run(async () => {
     await field(key).fill(value)
   }
   const recipe = { ...built, ...nestedOf(several) }
-  const wrong = checkRecipe(recipe)
+  // The refused values of the recipe, by the name of the field each is
+  // under: a field is named by the parts of its key's path, with dots.
+  const problems = checkRecipe(recipe)
+  expect(
+    Array.isArray(problems) && problems.every((p) => p.kind === "refused"),
+    `the package's checkRecipe answers ${JSON.stringify(problems).slice(0, 200)} for values that are refused`,
+  )
+  const wrong: Record<string, string> = Object.fromEntries(
+    (Array.isArray(problems) ? problems : []).map((p) => [
+      p.path.join("."),
+      p.message,
+    ]),
+  )
   expect(
     JSON.stringify(Object.keys(wrong).sort()) ===
       JSON.stringify(Object.keys(several).sort()),

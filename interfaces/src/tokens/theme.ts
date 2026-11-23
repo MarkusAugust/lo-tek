@@ -1,8 +1,13 @@
-import type { Brand, BrandFill, Violation } from "../diagnostics/core.js"
+import type {
+  Brand,
+  BrandFill,
+  RecipeProblem,
+  Violation,
+} from "../diagnostics/core.js"
 import { defaultCore } from "../diagnostics/default-core.js"
 import type { Family } from "./matrix.js"
 
-export type { Brand, BrandFill, Violation }
+export type { Brand, BrandFill, RecipeProblem, Violation }
 
 /**
  * Builds a complete colour theme from a few brand colours.
@@ -111,15 +116,19 @@ export function buildTheme(input: ThemeInput): Theme {
 }
 
 /**
- * Says what is wrong with a recipe, per key and all at once.
+ * Says what is wrong with a recipe, all at once.
  *
- * `buildTheme` stops at the first thing it refuses. A form with a field per
- * key wants every reason, each at its field: the answer is an object from
- * the path of a key, `typography.weights.bold`, to the reason, in the words
- * `buildTheme` would refuse it with. It is empty when `buildTheme` would take
- * the recipe, and it never throws for a recipe: a key the theme does not
- * have is one of the things it reports.
+ * `buildTheme` refuses with one sentence, which suits a run. A form with a
+ * field per key wants every reason, each at its field. The answer is a list
+ * of problems: the `path` of the key as segments, the `kind`, and the
+ * `message` for a person. The problems about the recipe as a whole come
+ * first, then the keys the recipe does not have, then the values the core
+ * refuses, in the order of the keys.
+ *
+ * The list is empty exactly when `buildTheme` takes the recipe. Decide on
+ * `kind`, never on the wording of `message`. It throws only for a value that
+ * cannot be written as JSON, such as `undefined`.
  */
-export function checkRecipe(input: unknown): Record<string, string> {
+export function checkRecipe(input: unknown): RecipeProblem[] {
   return defaultCore().checkRecipe(input)
 }

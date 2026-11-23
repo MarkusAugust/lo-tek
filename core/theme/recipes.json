@@ -1558,7 +1558,7 @@
       "accent": "#7c3aed",
       "typography": "Inter"
     },
-    "error": "Unknown key in the recipe: typography.0, typography.1, typography.2, typography.3, typography.4"
+    "error": "typography is not an object with its keys in it. Got: \"Inter\""
   },
   "list-for-weights": {
     "recipe": {
@@ -1568,14 +1568,14 @@
         ]
       }
     },
-    "error": "Unknown key in the recipe: typography.weights.0"
+    "error": "typography.weights is not an object with its keys in it. Got: [400]"
   },
   "blocks-without-keys": {
     "recipe": {
       "typography": 12,
       "shape": {}
     },
-    "error": "The theme is empty. Give either brand colours, or typography and shape."
+    "error": "typography is not an object with its keys in it. Got: 12"
   },
   "colour-is-a-number": {
     "recipe": {
@@ -1588,7 +1588,7 @@
     "recipe": {
       "accent": true
     },
-    "error": "\"true\" is not a valid hexadecimal colour"
+    "error": "The value of accent must be text or a number. Got: true"
   },
   "colours-not-given": {
     "recipe": {

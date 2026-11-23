@@ -215,17 +215,30 @@ fn checked(name: &str, value: &str) -> Result<String, String> {
     Ok(value.to_string())
 }
 
-/// The value as text, as `String(value)` gives it, or nothing when it is not
-/// given. `0` counts as given.
-fn given(value: Option<&Json>) -> Option<String> {
-    match value? {
-        Json::String(s) if s.is_empty() => None,
-        Json::String(s) => Some(s.clone()),
-        Json::Number(n) => Some(js_number(*n)),
-        Json::Bool(b) => Some(b.to_string()),
-        Json::Null => Some("null".into()),
-        _ => None,
+/// What a recipe has at a key that takes one value: the value as text, as
+/// `String(value)` gives it, nothing when it is not given, or an error when
+/// it is something a value cannot be.
+///
+/// Not given is a key that is absent, `null`, an empty text or `false`. A
+/// family is also not given by `0`, where a key of typography or shape takes
+/// `0` as a value: `fieldRadius: 0` is a corner, and no colour is `0`. `true`,
+/// a list and an object are not values. Every reading of a leaf goes through
+/// here, so the theme and the check of a recipe cannot disagree on it.
+fn leaf(value: Option<&Json>, zero_is_a_value: bool) -> Result<Option<String>, ()> {
+    match value {
+        None | Some(Json::Null) | Some(Json::Bool(false)) => Ok(None),
+        Some(Json::String(s)) if s.is_empty() => Ok(None),
+        Some(Json::String(s)) => Ok(Some(s.clone())),
+        Some(Json::Number(n)) if !zero_is_a_value && (*n == 0.0 || n.is_nan()) => Ok(None),
+        Some(Json::Number(n)) => Ok(Some(js_number(*n))),
+        Some(Json::Bool(true)) | Some(Json::Array(_)) | Some(Json::Object(_)) => Err(()),
     }
+}
+
+/// The value of a key of typography or shape, as text, when it is given.
+/// What cannot be a value has been refused before a theme is built.
+fn given(value: Option<&Json>) -> Option<String> {
+    leaf(value, true).ok().flatten()
 }
 
 type Declarations = Vec<(String, String)>;
@@ -535,49 +548,44 @@ const SHAPE_KEYS: [&str; 5] = [
     "buttonFontWeight",
 ];
 
-/// The keys of a value, as `{ ...value }` gives them in JavaScript: a list
-/// has its indices and a string one key per UTF-16 code unit. That way
-/// `"typography": "Inter"` is reported as unknown keys rather than vanishing.
-fn spread_keys(value: Option<&Json>) -> Vec<String> {
-    match value {
-        Some(Json::Object(entries)) => entries.iter().map(|(key, _)| key.clone()).collect(),
-        Some(Json::Array(items)) => (0..items.len()).map(|i| i.to_string()).collect(),
-        Some(Json::String(text)) => (0..text.encode_utf16().count())
-            .map(|i| i.to_string())
-            .collect(),
-        _ => Vec::new(),
-    }
-}
-
-/// The keys in the recipe the theme does not have: those at the top in the
-/// order they stand, then those in each block, with the path in front.
+/// The keys in the recipe the theme does not have, each as the segments of
+/// its path: those at the top in the order they stand, then those in each
+/// block. A block that is not an object has no keys, and is refused as a
+/// value instead.
 ///
 /// Every host builds its theme here, so this is where a key is known or not.
-fn unknown_keys(input: &Json, families: &[String]) -> Vec<String> {
-    let mut unknown: Vec<String> = spread_keys(Some(input))
+fn unknown_paths(input: &Json, families: &[String]) -> Vec<Vec<String>> {
+    let keys = |value: Option<&Json>| -> Vec<String> {
+        match value {
+            Some(Json::Object(entries)) => entries.iter().map(|(key, _)| key.clone()).collect(),
+            _ => Vec::new(),
+        }
+    };
+    let mut unknown: Vec<Vec<String>> = keys(Some(input))
         .into_iter()
         .filter(|key| !families.contains(key) && !BLOCKS.contains(&key.as_str()))
+        .map(|key| vec![key])
         .collect();
     let typography = input.get("typography");
     for (at, value, allowed) in [
-        ("typography", typography, &TYPOGRAPHY_KEYS[..]),
+        (&["typography"][..], typography, &TYPOGRAPHY_KEYS[..]),
         (
-            "typography.weights",
+            &["typography", "weights"][..],
             path(typography, "weights"),
             &WEIGHT_KEYS[..],
         ),
         (
-            "typography.lineHeights",
+            &["typography", "lineHeights"][..],
             path(typography, "lineHeights"),
             &LINE_KEYS[..],
         ),
-        ("shape", input.get("shape"), &SHAPE_KEYS[..]),
+        (&["shape"][..], input.get("shape"), &SHAPE_KEYS[..]),
     ] {
         unknown.extend(
-            spread_keys(value)
+            keys(value)
                 .into_iter()
                 .filter(|key| !allowed.contains(&key.as_str()))
-                .map(|key| format!("{at}.{key}")),
+                .map(|key| at.iter().map(|s| s.to_string()).chain([key]).collect()),
         );
     }
     unknown
@@ -587,73 +595,204 @@ fn unknown_keys(input: &Json, families: &[String]) -> Vec<String> {
 /// to refuse before it builds: the command line reports a mistake in the
 /// recipe file before an unknown flag. `build_theme` refuses the same keys.
 pub fn unknown_recipe_keys(input: &Json) -> Vec<String> {
-    unknown_keys(input, &contract().families)
+    unknown_paths(input, &contract().families)
+        .iter()
+        .map(|path| path.join("."))
+        .collect()
 }
 
-/// What `build_theme` answers to a recipe that gives nothing. It is about no
-/// key, so `check_recipe` has nothing to say of such a recipe.
+/// What kind of problem a recipe has. A host that treats them differently
+/// reads this, and never the message.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum RecipeKind {
+    /// A key the recipe does not have.
+    Unknown,
+    /// A value the core does not take.
+    Refused,
+    /// The recipe gives nothing. About the recipe as a whole.
+    Empty,
+    /// The input is not an object. About the recipe as a whole.
+    NotARecipe,
+}
+
+impl RecipeKind {
+    /// The kind as the hosts are given it.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            RecipeKind::Unknown => "unknown",
+            RecipeKind::Refused => "refused",
+            RecipeKind::Empty => "empty",
+            RecipeKind::NotARecipe => "notARecipe",
+        }
+    }
+}
+
+/// One thing that is wrong with a recipe.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RecipeProblem {
+    /// The key it is about, as the segments of its path: `shape`,
+    /// `buttonRadius`. Empty when it is about the recipe as a whole. A key
+    /// may have a dot in its name, so the path is never one text.
+    pub path: Vec<String>,
+    pub kind: RecipeKind,
+    /// The sentence for a person.
+    pub message: String,
+}
+
 const EMPTY: &str = "The theme is empty. Give either brand colours, or typography and shape.";
+const NOT_A_RECIPE: &str = "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.";
 
-/// The recipe that has `value` at `path` and nothing else.
-fn alone(path: &[&str], value: &Json) -> Json {
-    path.iter().rev().fold(value.clone(), |inner, key| {
-        Json::Object(vec![(key.to_string(), inner)])
-    })
+/// The variable a key of typography or shape is written to, the first of
+/// them where it is written to several. `checked` names the key from it.
+fn variable(block: &str, key: &str) -> String {
+    match (block, key) {
+        ("typography", "fontFamily") => "--lt-font-family-base".into(),
+        ("weights", key) => format!("--lt-font-weight-{key}"),
+        ("lineHeights", key) => format!("--lt-line-height-{key}"),
+        ("shape", "buttonRadius") => format!("--lt-{}-radius", BUTTONS[0]),
+        ("shape", "fieldRadius") => format!("--lt-{}-radius", FIELDS[0]),
+        ("shape", "surfaceRadius") => format!("--lt-{}-radius", SURFACES[0]),
+        ("shape", "buttonBorderWidth") => "--lt-button-border-width".into(),
+        (_, _) => "--lt-button-font-weight".into(),
+    }
 }
 
-/// What is wrong with a recipe, per key and all at once: the path of each
-/// key the theme does not have or whose value it refuses, with the reason.
-/// Empty when `build_theme` would take the recipe.
+/// What is wrong with a recipe, all at once and in a fixed order: what is
+/// wrong with the recipe as a whole, then the keys the theme does not have,
+/// then the values it refuses, in the order of the keys. Empty exactly when
+/// `build_theme` takes the recipe, which is no coincidence: `build_theme`
+/// asks here first, and builds only what this has nothing to say about.
 ///
-/// `build_theme` stops at the first thing it refuses, which is right for a
-/// run and wrong for a form: a host with a field per key would have to ask
-/// once per field, and would have to know that. So the core asks itself.
-/// A value is refused here exactly when a recipe holding it alone is, and
-/// with the same words, because that recipe is what is built.
-pub fn check_recipe(input: &Json) -> Vec<(String, String)> {
+/// `build_theme` answers with one sentence, which is right for a run and
+/// wrong for a form with a field per key. A host with such a form asks here,
+/// and gets every reason with the key it belongs to.
+pub fn check_recipe(input: &Json) -> Vec<RecipeProblem> {
     let contract = contract();
-    let mut wrong: Vec<(String, String)> = unknown_keys(input, &contract.families)
+    let whole = |kind, message: &str| {
+        vec![RecipeProblem {
+            path: Vec::new(),
+            kind,
+            message: message.into(),
+        }]
+    };
+    if !matches!(input, Json::Object(_)) {
+        return whole(RecipeKind::NotARecipe, NOT_A_RECIPE);
+    }
+    let mut problems: Vec<RecipeProblem> = unknown_paths(input, &contract.families)
         .into_iter()
-        .map(|key| {
-            let message = format!("Unknown key in the recipe: {key}");
-            (key, message)
+        .map(|path| RecipeProblem {
+            message: format!("Unknown key in the recipe: {}", path.join(".")),
+            kind: RecipeKind::Unknown,
+            path,
         })
         .collect();
-    let typography = input.get("typography");
-    let shape = input.get("shape");
-    let mut known: Vec<(Vec<&str>, Option<&Json>)> = contract
-        .families
-        .iter()
-        .map(|name| (vec![name.as_str()], input.get(name)))
-        .collect();
-    known.push((
-        vec!["typography", "fontFamily"],
-        path(typography, "fontFamily"),
-    ));
-    for (block, keys) in [
-        ("weights", &WEIGHT_KEYS[..]),
-        ("lineHeights", &LINE_KEYS[..]),
-    ] {
-        let values = path(typography, block);
-        known.extend(
-            keys.iter()
-                .map(|key| (vec!["typography", block, *key], path(values, key))),
-        );
-    }
-    known.extend(
-        SHAPE_KEYS
-            .iter()
-            .map(|key| (vec!["shape", *key], path(shape, key))),
-    );
-    for (at, value) in known {
-        let Some(value) = value else { continue };
-        if let Err(message) = build_theme(&alone(&at, value)) {
-            if message != EMPTY {
-                wrong.push((at.join("."), message));
+    let mut anything = false;
+    let refused = |path: &[&str], message: String| RecipeProblem {
+        path: path.iter().map(|s| s.to_string()).collect(),
+        kind: RecipeKind::Refused,
+        message,
+    };
+    let not_a_value = |path: &[&str], value: Option<&Json>| {
+        format!(
+            "The value of {} must be text or a number. Got: {}",
+            path.join("."),
+            value.map(Json::to_compact).unwrap_or_default()
+        )
+    };
+
+    for name in &contract.families {
+        let at = [name.as_str()];
+        let value = input.get(name);
+        match leaf(value, false) {
+            Err(()) => problems.push(refused(&at, not_a_value(&at, value))),
+            Ok(None) => {}
+            Ok(Some(text)) => {
+                anything = true;
+                if let Err(message) = parse_hex(&text) {
+                    problems.push(refused(&at, message));
+                }
             }
         }
     }
-    wrong
+
+    // A block is an object with its keys in it, or it is not given. Its
+    // keys are looked at only when it is an object.
+    let mut blocks: Vec<(Vec<&str>, Option<&Json>, &[&str])> = Vec::new();
+    let typography = input.get("typography");
+    blocks.push((vec!["typography"], typography, &["fontFamily"][..]));
+    blocks.push((
+        vec!["typography", "weights"],
+        path(
+            typography.filter(|t| matches!(t, Json::Object(_))),
+            "weights",
+        ),
+        &WEIGHT_KEYS[..],
+    ));
+    blocks.push((
+        vec!["typography", "lineHeights"],
+        path(
+            typography.filter(|t| matches!(t, Json::Object(_))),
+            "lineHeights",
+        ),
+        &LINE_KEYS[..],
+    ));
+    blocks.push((vec!["shape"], input.get("shape"), &SHAPE_KEYS[..]));
+    for (at, block, keys) in blocks {
+        match block {
+            // Not given, as for a value: absent, `null`, `false` or an
+            // empty text.
+            None | Some(Json::Null) | Some(Json::Bool(false)) => continue,
+            Some(Json::String(text)) if text.is_empty() => continue,
+            Some(Json::Object(_)) => {}
+            Some(other) => {
+                problems.push(refused(
+                    &at,
+                    format!(
+                        "{} is not an object with its keys in it. Got: {}",
+                        at.join("."),
+                        other.to_compact()
+                    ),
+                ));
+                continue;
+            }
+        }
+        for key in keys {
+            let mut here = at.clone();
+            here.push(key);
+            let value = path(block, key);
+            match leaf(value, true) {
+                Err(()) => problems.push(refused(&here, not_a_value(&here, value))),
+                Ok(None) => {}
+                Ok(Some(text)) => {
+                    anything = true;
+                    if let Err(message) = checked(&variable(at[at.len() - 1], key), &text) {
+                        problems.push(refused(&here, message));
+                    }
+                }
+            }
+        }
+    }
+
+    if problems.is_empty() && !anything {
+        return whole(RecipeKind::Empty, EMPTY);
+    }
+    problems
+}
+
+/// The one sentence `build_theme` refuses a recipe with: every key it does
+/// not have, when there are any, since a typo is the most likely reason for
+/// whatever else is wrong, and otherwise the first problem.
+fn refusal(problems: &[RecipeProblem]) -> String {
+    let unknown: Vec<String> = problems
+        .iter()
+        .filter(|p| p.kind == RecipeKind::Unknown)
+        .map(|p| p.path.join("."))
+        .collect();
+    if unknown.is_empty() {
+        problems[0].message.clone()
+    } else {
+        format!("Unknown key in the recipe: {}", unknown.join(", "))
+    }
 }
 
 /// Builds the theme, and checks every promise while it is built.
@@ -665,31 +804,20 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
         return Err(contract::NOT_LOADED.into());
     }
     let contract = contract();
-    // Before anything else: a typo must not look like a recipe that worked,
-    // and it is the most likely reason for whatever else is wrong.
-    let unknown = unknown_keys(input, &contract.families);
-    if !unknown.is_empty() {
-        return Err(format!("Unknown key in the recipe: {}", unknown.join(", ")));
+    // Before anything else: what is wrong with the recipe, if anything is.
+    // What follows builds a recipe that has nothing wrong with it.
+    let problems = check_recipe(input);
+    if !problems.is_empty() {
+        return Err(refusal(&problems));
     }
     let given_families: Vec<(&str, String)> = contract
         .families
         .iter()
-        .filter_map(|name| match input.get(name) {
-            Some(Json::String(s)) if !s.is_empty() => Some((name.as_str(), s.clone())),
-            Some(Json::Number(n)) if *n != 0.0 && !n.is_nan() => {
-                Some((name.as_str(), js_number(*n)))
-            }
-            Some(Json::Bool(true)) => Some((name.as_str(), "true".into())),
-            Some(Json::Array(_)) | Some(Json::Object(_)) => Some((name.as_str(), String::new())),
-            _ => None,
-        })
+        .filter_map(|name| Some((name.as_str(), leaf(input.get(name), false).ok()??)))
         .collect();
     let typography = given_block(input.get("typography"));
     let shape = given_block(input.get("shape"));
 
-    if given_families.is_empty() && typography.is_none() && shape.is_none() {
-        return Err(EMPTY.into());
-    }
     // A theme without colours is not a curiosity: when the organisation
     // already uses LO-TEK's colours, the font and the corners are what set it apart.
     if given_families.is_empty() {
@@ -745,7 +873,7 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
 /// number, a boolean and `null` have none, and are as if the block were not
 /// in the recipe: the hosts left them out before the core checked the keys.
 fn given_block(value: Option<&Json>) -> Option<&Json> {
-    value.filter(|v| !spread_keys(Some(v)).is_empty())
+    value.filter(|v| matches!(v, Json::Object(entries) if !entries.is_empty()))
 }
 
 #[cfg(test)]
@@ -950,33 +1078,91 @@ mod recipe_tests {
     }
 
     #[test]
-    fn a_string_or_a_list_where_an_object_should_be_is_unknown_keys() {
-        // The keys are the ones `{ ...value }` gives in JavaScript, so
-        // `"typography": "Inter"` is reported rather than vanishing: one key
-        // per UTF-16 code unit of a string, and the indices of a list.
-        let error = theme(r##"{"accent": "#7c3aed", "typography": "Inter"}"##)
-            .err()
-            .unwrap();
-        assert_eq!(
-            error,
-            "Unknown key in the recipe: typography.0, typography.1, typography.2, typography.3, typography.4"
-        );
-        let error = theme(r#"{"typography": {"weights": [400]}}"#)
-            .err()
-            .unwrap();
-        assert_eq!(error, "Unknown key in the recipe: typography.weights.0");
-        let error = theme(r##"{"accent": "#7c3aed", "shape": "😀"}"##)
-            .err()
-            .unwrap();
-        assert_eq!(error, "Unknown key in the recipe: shape.0, shape.1");
+    fn a_block_that_is_not_an_object_is_refused_where_it_stands() {
+        // A text was read as its characters, "Unknown key: typography.0,
+        // typography.1", and a number was passed over without a word. Both
+        // are the same mistake, and it is about the block.
+        for (recipe, message) in [
+            (
+                r##"{"accent": "#7c3aed", "typography": "Inter"}"##,
+                r#"typography is not an object with its keys in it. Got: "Inter""#,
+            ),
+            (
+                r#"{"typography": {"weights": [400]}}"#,
+                "typography.weights is not an object with its keys in it. Got: [400]",
+            ),
+            (
+                r#"{"typography": {"lineHeights": true}}"#,
+                "typography.lineHeights is not an object with its keys in it. Got: true",
+            ),
+            (
+                r##"{"accent": "#7c3aed", "shape": 5}"##,
+                "shape is not an object with its keys in it. Got: 5",
+            ),
+        ] {
+            assert_eq!(theme(recipe).err().as_deref(), Some(message), "{recipe}");
+        }
     }
 
     #[test]
-    fn a_number_a_boolean_and_null_have_no_keys_to_refuse() {
+    fn a_value_that_is_true_a_list_or_an_object_is_refused() {
+        // `true` was written into the file as `true`, and a list for a
+        // colour was read as an empty text, "\"\" is not a valid colour".
+        for (recipe, message) in [
+            (
+                r#"{"accent": true}"#,
+                "The value of accent must be text or a number. Got: true",
+            ),
+            (
+                r##"{"danger": ["#fff"]}"##,
+                r##"The value of danger must be text or a number. Got: ["#fff"]"##,
+            ),
+            (
+                r#"{"shape": {"buttonRadius": {"a": 1}}}"#,
+                r#"The value of shape.buttonRadius must be text or a number. Got: {"a":1}"#,
+            ),
+            (
+                r#"{"typography": {"weights": {"bold": true}}}"#,
+                "The value of typography.weights.bold must be text or a number. Got: true",
+            ),
+        ] {
+            assert_eq!(theme(recipe).err().as_deref(), Some(message), "{recipe}");
+        }
+    }
+
+    #[test]
+    fn what_is_not_a_recipe_is_refused_as_that() {
+        // A text was "Unknown key in the recipe: 0, 1, 2, 3", and `null` was
+        // an empty theme. Neither says what is wrong.
+        for recipe in [r#""text""#, "[1]", "[]", "null", "12", "true", "false"] {
+            assert_eq!(
+                theme(recipe).err().as_deref(),
+                Some(
+                    r##"The recipe is not an object. Write it as an object with the colours in it, for example {"accent": "#7c3aed"}."##
+                ),
+                "{recipe}"
+            );
+        }
+    }
+
+    #[test]
+    fn what_counts_as_not_given() {
+        // Absent, `null`, an empty text and `false`, for every value. `0` is
+        // not a colour, and so not given for a family; for a corner or a
+        // line height it is a value, and is written.
+        let alone = theme(r##"{"accent": "#7c3aed"}"##).unwrap().css;
         let t = theme(
-            r##"{"accent": "#7c3aed", "typography": {"weights": 400, "lineHeights": true}, "shape": null}"##,
-        );
-        assert!(t.is_ok(), "{:?}", t.err());
+            r##"{"accent": "#7c3aed", "danger": null, "success": "", "warning": false, "visited": 0, "typography": {"fontFamily": "", "weights": {"bold": null}, "lineHeights": {"article": false}}, "shape": {"buttonRadius": null, "fieldRadius": false, "surfaceRadius": ""}}"##,
+        )
+        .unwrap_or_else(|error| panic!("{error}"));
+        assert_eq!(t.css, alone);
+        let css = theme(
+            r#"{"shape": {"fieldRadius": 0}, "typography": {"lineHeights": {"default": 0}}}"#,
+        )
+        .unwrap()
+        .css;
+        assert!(css.contains("--lt-input-radius: 0;"), "{css}");
+        assert!(css.contains("--lt-line-height-default: 0;"), "{css}");
     }
 
     #[test]
@@ -1158,11 +1344,14 @@ mod recipe_tests {
         );
     }
 
-    /// What `check_recipe` finds wrong, sorted by the path of the key.
-    fn wrong(recipe: &Json) -> Vec<(String, String)> {
-        let mut found = check_recipe(recipe);
-        found.sort();
-        found
+    /// A problem as the expected results write one: the path, the kind and
+    /// the message.
+    fn written(problem: &RecipeProblem) -> (Vec<String>, String, String) {
+        (
+            problem.path.clone(),
+            problem.kind.as_str().to_string(),
+            problem.message.clone(),
+        )
     }
 
     /// A file of expected results in `core/theme/`, as its cases by name.
@@ -1172,88 +1361,287 @@ mod recipe_tests {
         parse(&text).unwrap().as_object().unwrap().to_vec()
     }
 
+    /// What `build_theme` must say of a recipe with these problems: every
+    /// unknown key in one sentence, or else the first problem, or nothing.
+    fn refusal(problems: &[RecipeProblem]) -> Option<String> {
+        let unknown: Vec<String> = problems
+            .iter()
+            .filter(|p| p.kind.as_str() == "unknown")
+            .map(|p| p.path.join("."))
+            .collect();
+        if !unknown.is_empty() {
+            return Some(format!("Unknown key in the recipe: {}", unknown.join(", ")));
+        }
+        problems.first().map(|p| p.message.clone())
+    }
+
     #[test]
     fn check_recipe_says_everything_that_is_wrong_at_once() {
         // `build_theme` stops at the first thing it refuses, which is right
         // for one answer and useless for a form: with two fields wrong, the
         // second is told nothing until the first is put right. Here every
-        // key has its own answer, and the answer is the one `build_theme`
-        // gives for that key alone.
+        // problem is there, each with the key it is about, as the parts of
+        // its path, and with its kind, so nobody has to read the sentence
+        // to know what sort of problem it is.
+        //
+        // The order is part of the answer: the unknown keys as `build_theme`
+        // lists them, then the refused values in the order of the schema.
         let recipe = parse(
-            r##"{"accent": "purple", "acent": "#000", "danger": "#b91c1c", "shape": {"buttonRadius": "4px; } html { display: none"}}"##,
+            r##"{"shape": {"buttonRadius": "4px; } html { display: none"}, "danger": "#b91c1c", "acent": "#000", "accent": "purple"}"##,
         )
         .unwrap();
         let alone = |recipe: &str| theme(recipe).err().unwrap();
+        let found: Vec<_> = check_recipe(&recipe).iter().map(written).collect();
         assert_eq!(
-            wrong(&recipe),
+            found,
             [
-                ("accent".to_string(), alone(r#"{"accent": "purple"}"#)),
                 (
-                    "acent".to_string(),
+                    vec!["acent".to_string()],
+                    "unknown".to_string(),
                     "Unknown key in the recipe: acent".to_string()
                 ),
                 (
-                    "shape.buttonRadius".to_string(),
+                    vec!["accent".to_string()],
+                    "refused".to_string(),
+                    alone(r#"{"accent": "purple"}"#)
+                ),
+                (
+                    vec!["shape".to_string(), "buttonRadius".to_string()],
+                    "refused".to_string(),
                     alone(r#"{"shape": {"buttonRadius": "4px; } html { display: none"}}"#)
                 ),
             ]
         );
-        // And nothing about a recipe that is in order, or about its schema.
-        let fine = parse(
-            r##"{"$schema": "https://example.com/recipe.json", "accent": "#7c3aed", "shape": {"fieldRadius": 0}}"##,
-        )
-        .unwrap();
-        assert!(wrong(&fine).is_empty(), "{:?}", wrong(&fine));
     }
 
     #[test]
-    fn check_recipe_answers_as_the_expected_results_say() {
-        // The same file the package and Kotlin are held to.
+    fn a_key_with_a_dot_in_its_name_is_not_the_key_it_looks_like() {
+        // `"shape.buttonRadius"` at the top is one key, which the recipe
+        // does not have. Written as a path with dots it was the same as the
+        // corner of the button, and one of the two answers was lost.
+        let recipe =
+            parse(r##"{"shape.buttonRadius": "4px", "shape": {"buttonRadius": "4px;"}}"##).unwrap();
+        let problems = check_recipe(&recipe);
+        let paths: Vec<(&[String], &str)> = problems
+            .iter()
+            .map(|p| (p.path.as_slice(), p.kind.as_str()))
+            .collect();
+        assert_eq!(
+            paths,
+            [
+                (&["shape.buttonRadius".to_string()][..], "unknown"),
+                (
+                    &["shape".to_string(), "buttonRadius".to_string()][..],
+                    "refused"
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_problem_with_the_whole_recipe_has_no_path() {
+        for (recipe, kind) in [
+            ("{}", "empty"),
+            (r#"{"accent": ""}"#, "empty"),
+            ("[1]", "notARecipe"),
+            ("null", "notARecipe"),
+        ] {
+            let problems = check_recipe(&parse(recipe).unwrap());
+            assert_eq!(problems.len(), 1, "{recipe}");
+            assert_eq!(problems[0].kind.as_str(), kind, "{recipe}");
+            assert!(problems[0].path.is_empty(), "{recipe}");
+            // The sentence is the one `build_theme` refuses with.
+            assert_eq!(
+                theme(recipe).err(),
+                Some(problems[0].message.clone()),
+                "{recipe}"
+            );
+        }
+    }
+
+    #[test]
+    fn check_recipe_and_build_theme_answer_as_the_expected_results_say() {
+        // The same file the package and Kotlin are held to: the problems, in
+        // their order, and the one sentence `build_theme` makes of them.
         let cases = expected("recipe-checks.json");
-        assert!(cases.len() > 10, "only {} cases", cases.len());
+        assert!(cases.len() > 18, "only {} cases", cases.len());
         for (name, case) in &cases {
-            let mut wanted: Vec<(String, String)> = case
-                .get("wrong")
-                .and_then(Json::as_object)
+            let wanted: Vec<(Vec<String>, String, String)> = case
+                .get("problems")
+                .and_then(Json::as_array)
                 .unwrap()
                 .iter()
-                .map(|(path, message)| (path.clone(), message.as_str().unwrap().to_string()))
+                .map(|problem| {
+                    let text = |key: &str| problem.get(key).unwrap().as_str().unwrap().to_string();
+                    let path = problem.get("path").and_then(Json::as_array).unwrap();
+                    (
+                        path.iter()
+                            .map(|part| part.as_str().unwrap().to_string())
+                            .collect(),
+                        text("kind"),
+                        text("message"),
+                    )
+                })
                 .collect();
-            wanted.sort();
-            assert_eq!(wrong(case.get("recipe").unwrap()), wanted, "{name}");
+            let recipe = case.get("recipe").unwrap();
+            let found: Vec<_> = check_recipe(recipe).iter().map(written).collect();
+            assert_eq!(found, wanted, "{name}");
+            assert_eq!(
+                build_theme(recipe).err(),
+                case.get("refusal")
+                    .and_then(Json::as_str)
+                    .map(str::to_string),
+                "{name}"
+            );
         }
     }
 
-    #[test]
-    fn check_recipe_finds_something_exactly_when_build_theme_refuses() {
-        // The two never disagree about whether a recipe is in order. The one
-        // refusal that is about no key is the empty theme. Over every recipe
-        // of the expected results, those that build and those that do not.
-        let mut refused = 0;
-        let mut taken = 0;
-        for file in ["recipes.json", "recipe-checks.json"] {
-            for (name, case) in expected(file) {
-                let recipe = case.get("recipe").unwrap();
-                let refuses = match build_theme(recipe) {
-                    Ok(_) => false,
-                    Err(message) => !message.starts_with("The theme is empty"),
-                };
-                assert_eq!(
-                    !check_recipe(recipe).is_empty(),
-                    refuses,
-                    "{file}, {name}: {:?}",
-                    check_recipe(recipe)
-                );
-                if refuses {
-                    refused += 1;
-                } else {
-                    taken += 1;
-                }
+    /// A recipe with something odd at every place, from a seed. The values
+    /// are the ones a file can hold where a value belongs: text the core
+    /// takes and text it refuses, numbers, the booleans, `null`, lists and
+    /// objects, and the keys are known ones, misspelt ones and ones with a
+    /// dot in them.
+    fn odd_recipe(seed: &mut u64) -> Json {
+        /// The next number below `n`.
+        fn roll(seed: &mut u64, n: u64) -> u64 {
+            *seed = seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
+            (*seed >> 33) % n
+        }
+        /// Something that can stand where a value belongs. For a colour or
+        /// a key of a block, half the time a text the core takes there, so
+        /// that recipes which build are not a rarity; `None` is where a
+        /// block belongs, and nothing there is right but an object.
+        fn value(seed: &mut u64, good: Option<&str>) -> Json {
+            let text = |s: &str| Json::String(s.to_string());
+            match roll(seed, if good.is_some() { 24 } else { 12 }) {
+                0 => Json::Null,
+                1 => Json::Bool(true),
+                2 => Json::Bool(false),
+                3 => Json::Number(0.0),
+                4 => Json::Number(12.0),
+                5 => text(""),
+                6 => Json::Array(vec![]),
+                7 => Json::Array(vec![text("#fff")]),
+                8 => Json::Object(vec![]),
+                9 => Json::Object(vec![("a".to_string(), Json::Number(1.0))]),
+                10 => text("4px; }"),
+                11 => text("Arial ("),
+                _ => text(good.unwrap_or("1rem")),
             }
         }
+        /// Some of the keys, each with a value, and now and then one the
+        /// block does not have.
+        fn block(seed: &mut u64, keys: &[&str]) -> Vec<(String, Json)> {
+            let mut entries = Vec::new();
+            for key in keys {
+                if roll(seed, 3) == 0 {
+                    entries.push((key.to_string(), value(seed, Some("1rem"))));
+                }
+            }
+            if roll(seed, 8) == 0 {
+                entries.push(("radius".to_string(), value(seed, Some("1rem"))));
+            }
+            entries
+        }
+
+        if roll(seed, 40) == 0 {
+            return value(seed, None);
+        }
+        let mut entries: Vec<(String, Json)> = Vec::new();
+        for family in contract().families.iter() {
+            if roll(seed, 5) == 0 {
+                entries.push((family.clone(), value(seed, Some("#7c3aed"))));
+            }
+        }
+        for name in ["acent", "shape.buttonRadius", "$schema"] {
+            if roll(seed, 10) == 0 {
+                entries.push((name.to_string(), value(seed, Some("#7c3aed"))));
+            }
+        }
+        if roll(seed, 2) == 0 {
+            let typography = if roll(seed, 6) == 0 {
+                value(seed, None)
+            } else {
+                let mut inner = block(seed, &["fontFamily"]);
+                for (name, keys) in [
+                    ("weights", &WEIGHT_KEYS[..]),
+                    ("lineHeights", &LINE_KEYS[..]),
+                ] {
+                    if roll(seed, 2) == 0 {
+                        let nested = if roll(seed, 6) == 0 {
+                            value(seed, None)
+                        } else {
+                            Json::Object(block(seed, keys))
+                        };
+                        inner.push((name.to_string(), nested));
+                    }
+                }
+                Json::Object(inner)
+            };
+            entries.push(("typography".to_string(), typography));
+        }
+        if roll(seed, 2) == 0 {
+            let shape = if roll(seed, 6) == 0 {
+                value(seed, None)
+            } else {
+                Json::Object(block(seed, &SHAPE_KEYS))
+            };
+            entries.push(("shape".to_string(), shape));
+        }
+        Json::Object(entries)
+    }
+
+    #[test]
+    fn check_recipe_finds_nothing_exactly_when_build_theme_takes_the_recipe() {
+        // Both ways, for every recipe: the expected results, and six thousand
+        // with something odd at every place. An empty answer for a recipe
+        // that `build_theme` refuses is a form that looks in order and
+        // builds nothing, and a problem with a recipe that builds is a field
+        // marked for nothing. And when there is a problem, the one sentence
+        // `build_theme` refuses with is made of the same problems.
+        let mut recipes: Vec<Json> = ["recipes.json", "recipe-checks.json"]
+            .iter()
+            .flat_map(|file| expected(file))
+            .map(|(_, case)| case.get("recipe").unwrap().clone())
+            .collect();
+        let mut seed = 20261124;
+        for _ in 0..6000 {
+            recipes.push(odd_recipe(&mut seed));
+        }
+        let (mut taken, mut refused, mut kinds) = (0, 0, std::collections::BTreeSet::new());
+        for recipe in &recipes {
+            let problems = check_recipe(recipe);
+            let built = build_theme(recipe);
+            assert_eq!(
+                built.as_ref().err().cloned(),
+                refusal(&problems),
+                "{}",
+                recipe.to_compact()
+            );
+            for problem in &problems {
+                kinds.insert(problem.kind.as_str());
+                // A problem with the whole recipe has no path, and it is
+                // alone; the others say which key.
+                let whole = matches!(problem.kind.as_str(), "empty" | "notARecipe");
+                assert_eq!(problem.path.is_empty(), whole, "{}", recipe.to_compact());
+                assert!(!whole || problems.len() == 1, "{}", recipe.to_compact());
+            }
+            if built.is_ok() {
+                taken += 1;
+            } else {
+                refused += 1;
+            }
+        }
+        // The recipes are of every sort, or the property was held to few.
         assert!(
-            refused > 10 && taken > 8,
-            "{refused} refused, {taken} taken"
+            taken > 200 && refused > 2000,
+            "{taken} taken, {refused} refused"
+        );
+        assert_eq!(
+            kinds.into_iter().collect::<Vec<_>>(),
+            ["empty", "notARecipe", "refused", "unknown"]
         );
     }
 
@@ -1265,28 +1653,35 @@ mod recipe_tests {
         for file in ["recipes.json", "recipe-checks.json"] {
             for (name, case) in expected(file) {
                 let recipe = case.get("recipe").unwrap();
-                for (path, message) in check_recipe(recipe) {
-                    if message == format!("Unknown key in the recipe: {path}") {
+                for problem in check_recipe(recipe) {
+                    if problem.kind.as_str() != "refused" {
                         continue;
                     }
-                    let parts: Vec<&str> = path.split('.').collect();
-                    let value = parts
+                    let value = problem
+                        .path
                         .iter()
                         .try_fold(recipe, |at, part| at.get(part))
-                        .unwrap_or_else(|| panic!("{file}, {name}: the recipe has no {path}"));
-                    let alone = parts.iter().rev().fold(value.clone(), |inner, part| {
-                        Json::Object(vec![(part.to_string(), inner)])
-                    });
+                        .unwrap_or_else(|| {
+                            panic!("{file}, {name}: the recipe has no {:?}", problem.path)
+                        });
+                    let alone = problem
+                        .path
+                        .iter()
+                        .rev()
+                        .fold(value.clone(), |inner, part| {
+                            Json::Object(vec![(part.to_string(), inner)])
+                        });
                     assert_eq!(
                         build_theme(&alone).err(),
-                        Some(message),
-                        "{file}, {name}: {path}"
+                        Some(problem.message.clone()),
+                        "{file}, {name}: {:?}",
+                        problem.path
                     );
                     held += 1;
                 }
             }
         }
-        assert!(held > 12, "only {held} refused values");
+        assert!(held > 20, "only {held} refused values");
     }
 
     #[test]
@@ -1303,13 +1698,15 @@ mod recipe_tests {
 
     #[test]
     fn a_block_without_keys_is_not_given() {
-        // A theme with nothing in it is not a theme, whatever stands where
-        // the typography or the shape should have been.
-        for value in ["{}", "12", "true", "false", "null", r#""""#, "[]"] {
+        // A theme with nothing in it is not a theme: an empty object, `null`,
+        // `false` and an empty text are a block that is not there, as they
+        // are a value that is not there.
+        for value in ["{}", "null", "false", r#""""#] {
             for recipe in [
                 format!(r#"{{"typography": {value}}}"#),
                 format!(r#"{{"shape": {value}}}"#),
                 format!(r#"{{"typography": {value}, "shape": {value}}}"#),
+                format!(r#"{{"typography": {{"weights": {value}, "lineHeights": {value}}}}}"#),
             ] {
                 assert_eq!(
                     theme(&recipe).err().as_deref(),
@@ -1325,8 +1722,9 @@ mod recipe_tests {
         let alone = theme(r##"{"accent": "#7c3aed"}"##).unwrap().css;
         for blocks in [
             r#""typography": {}, "shape": {}"#,
-            r#""typography": 12, "shape": true"#,
-            r#""typography": [], "shape": null"#,
+            r#""typography": null, "shape": false"#,
+            r#""typography": "", "shape": null"#,
+            r#""typography": {"weights": {}, "lineHeights": null}"#,
         ] {
             let css = theme(&format!(r##"{{"accent": "#7c3aed", {blocks}}}"##))
                 .unwrap_or_else(|error| panic!("{blocks}: {error}"))

@@ -46,7 +46,7 @@ object FirstCall {
     fun main(args: Array<String>) {
         val answered =
             when (args.single()) {
-                "checkRecipe" -> Lotek.checkRecipe("""{"accent": "purple"}""").containsKey("accent")
+                "checkRecipe" -> Lotek.checkRecipe("""{"accent": "purple"}""").any { it.kind == "refused" }
                 "buildTheme" -> Lotek.buildTheme("""{"accent": "#7c3aed"}""").css.contains("lotek-theme")
                 "inspectTheme" -> Lotek.inspectTheme(":root { --lt-color-accent-text: #ffffff; }").blocks == 1
                 "diagnoseMarkup" -> Lotek.diagnoseMarkup("""<button class="lt-buton">Send</button>""").size == 1

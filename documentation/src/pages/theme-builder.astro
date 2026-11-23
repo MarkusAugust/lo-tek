@@ -1156,24 +1156,35 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		}
 	}
 
+	type Problem = { path: string[]; kind: string; message: string }
+
+	/** The problem with a value at `path`, when the core refuses it. */
+	const refusedAt = (problems: Problem[], path: string[]) =>
+		problems.find(
+			(p) =>
+				p.kind === "refused" &&
+				p.path.length === path.length &&
+				p.path.every((segment, at) => segment === path[at]),
+		)
+
 	/**
 	 * What the core finds wrong, laid at the fields: the reason at every
-	 * field whose path the core names, and nothing at the others, in the
+	 * field whose value the core refuses, and nothing at the others, in the
 	 * shape of `blank`.
 	 */
-	const atFields = (blank: Fields, wrong: Record<string, string>, at = ""): Fields =>
+	const atFields = (blank: Fields, problems: Problem[], at: string[] = []): Fields =>
 		Object.fromEntries(
 			Object.entries(blank).map(([name, value]) => [
 				name,
 				typeof value === "string"
-					? (wrong[at + name] ?? "")
-					: atFields(value, wrong, `${at}${name}.`),
+					? (refusedAt(problems, [...at, name])?.message ?? "")
+					: atFields(value, problems, [...at, name]),
 			]),
 		)
 
 	/** Whether the builder has a field for the key at `path`. */
-	const hasField = (blank: Fields, path: string) =>
-		typeof path.split(".").reduce<string | Fields | undefined>(
+	const hasField = (blank: Fields, path: string[]) =>
+		typeof path.reduce<string | Fields | undefined>(
 			(inner, name) => (typeof inner === "object" ? inner[name] : undefined),
 			blank,
 		) === "string"
@@ -1196,8 +1207,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			const chosen = JSON.parse(recipe)
 			// The core says what is wrong with every key at once, and the
 			// page lays each reason at its field.
-			const wrong = atFields(first.fields, core.checkRecipe(chosen))
-			if (Object.keys(chosen).length === 0) {
+			const problems: Problem[] = core.checkRecipe(chosen)
+			const wrong = atFields(first.fields, problems)
+			// Nothing is chosen yet. The core calls that an empty theme, and
+			// here it is no mistake.
+			if (problems.some((p) => p.kind === "empty")) {
 				lastReport = undefined
 				return { ok: false, css: "", error: "", wrong, report: empty }
 			}
@@ -1363,20 +1377,16 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
 			const answer = refusal(keys)
 			const strange = odd(first.fields, keys)
-			// A key the builder has no field for cannot be shown, and neither
-			// can a value that is not text. The core says what it makes of
-			// the recipe as a whole, and that is what is shown.
-			const stranger = Object.keys(core.checkRecipe(keys)).some(
-				(path) => !hasField(first.fields, path),
+			// What the builder can take is a recipe whose only problems are
+			// values the core refuses at keys the builder has a field for,
+			// and then only when the value is one a field can hold. Anything
+			// else changes nothing, and what the core says of the recipe as
+			// a whole is shown.
+			const problems: Problem[] = core.checkRecipe(keys)
+			const stops = problems.some(
+				(p) => p.kind !== "refused" || !hasField(first.fields, p.path),
 			)
-			if (stranger || (answer !== "" && strange)) return refuse(answer)
-			// The core writes `true` where it is given `true`. No field can
-			// hold it, and to leave it out without a word would be to change
-			// the recipe.
-			if (strange)
-				return refuse(
-					"A value in the recipe is not text or a number. The builder cannot show it, so nothing was changed.",
-				)
+			if (answer !== "" && (stops || strange)) return refuse(answer)
 			const fields = laid(first.fields, keys)
 			mergePatch({
 				own: Object.fromEntries(

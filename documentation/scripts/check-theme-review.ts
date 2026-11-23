@@ -67,19 +67,11 @@ const NOT_TEXT: unknown[] = [
   { accent: true },
   { brand1: ["#fff"] },
   { danger: { fill: "#b91c1c" } },
-]
-/** The same, where the core takes the recipe and writes something of its own for the value. */
-const TAKEN_BUT_NOT_TEXT: unknown[] = [
+  // These two the core used to take, and write `true` and nothing for: the
+  // page had the recipe and left the field at rest without a word.
   { typography: { weights: { bold: true } } },
   { typography: { fontFamily: ["x"] } },
 ]
-for (const recipe of TAKEN_BUT_NOT_TEXT)
-  if (refusal(recipe) !== null) {
-    console.error(
-      `✗ The core refuses ${JSON.stringify(recipe)}, so its own answer is what the page shows. The check is older than the core.`,
-    )
-    process.exit(1)
-  }
 for (const recipe of NOT_TEXT)
   if (refusal(recipe) === null) {
     console.error(
@@ -312,24 +304,10 @@ const code = await s.run(async () => {
       after.told.includes(message),
       `pasting ${JSON.stringify(recipe)}: the paste field is told ${JSON.stringify(after.told)}, and the core says ${JSON.stringify(message)}`,
     )
-    points += 1
-  }
-  /*
-   * And where the core takes it: it writes `true` for a weight and nothing
-   * for a list, and the page had the recipe and left the field at rest
-   * without a word. There is no answer of the core's to show, so the page
-   * says what a value must be.
-   */
-  for (const recipe of TAKEN_BUT_NOT_TEXT) {
-    await paste(recipe)
-    const after = await until((state) => /text or a number/i.test(state.told))
-    expect(
-      JSON.stringify(after.form) === JSON.stringify(before),
-      `pasting ${JSON.stringify(recipe)} changed the form: ${JSON.stringify(after.form)}`,
-    )
+    // Whatever the value is, the reader is told what one must be.
     expect(
       /text or a number/i.test(after.told),
-      `pasting ${JSON.stringify(recipe)}: the paste field is told ${JSON.stringify(after.told)}, and not that a value must be text or a number`,
+      `pasting ${JSON.stringify(recipe)}: the paste field does not say that a value must be text or a number: ${JSON.stringify(after.told)}`,
     )
     points += 1
   }
@@ -586,7 +564,7 @@ if (code !== 0) {
 // The guard comes last. Seven points of its own, and one for each pasted
 // recipe that is not text: the groups, the blocks, the keyboard, the null,
 // the copy, the report and the generator.
-const POINTS = 7 + NOT_TEXT.length + TAKEN_BUT_NOT_TEXT.length
+const POINTS = 7 + NOT_TEXT.length
 if (points !== POINTS) {
   console.error(
     `✗ The check went through ${points} points where it has ${POINTS}. It has not looked at everything.`,
