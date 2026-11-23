@@ -492,6 +492,7 @@ function unseen(components: Asked[]): {
 
 let code = 0
 let seen = 0
+let narrowed = 0
 if (existsSync(SHEET)) {
   const s = await site({ pages: 1 })
   code = await s.run(async () => {
@@ -527,6 +528,66 @@ if (existsSync(SHEET)) {
       result = await page.evaluate(unseen, asked)
     }
     for (const finding of result.missing) s.fail(finding)
+
+    /*
+     * In a narrow frame the sheet does not scroll sideways: the two frames
+     * of the builder are narrow on a small screen, and a page that is wider
+     * than its frame is one where every example is cut on the right. What
+     * does not fit, as a table, scrolls inside its own preview and can be
+     * reached in full there.
+     */
+    for (const width of [320, 335, 375]) {
+      await page.setViewportSize({ width, height: 800 })
+      await page.waitForTimeout(300)
+      const narrow = await page.evaluate(() => {
+        const root = document.documentElement
+        const trees = (top: ParentNode): ParentNode[] => [
+          top,
+          ...[...top.querySelectorAll("*")].flatMap((element) =>
+            element.shadowRoot ? trees(element.shadowRoot) : [],
+          ),
+        ]
+        /** A table that is cut and that nothing around it scrolls to. */
+        const unreachable = trees(document)
+          .flatMap((tree) => [...tree.querySelectorAll("table")])
+          .filter((table) => {
+            const right = table.getBoundingClientRect().right
+            if (right <= root.clientWidth + 1) return false
+            for (
+              let around: Element | null = table;
+              around;
+              around = around.parentElement
+            ) {
+              const overflow = getComputedStyle(around).overflowX
+              if (
+                (overflow === "auto" || overflow === "scroll") &&
+                around.scrollWidth > around.clientWidth
+              )
+                return false
+            }
+            return true
+          }).length
+        return {
+          scrollWidth: root.scrollWidth,
+          clientWidth: root.clientWidth,
+          tables: trees(document).flatMap((tree) => [
+            ...tree.querySelectorAll("table"),
+          ]).length,
+          unreachable,
+        }
+      })
+      if (narrow.scrollWidth > narrow.clientWidth)
+        s.fail(
+          `at ${width} pixels wide the sheet is ${narrow.scrollWidth} wide and scrolls sideways`,
+        )
+      if (narrow.tables === 0)
+        s.fail(`at ${width} pixels wide the check found no table on the sheet`)
+      if (narrow.unreachable > 0)
+        s.fail(
+          `at ${width} pixels wide ${narrow.unreachable} tables are cut and nothing around them scrolls sideways`,
+        )
+      narrowed += 1
+    }
     if (result.roots < 40)
       s.fail(
         `the sheet has ${result.roots} open shadow roots in the browser. Each example should stand in one of its own.`,
@@ -550,7 +611,7 @@ if (code !== 0) {
 }
 
 // The guard comes last: a run that held or saw nothing must not pass.
-if (held === 0 || laidOut === 0 || seen < shown.size) {
+if (held === 0 || laidOut === 0 || seen < shown.size || narrowed !== 3) {
   console.error(
     `✗ The check held ${held} examples, ${laidOut} layouts and pieces of CSS, and saw ${seen} classes, elements and widths rendered, for ${shown.size} components. It has not looked at everything.`,
   )

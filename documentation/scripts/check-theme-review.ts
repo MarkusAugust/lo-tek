@@ -68,6 +68,18 @@ const NOT_TEXT: unknown[] = [
   { brand1: ["#fff"] },
   { danger: { fill: "#b91c1c" } },
 ]
+/** The same, where the core takes the recipe and writes something of its own for the value. */
+const TAKEN_BUT_NOT_TEXT: unknown[] = [
+  { typography: { weights: { bold: true } } },
+  { typography: { fontFamily: ["x"] } },
+]
+for (const recipe of TAKEN_BUT_NOT_TEXT)
+  if (refusal(recipe) !== null) {
+    console.error(
+      `✗ The core refuses ${JSON.stringify(recipe)}, so its own answer is what the page shows. The check is older than the core.`,
+    )
+    process.exit(1)
+  }
 for (const recipe of NOT_TEXT)
   if (refusal(recipe) === null) {
     console.error(
@@ -302,6 +314,25 @@ const code = await s.run(async () => {
     )
     points += 1
   }
+  /*
+   * And where the core takes it: it writes `true` for a weight and nothing
+   * for a list, and the page had the recipe and left the field at rest
+   * without a word. There is no answer of the core's to show, so the page
+   * says what a value must be.
+   */
+  for (const recipe of TAKEN_BUT_NOT_TEXT) {
+    await paste(recipe)
+    const after = await until((state) => /text or a number/i.test(state.told))
+    expect(
+      JSON.stringify(after.form) === JSON.stringify(before),
+      `pasting ${JSON.stringify(recipe)} changed the form: ${JSON.stringify(after.form)}`,
+    )
+    expect(
+      /text or a number/i.test(after.told),
+      `pasting ${JSON.stringify(recipe)}: the paste field is told ${JSON.stringify(after.told)}, and not that a value must be text or a number`,
+    )
+    points += 1
+  }
   // `null` is a value that is not given, and the recipe is taken.
   await paste({ accent: null, danger: "#b91c1c" })
   const withNull = await until((state) => state.form.danger === "on #b91c1c")
@@ -449,6 +480,63 @@ const code = await s.run(async () => {
     )
 
     /*
+     * In a wide window the message does not take a place in the layout: it,
+     * the heading and the introduction are above the recipe and the
+     * preview, and those two are beside each other, as when the generator
+     * loads. The same is read on the page that has it, to compare with.
+     */
+    const laidOut = () => {
+      const top = (element: Element | null | undefined) =>
+        element ? Math.round(element.getBoundingClientRect().top) : Number.NaN
+      const h1 = document.querySelector("h1")
+      const recipe = document.querySelector('[name="own.accent"]')
+      const preview = document.querySelector("iframe")
+      const alert = [
+        ...document.querySelectorAll('[role="alert"], [role="status"]'),
+      ].find(
+        (e) =>
+          e.getClientRects().length > 0 &&
+          /could not be loaded/i.test(e.textContent ?? ""),
+      )
+      return {
+        alert: top(alert),
+        h1: top(h1),
+        // The introduction: the paragraph after the heading.
+        intro: top(h1?.parentElement?.querySelector("p")),
+        recipe: top(recipe),
+        preview: top(preview),
+        beside:
+          (recipe?.getBoundingClientRect().right ?? 0) <=
+            (preview?.getBoundingClientRect().left ?? 0) ||
+          (preview?.getBoundingClientRect().right ?? 0) <=
+            (recipe?.getBoundingClientRect().left ?? 0),
+      }
+    }
+    await without.setViewportSize({ width: 1400, height: 900 })
+    await without.waitForTimeout(300)
+    const lacking = await without.evaluate(laidOut)
+    for (const [what, at] of [
+      ["the message", lacking.alert],
+      ["the heading", lacking.h1],
+      ["the introduction", lacking.intro],
+    ] as const)
+      expect(
+        at < lacking.recipe && at < lacking.preview,
+        `without the generator, in a wide window, ${what} is at ${at} and not above the recipe (${lacking.recipe}) and the preview (${lacking.preview})`,
+      )
+    expect(
+      lacking.beside,
+      "without the generator, in a wide window, the recipe is not beside the preview",
+    )
+    await page.setViewportSize({ width: 1400, height: 900 })
+    await page.waitForTimeout(300)
+    const whole = await page.evaluate(laidOut)
+    expect(
+      whole.beside && whole.h1 < whole.recipe && whole.h1 < whole.preview,
+      "with the generator, in a wide window, the recipe is not beside the preview under the heading, so there is nothing to compare with",
+    )
+
+    /*
      * On record: why the core refuses `[`. The theme of the nearest recipe
      * the core takes, with the bracket written in where the core would have
      * written it. The declaration after the font is there without the
@@ -498,7 +586,7 @@ if (code !== 0) {
 // The guard comes last. Seven points of its own, and one for each pasted
 // recipe that is not text: the groups, the blocks, the keyboard, the null,
 // the copy, the report and the generator.
-const POINTS = 7 + NOT_TEXT.length
+const POINTS = 7 + NOT_TEXT.length + TAKEN_BUT_NOT_TEXT.length
 if (points !== POINTS) {
   console.error(
     `✗ The check went through ${points} points where it has ${POINTS}. It has not looked at everything.`,

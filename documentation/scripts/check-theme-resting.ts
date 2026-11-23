@@ -48,7 +48,9 @@ if (unread.length > 0) {
 
 const { buildTheme } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
-)) as { buildTheme(recipe: unknown): { css: string } }
+)) as {
+  buildTheme(recipe: unknown): { css: string; brands: { given: string }[] }
+}
 
 /** The keys that are not numbers, and so have no slider. */
 const WITHOUT = KEYS.filter((key) => !(key in SLIDERS))
@@ -117,6 +119,7 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
                 max: Number(slider.max),
                 step: Number(slider.step),
                 named: slider.hasAttribute("name"),
+                valuetext: slider.getAttribute("aria-valuetext"),
                 name: collapsed(
                   slider.getAttribute("aria-label") ??
                     slider.labels?.[0]?.textContent ??
@@ -154,6 +157,8 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
                   shown:
                     reset.getClientRects().length > 0 &&
                     getComputedStyle(reset).visibility !== "hidden",
+                  width: reset.getBoundingClientRect().width,
+                  height: reset.getBoundingClientRect().height,
                 }
               : null,
           },
@@ -196,6 +201,8 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
                   shown:
                     reset.getClientRects().length > 0 &&
                     getComputedStyle(reset).visibility !== "hidden",
+                  width: reset.getBoundingClientRect().width,
+                  height: reset.getBoundingClientRect().height,
                 }
               : null,
             label: collapsed(field?.labels?.[0]?.textContent ?? ""),
@@ -210,6 +217,11 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
       }),
     ),
     ranges: document.querySelectorAll('input[type="range"]').length,
+    /** Where the keyboard is: the name of the control, or its tag. */
+    active:
+      document.activeElement?.getAttribute("name") ??
+      document.activeElement?.tagName.toLowerCase() ??
+      "",
     recipe: document.querySelector("[data-recipe]")?.textContent ?? "",
   }
 }
@@ -406,10 +418,44 @@ const code = await s.run(async () => {
 
   /** The recipe that is chosen so far, as paths and values. */
   const chosen: Record<string, string> = {}
+  /** What a slider says its value is, held to the slider: pixels say so. */
+  const spoken = (what: string, key: string, state: State) => {
+    const slider = state.sliders[key]
+    if (!slider) return
+    if (SLIDERS[key].unit === "px") {
+      const said = /^(\d+(?:\.\d+)?) ?(?:px|pixels)$/.exec(
+        slider.valuetext ?? "",
+      )
+      expect(
+        said !== null && Number(said[1]) === slider.value,
+        `${what}: the slider of ${key} stands at ${slider.value} and says "${slider.valuetext ?? ""}", not the number in pixels`,
+      )
+    } else
+      expect(
+        slider.valuetext === null || Number(slider.valuetext) === slider.value,
+        `${what}: the slider of ${key} has no unit, and says "${slider.valuetext}"`,
+      )
+  }
+  /** A button that is shown can be hit: 24 by 24 CSS pixels at least. */
+  const hittable = (
+    what: string,
+    button:
+      | { shown: boolean; width: number; height: number }
+      | null
+      | undefined,
+  ) => {
+    if (button?.shown)
+      expect(
+        button.width >= 24 && button.height >= 24,
+        `${what}: the reset button is ${Math.round(button.width)} by ${Math.round(button.height)} pixels, under 24 by 24`,
+      )
+  }
   /**
    * Holds one field after something was done to it: what it holds, where
-   * its slider stands, whether it is in the recipe, and that it says it is
-   * changed, with a button to reset it, exactly when it is not at rest.
+   * its slider stands and what the slider says, and whether it is in the
+   * recipe. It says it is changed exactly when it is in the recipe, and has
+   * a button to reset it whenever it does not hold its resting text, so an
+   * emptied field, which is out of the recipe, can still be put back.
    */
   const holds = async (
     what: string,
@@ -417,15 +463,16 @@ const code = await s.run(async () => {
     text: string,
     slider: number | undefined,
   ) => {
-    const changed = text !== rest(key)
-    if (changed && text !== "") chosen[key] = text
+    const inRecipe = text !== rest(key) && text.trim() !== ""
+    const away = text !== rest(key)
+    if (inRecipe) chosen[key] = text
     else delete chosen[key]
     const after = await until(
       (state) =>
         state.fields[key] === text &&
         shown(state) === recipeOf(chosen) &&
-        state.blocks[key].changed === changed &&
-        (state.blocks[key].reset?.shown ?? false) === changed,
+        state.blocks[key].changed === inRecipe &&
+        (state.blocks[key].reset?.shown ?? false) === away,
     )
     expect(
       after.fields[key] === text,
@@ -436,20 +483,22 @@ const code = await s.run(async () => {
         after.sliders[key]?.value === slider,
         `${what}: the slider of ${key} stands at ${after.sliders[key]?.value}, not ${slider}`,
       )
+    spoken(what, key, after)
     expect(
       shown(after) === recipeOf(chosen),
       `${what}: the recipe is ${after.recipe}, and what is changed is ${JSON.stringify(chosen)}`,
     )
     expect(
-      after.blocks[key].changed === changed,
-      `${what}: ${key} ${changed ? "does not say" : "says"} it is changed`,
+      after.blocks[key].changed === inRecipe,
+      `${what}: ${key} ${inRecipe ? "does not say" : "says"} it is changed, and it is ${inRecipe ? "" : "not "}in the recipe`,
     )
     const reset = after.blocks[key].reset
     expect(
-      (reset?.shown ?? false) === changed,
-      `${what}: ${key} ${changed ? "has no" : "has a"} button to reset it`,
+      (reset?.shown ?? false) === away,
+      `${what}: ${key} ${away ? "has no" : "has a"} button to reset it`,
     )
-    if (changed && reset?.shown)
+    hittable(`${what}, ${key}`, reset)
+    if (away && reset?.shown)
       expect(
         reset.name
           .toLowerCase()
@@ -458,7 +507,11 @@ const code = await s.run(async () => {
       )
     return after
   }
-  /** Presses the reset button of a field. */
+  /**
+   * Presses the reset button of a field, with the keyboard, and holds that
+   * the keyboard is then on the field: a button that goes away under the
+   * one who pressed it leaves them nowhere.
+   */
   const reset = async (key: string) => {
     let block = field(key).locator("xpath=..")
     for (let up = 0; up < 6; up++) {
@@ -468,14 +521,20 @@ const code = await s.run(async () => {
     }
     const button = block.getByRole("button", { name: /^reset/i })
     if ((await button.count()) !== 1) return false
-    await button.click()
+    await button.focus()
+    await page.keyboard.press("Enter")
+    const after = await until((state) => state.active === key)
+    expect(
+      after.active === key,
+      `after ${key} was reset by keyboard, the keyboard is on ${after.active || "nothing"} and not on its field`,
+    )
     return true
   }
 
   /*
    * Written by hand: another value is changed and in the recipe, the
-   * resting text written again is at rest, and an emptied field is changed
-   * and still out of the recipe.
+   * resting text written again is at rest, and an emptied field is out of
+   * the recipe, and so not changed, but can be put back.
    */
   const bold = "typography.weights.bold"
   await field(bold).fill("800")
@@ -507,9 +566,9 @@ const code = await s.run(async () => {
   points += 1
 
   /*
-   * The sliders, moved with the keyboard. A weight moved back to its
-   * resting number is at rest. A corner moved back is `4px`, which is not
-   * the `0.25rem` LO-TEK writes, and so is changed.
+   * The sliders, moved with the keyboard. One that is moved back to where
+   * it rests is at rest: the field holds its resting text again, `0.25rem`
+   * for a corner and not the `4px` the slider would write anywhere else.
    */
   expect(await slide(bold, "ArrowLeft"), `${bold} has no slider to move`)
   await holds("the slider moved a step down", bold, "600", 600)
@@ -524,14 +583,38 @@ const code = await s.run(async () => {
   await holds("a corner moved to the end", buttonRadius, "32px", 32)
   await slide(buttonRadius, "Home")
   await holds("a corner moved to the start", buttonRadius, "0px", 0)
-  for (let step = 0; step < SLIDERS[buttonRadius].rest; step++)
-    await slide(buttonRadius, "ArrowRight")
-  await holds(
-    "a corner moved back to its resting number",
+  for (const key of [
     buttonRadius,
-    `${SLIDERS[buttonRadius].rest}px`,
-    SLIDERS[buttonRadius].rest,
-  )
+    "shape.fieldRadius",
+    "shape.buttonBorderWidth",
+  ]) {
+    await slide(key, "Home")
+    for (let step = 0; step < SLIDERS[key].rest; step++)
+      await slide(key, "ArrowRight")
+    await holds(
+      "a slider moved away and back to where it rests",
+      key,
+      rest(key),
+      SLIDERS[key].rest,
+    )
+  }
+  // Where the field rests empty there is no resting text to go back to:
+  // the slider at its resting number is a choice, and is written.
+  for (const [key, text] of [
+    ["shape.surfaceRadius", `${SLIDERS["shape.surfaceRadius"].rest}px`],
+    ["shape.buttonFontWeight", `${SLIDERS["shape.buttonFontWeight"].rest}`],
+  ] as const) {
+    await slide(key, "ArrowRight")
+    await slide(key, "ArrowLeft")
+    await holds(
+      "a slider without a resting text moved away and back",
+      key,
+      text,
+      SLIDERS[key].rest,
+    )
+  }
+  await slide(buttonRadius, "End")
+  await holds("a corner moved to the end again", buttonRadius, "32px", 32)
   points += 1
 
   /*
@@ -596,7 +679,7 @@ const code = await s.run(async () => {
     shown(afterPick) === recipeOf(chosen),
     `after a colour was picked the recipe is ${afterPick.recipe}`,
   )
-  // A family that is chosen says so, and can be put back.
+  // A family that is in the recipe says so, and can be put back.
   expect(
     afterPick.groups.accent.changed &&
       afterPick.groups.accent.reset?.shown === true,
@@ -606,6 +689,37 @@ const code = await s.run(async () => {
     /accent/i.test(afterPick.groups.accent.reset?.name ?? ""),
     `the reset button of accent is called "${afterPick.groups.accent.reset?.name ?? ""}"`,
   )
+  hittable("accent", afterPick.groups.accent.reset)
+
+  /*
+   * The picker shows the colour as the core reads it: a short form, capital
+   * letters, a missing hash and blanks around it are all a colour to the
+   * core, and the picker shows the one it made. What the core refuses
+   * leaves the picker where it was.
+   */
+  let showing = "#7c3aed"
+  for (const typed of [
+    "#f0a",
+    "#F0A",
+    "F7DF1E",
+    " #7C3AED ",
+    "purple",
+    "#0f7",
+  ]) {
+    await field("accent").fill(typed)
+    try {
+      showing = buildTheme({ accent: typed }).brands[0].given
+    } catch {
+      // Refused: the picker keeps what it showed.
+    }
+    const state = await until(
+      (now) => now.pickers.accent?.value.toLowerCase() === showing,
+    )
+    expect(
+      state.pickers.accent?.value.toLowerCase() === showing,
+      `with ${JSON.stringify(typed)} in the field of accent its picker shows ${state.pickers.accent?.value}, not ${showing}`,
+    )
+  }
   await field("accent").fill("")
   const emptied = await until(
     (state) => state.pickers.accent?.value.toLowerCase() === BRANDS.accent,
@@ -614,10 +728,19 @@ const code = await s.run(async () => {
     emptied.pickers.accent?.value.toLowerCase() === BRANDS.accent,
     `with the field of accent emptied its picker shows ${emptied.pickers.accent?.value}, not LO-TEK's ${BRANDS.accent}`,
   )
-  // The switch on is a change in itself, with nothing in the field yet.
+  // The switch on with nothing in the field is not in the recipe, so it
+  // is not marked, but it is not at rest either, and can be put back.
   expect(
-    emptied.own.accent && emptied.groups.accent.changed,
-    "a family whose switch is on and whose field is empty does not say it is changed",
+    emptied.own.accent &&
+      !emptied.groups.accent.changed &&
+      emptied.groups.accent.reset?.shown === true,
+    `a family whose switch is on and whose field is empty ${emptied.groups.accent.changed ? "says it is changed" : "is not marked"}, and ${emptied.groups.accent.reset?.shown ? "has" : "has no"} button to reset it`,
+  )
+  await field("accent").fill("  ")
+  await page.waitForTimeout(300)
+  expect(
+    !(await now()).groups.accent.changed,
+    "a family whose field holds only blanks says it is changed, and is not in the recipe",
   )
   points += 1
 
@@ -632,7 +755,8 @@ const code = await s.run(async () => {
         now.own[family] === on &&
         now.fields[family] === "" &&
         now.pickers[family]?.value.toLowerCase() === BRANDS[family] &&
-        now.groups[family].changed === on &&
+        !now.groups[family].changed &&
+        (now.groups[family].reset?.shown ?? false) === on &&
         !now.rows.includes(family),
     )
     expect(
@@ -648,7 +772,7 @@ const code = await s.run(async () => {
       `${what}: the picker of ${family} shows ${state.pickers[family]?.value}, not LO-TEK's ${BRANDS[family]}`,
     )
     expect(
-      state.groups[family].changed === on &&
+      !state.groups[family].changed &&
         (state.groups[family].reset?.shown ?? false) === on,
       `${what}: ${family} ${state.groups[family].changed ? "says" : "does not say"} it is changed, and ${state.groups[family].reset?.shown ? "has" : "has no"} button to reset it`,
     )
@@ -677,12 +801,21 @@ const code = await s.run(async () => {
     given.groups.visited.reset?.shown === true,
     "visited has no reset button to press after a colour was picked for it",
   )
-  if (given.groups.visited.reset?.shown)
+  hittable("visited", given.groups.visited.reset)
+  if (given.groups.visited.reset?.shown) {
     await field("visited")
       .locator('xpath=ancestor::*[self::fieldset or @role="group"][1]')
       .getByRole("button", { name: /^reset/i })
-      .click()
+      .focus()
+    await page.keyboard.press("Enter")
+  }
   await familyRests("visited reset", "visited", false)
+  // Its field is disabled now, so the keyboard is on its switch.
+  const afterReset = await until((state) => state.active === "own.visited")
+  expect(
+    afterReset.active === "own.visited",
+    `after visited was reset by keyboard, the keyboard is on ${afterReset.active || "nothing"} and not on its switch`,
+  )
   points += 1
 
   // Something chosen again, to be remembered below.
@@ -695,7 +828,9 @@ const code = await s.run(async () => {
    * the rest.
    */
   await field("typography.weights.medium").fill("")
-  await until((state) => state.blocks["typography.weights.medium"].changed)
+  await until(
+    (state) => state.blocks["typography.weights.medium"].reset?.shown === true,
+  )
   await page.waitForTimeout(300)
   const left = await now()
   await s.open("/theme-builder/")
@@ -709,10 +844,11 @@ const code = await s.run(async () => {
     `the page loaded again is not as it was left: ${differing.map((k) => `${k} holds ${JSON.stringify(back.fields[k])}, not ${JSON.stringify(left.fields[k])}`).join("; ")}`,
   )
   expect(
-    back.blocks["typography.weights.medium"].changed &&
+    !back.blocks["typography.weights.medium"].changed &&
+      back.blocks["typography.weights.medium"].reset?.shown === true &&
       back.blocks["typography.fontFamily"].changed &&
       !back.blocks[bold].changed,
-    "the page loaded again does not say of the same fields that they are changed",
+    "the page loaded again does not say of the same fields that they are changed, or can be reset",
   )
   expect(
     shown(back) === shown(left),

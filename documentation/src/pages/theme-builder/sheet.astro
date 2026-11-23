@@ -81,6 +81,13 @@ const sheets = (names: string[] = []) =>
  * none.
  */
 const IN_PLACE = `
+	/* A table is as wide as its columns need, and a frame of the builder can
+	   be narrower than that. The surface then scrolls sideways, rather than
+	   the whole sheet. */
+	.surface {
+		overflow-x: auto;
+	}
+
 	/* A recipe is often a whole form. LO-TEK leaves the distance between the
 	   fields of a form to the page, and here the sheet is the page: the
 	   same distance the surface gives what stands directly on it. */

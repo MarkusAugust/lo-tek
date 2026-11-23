@@ -130,10 +130,22 @@ const rangeOf = (path: string, help: string): Range | undefined => {
 const follows = (path: string, { rest, unit }: Range) => {
   const field = `$fields.${path}`
   const number = "\\s*\\d*\\.?\\d+"
-  return unit === ""
-    ? `${field} === '' ? (el.value = ${rest}) : /^${number}\\s*$/.test(${field}) && (el.value = parseFloat(${field}))`
-    : `${field} === '' ? (el.value = ${rest}) : /^(${number}px|\\s*0)\\s*$/.test(${field}) ? (el.value = parseFloat(${field})) : /^${number}rem\\s*$/.test(${field}) && (el.value = parseFloat(${field}) * 16)`
+  if (unit === "")
+    return `${field} === '' ? (el.value = ${rest}) : /^${number}\\s*$/.test(${field}) && (el.value = parseFloat(${field}))`
+  // A slider says a number, and a screen reader reads it bare. Here it is
+  // a length, so the slider says the unit too.
+  return `(${field} === '' ? (el.value = ${rest}) : /^(${number}px|\\s*0)\\s*$/i.test(${field}) ? (el.value = parseFloat(${field})) : /^${number}rem\\s*$/i.test(${field}) && (el.value = parseFloat(${field}) * 16)), el.setAttribute('aria-valuetext', el.value + ' ${unit}')`
 }
+
+/**
+ * Moving the slider writes the field: the number, with its unit. Moved back
+ * to where it rests, it writes what the field held at rest, `0.25rem` and
+ * not `4px`, so the way back by the slider is a way back.
+ */
+const moves = (path: string, { rest, unit, text }: Range) =>
+  text === ""
+    ? `$fields.${path} = el.value + '${unit}'`
+    : `$fields.${path} = Number(el.value) === ${rest} ? '${text}' : el.value + '${unit}'`
 
 type Field = { path: string; label: string; help: string; range?: Range }
 
@@ -306,11 +318,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						<code>{COMMAND}</code>. See <a class="lt-link" href="/your-own-theme/">Your own theme</a>.
 					</p>
 				</noscript>
-				<p class="builder__line" role="alert" style="display: none" data-show="$failed">
-					The generator could not be loaded, so nothing here builds a theme.
-					Load the page again, or use the command line, which builds the
-					same theme: <code>{COMMAND}</code>
-				</p>
 				<div class="builder__head">
 					<h1 class="builder__name profile-name">Theme builder</h1>
 					<p class="builder__line">
@@ -322,6 +329,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					</p>
 					<p class="profile-label">
 						Built with @lo-tek/interfaces {pkg.version}
+					</p>
+					<!-- In the head, so the page is laid out the same with it as
+					     without: the generator did not come. -->
+					<p class="builder__line" role="alert" style="display: none" data-show="$failed">
+						The generator could not be loaded, so nothing here builds a theme.
+						Load the page again, or use the command line, which builds the
+						same theme: <code>{COMMAND}</code>
 					</p>
 				</div>
 
@@ -359,9 +373,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 <span
 											class="builder__changed"
 											style="display: none"
-											data-show={`$own.${name} || $fields.${name} !== ''`}
->
-											Changed
+											data-show={`$own.${name} && $fields.${name}.trim() !== ''`}
+											>
+												Changed
 </span>
 <button
 											class="builder__reset"
@@ -369,17 +383,18 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											aria-label={`Reset ${name}`}
 											style="display: none"
 											data-show={`$own.${name} || $fields.${name} !== ''`}
-											data-on:click={`$fields.${name} = ''; $own.${name} = false`}
+											data-on:click={`$fields.${name} = ''; $own.${name} = false; document.getElementById('own-${name}').focus()`}
 >
 											Reset
 </button>
 									</div>
 									<!-- The picker shows LO-TEK's colour of the family until
 									     another is given, and picking one gives it: the field
-									     holds it and the switch is on. It follows the field
-									     only while the field holds a whole colour: a picker
-									     takes nothing but #rrggbb, and says so in the console
-									     for every key pressed on the way there. -->
+									     holds it and the switch is on. It follows the colour
+									     as the core read it, and not the field: the core
+									     takes #f0a and F7DF1E, and a picker takes nothing
+									     but #rrggbb, and says so in the console for anything
+									     else. -->
 									<div class="builder__colour">
 										<input
 											class="builder__picker"
@@ -387,7 +402,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											aria-label={`Pick the colour of ${name}`}
 											value={OWN[name]}
 											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
-											data-effect={`/^#[0-9a-f]{6}$/i.test($fields.${name}) ? (el.value = $fields.${name}) : $fields.${name} === '' && (el.value = '${OWN[name]}')`}
+											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name}.trim() === '' && (el.value = '${OWN[name]}')`}
 										/>
 										<input
 											class="lt-input"
@@ -481,9 +496,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											<span
 												class="builder__changed"
 												style="display: none"
-												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
-											>
-												Changed
+												data-show={`$fields.${path}.trim() !== '' && $fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												>
+													Changed
 											</span>
 											<button
 												class="builder__reset"
@@ -491,7 +506,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 												aria-label={`Reset ${label}`}
 												style="display: none"
 												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
-												data-on:click={`$fields.${path} = '${range?.text ?? ""}'`}
+												data-on:click={`$fields.${path} = '${range?.text ?? ""}'; document.getElementById('${id(path)}').focus()`}
 											>
 												Reset
 											</button>
@@ -505,7 +520,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 												max={range.max}
 												step={range.step}
 												value={range.rest}
-												data-on:input={`$fields.${path} = el.value + '${range.unit}'`}
+												data-on:input={moves(path, range)}
 												data-effect={follows(path, range)}
 											/>
 										)}
@@ -860,8 +875,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	}
 	
 	.builder__reset {
+		/* Small beside a label, and still large enough to hit. */
+		min-inline-size: 24px;
+		min-block-size: 24px;
 		margin: 0;
-		padding: 0;
+		padding: 0 var(--lt-spacing-1);
 		border: 0;
 		background: none;
 		font: inherit;
@@ -1376,11 +1394,16 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
 			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
 			const answer = refusal(keys as Fields)
-			if (
-				answer.startsWith("Unknown key in the recipe") ||
-				(answer !== "" && odd(first.fields, keys))
-			)
+			const strange = odd(first.fields, keys)
+			if (answer.startsWith("Unknown key in the recipe") || (answer !== "" && strange))
 				return refuse(answer)
+			// The core writes `true` where it is given `true`. No field can
+			// hold it, and to leave it out without a word would be to change
+			// the recipe.
+			if (strange)
+				return refuse(
+					"A value in the recipe is not text or a number. The builder cannot show it, so nothing was changed.",
+				)
 			const fields = laid(first.fields, keys)
 			mergePatch({
 				own: Object.fromEntries(
