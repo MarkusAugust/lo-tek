@@ -155,14 +155,15 @@ fn recipe_name(variable: &str) -> String {
     variable.into()
 }
 
-/// Whether parentheses and quotes are balanced.
+/// Whether parentheses, square brackets and quotes are balanced.
 ///
 /// An unbalanced `(` is enough on its own: `1px (` opens a block that
 /// swallows the semicolon, both braces and everything after it in the file.
 /// Tested in Chromium, where both the theme and the consumer's own style
-/// sheet disappeared.
+/// sheet disappeared. A `[` opens a block in the same way: after `Inter [`
+/// the declaration that followed was gone.
 fn balanced(value: &str) -> bool {
-    let mut depth = 0i32;
+    let mut open: Vec<char> = Vec::new();
     let mut quote: Option<char> = None;
     for c in value.chars() {
         if let Some(q) = quote {
@@ -171,18 +172,20 @@ fn balanced(value: &str) -> bool {
             }
             continue;
         }
-        if c == '"' || c == '\'' {
-            quote = Some(c);
-        } else if c == '(' {
-            depth += 1;
-        } else if c == ')' {
-            depth -= 1;
-            if depth < 0 {
-                return false;
+        match c {
+            '"' | '\'' => quote = Some(c),
+            '(' => open.push(')'),
+            '[' => open.push(']'),
+            // Blocks nest: each one is closed by its own kind, innermost first.
+            ')' | ']' => {
+                if open.pop() != Some(c) {
+                    return false;
+                }
             }
+            _ => {}
         }
     }
-    depth == 0 && quote.is_none()
+    open.is_empty() && quote.is_none()
 }
 
 /// Refuses a value that can break out of the rule it is written into.
@@ -192,7 +195,7 @@ fn balanced(value: &str) -> bool {
 /// closed the block, `1px (` swallowed the rest of the file, `Arial\` let the
 /// backslash eat the semicolon, and `Arial</style><script>…` ran the script
 /// where the CSS is inline in a `<style>`. Hence both a list of dangerous
-/// characters and a requirement that parentheses and quotes are balanced.
+/// characters and a requirement that parentheses, brackets and quotes are balanced.
 /// `calc(1rem + 2px)` and `"Segoe UI", Arial` are still valid.
 fn checked(name: &str, value: &str) -> Result<String, String> {
     let dangerous = value.contains([';', '{', '}', '<', '>', '\\'])
@@ -207,7 +210,7 @@ fn checked(name: &str, value: &str) -> Result<String, String> {
     }
     if !balanced(value) {
         return Err(format!(
-            "The value of {} has an unbalanced parenthesis or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: {value}",
+            "The value of {} has an unbalanced parenthesis, bracket or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: {value}",
             recipe_name(name)
         ));
     }
@@ -651,6 +654,35 @@ mod recipe_tests {
             .err()
             .unwrap();
         assert!(error.contains("parenthesis"), "{error}");
+    }
+
+    #[test]
+    fn a_square_bracket_that_is_not_closed_is_refused_like_a_parenthesis() {
+        // Seen in a browser: `Inter [` as the font opens a block that
+        // swallows what follows it in the rule, as an unclosed `(` does, and
+        // the radius declared after it came out empty. The theme built, and
+        // looked right in the file.
+        for value in ["Inter [", "Inter ]", "Inter [a", "a]b[", "calc(1px [) ]"] {
+            let recipe = format!(r#"{{"typography": {{"fontFamily": "{value}"}}}}"#);
+            assert_eq!(
+                theme(&recipe).err(),
+                Some(format!(
+                    "The value of fontFamily has an unbalanced parenthesis, bracket or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: {value}"
+                )),
+                "{value}"
+            );
+        }
+        // A pair is a pair, and a bracket in a quoted name is text.
+        for value in ["a[b]", "Inter, [system]", "'Segoe [' , Arial"] {
+            let recipe = format!(r#"{{"typography": {{"fontFamily": "{value}"}}}}"#);
+            let css = theme(&recipe)
+                .unwrap_or_else(|error| panic!("{value}: {error}"))
+                .css;
+            assert!(
+                css.contains(&format!("--lt-font-family-base: {value};")),
+                "{css}"
+            );
+        }
     }
 
     #[test]

@@ -7,8 +7,11 @@
  * bound to them, and what is shown is computed from them in the markup. The
  * one thing Datastar cannot do is build the theme: that is the core, in
  * WebAssembly, the same one `lotek theme` runs. The module at the foot loads
- * it and hands it to Datastar as two actions, through Datastar's own
- * `action()`. Nothing else here is script.
+ * it and hands Datastar what the markup cannot do itself, as actions through
+ * Datastar's own `action()`: the recipe from the fields, the core's answer
+ * to it, the theme into a frame, the fields from a recipe that is pasted in,
+ * and what was chosen into the browser's storage and out again. Nothing
+ * else here is script.
  *
  * The fields are not written by hand. `theme.schema.json` says which keys a
  * recipe has, and the page has one field for each, so a key the generator
@@ -88,9 +91,10 @@ const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
  * and `built` is the core's answer to it: the theme, what is wrong with
  * each field, in the shape of `fields`, and what became of each colour.
  * `shown` is the theme the frames have, the last one that was built, and
- * `view` which page they frame. `copied` is the recipe that was last
- * copied. `pasted` is the text in the field a recipe
- * can be pasted into, and `pasteError` why it was not taken.
+ * `view` which page they frame. `copied` is the recipe the clipboard last
+ * took and `notCopied` the one it last refused. `pasted` is the text in the
+ * field a recipe can be pasted into, and `pasteError` why it was not taken.
+ * `failed` says the core never came.
  *
  * A signal an action answers into always has the same keys, and only text,
  * numbers and booleans at its leaves. Datastar merges what is assigned into
@@ -101,6 +105,7 @@ const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
  */
 const signals = {
   ready: false,
+  failed: false,
   own: Object.fromEntries(families.map(([name]) => [name, false])),
   fields: {
     ...Object.fromEntries(families.map(([name]) => [name, ""])),
@@ -132,6 +137,7 @@ const signals = {
   shown: "",
   view: "sheet",
   copied: "",
+  notCopied: "",
   pasted: "",
   pasteError: "",
 }
@@ -189,6 +195,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						<code>{COMMAND}</code>. See <a class="lt-link" href="/your-own-theme/">Your own theme</a>.
 					</p>
 				</noscript>
+				<p class="builder__line" role="alert" style="display: none" data-show="$failed">
+					The generator could not be loaded, so nothing here builds a theme.
+					Load the page again, or use the command line, which builds the
+					same theme: <code>{COMMAND}</code>
+				</p>
 				<div class="builder__head">
 					<h1 class="builder__name profile-name">Theme builder</h1>
 					<p class="builder__line">
@@ -218,7 +229,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						</p>
 						{
 							families.map(([name, property]) => (
-								<div class="builder__family">
+								<div class="builder__family" role="group" aria-labelledby={`own-${name}-label`}>
 									<div class="lt-switch-row">
 										<input
 											class="lt-switch"
@@ -228,7 +239,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											name={`own.${name}`}
 											data-bind={`own.${name}`}
 										/>
-										<label class="lt-label" for={`own-${name}`}>
+										<label class="lt-label" id={`own-${name}-label`} for={`own-${name}`}>
 											{name}
 										</label>
 									</div>
@@ -367,6 +378,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 							</label>
 						</fieldset>
 					</div>
+					<!-- Each frame holds a whole page, and every control in it is a
+					     stop for the keyboard. -->
+					<a class="lt-skip-link" href="#out">Skip past the preview</a>
 					<!-- Each frame is a page of the site with the theme laid on it,
 					     the file itself and not a likeness of it. The frame says
 					     which appearance it is, and the framed page takes it before
@@ -382,6 +396,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 										src="/theme-builder/sheet/"
 										data-attr:src="'/theme-builder/' + $view + '/'"
 										data-effect={`$ready && @showTheme(el, '${appearance}', $shown)`}
+										data-on:load={`@showTheme(el, '${appearance}', $shown)`}
 									/>
 								</figure>
 							))
@@ -389,11 +404,12 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					</div>
 				</section>
 
-				<section class="builder__out" aria-labelledby="out-title">
+				<section class="builder__out" id="out" tabindex="-1" aria-labelledby="out-title">
 					<h2 class="profile-label" id="out-title">lotek.theme.json</h2>
-					<pre class="builder__json" data-recipe tabindex="0" data-text="$recipe">{"{}"}</pre>
-					<!-- What was chosen is remembered in this browser. `copied` is the
-					     recipe that was copied, so "Copied" is said only of that one. -->
+					<pre class="builder__json" data-recipe tabindex="0" role="region" aria-label="The recipe, as lotek.theme.json" data-text="$recipe">{"{}"}</pre>
+					<!-- What was chosen is remembered in this browser. "Copied" is said
+					     of the recipe the clipboard took, once it has taken it, and
+					     only while that recipe is the one shown. -->
 					<div hidden data-effect="$ready && @remember($own, $fields)"></div>
 					<p class="builder__actions">
 						<button
@@ -401,7 +417,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 							type="button"
 							disabled
 							data-attr:disabled="!$built.ok"
-							data-on:click="@copy($recipe); $copied = $recipe"
+							data-on:click="const text = $recipe; (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => ($copied = text), () => ($notCopied = text))"
 						>
 							Copy the recipe
 						</button>
@@ -423,13 +439,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						>
 							Start again
 						</button>
-						<span class="builder__said" role="status" data-text="$copied !== '' && $copied === $recipe ? 'Copied.' : ''"></span>
+						<span class="builder__said" role="status" data-text="$copied === $recipe ? 'Copied.' : $notCopied === $recipe ? 'The browser would not copy it. Select the recipe and copy it by hand.' : ''"></span>
 					</p>
 					<p class="builder__line">
 						Keep the recipe in the repository as <code>lotek.theme.json</code>,
 						and build the theme from it:
 					</p>
-					<pre class="builder__json" tabindex="0"><code>{COMMAND}</code></pre>
+					<pre class="builder__json" tabindex="0" role="region" aria-label="The command that builds the theme"><code>{COMMAND}</code></pre>
 				</section>
 
 				<section class="builder__out" aria-labelledby="paste-title">
@@ -723,7 +739,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	import { loadCore } from "@lo-tek/interfaces/diagnostics"
 
 	/*
-	 * The module: the core, handed to Datastar as two actions.
+	 * The module: the core, and what else the markup cannot do, handed to
+	 * Datastar as actions.
 	 *
 	 * Datastar is taken from the address the page loaded it from, so this is
 	 * the same instance the markup runs on, and not a second copy bundled in
@@ -736,10 +753,20 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	)?.src
 	const { action, mergePatch } = await import(/* @vite-ignore */ address ?? "")
 
-	const core = loadCore(
-		await WebAssembly.compile(await (await fetch(wasm)).arrayBuffer()),
-	)
-	core.loadContract(contract)
+	// The core may not come: the file is large, and a network can drop it.
+	// Then the page says so, and is never told it is ready.
+	let loaded: ReturnType<typeof loadCore> | undefined
+	try {
+		const file = await fetch(wasm)
+		if (!file.ok) throw new Error(`${file.status}`)
+		loaded = loadCore(await WebAssembly.compile(await file.arrayBuffer()))
+		loaded.loadContract(contract)
+	} catch {
+		mergePatch({ failed: true })
+	}
+	// The actions that ask the core run only when the page is ready, and it
+	// is ready only with a core.
+	const core = loaded as ReturnType<typeof loadCore>
 
 	type Fields = { [key: string]: string | Fields }
 
@@ -820,7 +847,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		)
 
 	// The report of the last theme that was built: what the rows hold while
-	// a field is being typed in and the recipe does not build.
+	// a field is being typed in and the recipe does not build, for the
+	// families that are still in the recipe.
 	let lastReport: Record<string, Row> | undefined
 
 	// The core's answer to a recipe: the theme, what is wrong with each
@@ -879,7 +907,12 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					css: "",
 					error: error instanceof Error ? error.message : String(error),
 					wrong,
-					report: lastReport ?? empty,
+					report: Object.fromEntries(
+						families.map((name) => [
+							name,
+							name in chosen && lastReport ? lastReport[name] : { ...noRow },
+						]),
+					),
 				}
 			}
 		},
@@ -889,34 +922,24 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	 * The theme of a frame: the appearance on `<html>`, and the CSS in one
 	 * `<style>` in `<head>`, the file as the generator writes it. An empty
 	 * theme empties the element, and the page shows LO-TEK's own colours.
+	 * The frame asks when the theme changes and when it has loaded a page.
 	 */
-	const themes = new WeakMap<HTMLIFrameElement, { appearance: string; css: string }>()
-
-	const lay = (frame: HTMLIFrameElement) => {
-		const theme = themes.get(frame)
-		const page = frame.contentDocument
-		// Before the page has come, or between two pages: `load` lays it then.
-		if (!theme || !page?.head || page.location.href === "about:blank") return
-		page.documentElement.dataset.theme = theme.appearance
-		page.documentElement.style.colorScheme = theme.appearance
-		let style = page.head.querySelector<HTMLStyleElement>("style[data-theme-builder]")
-		if (!style) {
-			if (theme.css === "") return
-			style = page.createElement("style")
-			style.setAttribute("data-theme-builder", "")
-			page.head.append(style)
-		}
-		if (style.textContent !== theme.css) style.textContent = theme.css
-	}
-
-	// A frame is given a theme now and again every time it has loaded a page:
-	// the other page of the two, or the same one once more.
 	action({
 		name: "showTheme",
 		apply(_: unknown, frame: HTMLIFrameElement, appearance: string, css: string) {
-			if (!themes.has(frame)) frame.addEventListener("load", () => lay(frame))
-			themes.set(frame, { appearance, css })
-			lay(frame)
+			const page = frame.contentDocument
+			// Before the page has come, or between two pages.
+			if (!page?.head || page.location.href === "about:blank") return
+			page.documentElement.dataset.theme = appearance
+			page.documentElement.style.colorScheme = appearance
+			let style = page.head.querySelector<HTMLStyleElement>("style[data-theme-builder]")
+			if (!style) {
+				if (css === "") return
+				style = page.createElement("style")
+				style.setAttribute("data-theme-builder", "")
+				page.head.append(style)
+			}
+			if (style.textContent !== css) style.textContent = css
 		},
 	})
 
@@ -930,6 +953,20 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		fields: Fields
 	}
 	const REMEMBERED = "lotek-theme-builder"
+
+	/**
+	 * Whether `from` has something other than text or a number where `blank`
+	 * has a field, or other than an object where it has a block. Nothing and
+	 * `null` are a value that is not given.
+	 */
+	const odd = (blank: Fields, from: unknown): boolean =>
+		Object.entries(blank).some(([name, value]) => {
+			const given = (from as Record<string, unknown>)[name] ?? undefined
+			if (given === undefined) return false
+			if (typeof value === "string")
+				return typeof given !== "string" && typeof given !== "number"
+			return typeof given !== "object" || Array.isArray(given) || odd(value, given)
+		})
 
 	/** The values of `from` laid into the shape of `blank`, as text. Anything else is left out. */
 	const laid = (blank: Fields, from: unknown): Fields =>
@@ -960,26 +997,17 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	action({
 		name: "startAgain",
 		apply() {
-			try {
-				localStorage.removeItem(REMEMBERED)
-			} catch {
-				// As above.
-			}
+			// The empty page is what is then remembered: the effect that
+			// remembers runs on this as on any change.
 			mergePatch({ own: first.own, fields: first.fields, pasted: "", pasteError: "" })
-		},
-	})
-
-	action({
-		name: "copy",
-		apply(_: unknown, text: string) {
-			return navigator.clipboard.writeText(text)
 		},
 	})
 
 	// A recipe file pasted in becomes what is chosen. A text that is not a
 	// recipe changes nothing and says why. A key the core does not know is
-	// the core's to name. A value it refuses is taken: the field then holds
-	// it, and says what is wrong with it.
+	// the core's to name, and so is a value that is not text, which no field
+	// can hold. A text it refuses is taken: the field then holds it, and says
+	// what is wrong with it.
 	action({
 		name: "useRecipe",
 		apply(_: unknown, text: string) {
@@ -994,7 +1022,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
 			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
 			const answer = refusal(keys as Fields)
-			if (answer.startsWith("Unknown key in the recipe")) return refuse(answer)
+			if (
+				answer.startsWith("Unknown key in the recipe") ||
+				(answer !== "" && odd(first.fields, keys))
+			)
+				return refuse(answer)
 			const fields = laid(first.fields, keys)
 			mergePatch({
 				own: Object.fromEntries(
@@ -1020,5 +1052,5 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		// Nothing remembered that can be read. The page starts empty.
 	}
 
-	mergePatch({ ready: true })
+	if (loaded) mergePatch({ ready: true })
 </script>

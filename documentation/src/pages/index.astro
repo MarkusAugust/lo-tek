@@ -197,7 +197,7 @@ const GRADE = [
             nothing. Write it through the function and you get an error in the
             editor before you can save.
           </p>
-          <pre class="node__pre" tabindex="0"><code>&lt;button
+          <pre class="node__pre" tabindex="0" role="region" aria-label="Markup for a button"><code>&lt;button
   &#123;...lt.button(&#123;
     variant: "secondary",
   &#125;)&#125;
@@ -221,7 +221,7 @@ const GRADE = [
             <code>!important</code>. If you only want to change shape or size,
             there is a variable per component.
           </p>
-          <pre class="node__pre" tabindex="0"><code>:root &#123;
+          <pre class="node__pre" tabindex="0" role="region" aria-label="CSS that sets a token"><code>:root &#123;
   --lt-button-radius: 9999px;
 &#125;</code></pre>
           <p class="node__what">
@@ -240,7 +240,7 @@ const GRADE = [
             own brand colours, their families are computed afresh with
             <code>buildTheme</code>.
           </p>
-          <pre class="node__pre" tabindex="0"><code>const theme = buildTheme(&#123;
+          <pre class="node__pre" tabindex="0" role="region" aria-label="Building a theme"><code>const theme = buildTheme(&#123;
   accent: "#0062ba",
 &#125;)
 
@@ -264,7 +264,7 @@ const GRADE = [
             per framework, and it ships with the package. When the agent is
             done, the check says what is wrong, with file and line.
           </p>
-          <pre class="node__pre" tabindex="0"><code>npx @lo-tek/interfaces check form.html
+          <pre class="node__pre" tabindex="0" role="region" aria-label="The check on the command line"><code>npx @lo-tek/interfaces check form.html
 
 form.html:3:13: warning: The class "lt-modal"
   does not exist in LO-TEK.</code></pre>
@@ -287,7 +287,7 @@ form.html:3:13: warning: The class "lt-modal"
             and what the screen reader must be given after each one. If a
             component breaks its contract, the change is stopped.
           </p>
-          <pre class="node__pre" tabindex="0"><code>✗ safari toast: restart-fails:
+          <pre class="node__pre" tabindex="0" role="region" aria-label="A contract that is broken"><code>✗ safari toast: restart-fails:
   announce: "Relay 14 refused
   the restart. Try again."
   0 times in polite regions,

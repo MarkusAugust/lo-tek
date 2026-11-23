@@ -46,12 +46,19 @@ const violation = (v: {
  * script, and the only time that failed was in CI, without anyone finding out
  * why. Counted over every built file, and requires the count to be greater
  * than zero.
+ *
+ * A `<pre>` a page has written itself and made a stop for the keyboard is
+ * held to the same: the recipe and the command on the theme builder took
+ * focus with no role, so a screen reader landed on something it could not
+ * say what was.
  */
 let codeBlocks = 0
 const codeBlocksWithout: string[] = []
 for (const file of new Bun.Glob("**/*.html").scanSync(DIST)) {
   const html = readFileSync(join(DIST, file), "utf8")
-  for (const [tag] of html.matchAll(/<pre\b[^>]*\bdata-language\b[^>]*>/g)) {
+  for (const [tag] of html.matchAll(
+    /<pre\b[^>]*\b(?:data-language|tabindex)\b[^>]*>/g,
+  )) {
     codeBlocks++
     if (!/\btabindex="0"/.test(tag) || !/\brole="region"/.test(tag)) {
       codeBlocksWithout.push(`${file}: ${tag.slice(0, 80)}`)

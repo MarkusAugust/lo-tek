@@ -36,6 +36,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The theme generator refuses a square bracket that is not closed.**
+  `fontFamily: "Inter ["` built a theme where the `[` swallowed the
+  declaration after it, as an unclosed parenthesis does. It is refused now,
+  with the same message, and `a[b]` is still taken. A bracket and a
+  parenthesis must also close in the order they opened.
 - **The links to the IntelliJ plugin led to the plugin it replaced.** The
   editor page and the Kotlin page pointed at the earlier plugin on JetBrains
   Marketplace, which stops at 0.4.0. They point at LO-TEK Interfaces now.
