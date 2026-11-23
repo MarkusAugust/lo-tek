@@ -323,7 +323,9 @@ const components = [...pages]
 
 	// A suggestion list is closed until someone types, and shows either the
 	// matches or that there are none. Both are shown, each in its own field:
-	// the recipe's as it is, and a copy of it with nothing in the list.
+	// the recipe's as it is, and a copy of it with nothing in the list and
+	// a word in the field that nothing matches, so it reads as the state it
+	// is and not as a field that has stopped answering.
 	// Neither is opened: the stylesheet shows each as its mark says.
 	const suggestion = find<HTMLElement>("suggestion", "lt-suggestion")
 	if (suggestion) {
@@ -336,6 +338,8 @@ const components = [...pages]
 			}
 		}
 		for (const option of none.querySelectorAll("li")) option.remove()
+		const typed = none.querySelector("input")
+		if (typed) typed.value = "Quartz"
 		suggestion.after(none)
 		suggestion.dataset.shows = "matches"
 		none.dataset.shows = "none"

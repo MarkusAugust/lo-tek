@@ -9,8 +9,9 @@
  * WebAssembly, the same one `lotek theme` runs. The module at the foot loads
  * it and hands Datastar what the markup cannot do itself, as actions through
  * Datastar's own `action()`: the recipe from the fields, the core's answer
- * to it, the theme into a frame, the fields from a recipe that is pasted in,
- * and what was chosen into the browser's storage and out again. Nothing
+ * to it, the theme into a frame, one frame's scrolling to the other, the
+ * fields from a recipe that is pasted in, and what was chosen into the
+ * browser's storage and out again. Nothing
  * else here is script.
  *
  * The fields are not written by hand. `theme.schema.json` says which keys a
@@ -27,6 +28,7 @@
 import "@lo-tek/interfaces/lotek.css"
 import "../styles/profile.css"
 import pkg from "../../../interfaces/package.json" with { type: "json" }
+import contract from "../../../interfaces/src/tokens/color-contract.json"
 import schema from "../../../interfaces/src/tokens/theme.schema.json"
 import FontPreload from "../components/FontPreload.astro"
 import Top from "../components/Top.astro"
@@ -50,7 +52,60 @@ const families = Object.entries(top).filter(
   ([name, property]) => name !== "$schema" && !property.properties,
 )
 
-type Field = { path: string; label: string; help: string }
+/**
+ * A slider beside a field whose value is a number: where it starts and
+ * ends, and where it rests, which is the value LO-TEK has when the recipe
+ * leaves the key out. `unit` is what is written after the number.
+ */
+type Range = {
+  min: number
+  max: number
+  step: number
+  rest: number
+  unit: string
+}
+
+const WEIGHT = { min: 100, max: 900, step: 100, unit: "" }
+const CORNER = { min: 0, max: 32, step: 1, unit: "px" }
+
+/**
+ * The keys of `shape`. Their resting values are the fallbacks in the
+ * component CSS: `--lt-spacing-1` for a corner, `1px` for the border and the
+ * medium weight for the button text. Most surfaces have that corner; the
+ * card and the dialog have twice it.
+ */
+const SHAPE: Record<string, Range> = {
+  "shape.buttonRadius": { ...CORNER, rest: 4 },
+  "shape.fieldRadius": { ...CORNER, rest: 4 },
+  "shape.surfaceRadius": { ...CORNER, rest: 4 },
+  "shape.buttonBorderWidth": { min: 0, max: 4, step: 1, rest: 1, unit: "px" },
+  "shape.buttonFontWeight": { ...WEIGHT, rest: 500 },
+}
+
+/** The weights and line heights say in the schema what they are if left out. */
+const rangeOf = (path: string, help: string): Range | undefined => {
+  const said = help.match(/([\d.]+) if left out/)
+  if (!said) return SHAPE[path]
+  const rest = Number(said[1])
+  return rest >= 100
+    ? { ...WEIGHT, rest }
+    : { min: 1, max: 2, step: 0.05, rest, unit: "" }
+}
+
+/**
+ * The slider follows the field: at rest while the field is empty, at the
+ * number when the field holds one it can show, and where it was when the
+ * field holds something else, `calc(1rem + 2px)` or `bold`.
+ */
+const follows = (path: string, { rest, unit }: Range) => {
+  const field = `$fields.${path}`
+  const number = "\\s*\\d*\\.?\\d+"
+  return unit === ""
+    ? `${field} === '' ? (el.value = ${rest}) : /^${number}\\s*$/.test(${field}) && (el.value = parseFloat(${field}))`
+    : `${field} === '' ? (el.value = ${rest}) : /^(${number}px|\\s*0)\\s*$/.test(${field}) ? (el.value = parseFloat(${field})) : /^${number}rem\\s*$/.test(${field}) && (el.value = parseFloat(${field}) * 16)`
+}
+
+type Field = { path: string; label: string; help: string; range?: Range }
 
 /** Every leaf below a block, with its path: `typography.weights.bold`. */
 const leaves = (path: string, property: Property): Field[] =>
@@ -62,6 +117,7 @@ const leaves = (path: string, property: Property): Field[] =>
             path: `${path}.${name}`,
             label: `${path}.${name}`.split(".").slice(1).join(" "),
             help: child.description ?? "",
+            range: rangeOf(`${path}.${name}`, child.description ?? ""),
           },
         ],
   )
@@ -151,6 +207,9 @@ const APPEARANCES = ["light", "dark"] as const
  * recipe, and a newer or an older one may make something else.
  */
 const COMMAND = `npx @lo-tek/interfaces@${pkg.version} theme lotek.theme.json --out=theme.css`
+
+/** LO-TEK's own colour of each family: what a family has until it is given one. */
+const OWN = contract.brands as Record<string, string>
 
 const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 ---
@@ -243,19 +302,20 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											{name}
 										</label>
 									</div>
-									<!-- The picker writes into the field, and follows it only
-									     while the field holds a whole colour: a picker takes
-									     nothing but #rrggbb, and says so in the console for
-									     every key pressed on the way there. -->
+									<!-- The picker shows LO-TEK's colour of the family until
+									     another is given, and picking one gives it: the field
+									     holds it and the switch is on. It follows the field
+									     only while the field holds a whole colour: a picker
+									     takes nothing but #rrggbb, and says so in the console
+									     for every key pressed on the way there. -->
 									<div class="builder__colour">
 										<input
 											class="builder__picker"
 											type="color"
 											aria-label={`Pick the colour of ${name}`}
-											disabled
-											data-on:input={`$fields.${name} = el.value`}
-											data-effect={`/^#[0-9a-f]{6}$/i.test($fields.${name}) && (el.value = $fields.${name})`}
-											data-attr:disabled={`!$own.${name}`}
+											value={OWN[name]}
+											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
+											data-effect={`/^#[0-9a-f]{6}$/i.test($fields.${name}) ? (el.value = $fields.${name}) : $fields.${name} === '' && (el.value = '${OWN[name]}')`}
 										/>
 										<input
 											class="lt-input"
@@ -264,7 +324,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											name={name}
 											aria-label={`The colour of ${name}, as #rrggbb`}
 											aria-describedby={`${id(name)}-help ${id(name)}-error`}
-											placeholder="#rrggbb"
+											placeholder={OWN[name]}
 											autocomplete="off"
 											spellcheck="false"
 											disabled
@@ -328,11 +388,24 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						].map(({ legend, fields }) => (
 							<fieldset class="lt-fieldset builder__group">
 								<legend class="lt-legend">{legend}</legend>
-								{fields.map(({ path, label, help }) => (
+								{fields.map(({ path, label, help, range }) => (
 									<div class="builder__field">
 										<label class="lt-label" for={id(path)}>
 											{label}
 										</label>
+										{range && (
+											<input
+												class="builder__slider"
+												type="range"
+												aria-label={`${label}, on a slider`}
+												min={range.min}
+												max={range.max}
+												step={range.step}
+												value={range.rest}
+												data-on:input={`$fields.${path} = el.value + '${range.unit}'`}
+												data-effect={follows(path, range)}
+											/>
+										)}
 										<input
 											class="lt-input"
 											type="text"
@@ -399,7 +472,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 										src="/theme-builder/sheet/"
 										data-attr:src="'/theme-builder/' + $view + '/'"
 										data-effect={`$ready && @showTheme(el, '${appearance}', $shown)`}
-										data-on:load={`@showTheme(el, '${appearance}', $shown)`}
+										data-on:load={`@showTheme(el, '${appearance}', $shown); @scrollTogether(el)`}
 									/>
 								</figure>
 							))
@@ -641,6 +714,12 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		gap: var(--lt-spacing-2);
 	}
 
+	.builder__slider {
+		inline-size: 100%;
+		margin: 0;
+		accent-color: var(--lt-color-accent-fill);
+	}
+	
 	.builder__picker {
 		flex: none;
 		inline-size: var(--lt-spacing-10);
@@ -976,6 +1055,33 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				page.head.append(style)
 			}
 			if (style.textContent !== css) style.textContent = css
+		},
+	})
+
+	// The two frames show the same page, and are read side by side: scrolling
+	// one scrolls the other to the same place. A frame that is already there
+	// is left alone, which is what stops the two from answering each other.
+	action({
+		name: "scrollTogether",
+		apply(_: unknown, frame: HTMLIFrameElement) {
+			const from = frame.contentDocument?.documentElement
+			if (!from) return
+			frame.contentWindow?.addEventListener(
+				"scroll",
+				() => {
+					const part = from.scrollTop / Math.max(1, from.scrollHeight - from.clientHeight)
+					for (const other of document.querySelectorAll<HTMLIFrameElement>(
+						"iframe[data-appearance]",
+					)) {
+						const to = other.contentDocument?.documentElement
+						if (other === frame || !to) continue
+						const top = part * (to.scrollHeight - to.clientHeight)
+						if (Math.abs(to.scrollTop - top) > 1.5)
+							other.contentWindow?.scrollTo({ top, behavior: "instant" })
+					}
+				},
+				{ passive: true },
+			)
 		},
 	})
 
