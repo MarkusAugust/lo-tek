@@ -209,6 +209,12 @@
   .sidebar-pane {
     border-right: var(--profile-rule-subtle);
     background: var(--lt-color-neutral-canvas);
+    /* The menu is long, and scrolls on its own. Where the system always
+       shows scrollbars, the browser's own is a wide grey band beside the
+       menu. A thin one in the colour of the rules sits there instead, on
+       no track of its own. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--lt-color-neutral-border) transparent;
   }
 
   .sidebar-content {
