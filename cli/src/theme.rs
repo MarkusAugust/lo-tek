@@ -78,10 +78,23 @@ fn read_recipe(file: &str) -> Object {
     }
 }
 
+/// A promise about the fill, as what it is measured against. The contract
+/// names its promises for the matrix, `fill on raised`, and a reader of the
+/// run has not read the contract. A promise that is not known here is said
+/// by its name.
+fn plainly(promise: &str) -> String {
+    match promise {
+        "fill on canvas" => "against the page it".into(),
+        "fill on raised" => "against a raised surface it".into(),
+        "content on top of fill" => "text on it".into(),
+        other => other.into(),
+    }
+}
+
 /// What became of each brand colour, as the lines the run writes.
 ///
 /// The lightness is the role's, so the colour is moved, and a light one is
-/// moved far. The run says so, with the reason in the contract's own terms,
+/// moved far. The run says so, with the reason in plain words,
 /// rather than answering only that every promise holds.
 fn brand_lines(brands: &[Brand]) -> Vec<String> {
     let mut lines = Vec::new();
@@ -100,15 +113,15 @@ fn brand_lines(brands: &[Brand]) -> Vec<String> {
                 .iter()
                 .map(|v| {
                     format!(
-                        "{} would be {}:1, the requirement is {}:1",
-                        v.promise,
+                        "{} would have a contrast of {}:1, and {}:1 is required",
+                        plainly(&v.promise),
                         to_fixed2(v.ratio),
                         js_number(v.required)
                     )
                 })
                 .collect();
             lines.push(format!(
-                "  In the {appearance} theme {} could not be the fill itself: {}.",
+                "  In the {appearance} theme {} cannot be the fill as it is: {}.",
                 brand.given,
                 breaks.join("; ")
             ));
@@ -117,7 +130,7 @@ fn brand_lines(brands: &[Brand]) -> Vec<String> {
             let percent = (fill.chroma_kept * 100.0).round();
             if percent < 100.0 {
                 lines.push(format!(
-                    "  In the {appearance} theme the fill has {percent}% of the chroma of {}: sRGB cannot show more at that lightness and hue.",
+                    "  In the {appearance} theme the fill is less saturated than {}, with {percent}% of its chroma: a screen cannot show more at that lightness.",
                     brand.given
                 ));
             }

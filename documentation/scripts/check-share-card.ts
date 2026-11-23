@@ -9,7 +9,8 @@
  *
  * The pages under `demo/` are exempt. They are shown in an `<iframe>` on the
  * pattern pages and are examples the reader copies, so sharing tags do not
- * belong in them.
+ * belong in them. So are the component sheet and the composed page of the
+ * theme builder, which are only ever shown in the builder's own `<iframe>`.
  *
  * Run with: bun documentation/scripts/check-share-card.ts
  * Requires `documentation/dist` to be built.
@@ -93,9 +94,18 @@ const expected =
     ),
   ].filter((rel) => !/^404\.mdx?$/.test(rel)).length +
   [...new Glob("**/*.astro").scanSync(`${ROOT}documentation/src/pages`)].filter(
-    (rel) => !rel.startsWith("demo/"),
+    (rel) => !framed(rel),
   ).length +
   1
+
+/** A page that is only shown in an `<iframe>`, as a source file or as built. */
+function framed(rel: string): boolean {
+  return (
+    rel.startsWith("demo/") ||
+    rel.startsWith("theme-builder/sheet") ||
+    rel.startsWith("theme-builder/page")
+  )
+}
 
 for (const page of ["index.html", "404.html"]) {
   if (!existsSync(DIST + page)) findings.push(`${page} does not exist in dist`)
@@ -105,7 +115,7 @@ let exempt = 0
 let checked = 0
 
 for (const rel of new Glob("**/*.html").scanSync(DIST)) {
-  if (rel.startsWith("demo/")) {
+  if (framed(rel)) {
     exempt += 1
     continue
   }
@@ -137,5 +147,5 @@ if (findings.length > 0) {
 }
 
 console.log(
-  `All ${checked} of ${expected} pages have the share image ${ADDRESS}, and ${exempt} demo pages are exempt.`,
+  `All ${checked} of ${expected} pages have the share image ${ADDRESS}, and ${exempt} framed pages are exempt.`,
 )

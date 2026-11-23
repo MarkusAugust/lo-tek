@@ -1429,7 +1429,18 @@
         "fontFamily": "Arial ("
       }
     },
-    "error": "The value of fontFamily has an unbalanced parenthesis or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: Arial ("
+    "error": "The value of fontFamily has an unbalanced parenthesis, bracket or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: Arial ("
+  },
+  "unclosed-bracket": {
+    "recipe": {
+      "typography": {
+        "fontFamily": "Inter ["
+      },
+      "shape": {
+        "buttonRadius": "20px"
+      }
+    },
+    "error": "The value of fontFamily has an unbalanced parenthesis, bracket or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: Inter ["
   },
   "backslash": {
     "recipe": {

@@ -46,6 +46,18 @@ export interface Example {
   /** `<Example recipe>`: the code tabs show the setup the markup needs. */
   recipe: boolean
   code: string
+  /**
+   * How the page shows it, each as the page wrote it and left out when it
+   * did not: the stylesheets of an example that is not a recipe, the layout
+   * and the width of the surface, the CSS that forces something into view
+   * in a box, and the CSS that belongs to the example. The component sheet
+   * of the theme builder shows the example the same way.
+   */
+  styles?: string[]
+  layout?: string
+  maxWidth?: string
+  previewCss?: string
+  customCss?: string
   ts: Block[]
   kotlin: Block[]
 }
@@ -129,6 +141,44 @@ interface Template {
 }
 
 /**
+ * A list of strings in a JSX attribute, `styles={["button", "label"]}`, or
+ * `undefined` when the attribute is not there. Anything but string literals
+ * stops the reading, as an interpolation does.
+ */
+function listAttribute(node: Node, name: string): string[] | undefined {
+  const found = node.attributes?.find(
+    (a) => a.type === "mdxJsxAttribute" && a.name === name,
+  )
+  if (found === undefined) return undefined
+  const value = found.value as
+    | { data?: { estree?: { body: Array<{ expression?: List }> } } }
+    | undefined
+  const list = value?.data?.estree?.body[0]?.expression
+  const items = list?.type === "ArrayExpression" ? list.elements : undefined
+  if (
+    !items?.every(
+      (item) => item?.type === "Literal" && typeof item.value === "string",
+    )
+  )
+    throw new Error(
+      `line ${node.position?.start.line}: the ${name} of an <${node.name}> must be a list of strings`,
+    )
+  return items.map((item) => item?.value as string)
+}
+
+interface List {
+  type: string
+  elements: Array<{ type: string; value?: unknown } | null>
+}
+
+/** The entries that have a value, so a key the page did not write is not there. */
+function written<T extends Record<string, unknown>>(entries: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(entries).filter(([, value]) => value !== undefined),
+  ) as Partial<T>
+}
+
+/**
  * The blocks in `<Fragment slot="…">` anywhere inside a node: a slot wrapped
  * in another element is still the slot Astro fills.
  */
@@ -182,6 +232,13 @@ export function extractPage(mdx: string): Page {
             (a) => a.type === "mdxJsxAttribute" && a.name === "recipe",
           ) ?? false,
         code,
+        ...written({
+          styles: listAttribute(node, "styles"),
+          layout: attribute(node, "layout"),
+          maxWidth: attribute(node, "maxWidth"),
+          previewCss: templateAttribute(node, "previewCss"),
+          customCss: templateAttribute(node, "customCss"),
+        }),
         ts: slot(node, "ts"),
         kotlin: slot(node, "kotlin"),
       })
@@ -397,6 +454,7 @@ export function selfTest(): string[] {
         section: null,
         recipe: false,
         code: '\n<p class="lt-paragraph">Run `lotek check`</p>\n',
+        styles: ["paragraph"],
         ts: [{ lang: "ts", meta: null, code: "lt.paragraph()" }],
         kotlin: [{ lang: "kotlin", meta: null, code: "p(Lt.paragraph()) {}" }],
       },
@@ -547,6 +605,54 @@ export function selfTest(): string[] {
       [true, 1],
       [false, 0],
     ],
+  )
+  expect(
+    // A template literal over several lines comes as MDX hands it over,
+    // with up to two spaces taken off each continuation line. That is the
+    // value the page's own `<Example>` gets, for the CSS as for the markup,
+    // and it is what the recipes are matched on.
+    "an <Example> says how it is shown, as the page hands it over, and nothing the page did not write",
+    extractPage(
+      [
+        '<Example styles={["progress", "button"]} layout="stack" maxWidth="26rem" code={`<p>a</p>`} previewCss={`',
+        "  /* Only to show the link. */",
+        "  .lt-skip-link { position: static; }",
+        "`} customCss={`.compact { --lt-button-height: 2rem; }`} />",
+        "",
+        "<Example code={`<p>b</p>`} />",
+      ].join("\n"),
+    ).examples.map((e) => [
+      e.styles,
+      e.layout,
+      e.maxWidth,
+      e.previewCss,
+      e.customCss,
+      Object.keys(e).sort().join(),
+    ]),
+    [
+      [
+        ["progress", "button"],
+        "stack",
+        "26rem",
+        "\n/* Only to show the link. */\n.lt-skip-link { position: static; }\n",
+        ".compact { --lt-button-height: 2rem; }",
+        "code,customCss,kotlin,layout,maxWidth,previewCss,recipe,section,styles,ts",
+      ],
+      // The sheet tells a width the page left out from one it set to
+      // nothing by the key not being there at all.
+      [null, null, null, null, null, "code,kotlin,recipe,section,ts"],
+    ],
+  )
+  expect(
+    "an interpolation in the CSS of an <Example> stops the reading, as in its markup",
+    stops(() =>
+      extractPage(
+        // biome-ignore lint/suspicious/noTemplateCurlyInString: the MDX under test, not a placeholder
+        "<Example code={`<p>a</p>`} previewCss={`p { color: ${c} }`} />",
+      ),
+    ),
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the message names the form
+    "Error: line 1: the previewCss of an <Example> must be a template literal without ${…}",
   )
   expect(
     "an interpolation in the markup of an <Example> stops the reading",

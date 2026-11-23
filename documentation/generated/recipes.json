@@ -524,6 +524,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<details class=\"lt-accordion\">\n<summary>Who can take out a runner's policy?</summary>\n<div class=\"lt-accordion__content\">\n  <p>Anyone who jacks in for a living can apply, once our medical has cleared them. You must be over 18, and the deck must be registered in your own name.</p>\n</div>\n</details>\n\n<details class=\"lt-accordion\" open>\n<summary>How long does a claim take?</summary>\n<div class=\"lt-accordion__content\">\n  <p>We process a claim within three weeks. If attachments are missing, we write to whoever filed it.</p>\n</div>\n</details>\n",
+          "styles": [
+            "accordion"
+          ],
+          "layout": "stack",
+          "maxWidth": "34rem",
           "ts": [
             {
               "lang": "tsx",
@@ -628,6 +633,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<div class=\"lt-alert\">\n<p class=\"lt-alert__title\">Incident LAT-0412 has been logged</p>\n<p>The duty crew reports back within the hour.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"info\">\n<p>The console has been updated. You need to sign in again.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"success\">\n<p>Relay 14 is back. Traffic for sector 9 runs through it again.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"warning\">\n<p>Someone is on the wire in sector 3.</p>\n</div>\n\n<div class=\"lt-alert\" data-color=\"danger\">\n<p class=\"lt-alert__title\">Sector 9 is dark</p>\n<p>Crews are on the way.</p>\n</div>\n",
+          "styles": [
+            "alert"
+          ],
+          "layout": "stack",
+          "maxWidth": "34rem",
           "ts": [
             {
               "lang": "tsx",
@@ -706,6 +716,9 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">DP</span>\n<span class=\"lt-avatar\" aria-hidden=\"true\">DP</span>\n<span class=\"lt-avatar\" data-size=\"large\" aria-hidden=\"true\">DP</span>\n<span class=\"lt-avatar\" data-variant=\"square\" aria-hidden=\"true\">NS</span>\n",
+          "styles": [
+            "avatar"
+          ],
           "ts": [
             {
               "lang": "tsx",
@@ -743,6 +756,9 @@
           "section": "With a name next to it",
           "recipe": false,
           "code": "\n<span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">DP</span>\n<span>Dead Pixel</span>\n",
+          "styles": [
+            "avatar"
+          ],
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -758,6 +774,11 @@
           "section": "Several overlapping pictures",
           "recipe": false,
           "code": "\n<ul class=\"lt-avatar-stack\">\n<li><span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">DP</span></li>\n<li><span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">NV</span></li>\n<li><span class=\"lt-avatar\" data-size=\"small\" aria-hidden=\"true\">CK</span></li>\n</ul>\n<p>Dead Pixel, Nine Volt and Cold Kettle have decks in the queue</p>\n",
+          "styles": [
+            "avatar"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -818,6 +839,9 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<span class=\"lt-badge\">In progress</span>\n<span class=\"lt-badge\" data-color=\"success\">Paid</span>\n<span class=\"lt-badge\" data-color=\"warning\">Attachment missing</span>\n<span class=\"lt-badge\" data-color=\"danger\">Denied</span>\n<span class=\"lt-badge\" data-color=\"neutral\">Archived</span>\n",
+          "styles": [
+            "badge"
+          ],
           "ts": [
             {
               "lang": "tsx",
@@ -855,6 +879,12 @@
           "section": "In a list",
           "recipe": false,
           "code": "\n<ul class=\"lt-list\" data-variant=\"divided\">\n<li>Premium for February <span class=\"lt-badge\" data-color=\"success\">Paid</span></li>\n<li>Premium for March <span class=\"lt-badge\" data-color=\"danger\">Overdue</span></li>\n</ul>\n",
+          "styles": [
+            "badge",
+            "list"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -911,6 +941,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<nav aria-label=\"You are here\">\n<ol class=\"lt-breadcrumbs\">\n  <li><a href=\"#\">Home</a></li>\n  <li><a href=\"#\">My claims</a></li>\n  <li><a href=\"#\" aria-current=\"page\">Claim AV-2079-0481</a></li>\n</ol>\n</nav>\n",
+          "styles": [
+            "breadcrumbs"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -979,6 +1014,9 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<button class=\"lt-button\">Order the job</button>\n<button class=\"lt-button\" data-variant=\"secondary\">Save draft</button>\n<button class=\"lt-button\" data-variant=\"ghost\">Attach floor plans</button>\n<button class=\"lt-button\" data-variant=\"danger\">Cancel the job</button>\n",
+          "styles": [
+            "button"
+          ],
           "ts": [
             {
               "lang": "tsx",
@@ -1021,6 +1059,9 @@
           "section": "Disabled",
           "recipe": false,
           "code": "\n<button class=\"lt-button\" disabled>Order the job</button>\n<button class=\"lt-button\" data-variant=\"secondary\" disabled>Save draft</button>\n<a class=\"lt-button\" role=\"link\" tabindex=\"0\" aria-disabled=\"true\">Back to open jobs</a>\n",
+          "styles": [
+            "button"
+          ],
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1036,6 +1077,9 @@
           "section": "A link that looks like a button",
           "recipe": false,
           "code": "\n<a class=\"lt-button\" href=\"#\">Back to open jobs</a>\n<a class=\"lt-button\" data-variant=\"secondary\" href=\"#\">Read the terms</a>\n",
+          "styles": [
+            "button"
+          ],
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1051,6 +1095,11 @@
           "section": "Classes you can style",
           "recipe": false,
           "code": "\n<button class=\"lt-button\">Open the job</button>\n<button class=\"lt-button row-button\" data-variant=\"secondary\">Open</button>\n",
+          "styles": [
+            "button"
+          ],
+          "layout": "row",
+          "customCss": "\n.row-button {\n--lt-button-padding: var(--lt-spacing-1) var(--lt-spacing-3);\n--lt-button-radius: var(--lt-spacing-4);\n}\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1140,6 +1189,13 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<div class=\"lt-card\">\n<h3 class=\"lt-card__title\">Runner's policy AV-2079-0233</h3>\n<p>Taken out 4 March. Premium EB 1,200 a month.</p>\n<span class=\"lt-badge\" data-color=\"success\">Active</span>\n</div>\n\n<div class=\"lt-card\" data-variant=\"filled\">\n<h3 class=\"lt-card__title\">Claim AV-2079-0481</h3>\n<p>Claim denied. Black ICE is an act of God.</p>\n<button class=\"lt-button\" data-variant=\"secondary\">Appeal the decision</button>\n</div>\n",
+          "styles": [
+            "card",
+            "badge",
+            "button"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -1174,6 +1230,11 @@
           "section": "The whole card as a link",
           "recipe": false,
           "code": "\n<a class=\"lt-card\" data-interactive href=\"#\">\n<h3 class=\"lt-card__title\">See the whole claim</h3>\n<p>All attachments, messages and the small print in one place.</p>\n</a>\n",
+          "styles": [
+            "card"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1189,6 +1250,13 @@
           "section": "Classes you can style",
           "recipe": false,
           "code": "\n<div class=\"lt-card\">\n<h3 class=\"lt-heading\" data-size=\"s\">Default</h3>\n<p class=\"lt-paragraph\">The spacing that comes with the package.</p>\n</div>\n\n<div class=\"lt-card roomy-card\">\n<h3 class=\"lt-heading\" data-size=\"s\">Roomy</h3>\n<p class=\"lt-paragraph\">Same markup, one more class.</p>\n</div>\n",
+          "styles": [
+            "card",
+            "heading",
+            "paragraph"
+          ],
+          "layout": "row",
+          "customCss": "\n.roomy-card {\n--lt-card-padding: var(--lt-spacing-6);\n}\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1241,6 +1309,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"seasonal\" name=\"seasonal\" />\n<label class=\"lt-label\" for=\"seasonal\">I accept that floors below 12 are seasonal.</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"vacancies\" name=\"vacancies\" checked />\n<label class=\"lt-label\" for=\"vacancies\">Tell me when a dry floor comes free</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"confirm\" name=\"confirm\" data-state=\"invalid\" aria-invalid=\"true\" />\n<label class=\"lt-label\" for=\"confirm\">I confirm that I have read the lease</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n<input class=\"lt-checkbox\" type=\"checkbox\" id=\"deposit\" name=\"deposit\" checked disabled />\n<label class=\"lt-label\" for=\"deposit\">The deposit is paid</label>\n</div>\n",
+          "styles": [
+            "checkbox",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [
             {
               "lang": "tsx",
@@ -1274,6 +1348,13 @@
           "section": "Several choices that belong together",
           "recipe": false,
           "code": "\n<fieldset class=\"lt-fieldset\">\n<legend class=\"lt-legend\">How should we warn you when the tide rises?</legend>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"notify-sms\" name=\"notify\" value=\"sms\" checked />\n  <label class=\"lt-label\" for=\"notify-sms\">Text message</label>\n</div>\n\n<div class=\"lt-checkbox-row\">\n  <input class=\"lt-checkbox\" type=\"checkbox\" id=\"notify-siren\" name=\"notify\" value=\"siren\" />\n  <label class=\"lt-label\" for=\"notify-siren\">The building siren</label>\n</div>\n</fieldset>\n",
+          "styles": [
+            "checkbox",
+            "label",
+            "fieldset"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1625,6 +1706,13 @@
           "section": "Without showModal()",
           "recipe": false,
           "code": "\n<dialog class=\"lt-dialog\" aria-labelledby=\"cancel-title\" open>\n<h2 class=\"lt-dialog__title\" id=\"cancel-title\">Cancel job 222-0481?</h2>\n<div class=\"lt-dialog__body\">\n  <p>The crew keeps the advance. This cannot be undone.</p>\n</div>\n<div class=\"lt-dialog__footer\">\n  <button class=\"lt-button\" data-variant=\"secondary\" type=\"button\">Keep the job</button>\n  <button class=\"lt-button\" data-variant=\"danger\" type=\"button\">Cancel the job</button>\n</div>\n</dialog>\n",
+          "styles": [
+            "dialog",
+            "button"
+          ],
+          "layout": "stack",
+          "maxWidth": "34rem",
+          "previewCss": "\n  /* Only to show the dialog in the box. An open <dialog> is\n     position: absolute and would fall out of the preview. A real\n     page needs none of this. */\n  .lt-dialog { position: static; }\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -1861,6 +1949,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<p>The recovery order has been registered.</p>\n<hr class=\"lt-divider\" />\n<p>The appraisal follows within three days.</p>\n<hr class=\"lt-divider\" data-variant=\"strong\" />\n<p>Next of kin: not found.</p>\n<hr class=\"lt-divider\" data-variant=\"subtle\" />\n<p>Recovery reference LR-2079-0112.</p>\n",
+          "styles": [
+            "divider"
+          ],
+          "layout": "flow",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -2149,6 +2242,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<p class=\"lt-error-text\">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>\n<p class=\"lt-error-text\" data-variant=\"warning\">No fixer on file has this address. Check it before the board writes.</p>\n",
+          "styles": [
+            "error-text"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [
             {
               "lang": "tsx",
@@ -2181,6 +2279,13 @@
           "section": "Wired to the field",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" for=\"fixer\">Fixer's address</label>\n<input\nclass=\"lt-input\"\nid=\"fixer\"\ntype=\"email\"\ndata-state=\"invalid\"\naria-invalid=\"true\"\naria-describedby=\"fixer-error\"\nvalue=\"fixer.relay.example\"\n/>\n<p class=\"lt-error-text\" id=\"fixer-error\">Enter the fixer's address with an at sign.</p>\n",
+          "styles": [
+            "error-text",
+            "label",
+            "input"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -2526,6 +2631,13 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<fieldset class=\"lt-fieldset\">\n<legend class=\"lt-legend\" data-required=\"symbol\">Who takes the job?</legend>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"any-crew\" name=\"crew\" value=\"any\" checked />\n  <label class=\"lt-label\" for=\"any-crew\">Any crew</label>\n</div>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"named-crew\" name=\"crew\" value=\"named\" />\n  <label class=\"lt-label\" for=\"named-crew\">A crew the fixer names</label>\n</div>\n</fieldset>\n",
+          "styles": [
+            "fieldset",
+            "radio",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [
             {
               "lang": "tsx",
@@ -2559,6 +2671,15 @@
           "section": "Help text and error text",
           "recipe": false,
           "code": "\n<fieldset class=\"lt-fieldset\" data-state=\"invalid\" aria-describedby=\"delivery-help delivery-error\">\n<legend class=\"lt-legend\" data-required=\"symbol\">Delivery method</legend>\n<p class=\"lt-help-text\" id=\"delivery-help\">The board does not meet crews.</p>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"delivery-drop\" name=\"delivery\" value=\"drop\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"lt-label\" for=\"delivery-drop\">Dead drop</label>\n</div>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"delivery-fixer\" name=\"delivery\" value=\"fixer\" data-state=\"invalid\" aria-invalid=\"true\" />\n  <label class=\"lt-label\" for=\"delivery-fixer\">Through the fixer</label>\n</div>\n\n<p class=\"lt-error-text\" id=\"delivery-error\">Choose how the delivery reaches floor 222.</p>\n</fieldset>\n",
+          "styles": [
+            "fieldset",
+            "radio",
+            "label",
+            "help-text",
+            "error-text"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -2643,6 +2764,13 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<label class=\"lt-label\" for=\"firmware\">Upload firmware</label>\n<input class=\"lt-file-upload\" type=\"file\" id=\"firmware\" multiple accept=\".bin\" aria-describedby=\"firmware-help\" />\n<p class=\"lt-help-text\" id=\"firmware-help\">Deck firmware (.bin, up to 64 MB). Dump it before I open anything.</p>\n",
+          "styles": [
+            "file-upload",
+            "label",
+            "help-text"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -2677,6 +2805,13 @@
           "section": "The list of chosen files",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" for=\"firmware-2\">Upload firmware</label>\n<input class=\"lt-file-upload\" type=\"file\" id=\"firmware-2\" multiple />\n\n<ul class=\"lt-file-upload-list\">\n<li>\n  firmware-0331.bin\n  <button class=\"lt-button\" data-variant=\"ghost\" type=\"button\">Remove firmware-0331.bin</button>\n</li>\n<li>\n  bootrom-0331.bin\n  <button class=\"lt-button\" data-variant=\"ghost\" type=\"button\">Remove bootrom-0331.bin</button>\n</li>\n</ul>\n",
+          "styles": [
+            "file-upload",
+            "button",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -2746,6 +2881,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<h1 class=\"lt-heading\" data-size=\"mega\">Runner's policy terms</h1>\n<h2 class=\"lt-heading\" data-size=\"xl\">About the policyholder</h2>\n<h2 class=\"lt-heading\">What we cover</h2>\n<h3 class=\"lt-heading\" data-size=\"m\">Exclusions</h3>\n<h4 class=\"lt-heading\" data-size=\"s\">Acts of God</h4>\n<h5 class=\"lt-heading\" data-size=\"xs\">Last changed</h5>\n",
+          "styles": [
+            "heading"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -2831,6 +2971,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<p class=\"lt-help-text\">State the budget in EB. The crew sees the number.</p>\n<p class=\"lt-help-text\" data-variant=\"strong\">The order is binding once a crew takes it.</p>\n<p class=\"lt-help-text\" data-variant=\"success\">The floor plans have been uploaded.</p>\n<p class=\"lt-help-text\" data-variant=\"warning\">The window closes in three days.</p>\n",
+          "styles": [
+            "help-text"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [
             {
               "lang": "tsx",
@@ -2868,6 +3013,13 @@
           "section": "Wired to the field",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" for=\"budget\">Budget</label>\n<input class=\"lt-input\" id=\"budget\" inputmode=\"numeric\" aria-describedby=\"budget-help\" />\n<p class=\"lt-help-text\" id=\"budget-help\">In EB, without the code. The crew sees it.</p>\n",
+          "styles": [
+            "help-text",
+            "label",
+            "input"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -2917,6 +3069,10 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<button class=\"lt-button\" type=\"button\">\n<svg class=\"lt-icon\" aria-hidden=\"true\" viewBox=\"0 0 24 24\" fill=\"none\"\n     stroke=\"currentColor\" stroke-width=\"2\">\n  <path d=\"M12 5v14M5 12h14\" />\n</svg>\nNew ticket\n</button>\n\n<button class=\"lt-button\" data-variant=\"ghost\" type=\"button\" aria-label=\"Delete ticket #0331\">\n<svg class=\"lt-icon\" aria-hidden=\"true\" viewBox=\"0 0 24 24\" fill=\"none\"\n     stroke=\"currentColor\" stroke-width=\"2\">\n  <path d=\"M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13\" />\n</svg>\n</button>\n",
+          "styles": [
+            "button",
+            "icon"
+          ],
           "ts": [
             {
               "lang": "tsx",
@@ -3000,6 +3156,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<label class=\"lt-label\" for=\"fixer\">Fixer's address</label>\n<input class=\"lt-input\" id=\"fixer\" type=\"email\" name=\"fixer\" placeholder=\"fixer&#64;relay.example\" />\n\n<label class=\"lt-label\" for=\"confirm\">Confirm the fixer's address</label>\n<input class=\"lt-input\" id=\"confirm\" type=\"email\" data-state=\"success\" value=\"fixer&#64;relay.example\" />\n\n<label class=\"lt-label\" for=\"backup\">Backup fixer</label>\n<input class=\"lt-input\" id=\"backup\" type=\"email\" data-state=\"invalid\" aria-invalid=\"true\" value=\"fixer&#64;\" />\n\n<label class=\"lt-label\" for=\"registered\">Fixer on file</label>\n<input class=\"lt-input\" id=\"registered\" type=\"email\" value=\"fixer&#64;relay.example\" disabled />\n",
+          "styles": [
+            "input",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3038,6 +3200,12 @@
           "section": "Date and time",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" for=\"date\">Deliver by</label>\n<input class=\"lt-input\" id=\"date\" data-variant=\"date\" type=\"date\" value=\"2079-05-31\" />\n\n<label class=\"lt-label\" for=\"time\">Hour of delivery</label>\n<input class=\"lt-input\" id=\"time\" data-variant=\"time\" type=\"time\" value=\"03:00\" />\n",
+          "styles": [
+            "input",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3054,6 +3222,13 @@
           "section": "Classes you can style",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" for=\"default\">Fixer number</label>\n<input class=\"lt-input\" id=\"default\" type=\"text\" />\n\n<div class=\"roomy-form\">\n<label class=\"lt-label\" for=\"roomy\">Fixer number</label>\n<input class=\"lt-input\" id=\"roomy\" type=\"text\" />\n</div>\n",
+          "styles": [
+            "input",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
+          "customCss": "\n.roomy-form {\n--lt-input-padding: var(--lt-spacing-3) var(--lt-spacing-4);\n--lt-input-radius: 0;\n}\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3130,6 +3305,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<label class=\"lt-label\" for=\"codename\">Codename</label>\n<input class=\"lt-input\" id=\"codename\" type=\"text\" />\n\n<label class=\"lt-label\" data-required=\"symbol\" for=\"fixer\">Fixer's address</label>\n<input class=\"lt-input\" id=\"fixer\" type=\"email\" required />\n\n<label class=\"lt-label\" data-required=\"text\" for=\"budget\">Budget</label>\n<input class=\"lt-input\" id=\"budget\" type=\"text\" inputmode=\"numeric\" required />\n\n<label class=\"lt-label\" data-optional=\"\" for=\"entry\">Entry point</label>\n<input class=\"lt-input\" id=\"entry\" type=\"text\" />\n\n<label class=\"lt-label\" aria-disabled=\"true\" for=\"reference\">Reference</label>\n<input class=\"lt-input\" id=\"reference\" type=\"text\" disabled />\n",
+          "styles": [
+            "label",
+            "input"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3168,6 +3349,13 @@
           "section": "Together with a field",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" data-required=\"symbol\" for=\"fixer\">Fixer's address</label>\n<input class=\"lt-input\" id=\"fixer\" type=\"email\" required aria-describedby=\"fixer-help\" />\n<p class=\"lt-help-text\" id=\"fixer-help\">The board writes to the fixer, never to the crew.</p>\n",
+          "styles": [
+            "label",
+            "input",
+            "help-text"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3251,6 +3439,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<p>\nYour claim has been filed. The terms that apply are in\n<a class=\"lt-link\" href=\"#\">the small print</a>, and we will write to you\nwhen the claim has been processed.\n</p>\n",
+          "styles": [
+            "link"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3283,6 +3476,9 @@
           "section": "Disabled link",
           "recipe": false,
           "code": "\n<a class=\"lt-link\" href=\"#\">Read the small print</a>\n<a class=\"lt-link\" role=\"link\" tabindex=\"0\" aria-disabled=\"true\">See payout statement</a>\n",
+          "styles": [
+            "link"
+          ],
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3346,6 +3542,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<ul class=\"lt-list\">\n<li>Floor plans</li>\n<li>Guard rotation for sub-level two</li>\n<li>Camera map of the loading dock</li>\n</ul>\n\n<ol class=\"lt-list\">\n<li>State the objective</li>\n<li>Set the budget</li>\n<li>Order the job</li>\n</ol>\n\n<ul class=\"lt-list\" data-variant=\"divided\">\n<li>Job 222-0481, deliver by 4 April</li>\n<li>Job 222-0482, deliver by 4 May</li>\n</ul>\n",
+          "styles": [
+            "list"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3378,6 +3579,12 @@
           "section": "Why the variant exists",
           "recipe": false,
           "code": "\n<ul class=\"lt-list\" data-variant=\"plain\">\n<li>\n  <div class=\"lt-card\">\n    <h3 class=\"lt-card__title\">Job 222-0481</h3>\n    <p>Ordered 4 March.</p>\n  </div>\n</li>\n<li>\n  <div class=\"lt-card\">\n    <h3 class=\"lt-card__title\">Job 222-0482</h3>\n    <p>Waiting for a crew.</p>\n  </div>\n</li>\n</ul>\n",
+          "styles": [
+            "list",
+            "card"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3436,6 +3643,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<nav aria-label=\"Pagination\">\n<ul class=\"lt-pagination\">\n  <li><a href=\"#\" aria-label=\"Previous page\">Previous</a></li>\n  <li><a href=\"#\" aria-label=\"Page 1\">1</a></li>\n  <li><a href=\"#\" aria-label=\"Page 2\" aria-current=\"page\">2</a></li>\n  <li><a href=\"#\" aria-label=\"Page 3\">3</a></li>\n  <li><span class=\"lt-pagination__gap\">…</span></li>\n  <li><a href=\"#\" aria-label=\"Page 9\">9</a></li>\n  <li><a href=\"#\" aria-label=\"Next page\">Next</a></li>\n</ul>\n</nav>\n",
+          "styles": [
+            "pagination"
+          ],
+          "layout": "stack",
+          "maxWidth": "34rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3499,6 +3711,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<h2 class=\"lt-heading\">The small print</h2>\n\n<p class=\"lt-paragraph\" data-variant=\"lead\">\nEverything a runner's policy covers, and everything it does not.\n</p>\n\n<p class=\"lt-paragraph\">\nThe premium is drawn on the first of every month. A claim must be filed within 30 days, with a death certificate and the runner's last log. Black ICE, power surges and other runners count as acts of God, and are not covered.\n</p>\n\n<p class=\"lt-paragraph\" data-size=\"small\">\nLast updated 4 March 2079.\n</p>\n",
+          "styles": [
+            "paragraph",
+            "heading"
+          ],
+          "layout": "stack",
+          "maxWidth": "34rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3827,6 +4045,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<progress class=\"lt-progress\" value=\"27\" max=\"30\"\n        aria-label=\"Subscription CM-2079-0090\" aria-valuetext=\"Your walls expire in 3 days.\"></progress>\n\n<progress class=\"lt-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n        aria-label=\"Renewal paid\"></progress>\n\n<progress class=\"lt-progress\" aria-label=\"Checking your walls\"></progress>\n",
+          "styles": [
+            "progress"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [
             {
               "lang": "tsx",
@@ -3859,6 +4082,11 @@
           "section": "The colours mean something",
           "recipe": false,
           "code": "\n<progress class=\"lt-progress\" value=\"72\" max=\"100\"\n        aria-label=\"Installing the ICE update\"></progress>\n\n<progress class=\"lt-progress\" value=\"100\" max=\"100\" data-color=\"success\"\n        aria-label=\"Renewal paid\"></progress>\n\n<progress class=\"lt-progress\" value=\"88\" max=\"100\" data-color=\"warning\"\n        aria-label=\"The intrusion log is almost full\"></progress>\n\n<progress class=\"lt-progress\" value=\"18\" max=\"100\" data-color=\"danger\"\n        aria-label=\"The ICE update stopped\"></progress>\n",
+          "styles": [
+            "progress"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3874,6 +4102,12 @@
           "section": "Classes you can style",
           "recipe": false,
           "code": "\n<progress class=\"lt-progress\" value=\"60\" max=\"100\"\n        aria-label=\"Scanning the perimeter\"></progress>\n\n<progress class=\"lt-progress thin-bar\" value=\"60\" max=\"100\"\n        aria-label=\"Installing the ICE update\"></progress>\n",
+          "styles": [
+            "progress"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
+          "customCss": "\n.thin-bar {\n--lt-progress-height: var(--lt-spacing-1);\n--lt-progress-radius: 0;\n}\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -3975,6 +4209,13 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<fieldset class=\"lt-fieldset\">\n<legend class=\"lt-legend\" data-required=\"symbol\">Lease length</legend>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"lease-1\" name=\"lease\" value=\"1\" checked />\n  <label class=\"lt-label\" for=\"lease-1\">One month</label>\n</div>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"lease-6\" name=\"lease\" value=\"6\" />\n  <label class=\"lt-label\" for=\"lease-6\">Six months</label>\n</div>\n\n<div class=\"lt-radio-row\">\n  <input class=\"lt-radio\" type=\"radio\" id=\"lease-12\" name=\"lease\" value=\"12\" disabled />\n  <label class=\"lt-label\" for=\"lease-12\">Twelve months</label>\n</div>\n</fieldset>\n",
+          "styles": [
+            "radio",
+            "label",
+            "fieldset"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [
             {
               "lang": "tsx",
@@ -4008,6 +4249,12 @@
           "section": "States",
           "recipe": false,
           "code": "\n<div class=\"lt-radio-row\">\n<input class=\"lt-radio\" type=\"radio\" id=\"invalid-choice\" name=\"example\" data-state=\"invalid\" aria-invalid=\"true\" />\n<label class=\"lt-label\" for=\"invalid-choice\">Choose a lease length</label>\n</div>\n",
+          "styles": [
+            "radio",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -4055,6 +4302,14 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<form class=\"lt-search-row\" role=\"search\">\n<label class=\"lt-label lt-sr-only\" for=\"search\">Search breakers</label>\n<input class=\"lt-input lt-search\" type=\"search\" id=\"search\" name=\"q\" placeholder=\"Search breakers\" />\n<button class=\"lt-button\" type=\"submit\">Search</button>\n</form>\n",
+          "styles": [
+            "search",
+            "button",
+            "label",
+            "sr-only"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [
             {
               "lang": "tsx",
@@ -4133,6 +4388,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<label class=\"lt-label\" for=\"building\">Building</label>\n<select class=\"lt-select\" id=\"building\" name=\"building\">\n<option value=\"\">Choose a building</option>\n<option>Breakwater House</option>\n<option selected>Saltline Tower</option>\n<option>The Lantern Block</option>\n</select>\n\n<label class=\"lt-label\" for=\"floor\">Floor</label>\n<select class=\"lt-select\" id=\"floor\" data-state=\"invalid\" aria-invalid=\"true\">\n<option value=\"\" selected>Choose a floor</option>\n</select>\n\n<label class=\"lt-label\" for=\"landlord\">Landlord</label>\n<select class=\"lt-select\" id=\"landlord\" disabled>\n<option selected>Tidewall Holdings</option>\n</select>\n",
+          "styles": [
+            "select",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [
             {
               "lang": "tsx",
@@ -4166,6 +4427,12 @@
           "section": "The list drawn in the page",
           "recipe": false,
           "code": "\n<label class=\"lt-label\" for=\"floor-type\">Floor type</label>\n<select class=\"lt-select\" data-picker=\"styled\" id=\"floor-type\" name=\"floor-type\">\n<option value=\"\">Choose a floor type</option>\n<option value=\"dry\" selected>Dry, floor 14 and up</option>\n<option value=\"damp\">Damp, floors 10 to 13</option>\n<option value=\"seasonal\">Seasonal, below floor 10</option>\n<option value=\"roof\">Roof, open to the weather</option>\n</select>\n",
+          "styles": [
+            "select",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -4464,6 +4731,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<div class=\"lt-skeleton\" data-variant=\"circle\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton sector-last-line\" data-variant=\"text\" aria-hidden=\"true\"></div>\n<div class=\"lt-skeleton sector-map\" aria-hidden=\"true\"></div>\n",
+          "styles": [
+            "skeleton"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
+          "customCss": "\n/* Your own classes. These two rules are all it takes. */\n.sector-last-line {\ninline-size: 70%;\n}\n\n.sector-map {\n--lt-skeleton-height: var(--lt-spacing-12);\n}\n",
           "ts": [
             {
               "lang": "tsx",
@@ -4544,6 +4817,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<a class=\"lt-skip-link\" href=\"#main-content\">Skip to main content</a>\n",
+          "styles": [
+            "skip-link"
+          ],
+          "layout": "stack",
+          "maxWidth": "32rem",
+          "previewCss": "\n  /* Only to show the link. In a real page it appears on its own\n     when it gets focus, and needs nothing here. */\n  .lt-skip-link { position: static; transform: none; }\n",
           "ts": [
             {
               "lang": "tsx",
@@ -4618,6 +4897,9 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<span class=\"lt-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\n<span class=\"lt-spinner\" aria-hidden=\"true\"></span>\n<span class=\"lt-spinner\" data-size=\"large\" aria-hidden=\"true\"></span>\n",
+          "styles": [
+            "spinner"
+          ],
           "ts": [
             {
               "lang": "tsx",
@@ -4650,6 +4932,9 @@
           "section": "With text beside it",
           "recipe": false,
           "code": "\n<p role=\"status\">\n<span class=\"lt-spinner\" data-size=\"small\" aria-hidden=\"true\"></span>\nTracing the fault in sector 9\n</p>\n",
+          "styles": [
+            "spinner"
+          ],
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -4726,6 +5011,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<button class=\"lt-button\" data-variant=\"danger\">\nDelete<span class=\"lt-sr-only\"> the report from 4 March</span>\n</button>\n",
+          "styles": [
+            "button",
+            "sr-only"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [
             {
               "lang": "tsx",
@@ -4759,6 +5050,14 @@
           "section": "Hidden label",
           "recipe": false,
           "code": "\n<label class=\"lt-label lt-sr-only\" for=\"search\">Search the site</label>\n<input class=\"lt-input\" id=\"search\" type=\"search\" placeholder=\"Search the site\" />\n",
+          "styles": [
+            "input",
+            "label",
+            "sr-only",
+            "button"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -4803,6 +5102,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<ol class=\"lt-steps\" aria-label=\"Order\">\n<li><a href=\"#\">Site</a></li>\n<li><a href=\"#\">Survey</a></li>\n<li aria-current=\"step\">Walls</li>\n<li>Payment</li>\n<li>Confirmation</li>\n</ol>\n",
+          "styles": [
+            "steps"
+          ],
+          "layout": "stack",
+          "maxWidth": "48rem",
           "ts": [
             {
               "lang": "tsx",
@@ -4835,6 +5139,11 @@
           "section": "In a narrow box",
           "recipe": false,
           "code": "\n<ol class=\"lt-steps\" aria-label=\"Order\">\n<li><a href=\"#\">Site</a></li>\n<li><a href=\"#\">Survey</a></li>\n<li aria-current=\"step\">Walls</li>\n<li>Payment</li>\n<li>Confirmation</li>\n</ol>\n",
+          "styles": [
+            "steps"
+          ],
+          "layout": "stack",
+          "maxWidth": "20rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -5280,6 +5589,13 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<div class=\"lt-switch-row\">\n<input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"auto-renew\" checked />\n<label class=\"lt-label\" for=\"auto-renew\">Auto-renew</label>\n</div>\n\n<div class=\"lt-switch-row\">\n<input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"lethal\" aria-describedby=\"lethal-help\" />\n<label class=\"lt-label\" for=\"lethal\">Lethal response</label>\n</div>\n<p class=\"lt-help-text\" id=\"lethal-help\">Black ICE. Check local law.</p>\n\n<div class=\"lt-switch-row\">\n<input class=\"lt-switch\" type=\"checkbox\" role=\"switch\" id=\"intrusions\" disabled />\n<label class=\"lt-label\" for=\"intrusions\">Report every intrusion attempt</label>\n</div>\n",
+          "styles": [
+            "switch",
+            "label",
+            "help-text"
+          ],
+          "layout": "stack",
+          "maxWidth": "28rem",
           "ts": [
             {
               "lang": "tsx",
@@ -5369,6 +5685,11 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<table class=\"lt-table\" data-variant=\"striped\">\n<caption>Appraisal LR-2079-0112</caption>\n<thead>\n  <tr>\n    <th scope=\"col\">Item</th>\n    <th scope=\"col\">Condition</th>\n    <th scope=\"col\" data-align=\"end\">Offer</th>\n  </tr>\n</thead>\n<tbody>\n  <tr>\n    <th scope=\"row\">Smartgun link, left eye</th>\n    <td>Removed intact</td>\n    <td data-align=\"end\">EB 1,800</td>\n  </tr>\n  <tr>\n    <th scope=\"row\">Subdermal plating, torso</th>\n    <td>Dented</td>\n    <td data-align=\"end\">EB 950</td>\n  </tr>\n  <tr>\n    <th scope=\"row\">Boosted reflexes</th>\n    <td>Still running</td>\n    <td data-align=\"end\">EB 4,400</td>\n  </tr>\n</tbody>\n</table>\n",
+          "styles": [
+            "table"
+          ],
+          "layout": "stack",
+          "maxWidth": "34rem",
           "ts": [
             {
               "lang": "tsx",
@@ -5401,6 +5722,12 @@
           "section": "Sortable columns",
           "recipe": false,
           "code": "\n<table class=\"lt-table\">\n<caption>Recovery orders<span class=\"lt-sr-only\">, columns with a button can be sorted</span></caption>\n<thead>\n  <tr>\n    <th scope=\"col\">\n      <button type=\"button\" class=\"lt-table__sort\">Reference</button>\n    </th>\n    <th scope=\"col\" aria-sort=\"descending\">\n      <button type=\"button\" class=\"lt-table__sort\">Recovered</button>\n    </th>\n    <th scope=\"col\" data-align=\"end\">Offer</th>\n  </tr>\n</thead>\n<tbody>\n  <tr>\n    <th scope=\"row\">LR-2079-0113</th>\n    <td>4 April</td>\n    <td data-align=\"end\">EB 2,750</td>\n  </tr>\n  <tr>\n    <th scope=\"row\">LR-2079-0112</th>\n    <td>4 March</td>\n    <td data-align=\"end\">EB 7,150</td>\n  </tr>\n</tbody>\n</table>\n",
+          "styles": [
+            "table",
+            "sr-only"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [
             {
               "lang": "tsx",
@@ -5423,6 +5750,11 @@
           "section": "Sortable columns",
           "recipe": false,
           "code": "\n<table class=\"lt-table\">\n<caption>Recovery orders</caption>\n<thead>\n  <tr>\n    <th scope=\"col\">Reference</th>\n    <th scope=\"col\" aria-sort=\"ascending\">\n      <a class=\"lt-table__sort\" href=\"?sort=recovered&direction=descending\">Recovered</a>\n    </th>\n  </tr>\n</thead>\n<tbody>\n  <tr>\n    <th scope=\"row\">LR-2079-0112</th>\n    <td>4 March</td>\n  </tr>\n</tbody>\n</table>\n",
+          "styles": [
+            "table"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -5438,6 +5770,12 @@
           "section": "Classes you can style",
           "recipe": false,
           "code": "\n<table class=\"lt-table compact\">\n<caption>Appraisal LR-2079-0112</caption>\n<thead>\n  <tr>\n    <th scope=\"col\">Item</th>\n    <th scope=\"col\" data-align=\"end\">Offer</th>\n  </tr>\n</thead>\n<tbody>\n  <tr>\n    <th scope=\"row\">Smartgun link, left eye</th>\n    <td data-align=\"end\">EB 1,800</td>\n  </tr>\n  <tr>\n    <th scope=\"row\">Subdermal plating, torso</th>\n    <td data-align=\"end\">EB 950</td>\n  </tr>\n</tbody>\n</table>\n",
+          "styles": [
+            "table"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
+          "customCss": "\n.compact {\n--lt-table-cell-padding: var(--lt-spacing-1) var(--lt-spacing-2);\n}\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -5797,6 +6135,9 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<span class=\"lt-tag\">cutter</span>\n<span class=\"lt-tag\" data-variant=\"filled\">worm</span>\n<span class=\"lt-tag\" aria-disabled=\"true\">retired</span>\n",
+          "styles": [
+            "tag"
+          ],
           "ts": [
             {
               "lang": "tsx",
@@ -5829,6 +6170,12 @@
           "section": "Filters that can be toggled",
           "recipe": false,
           "code": "\n<h3 class=\"lt-heading\" data-size=\"xs\" id=\"filters\">Show breakers of kind</h3>\n\n<div role=\"group\" aria-labelledby=\"filters\">\n<button class=\"lt-tag\" data-selectable aria-pressed=\"true\" type=\"button\">Cutter</button>\n<button class=\"lt-tag\" data-selectable aria-pressed=\"false\" type=\"button\">Worm</button>\n<button class=\"lt-tag\" data-selectable aria-pressed=\"false\" type=\"button\">Decoy</button>\n</div>\n",
+          "styles": [
+            "tag",
+            "heading"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -6100,6 +6447,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<label class=\"lt-label\" for=\"objective\">Objective</label>\n<textarea class=\"lt-textarea\" id=\"objective\" rows=\"3\"\nplaceholder=\"State the objective\"></textarea>\n\n<label class=\"lt-label\" for=\"fixer-note\">Note for the fixer</label>\n<textarea class=\"lt-textarea\" id=\"fixer-note\"\ndata-state=\"success\">The floor plans follow by the usual drop.</textarea>\n\n<label class=\"lt-label\" for=\"terms\">Terms</label>\n<textarea class=\"lt-textarea\" id=\"terms\"\ndata-state=\"invalid\" aria-invalid=\"true\">Too short</textarea>\n\n<label class=\"lt-label\" for=\"order-log\">Order log</label>\n<textarea class=\"lt-textarea\" id=\"order-log\"\ndisabled>A crew has taken job 222-0483. The order is locked.</textarea>\n",
+          "styles": [
+            "textarea",
+            "label"
+          ],
+          "layout": "stack",
+          "maxWidth": "26rem",
           "ts": [
             {
               "lang": "tsx",
@@ -6429,6 +6782,12 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<fieldset class=\"lt-toggle-group\">\n<legend class=\"lt-sr-only\">View</legend>\n\n<label class=\"lt-toggle-group__option\">\n  <input type=\"radio\" name=\"view\" value=\"dry\" checked /> Dry\n</label>\n<label class=\"lt-toggle-group__option\">\n  <input type=\"radio\" name=\"view\" value=\"seasonal\" /> Seasonal\n</label>\n<label class=\"lt-toggle-group__option\">\n  <input type=\"radio\" name=\"view\" value=\"all\" /> All\n</label>\n</fieldset>\n",
+          "styles": [
+            "toggle-group",
+            "sr-only"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
           "ts": [
             {
               "lang": "tsx",
@@ -6501,6 +6860,13 @@
           "section": "How to use it",
           "recipe": true,
           "code": "\n<span class=\"lt-tooltip\">\n<button class=\"lt-button\" data-variant=\"ghost\" type=\"button\" aria-describedby=\"appraise-hint\">\n  Appraise\n</button>\n<span class=\"lt-tooltip__bubble\" role=\"tooltip\" id=\"appraise-hint\">\n  All chrome is appraised at street value\n</span>\n</span>\n",
+          "styles": [
+            "tooltip",
+            "button"
+          ],
+          "layout": "stack",
+          "maxWidth": "30rem",
+          "previewCss": "\n  /* The bubble sits above the trigger, and needs some space in this box\n     so it is not clipped. In a real page the space on the page decides. */\n  .lt-tooltip { margin-block-start: var(--lt-spacing-8); }\n",
           "ts": [
             {
               "lang": "tsx",
@@ -6582,6 +6948,14 @@
           "section": "Shape and size",
           "recipe": false,
           "code": "\n<div class=\"lt-card\">\n<h3 class=\"lt-heading\" data-size=\"s\">Default</h3>\n<p class=\"lt-paragraph\">The values that ship with the package.</p>\n<button class=\"lt-button\">Open the job</button>\n</div>\n\n<div class=\"lt-card compact-panel\">\n<h3 class=\"lt-heading\" data-size=\"s\">Compact panel</h3>\n<p class=\"lt-paragraph\">Same markup, one more class.</p>\n<button class=\"lt-button\">Open the job</button>\n</div>\n",
+          "styles": [
+            "card",
+            "button",
+            "heading",
+            "paragraph"
+          ],
+          "layout": "row",
+          "customCss": "\n.compact-panel {\n--lt-card-padding: var(--lt-spacing-2);\n--lt-card-radius: 0;\n--lt-button-padding: var(--lt-spacing-1) var(--lt-spacing-3);\n}\n",
           "ts": [],
           "kotlin": [],
           "setup": {
@@ -9231,6 +9605,18 @@
           "section": "Using it"
         },
         {
+          "lang": "html",
+          "meta": null,
+          "code": "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css\">\n<link rel=\"stylesheet\" href=\"/theme.css\">",
+          "section": "Using it"
+        },
+        {
+          "lang": "css",
+          "meta": null,
+          "code": "@layer theme, base, lotek, lotek-theme, components, utilities;",
+          "section": "Using it"
+        },
+        {
           "lang": "css",
           "meta": null,
           "code": ":root {\n\tcolor-scheme: light dark;\n}",
@@ -9239,7 +9625,7 @@
         {
           "lang": null,
           "meta": null,
-          "code": "accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.\n  In the light theme #f7df1e could not be the fill itself: fill on canvas would be 1.35:1, the requirement is 3.1:1; fill on raised would be 1.06:1, the requirement is 3.1:1; content on top of fill would be 1.32:1, the requirement is 4.6:1.\n  In the light theme the fill has 61% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.\n  In the dark theme the fill has 74% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.",
+          "code": "accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.\n  In the light theme #f7df1e cannot be the fill as it is: against the page it would have a contrast of 1.35:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is required; text on it would have a contrast of 1.32:1, and 4.6:1 is required.\n  In the light theme the fill is less saturated than #f7df1e, with 61% of its chroma: a screen cannot show more at that lightness.\n  In the dark theme the fill is less saturated than #f7df1e, with 74% of its chroma: a screen cannot show more at that lightness.",
           "section": "What became of your colour"
         },
         {
@@ -9293,6 +9679,13 @@
       ],
       "inline": [
         "lotek check-theme",
+        "lotek check-theme",
+        "lotek.theme.json",
+        "npx @lo-tek/interfaces theme",
+        "buildTheme()",
+        "Lotek.buildTheme()",
+        "lotekTheme",
+        "theme.css",
         "lotek.theme.json",
         "--accent",
         "--danger",
@@ -9303,6 +9696,7 @@
         "--brand1",
         "--brand2",
         "--brand3",
+        "tokens.css",
         "tokens.css",
         "data-theme",
         "color-scheme",

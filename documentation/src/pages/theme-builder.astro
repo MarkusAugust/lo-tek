@@ -1,0 +1,1433 @@
+---
+/**
+ * The theme builder: set the keys of a theme recipe, and see what the
+ * generator makes of them.
+ *
+ * The page is written with Datastar. The state is signals, the fields are
+ * bound to them, and what is shown is computed from them in the markup. The
+ * one thing Datastar cannot do is build the theme: that is the core, in
+ * WebAssembly, the same one `lotek theme` runs. The module at the foot loads
+ * it and hands Datastar what the markup cannot do itself, as actions through
+ * Datastar's own `action()`: the recipe from the fields, the core's answer
+ * to it, the theme into a frame, one frame's scrolling to the other, the
+ * fields from a recipe that is pasted in, and what was chosen into the
+ * browser's storage and out again. Nothing
+ * else here is script.
+ *
+ * The fields are not written by hand. `theme.schema.json` says which keys a
+ * recipe has, and the page has one field for each, so a key the generator
+ * gets is a field here the next time the site is built. The schema's own
+ * tests hold it to the keys the core knows.
+ *
+ * Everything happens in the browser. The recipe is never sent anywhere, and
+ * nothing here is part of what a consumer ships: a theme is a CSS file.
+ *
+ * The page is always dark, like the front page, and in its profile.
+ */
+
+import "@lo-tek/interfaces/lotek.css"
+import "../styles/profile.css"
+import pkg from "../../../interfaces/package.json" with { type: "json" }
+import contract from "../../../interfaces/src/tokens/color-contract.json"
+import schema from "../../../interfaces/src/tokens/theme.schema.json"
+import FontPreload from "../components/FontPreload.astro"
+import Top from "../components/Top.astro"
+import { metaAttributes, SHARE_IMAGE } from "../share-image.mjs"
+
+const title = "Theme builder | LO-TEK Interfaces"
+const description =
+  "Set your brand colours, font and corners, and see LO-TEK's components with the theme the generator builds from them, in light and dark."
+
+type Property = {
+  description?: string
+  properties?: Record<string, Property>
+}
+
+/** The first sentence of a description: what the key is for. */
+const first = (text = "") => text.split(/(?<=\.)\s/)[0]
+
+const top = schema.properties as Record<string, Property>
+/** The colour families: every key at the top that is not a block or `$schema`. */
+const families = Object.entries(top).filter(
+  ([name, property]) => name !== "$schema" && !property.properties,
+)
+
+/**
+ * A slider beside a field whose value is a number: where it starts and
+ * ends, and where it rests, which is the value LO-TEK has when the recipe
+ * leaves the key out. `unit` is what is written after the number.
+ */
+type Range = {
+  min: number
+  max: number
+  step: number
+  rest: number
+  unit: string
+  /**
+   * What the field holds at rest: LO-TEK's value as text, or nothing where
+   * LO-TEK has no one value, and then `none` says what holds instead.
+   */
+  text: string
+  none?: string
+}
+
+const WEIGHT = { min: 100, max: 900, step: 100, unit: "" }
+/** A corner at rest is `--lt-spacing-1`, as `tokens.css` writes it. */
+const CORNER = {
+  min: 0,
+  max: 32,
+  step: 1,
+  unit: "px",
+  rest: 4,
+  text: "0.25rem",
+}
+
+/**
+ * The keys of `shape`. Their resting values are the fallbacks in the
+ * component CSS: `--lt-spacing-1` for a corner, `1px` for the border and the
+ * medium weight for the button text. Most surfaces have that corner; the
+ * card and the dialog have twice it.
+ */
+const SHAPE: Record<string, Range> = {
+  "shape.buttonRadius": CORNER,
+  "shape.fieldRadius": CORNER,
+  "shape.surfaceRadius": {
+    ...CORNER,
+    text: "",
+    none: "0.25rem, and 0.5rem on card and dialog",
+  },
+  "shape.buttonBorderWidth": {
+    min: 0,
+    max: 4,
+    step: 1,
+    rest: 1,
+    unit: "px",
+    text: "1px",
+  },
+  "shape.buttonFontWeight": {
+    ...WEIGHT,
+    rest: 500,
+    text: "",
+    none: "as weights medium",
+  },
+}
+
+/** The weights and line heights say in the schema what they are if left out. */
+const rangeOf = (path: string, help: string): Range | undefined => {
+  const said = help.match(/([\d.]+) if left out/)
+  if (!said) return SHAPE[path]
+  const rest = Number(said[1])
+  return rest >= 100
+    ? { ...WEIGHT, rest, text: said[1] }
+    : { min: 1, max: 2, step: 0.05, rest, unit: "", text: said[1] }
+}
+
+/**
+ * The slider follows the field: at rest while the field is empty, at the
+ * number when the field holds one it can show, and where it was when the
+ * field holds something else, `calc(1rem + 2px)` or `bold`.
+ */
+const follows = (path: string, { rest, unit }: Range) => {
+  const field = `$fields.${path}`
+  const number = "\\s*\\d*\\.?\\d+"
+  if (unit === "")
+    return `${field} === '' ? (el.value = ${rest}) : /^${number}\\s*$/.test(${field}) && (el.value = parseFloat(${field}))`
+  // A slider says a number, and a screen reader reads it bare. Here it is
+  // a length, so the slider says the unit too.
+  return `(${field} === '' ? (el.value = ${rest}) : /^(${number}px|\\s*0)\\s*$/i.test(${field}) ? (el.value = parseFloat(${field})) : /^${number}rem\\s*$/i.test(${field}) && (el.value = parseFloat(${field}) * 16)), el.setAttribute('aria-valuetext', el.value + ' ${unit}')`
+}
+
+/**
+ * Moving the slider writes the field: the number, with its unit. Moved back
+ * to where it rests, it writes what the field held at rest, `0.25rem` and
+ * not `4px`, so the way back by the slider is a way back.
+ */
+const moves = (path: string, { rest, unit, text }: Range) =>
+  text === ""
+    ? `$fields.${path} = el.value + '${unit}'`
+    : `$fields.${path} = Number(el.value) === ${rest} ? '${text}' : el.value + '${unit}'`
+
+type Field = { path: string; label: string; help: string; range?: Range }
+
+/** Every leaf below a block, with its path: `typography.weights.bold`. */
+const leaves = (path: string, property: Property): Field[] =>
+  Object.entries(property.properties ?? {}).flatMap(([name, child]) =>
+    child.properties
+      ? leaves(`${path}.${name}`, child)
+      : [
+          {
+            path: `${path}.${name}`,
+            label: `${path}.${name}`.split(".").slice(1).join(" "),
+            help: child.description ?? "",
+            range: rangeOf(`${path}.${name}`, child.description ?? ""),
+          },
+        ],
+  )
+const typography = leaves("typography", top.typography)
+const shape = leaves("shape", top.shape)
+
+/** LO-TEK's value at every leaf that has one, in the shape of the recipe. */
+const resting = (path: string, property: Property): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(property.properties ?? {}).map(([name, child]) => [
+      name,
+      child.properties
+        ? resting(`${path}.${name}`, child)
+        : (rangeOf(`${path}.${name}`, child.description ?? "")?.text ?? ""),
+    ]),
+  )
+
+/**
+ * What a field says below it. That a key has a value when it is left out is
+ * for the editor, where the key is not there: here the value is in the field.
+ */
+const below = (help: string) => help.replace(/\s*[\d.]+ if left out\./, "")
+
+/** An empty value at every leaf, in the shape of the recipe. */
+const empty = (property: Property): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(property.properties ?? {}).map(([name, child]) => [
+      name,
+      child.properties ? empty(child) : "",
+    ]),
+  )
+
+/**
+ * The sentences a row of the report can hold, as `lotek theme` writes them:
+ * why the colour could not be the fill in an appearance, and how much of its
+ * chroma the fill has there.
+ */
+const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
+
+/*
+ * The signals. `own` says which families have a colour of the consumer's,
+ * `fields` holds what is written in every field, in the shape of the recipe:
+ * LO-TEK's own value until another is written, where LO-TEK has one.
+ * `recipe` is what was chosen and only that, as the text of the recipe file,
+ * and `built` is the core's answer to it: the theme, what is wrong with
+ * each field, in the shape of `fields`, and what became of each colour.
+ * `shown` is the theme the frames have, the last one that was built, and
+ * `view` which page they frame. `copied` is the recipe the clipboard last
+ * took and `notCopied` the one it last refused. `pasted` is the text in the
+ * field a recipe can be pasted into, and `pasteError` why it was not taken.
+ * `failed` says the core never came.
+ *
+ * A signal an action answers into always has the same keys, and only text,
+ * numbers and booleans at its leaves. Datastar merges what is assigned into
+ * what is there, and an answer that gains a key, loses one or holds a list
+ * is a change every time: the effect that assigned it then runs again, for
+ * ever. So the recipe is kept as text, and `built` has every key from the
+ * start.
+ */
+const signals = {
+  ready: false,
+  failed: false,
+  own: Object.fromEntries(families.map(([name]) => [name, false])),
+  fields: {
+    ...Object.fromEntries(families.map(([name]) => [name, ""])),
+    typography: resting("typography", top.typography),
+    shape: resting("shape", top.shape),
+  },
+  recipe: "{}",
+  built: {
+    ok: false,
+    css: "",
+    error: "",
+    wrong: {
+      ...Object.fromEntries(families.map(([name]) => [name, ""])),
+      typography: empty(top.typography),
+      shape: empty(top.shape),
+    },
+    report: Object.fromEntries(
+      families.map(([name]) => [
+        name,
+        {
+          given: "",
+          light: "",
+          dark: "",
+          ...Object.fromEntries(WHY.map((key) => [key, ""])),
+        },
+      ]),
+    ),
+  },
+  shown: "",
+  view: "sheet",
+  copied: "",
+  notCopied: "",
+  pasted: "",
+  pasteError: "",
+}
+
+/** The two appearances a theme has, each in a frame of its own. */
+const APPEARANCES = ["light", "dark"] as const
+
+/**
+ * The command that builds the theme from the recipe file, with the version
+ * the page is built with: the page shows what that version makes of the
+ * recipe, and a newer or an older one may make something else.
+ */
+const COMMAND = `npx @lo-tek/interfaces@${pkg.version} theme lotek.theme.json --out=theme.css`
+
+/** LO-TEK's own colour of each family: what a family has until it is given one. */
+const OWN = contract.brands as Record<string, string>
+
+/** How the file is taken into use, where a bundler reads the CSS. */
+const USE = `@import "@lo-tek/interfaces/tokens.css";
+@import "./theme.css";`
+
+const id = (path: string) => `field-${path.replaceAll(".", "-")}`
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<FontPreload />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<!-- The page sits outside Starlight, so the tags for shared links,
+		     which Starlight writes on the other pages, are here. -->
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:type" content="website" />
+		<meta property="og:url" content={new URL("/theme-builder/", Astro.site).href} />
+		<meta property="og:locale" content="en" />
+		<meta property="og:site_name" content="LO-TEK Interfaces" />
+		<meta name="twitter:card" content="summary_large_image" />
+		{
+			SHARE_IMAGE.map((tag) => {
+				const { property, name, content } = metaAttributes(tag)
+				return <meta property={property} name={name} content={content} />
+			})
+		}
+		<script type="module" src="/datastar.js" data-datastar is:inline></script>
+	</head>
+	<body class="profile-grain" data-signals={JSON.stringify(signals)}>
+		<a class="lt-skip-link" href="#content">Skip to content</a>
+
+		<div class="builder">
+			<Top current="/theme-builder/" />
+
+			<main class="builder__main" id="content" tabindex="-1">
+				<noscript>
+					<p class="builder__line">
+						The builder runs in the browser and needs JavaScript. Without it,
+						the generator is on the command line:
+						<code>{COMMAND}</code>. See <a class="lt-link" href="/your-own-theme/">Your own theme</a>.
+					</p>
+				</noscript>
+				<div class="builder__head">
+					<h1 class="builder__name profile-name">Theme builder</h1>
+					<p class="builder__line">
+						You choose the hue, the font and the corners. The generator sets how
+						light each colour is, so every contrast promise holds in the light
+						theme and the dark.
+						<a class="lt-link" href="/your-own-theme/#who-decides-what">What it decides, and why</a>.
+						Nothing leaves this page.
+					</p>
+					<p class="profile-label">
+						Built with @lo-tek/interfaces {pkg.version}
+					</p>
+					<!-- In the head, so the page is laid out the same with it as
+					     without: the generator did not come. -->
+					<p class="builder__line" role="alert" style="display: none" data-show="$failed">
+						The generator could not be loaded, so nothing here builds a theme.
+						Load the page again, or use the command line, which builds the
+						same theme: <code>{COMMAND}</code>
+					</p>
+				</div>
+
+				<!-- What was chosen becomes the recipe, and the recipe becomes the
+				     theme. The core is asked only when it has been loaded. -->
+				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
+				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own, $fields))"></div>
+				<div hidden data-effect="$ready && ($built.ok ? ($shown = $built.css) : $built.error === '' && ($shown = ''))"></div>
+
+				<section class="builder__recipe" aria-labelledby="recipe-title">
+					<h2 class="profile-label" id="recipe-title">Recipe</h2>
+
+					<fieldset class="lt-fieldset builder__group">
+						<legend class="lt-legend">Colours</legend>
+						<p class="builder__note">
+							Below each colour you give is what it became in the light theme
+							and the dark.
+						</p>
+						{
+							families.map(([name, property]) => (
+								<div class="builder__family" role="group" aria-labelledby={`own-${name}-label`}>
+									<div class="lt-switch-row">
+										<input
+											class="lt-switch"
+											type="checkbox"
+											role="switch"
+											id={`own-${name}`}
+											name={`own.${name}`}
+											data-bind={`own.${name}`}
+											data-on:change={`!el.checked && ($fields.${name} = '')`}
+/>
+<label class="lt-label" id={`own-${name}-label`} for={`own-${name}`}>
+											{name}
+</label>
+<span
+											class="builder__changed"
+											style="display: none"
+											data-show={`$own.${name} && $fields.${name}.trim() !== ''`}
+											>
+												Changed
+</span>
+<button
+											class="builder__reset"
+											type="button"
+											aria-label={`Reset ${name}`}
+											style="display: none"
+											data-show={`$own.${name} || $fields.${name} !== ''`}
+											data-on:click={`$fields.${name} = ''; $own.${name} = false; document.getElementById('own-${name}').focus()`}
+>
+											Reset
+</button>
+									</div>
+									<!-- The picker shows LO-TEK's colour of the family until
+									     another is given, and picking one gives it: the field
+									     holds it and the switch is on. It follows the colour
+									     as the core read it, and not the field: the core
+									     takes #f0a and F7DF1E, and a picker takes nothing
+									     but #rrggbb, and says so in the console for anything
+									     else. -->
+									<div class="builder__colour">
+										<input
+											class="builder__picker"
+											type="color"
+											aria-label={`Pick the colour of ${name}`}
+											value={OWN[name]}
+											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
+											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name}.trim() === '' && (el.value = '${OWN[name]}')`}
+										/>
+										<input
+											class="lt-input"
+											type="text"
+											id={id(name)}
+											name={name}
+											aria-label={`The colour of ${name}, as #rrggbb`}
+											aria-describedby={`${id(name)}-help ${id(name)}-error`}
+											placeholder={OWN[name]}
+											autocomplete="off"
+											spellcheck="false"
+											disabled
+											data-bind={`fields.${name}`}
+											data-attr:disabled={`!$own.${name}`}
+											data-attr:aria-invalid={`$built.wrong.${name} !== '' && 'true'`}
+											data-attr:data-state={`$built.wrong.${name} !== '' && 'invalid'`}
+										/>
+									</div>
+									<p
+										class="lt-error-text"
+										id={`${id(name)}-error`}
+										style="display: none"
+										data-show={`$built.wrong.${name} !== ''`}
+										data-text={`$built.wrong.${name}`}
+									/>
+									<p class="lt-help-text" id={`${id(name)}-help`}>
+										{first(property.description)}
+									</p>
+									<!-- What became of the colour, shown when the recipe gives
+									     the family. The row is in the markup and the answer
+									     fills it in: a list in a signal is not something
+									     Datastar can be handed. -->
+								<div
+									class="builder__row"
+									data-family={name}
+									style="display: none"
+									data-show={`$built.report.${name}.given !== ''`}
+								>
+									
+									<p class="builder__swatches">
+										{(["given", "light", "dark"] as const).map((key) => (
+											<span class="builder__colour-of">
+												<span class="profile-label">{key}</span>
+												<span
+													class="builder__swatch"
+													data-attr:style={`'background-color: ' + $built.report.${name}.${key}`}
+												/>
+												<code data-text={`$built.report.${name}.${key}`} />
+											</span>
+										))}
+									</p>
+									<!-- The reason takes room, and is the same every time the
+									     colour is looked at: it is there for the asking. It
+										     is closed again when it changes, since what was
+										     opened was the reason for another colour. -->
+									<details
+										class="builder__reason"
+										style="display: none"
+										data-show={WHY.map((key) => `$built.report.${name}.${key} !== ''`).join(" || ")}
+										data-effect={`${WHY.map((key) => `$built.report.${name}.${key}`).join(", ")}, (el.open = false)`}
+									>
+										<summary>The colour was adjusted to fit the theme. Show why</summary>
+										{WHY.map((key) => (
+											<p
+												class="builder__why"
+												style="display: none"
+												data-show={`$built.report.${name}.${key} !== ''`}
+												data-text={`$built.report.${name}.${key}`}
+											/>
+										))}
+									</details>
+								</div>
+								</div>
+							))
+						}
+					</fieldset>
+
+					{
+						[
+							{ legend: "Typography", fields: typography },
+							{ legend: "Shape", fields: shape },
+						].map(({ legend, fields }) => (
+							<fieldset class="lt-fieldset builder__group">
+								<legend class="lt-legend">{legend}</legend>
+								{fields.map(({ path, label, help, range }) => (
+									<div class="builder__field">
+										<div class="builder__label">
+											<label class="lt-label" for={id(path)}>
+												{label}
+											</label>
+											<span
+												class="builder__changed"
+												style="display: none"
+												data-show={`$fields.${path}.trim() !== '' && $fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												>
+													Changed
+											</span>
+											<button
+												class="builder__reset"
+												type="button"
+												aria-label={`Reset ${label}`}
+												style="display: none"
+												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												data-on:click={`$fields.${path} = '${range?.text ?? ""}'; document.getElementById('${id(path)}').focus()`}
+											>
+												Reset
+											</button>
+										</div>
+										{range && (
+											<input
+												class="builder__slider"
+												type="range"
+												aria-label={`${label}, on a slider`}
+												min={range.min}
+												max={range.max}
+												step={range.step}
+												value={range.rest}
+												data-on:input={moves(path, range)}
+												data-effect={follows(path, range)}
+											/>
+										)}
+										<input
+											class="lt-input"
+											type="text"
+											id={id(path)}
+											name={path}
+											aria-describedby={`${id(path)}-help ${id(path)}-error`}
+											placeholder={range?.none}
+											autocomplete="off"
+											spellcheck="false"
+											data-bind={`fields.${path}`}
+											data-attr:aria-invalid={`$built.wrong.${path} !== '' && 'true'`}
+											data-attr:data-state={`$built.wrong.${path} !== '' && 'invalid'`}
+										/>
+										<p
+											class="lt-error-text"
+											id={`${id(path)}-error`}
+											style="display: none"
+											data-show={`$built.wrong.${path} !== ''`}
+											data-text={`$built.wrong.${path}`}
+										/>
+										<p class="lt-help-text" id={`${id(path)}-help`}>
+											{below(help)}
+										</p>
+									</div>
+								))}
+							</fieldset>
+						))
+					}
+				</section>
+
+				<div class="builder__side">
+				<section class="builder__preview" aria-labelledby="preview-title">
+					<div class="builder__preview-head">
+						<h2 class="profile-label" id="preview-title">Preview</h2>
+						<fieldset class="lt-toggle-group">
+							<legend class="lt-sr-only">What the theme is shown on</legend>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="view" value="sheet" checked data-bind="view" />
+								Components
+							</label>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="view" value="page" data-bind="view" />
+								Page
+							</label>
+						</fieldset>
+					</div>
+					<!-- Each frame holds a whole page, and every control in it is a
+					     stop for the keyboard. -->
+					<a class="builder__past" href="#out">Skip past the preview, to the recipe as a file</a>
+					<p class="builder__note" data-text="$shown === '' ? 'Nothing is set yet, so this is LO-TEK with the colours it comes with.' : $built.ok ? 'LO-TEK with the theme your recipe gives.' : 'The last theme that was built. The recipe as it stands is refused.'">
+						Nothing is set yet, so this is LO-TEK with the colours it comes with.
+					</p>
+					<!-- Each frame is a page of the site with the theme laid on it,
+					     the file itself and not a likeness of it. The frame says
+					     which appearance it is, and the framed page takes it before
+					     it paints. -->
+					<div class="builder__frames">
+						{
+							APPEARANCES.map((appearance) => (
+								<figure class="builder__frame">
+									<figcaption class="profile-label">{appearance}</figcaption>
+									<iframe
+										title={`The theme in the ${appearance} appearance`}
+										data-appearance={appearance}
+										src="/theme-builder/sheet/"
+										data-attr:src="'/theme-builder/' + $view + '/'"
+										data-effect={`$ready && @showTheme(el, '${appearance}', $shown)`}
+										data-on:load={`@showTheme(el, '${appearance}', $shown); @scrollTogether(el)`}
+									/>
+								</figure>
+							))
+						}
+					</div>
+				</section>
+
+				<section class="builder__out" id="out" tabindex="-1" aria-labelledby="out-title">
+					<h2 class="profile-label" id="out-title">lotek.theme.json</h2>
+					<pre class="builder__json" data-recipe tabindex="0" role="region" aria-label="The recipe, as lotek.theme.json" data-text="$recipe">{"{}"}</pre>
+					<!-- What was chosen is remembered in this browser. "Copied" is said
+					     of the recipe the clipboard took, once it has taken it, and
+					     only while that recipe is the one shown. -->
+					<div hidden data-effect="$ready && @remember($own, $fields)"></div>
+					<p class="builder__actions">
+						<button
+							class="lt-button"
+							type="button"
+							disabled
+							data-attr:disabled="!$built.ok"
+							data-on:click="const text = $recipe; (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => ($copied = text), () => ($notCopied = text))"
+						>
+							Copy the recipe
+						</button>
+						<a
+							class="lt-button"
+							data-variant="secondary"
+							download="theme.css"
+							style="display: none"
+							data-show="$built.ok"
+							data-attr:href="$built.ok ? 'data:text/css;charset=utf-8,' + encodeURIComponent($built.css) : ''"
+						>
+							Download theme.css
+						</a>
+						<button
+							class="lt-button"
+							data-variant="ghost"
+							type="button"
+							data-on:click="@startAgain()"
+						>
+							Start again
+						</button>
+						<span class="builder__said" role="status" data-text="$copied === $recipe ? 'Copied.' : $notCopied === $recipe ? 'The browser would not copy it. Select the recipe and copy it by hand.' : ''"></span>
+					</p>
+					<p class="builder__line">
+						Keep the recipe in the repository as <code>lotek.theme.json</code>,
+						and build the theme from it. The theme is in a layer of its own, and
+						your own CSS beats it: what the recipe does not have,
+						<a class="lt-link" href="/customising/#when-the-variable-is-not-enough">you set there</a>.
+					</p>
+					<pre class="builder__json" tabindex="0" role="region" aria-label="The command that builds the theme"><code>{COMMAND}</code></pre>
+					<p class="builder__line">
+						Then load <code>theme.css</code> together with LO-TEK's stylesheet,
+						and the components have your theme.
+						<a class="lt-link" href="/your-own-theme/#using-it">Using it</a>
+						shows the same in plain HTML and with Tailwind.
+					</p>
+					<pre class="builder__json" tabindex="0" role="region" aria-label="How to load the theme"><code>{USE}</code></pre>
+				</section>
+
+				<section class="builder__out" aria-labelledby="paste-title">
+					<h2 class="profile-label" id="paste-title">A recipe you have</h2>
+					<div class="builder__field">
+						<label class="lt-label" for="paste">Paste a recipe</label>
+						<textarea
+							class="lt-textarea"
+							id="paste"
+							rows="6"
+							spellcheck="false"
+							aria-describedby="paste-help paste-error"
+							data-bind="pasted"
+							data-attr:aria-invalid="$pasteError !== '' && 'true'"
+							data-attr:data-state="$pasteError !== '' && 'invalid'"></textarea>
+						<p
+							class="lt-error-text"
+							id="paste-error"
+							style="display: none"
+							data-show="$pasteError !== ''"
+							data-text="$pasteError"
+						>
+						</p>
+						<p class="lt-help-text" id="paste-help">
+							The text of a <code>lotek.theme.json</code>. It replaces what is chosen above.
+						</p>
+					</div>
+					<p class="builder__actions">
+						<button
+							class="lt-button"
+							data-variant="secondary"
+							type="button"
+							data-on:click="@useRecipe($pasted)"
+						>
+							Use this recipe
+						</button>
+					</p>
+				</section>
+				</div>
+			</main>
+		</div>
+	</body>
+</html>
+
+<style is:global>
+	/*
+	 * The page is a printed sheet, as the front page is, and in the same
+	 * profile. The colours come from tokens, and the only thing written in is
+	 * the geometry.
+	 */
+	html {
+		background: var(--lt-color-neutral-canvas);
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		min-block-size: 100dvh;
+		margin: 0;
+		/* On the body as well as on html: the grain blends inside the body's
+		   isolated group, and a transparent body would leave it nothing to
+		   blend with. */
+		background: var(--lt-color-neutral-canvas);
+		color: var(--lt-color-neutral-text);
+		font-family: var(--profile-font-data);
+		font-size: var(--lt-font-size-s);
+		line-height: var(--lt-line-height-default);
+	}
+
+	code {
+		font-family: var(--profile-font-data);
+	}
+
+	.builder {
+		max-inline-size: 104rem;
+		margin-inline: auto;
+		padding: var(--lt-spacing-5) var(--lt-spacing-5) var(--lt-spacing-12);
+	}
+
+	@media (min-width: 48rem) {
+		.builder {
+			padding: var(--lt-spacing-8) var(--lt-spacing-10) var(--lt-spacing-16);
+		}
+	}
+
+	.builder__main {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: var(--lt-spacing-8);
+		align-items: start;
+		padding-block-start: var(--lt-spacing-8);
+	}
+
+	.builder__main:focus {
+		outline: none;
+	}
+
+	/* The preview and what follows it are placed by the page's own grid. */
+	.builder__side {
+		display: contents;
+	}
+
+	/* The recipe beside what it gives, when there is room for both. The
+	   preview has the right column to itself and stays in view while the
+	   left one, which is long, is scrolled: the recipe, and below it the
+	   file and the field to paste one into. Were anything below the preview
+	   in its column, the preview would stay and lie over it. */
+	@media (min-width: 72rem) {
+		.builder__main {
+			grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+		}
+
+		.builder__main > * {
+			grid-column: 1 / -1;
+		}
+
+		.builder__recipe,
+		.builder__out {
+			grid-column: 1;
+		}
+
+		/* Beside the recipe the frames have the height of the window, less
+		   what stands above them in the preview: its head, the line that
+		   says what is shown and the caption of a frame. */
+		.builder__preview .builder__frame iframe {
+			block-size: max(24rem, calc(100dvh - 11rem));
+		}
+
+		.builder__preview {
+			grid-column: 2;
+			grid-row: 2 / span 3;
+			align-self: start;
+			position: sticky;
+			inset-block-start: var(--lt-spacing-4);
+		}
+	}
+
+	.builder__head {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-3);
+	}
+
+	.builder__name {
+		margin: 0;
+		font-size: clamp(var(--lt-font-size-xl), 5vw, var(--lt-font-size-mega));
+		color: var(--lt-color-neutral-text-strong);
+	}
+
+	.builder__line,
+	.builder__note {
+		margin: 0;
+		max-inline-size: 44rem;
+		text-wrap: pretty;
+	}
+
+	/* The introduction has the width of the page to itself, and takes more
+	   of it than a line further down does. */
+	.builder__head .builder__line {
+		max-inline-size: 72rem;
+	}
+
+	.builder__recipe,
+	.builder__out,
+	.builder__group,
+	.builder__preview {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-4);
+		min-inline-size: 0;
+	}
+
+	/* A group of the recipe: a plate's worth of fields under a rule. */
+	.builder__group {
+		margin: 0;
+		padding: var(--lt-spacing-4) 0 0;
+		border: 0;
+		border-block-start: var(--profile-rule);
+	}
+
+	.builder__group > legend {
+		padding: 0;
+		font-family: var(--profile-font-name);
+		font-size: var(--lt-font-size-m);
+		font-weight: 400;
+		text-transform: uppercase;
+		color: var(--lt-color-neutral-text-strong);
+	}
+
+	.builder__family,
+	.builder__field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-1);
+	}
+
+	.builder__family {
+		padding-block-end: var(--lt-spacing-3);
+		border-block-end: var(--profile-rule-subtle);
+	}
+
+	.builder__colour {
+		display: flex;
+		gap: var(--lt-spacing-2);
+	}
+
+	/* The name of a field, and beside it that it is changed and the way back. */
+	.builder__label {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--lt-spacing-1) var(--lt-spacing-3);
+	}
+	
+	.builder__changed {
+		font-size: var(--lt-font-size-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--lt-color-warning-text);
+	}
+	
+	.builder__changed::before {
+		content: "● ";
+	}
+	
+	.builder__reset {
+		/* Small beside a label, and still large enough to hit. */
+		min-inline-size: 24px;
+		min-block-size: 24px;
+		margin: 0;
+		padding: 0 var(--lt-spacing-1);
+		border: 0;
+		background: none;
+		font: inherit;
+		font-size: var(--lt-font-size-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--lt-color-accent-text);
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
+	}
+	
+	.builder__reset:hover {
+		color: var(--lt-color-neutral-text-strong);
+	}
+	
+	.builder__reset:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: var(--lt-spacing-1);
+	}
+	
+	.builder__family .lt-switch-row {
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--lt-spacing-1) var(--lt-spacing-3);
+	}
+	
+	.builder__slider {
+		inline-size: 100%;
+		margin: 0;
+		accent-color: var(--lt-color-accent-fill);
+	}
+	
+	.builder__picker {
+		flex: none;
+		inline-size: var(--lt-spacing-10);
+		block-size: auto;
+		padding: 0;
+		border: var(--profile-rule);
+		background: none;
+	}
+
+	/* What became of a colour: the three swatches, and why. */
+	.builder__row {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+		padding-block-start: var(--lt-spacing-2);
+	}
+
+	.builder__row > p {
+		margin: 0;
+	}
+
+	.builder__swatches {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lt-spacing-2) var(--lt-spacing-5);
+	}
+
+	.builder__colour-of {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--lt-spacing-2);
+	}
+
+	.builder__swatch {
+		display: inline-block;
+		inline-size: var(--lt-spacing-6);
+		block-size: var(--lt-spacing-6);
+		border: var(--profile-rule);
+	}
+
+	.builder__reason > summary {
+		font-size: var(--lt-font-size-xs);
+		color: var(--lt-color-neutral-text);
+		cursor: pointer;
+	}
+	
+	.builder__reason > summary:hover {
+		color: var(--lt-color-neutral-text-strong);
+	}
+	
+	.builder__reason > summary:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: var(--lt-spacing-1);
+	}
+	
+	.builder__reason > p {
+		margin: var(--lt-spacing-2) 0 0;
+	}
+	
+	.builder__why {
+		font-size: var(--lt-font-size-xs);
+		line-height: var(--lt-line-height-article);
+		text-wrap: pretty;
+	}
+
+	.builder__preview-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--lt-spacing-4);
+	}
+
+	/* The way past the frames is for the keyboard: out of sight until it has
+	   focus, and then where it stands, above the frames it leads past. The
+	   skip link of the package cannot be used here, since it hides above the
+	   top of the window and this one is far down the page. */
+	.builder__past:not(:focus) {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.builder__past:focus {
+		align-self: start;
+		padding: var(--lt-spacing-2) var(--lt-spacing-3);
+		background: var(--lt-color-neutral-text-strong);
+		color: var(--lt-color-neutral-canvas);
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: 2px;
+	}
+
+	.builder__frames {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+		gap: var(--lt-spacing-4);
+	}
+
+	.builder__frame {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+		min-inline-size: 0;
+		margin: 0;
+	}
+
+	.builder__frame iframe {
+		display: block;
+		inline-size: 100%;
+		block-size: min(44rem, 72dvh);
+		border: var(--profile-rule);
+	}
+
+	.builder__json {
+		margin: 0;
+		padding: var(--lt-spacing-4);
+		overflow: auto;
+		border: var(--profile-rule);
+		font-family: var(--profile-font-data);
+		font-size: var(--lt-font-size-s);
+		line-height: var(--lt-line-height-default);
+		color: var(--lt-color-neutral-text-strong);
+	}
+
+	.builder__actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--lt-spacing-3);
+		margin: 0;
+	}
+
+	.builder__said {
+		font-size: var(--lt-font-size-s);
+	}
+
+	/* The buttons are square on this page, as on the front page. */
+	.builder {
+		--lt-button-radius: 0;
+		--lt-input-radius: 0;
+		--lt-textarea-radius: 0;
+	}
+</style>
+
+<script>
+	import contract from "@lo-tek/interfaces/color-contract.json?raw"
+	import wasm from "@lo-tek/interfaces/core.wasm?url"
+	import { loadCore } from "@lo-tek/interfaces/diagnostics"
+
+	/*
+	 * The module: the core, and what else the markup cannot do, handed to
+	 * Datastar as actions.
+	 *
+	 * Datastar is taken from the address the page loaded it from, so this is
+	 * the same instance the markup runs on, and not a second copy bundled in
+	 * here. `action()` is Datastar's own way to add an action, shown in its
+	 * "custom plugin" example and not promised to stay as it is:
+	 * `datastar-extension.browser.test.ts` says so when it changes.
+	 */
+	const address = document.querySelector<HTMLScriptElement>(
+		"script[data-datastar]",
+	)?.src
+	const { action, mergePatch } = await import(/* @vite-ignore */ address ?? "")
+
+	// The core may not come: the file is large, and a network can drop it.
+	// Then the page says so, and is never told it is ready.
+	let loaded: ReturnType<typeof loadCore> | undefined
+	try {
+		const file = await fetch(wasm)
+		if (!file.ok) throw new Error(`${file.status}`)
+		loaded = loadCore(await WebAssembly.compile(await file.arrayBuffer()))
+		loaded.loadContract(contract)
+	} catch {
+		mergePatch({ failed: true })
+	}
+	// The actions that ask the core run only when the page is ready, and it
+	// is ready only with a core.
+	const core = loaded as ReturnType<typeof loadCore>
+
+	type Fields = { [key: string]: string | Fields }
+
+	/*
+	 * The page as on a first visit: what the markup itself says the signals
+	 * are. It is the shape of `own` and `fields`, and what every field holds
+	 * at rest: what is not in the recipe, what a pasted recipe leaves a field
+	 * it does not name at, and what "Start again" goes back to.
+	 */
+	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
+		own: Record<string, boolean>
+		fields: Fields
+	}
+
+	/**
+	 * The fields that hold something other than they do at rest, in the
+	 * shape they have. Nothing when none does.
+	 */
+	const filled = (fields: Fields, rest: Fields): Fields | undefined => {
+		const kept: Fields = {}
+		for (const [name, value] of Object.entries(fields)) {
+			const own =
+				typeof value === "string" ? value.trim() : filled(value, rest[name] as Fields)
+			if (own !== undefined && own !== "" && own !== rest[name]) kept[name] = own
+		}
+		return Object.keys(kept).length > 0 ? kept : undefined
+	}
+
+	// What was chosen, and only that: a family when its switch is on and its
+	// field has a value, a key of typography or shape when its field holds
+	// something other than LO-TEK's own value.
+	action({
+		name: "recipe",
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields) {
+			const chosen: Fields = {}
+			for (const [name, value] of Object.entries(fields)) {
+				if (typeof value !== "string") continue
+				if (own[name] && value.trim() !== "") chosen[name] = value.trim()
+			}
+			return JSON.stringify(
+				{
+					...chosen,
+					...filled({ typography: fields.typography, shape: fields.shape }, first.fields),
+				},
+				null,
+				2,
+			)
+		},
+	})
+
+	type Broken = { promise: string; ratio: number; required: number }
+	type Fill = { fill: string; chromaKept: number; breaks: Broken[] }
+	type Row = Record<string, string>
+
+	/** A promise about the fill, as what it is measured against. As in `lotek theme`. */
+	const PLAINLY: Record<string, string> = {
+		"fill on canvas": "against the page it",
+		"fill on raised": "against a raised surface it",
+		"content on top of fill": "text on it",
+	}
+
+	/** The two sentences about one appearance, as `lotek theme` writes them. */
+	const why = (appearance: string, given: string, fill: Fill) => {
+		const percent = Math.round(fill.chromaKept * 100)
+		return [
+			fill.breaks.length === 0
+				? ""
+				: `In the ${appearance} theme ${given} cannot be the fill as it is: ${fill.breaks
+					.map(
+						(b) =>
+							`${PLAINLY[b.promise] ?? b.promise} would have a contrast of ${b.ratio.toFixed(2)}:1, and ${b.required}:1 is required`,
+					)
+					.join("; ")}.`,
+			percent < 100
+				? `In the ${appearance} theme the fill is less saturated than ${given}, with ${percent}% of its chroma: a screen cannot show more at that lightness.`
+				: "",
+		]
+	}
+
+	/** What the core answers to a recipe of one key, when it refuses it. */
+	const refusal = (recipe: Fields): string => {
+		try {
+			core.buildTheme(recipe)
+			return ""
+		} catch (error) {
+			return error instanceof Error ? error.message : String(error)
+		}
+	}
+
+	/** What is wrong with every field of a block, in the shape of the block. */
+	const wrongIn = (block: Fields, alone: (leaf: Fields) => Fields): Fields =>
+		Object.fromEntries(
+			Object.entries(block).map(([name, value]) => [
+				name,
+				typeof value !== "string"
+					? wrongIn(value, (leaf) => alone({ [name]: leaf }))
+					: value.trim() === ""
+						? ""
+						: refusal(alone({ [name]: value.trim() })),
+			]),
+		)
+
+	// The report of the last theme that was built: what the rows hold while
+	// a field is being typed in and the recipe does not build, for the
+	// families that are still in the recipe.
+	let lastReport: Record<string, Row> | undefined
+
+	// The core's answer to a recipe: the theme, what is wrong with each
+	// field, and what became of each colour. A recipe with nothing in it is
+	// not a mistake, only nothing yet. Every answer has the same keys; see
+	// the note at the signals.
+	action({
+		name: "buildTheme",
+		apply(_: unknown, recipe: string, own: Record<string, boolean>, fields: Fields) {
+			const families = Object.keys(own)
+			const noRow = { given: "", light: "", dark: "", lightWhy: "", darkWhy: "", lightChroma: "", darkChroma: "" }
+			const empty = Object.fromEntries(families.map((name) => [name, { ...noRow }]))
+			// A field is asked about alone, so the answer is about that field:
+			// the core stops at the first thing it refuses.
+			const wrong: Fields = {
+				...Object.fromEntries(
+					families.map((name) => {
+						const value = fields[name]
+						return [
+							name,
+							own[name] && typeof value === "string" && value.trim() !== ""
+								? refusal({ [name]: value.trim() })
+								: "",
+						]
+					}),
+				),
+				typography: wrongIn(fields.typography as Fields, (leaf) => ({ typography: leaf })),
+				shape: wrongIn(fields.shape as Fields, (leaf) => ({ shape: leaf })),
+			}
+			const chosen = JSON.parse(recipe)
+			if (Object.keys(chosen).length === 0) {
+				lastReport = undefined
+				return { ok: false, css: "", error: "", wrong, report: empty }
+			}
+			try {
+				const { css, brands } = core.buildTheme(chosen)
+				const report = { ...empty }
+				for (const brand of brands) {
+					const [lightWhy, lightChroma] = why("light", brand.given, brand.light)
+					const [darkWhy, darkChroma] = why("dark", brand.given, brand.dark)
+					report[brand.family] = {
+						given: brand.given,
+						light: brand.light.fill,
+						dark: brand.dark.fill,
+						lightWhy,
+						darkWhy,
+						lightChroma,
+						darkChroma,
+					}
+				}
+				lastReport = report
+				return { ok: true, css, error: "", wrong, report }
+			} catch (error) {
+				return {
+					ok: false,
+					css: "",
+					error: error instanceof Error ? error.message : String(error),
+					wrong,
+					report: Object.fromEntries(
+						families.map((name) => [
+							name,
+							name in chosen && lastReport ? lastReport[name] : { ...noRow },
+						]),
+					),
+				}
+			}
+		},
+	})
+
+	/*
+	 * The theme of a frame: the appearance on `<html>`, and the CSS in one
+	 * `<style>` in `<head>`, the file as the generator writes it. An empty
+	 * theme empties the element, and the page shows LO-TEK's own colours.
+	 * The frame asks when the theme changes and when it has loaded a page.
+	 */
+	action({
+		name: "showTheme",
+		apply(_: unknown, frame: HTMLIFrameElement, appearance: string, css: string) {
+			const page = frame.contentDocument
+			// Before the page has come, or between two pages.
+			if (!page?.head || page.location.href === "about:blank") return
+			page.documentElement.dataset.theme = appearance
+			page.documentElement.style.colorScheme = appearance
+			let style = page.head.querySelector<HTMLStyleElement>("style[data-theme-builder]")
+			if (!style) {
+				if (css === "") return
+				style = page.createElement("style")
+				style.setAttribute("data-theme-builder", "")
+				page.head.append(style)
+			}
+			if (style.textContent !== css) style.textContent = css
+		},
+	})
+
+	// The two frames show the same page, and are read side by side: scrolling
+	// one scrolls the other to the same place. A frame that is already there
+	// is left alone, which is what stops the two from answering each other.
+	action({
+		name: "scrollTogether",
+		apply(_: unknown, frame: HTMLIFrameElement) {
+			const from = frame.contentDocument?.documentElement
+			if (!from) return
+			frame.contentWindow?.addEventListener(
+				"scroll",
+				() => {
+					const part = from.scrollTop / Math.max(1, from.scrollHeight - from.clientHeight)
+					for (const other of document.querySelectorAll<HTMLIFrameElement>(
+						"iframe[data-appearance]",
+					)) {
+						const to = other.contentDocument?.documentElement
+						if (other === frame || !to) continue
+						const top = part * (to.scrollHeight - to.clientHeight)
+						if (Math.abs(to.scrollTop - top) > 1.5)
+							other.contentWindow?.scrollTo({ top, behavior: "instant" })
+					}
+				},
+				{ passive: true },
+			)
+		},
+	})
+
+	const REMEMBERED = "lotek-theme-builder"
+
+	/**
+	 * Whether `from` has something other than text or a number where `blank`
+	 * has a field, or other than an object where it has a block. Nothing and
+	 * `null` are a value that is not given.
+	 */
+	const odd = (blank: Fields, from: unknown): boolean =>
+		Object.entries(blank).some(([name, value]) => {
+			const given = (from as Record<string, unknown>)[name] ?? undefined
+			if (given === undefined) return false
+			if (typeof value === "string")
+				return typeof given !== "string" && typeof given !== "number"
+			return typeof given !== "object" || Array.isArray(given) || odd(value, given)
+		})
+
+	/**
+	 * The values of `from` laid into the shape of `blank`, as text. A field
+	 * `from` does not name, or gives something else than a value, is as in
+	 * `blank`.
+	 */
+	const laid = (blank: Fields, from: unknown): Fields =>
+		Object.fromEntries(
+			Object.entries(blank).map(([name, value]) => {
+				const given = (from as Record<string, unknown> | null)?.[name]
+				if (typeof value !== "string") return [name, laid(value, given)]
+				return [
+					name,
+					typeof given === "string" || typeof given === "number" ? String(given) : value,
+				]
+			}),
+		)
+
+	// What is chosen is kept in this browser and nowhere else. Storage can be
+	// switched off, and then the page works without remembering.
+	action({
+		name: "remember",
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields) {
+			try {
+				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields }))
+			} catch {
+				// Nothing to do: the page is as useful, only not next time.
+			}
+		},
+	})
+
+	action({
+		name: "startAgain",
+		apply() {
+			// The empty page is what is then remembered: the effect that
+			// remembers runs on this as on any change.
+			mergePatch({ own: first.own, fields: first.fields, pasted: "", pasteError: "" })
+		},
+	})
+
+	// A recipe file pasted in becomes what is chosen. A text that is not a
+	// recipe changes nothing and says why. A key the core does not know is
+	// the core's to name, and so is a value that is not text, which no field
+	// can hold. A text it refuses is taken: the field then holds it, and says
+	// what is wrong with it.
+	action({
+		name: "useRecipe",
+		apply(_: unknown, text: string) {
+			const refuse = (pasteError: string) => mergePatch({ pasteError })
+			let recipe: unknown
+			try {
+				recipe = JSON.parse(text)
+			} catch {
+				return refuse("This is not JSON. Paste the text of a lotek.theme.json.")
+			}
+			if (recipe === null || typeof recipe !== "object" || Array.isArray(recipe))
+				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
+			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
+			const answer = refusal(keys as Fields)
+			const strange = odd(first.fields, keys)
+			if (answer.startsWith("Unknown key in the recipe") || (answer !== "" && strange))
+				return refuse(answer)
+			// The core writes `true` where it is given `true`. No field can
+			// hold it, and to leave it out without a word would be to change
+			// the recipe.
+			if (strange)
+				return refuse(
+					"A value in the recipe is not text or a number. The builder cannot show it, so nothing was changed.",
+				)
+			const fields = laid(first.fields, keys)
+			mergePatch({
+				own: Object.fromEntries(
+					Object.keys(first.own).map((name) => [name, fields[name] !== ""]),
+				),
+				fields,
+				pasteError: "",
+			})
+		},
+	})
+
+	// What was left the last time, before Datastar is told the core is here.
+	try {
+		const kept = JSON.parse(localStorage.getItem(REMEMBERED) ?? "null")
+		if (kept)
+			mergePatch({
+				own: Object.fromEntries(
+					Object.keys(first.own).map((name) => [name, kept.own?.[name] === true]),
+				),
+				fields: laid(first.fields, kept.fields),
+			})
+	} catch {
+		// Nothing remembered that can be read. The page starts empty.
+	}
+
+	if (loaded) mergePatch({ ready: true })
+</script>

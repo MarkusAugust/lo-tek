@@ -24,8 +24,33 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **A theme builder in the documentation,** at
+  `lo-tek.sobernetics.no/theme-builder/`. Set your brand colours, font and
+  corners, and see every component, or a whole page, with the theme the
+  generator builds from them, light and dark side by side. It says what
+  became of each colour, as `lotek theme` does, and gives the recipe and
+  the command. It runs the core in the browser, and nothing is sent
+  anywhere. Nothing in the npm package is new for it.
+
+### Changed
+
+- **`lotek theme` says in plain words why a colour was moved.** The reason
+  named the promises of the contract, `fill on raised would be 1.06:1, the
+  requirement is 3.1:1`. It says what the fill is measured against now:
+  `against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is
+  required`. The line about chroma says the fill is less saturated, and no
+  longer names sRGB. A script that reads these lines must follow; the first
+  line per colour and `brands` are unchanged.
+
 ### Fixed
 
+- **The theme generator refuses a square bracket that is not closed.**
+  `fontFamily: "Inter ["` built a theme where the `[` swallowed the
+  declaration after it, as an unclosed parenthesis does. It is refused now,
+  with a message that names the bracket, and `a[b]` is still taken. A bracket and a
+  parenthesis must also close in the order they opened.
 - **The links to the IntelliJ plugin led to the plugin it replaced.** The
   editor page and the Kotlin page pointed at the earlier plugin on JetBrains
   Marketplace, which stops at 0.4.0. They point at LO-TEK Interfaces now.

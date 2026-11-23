@@ -139,6 +139,7 @@ export default defineConfig({
             { label: "Accessibility", slug: "accessibility" },
             { label: "Translation", slug: "translation" },
             { label: "Your own theme", slug: "your-own-theme" },
+            { label: "Theme builder", link: "/theme-builder/" },
             { label: "Type-safe use", slug: "type-safe-use" },
             { label: "Kotlin and Java", slug: "kotlin" },
             { label: "The editor", slug: "the-editor" },
