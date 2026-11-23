@@ -41,14 +41,24 @@ type Element = Extract<Tree["children"][number], { type: "element" }>
 const problems: string[] = []
 const collapsed = (text: string) => text.replace(/\s+/g, " ").trim()
 
-/** A built page, parsed, or nothing when the site does not have it. */
+/**
+ * A built page, parsed, or nothing when the site does not have it. An
+ * address that does not end in a slash is a file, as `/llms.txt` is: it is
+ * there or not, and has nothing in it to land on.
+ */
 const pages = new Map<string, Tree | null>()
 function built(path: string): Tree | null {
   if (!pages.has(path)) {
-    const file = `${DIST}${path}index.html`
+    const file = path.endsWith("/")
+      ? `${DIST}${path}index.html`
+      : `${DIST}${path}`
     pages.set(
       path,
-      existsSync(file) ? parser.parse(readFileSync(file, "utf8")) : null,
+      !existsSync(file)
+        ? null
+        : path.endsWith("/")
+          ? parser.parse(readFileSync(file, "utf8"))
+          : { type: "root", children: [] },
     )
   }
   return pages.get(path) ?? null
@@ -317,6 +327,143 @@ if (start >= 0) {
     held("the section about who decides", href, "/your-own-theme/")
 }
 
+/*
+ * The ways to make a theme, and what to do with it.
+ *
+ * The generator runs in the browser, on the command line, in a build step
+ * and from Kotlin, and whichever way the file was made, the next question
+ * is the same: how is it used. So the page says the ways where the making
+ * starts, shows the loading for each common setup, and the builder, which
+ * hands a file over, says what to do with it and leads to the same place.
+ */
+/** The blocks of a section of the page's text, by what its heading is called. */
+function sectionOf(title: string): Element[] {
+  const from = blocks.findIndex(
+    (block) =>
+      collapsed(toText(heading(block, "h2") ?? block)) === title &&
+      heading(block, "h2"),
+  )
+  if (from < 0) {
+    problems.push(`/your-own-theme/ has no section "${title}"`)
+    return []
+  }
+  const to = blocks.findIndex((block, i) => i > from && heading(block, "h2"))
+  return blocks.slice(from + 1, to < 0 ? undefined : to)
+}
+const within = (elements: Element[]): Tree => ({
+  type: "root",
+  children: elements,
+})
+/** The code of each block of code in a part of a page. */
+const code = (part: Tree | Element) =>
+  selectAll("pre", part).map((pre) => toText(pre))
+const headingCalled = (title: string) =>
+  selectAll("h2, h3, h4", page).find((h) => collapsed(toText(h)) === title)
+
+{
+  // Creating the theme: the ways, before the first block of code.
+  const creating = sectionOf("Creating the theme")
+  const first = creating.findIndex((block) => select("pre", within([block])))
+  const ways = within(creating.slice(0, first < 0 ? undefined : first))
+  const links = hrefs(ways, "/your-own-theme/")
+  const programmatic = selectAll("h2, h3, h4", page).find((h) =>
+    /programmatic/i.test(toText(h)),
+  )?.properties.id
+  for (const [way, leads] of [
+    [
+      "the theme builder",
+      (href: string) => href.split("#")[0] === "/theme-builder/",
+    ],
+    [
+      "the heading about programmatic use",
+      (href: string) => href === `/your-own-theme/#${programmatic}`,
+    ],
+    [
+      "the page about Kotlin",
+      (href: string) => href.split("#")[0] === "/kotlin/",
+    ],
+  ] as const) {
+    const found = links.filter(leads)
+    if (found.length === 0)
+      problems.push(
+        `"Creating the theme" does not link to ${way} before its first block of code`,
+      )
+    for (const href of found)
+      held(`"Creating the theme"`, href, "/your-own-theme/")
+  }
+  if (!/command line/i.test(toText(ways)))
+    problems.push(
+      '"Creating the theme" does not name the command line before its first block of code',
+    )
+
+  // Using it: the loading, for a bundler, plain HTML and Tailwind.
+  const using = within(sectionOf("Using it"))
+  const shown = code(using)
+  if (shown.length < 3)
+    problems.push(`"Using it" has ${shown.length} blocks of code, not three`)
+  for (const [setup, a, b] of [
+    ["a bundler", "@import", "theme.css"],
+    ["plain HTML", "<link", "theme.css"],
+    ["Tailwind", "@layer", "lotek-theme"],
+  ])
+    if (!shown.some((block) => block.includes(a) && block.includes(b)))
+      problems.push(
+        `"Using it" has no block of code for ${setup}, with ${a} and ${b} in it`,
+      )
+  const tailwind = hrefs(using, "/your-own-theme/").filter(
+    (href) => href.split("#")[0] === "/tailwind/",
+  )
+  if (tailwind.length === 0)
+    problems.push('"Using it" does not link to /tailwind/')
+  for (const href of tailwind) held('"Using it"', href, "/your-own-theme/")
+
+  // The builder is named where the ways are, and not said a second time.
+  const toBuilder = hrefs(content ?? within([]), "/your-own-theme/").filter(
+    (href) => href.split("#")[0] === "/theme-builder/",
+  )
+  if (toBuilder.length > 2)
+    problems.push(
+      `/your-own-theme/ links to the theme builder ${toBuilder.length} times: the same thing is said more than twice`,
+    )
+
+  // The builder: every link to the site lands, and by the recipe it says
+  // what to do with the file and leads to "Using it".
+  const everyLink = [...new Set(hrefs(builder, "/theme-builder/"))]
+  if (everyLink.length < 5)
+    problems.push(`found only ${everyLink.length} links on the theme builder`)
+  for (const href of everyLink)
+    held("a link on the theme builder", href, "/theme-builder/")
+  const beside = selectAll("*", builder).filter(
+    (e) =>
+      select("[data-recipe]", e) &&
+      !select("iframe", e) &&
+      !select('input[name="accent"]', e),
+  )
+  const usingIt = headingCalled("Using it")?.properties.id
+  if (
+    !usingIt ||
+    !beside.some((e) =>
+      hrefs(e, "/theme-builder/").includes(`/your-own-theme/#${usingIt}`),
+    )
+  )
+    problems.push(
+      'nothing by the recipe file on the theme builder leads to "Using it" on /your-own-theme/',
+    )
+  if (
+    !beside.some((e) =>
+      code(e).some(
+        (block) =>
+          block.includes("theme.css") &&
+          /tokens\.css|lotek\.css/.test(block) &&
+          !block.includes("npx "),
+      ),
+    )
+  )
+    problems.push(
+      "nothing by the recipe file on the theme builder shows theme.css loaded after LO-TEK's stylesheet",
+    )
+}
+
 if (problems.length > 0) {
   console.error(
     `✗ The theme builder and the page about your own theme do not say who decides what, or are not tied together:\n\n${problems.map((p) => `  ${p}`).join("\n")}\n`,
@@ -325,5 +472,5 @@ if (problems.length > 0) {
 }
 
 console.log(
-  "✓ The theme builder leads to the section about who decides what, the section names every group of keys the recipe has, and its links land.",
+  "✓ The theme builder leads to the section about who decides what, the section names every group of keys the recipe has, the page says the ways to make a theme and how each setup loads it, and the links land.",
 )

@@ -259,6 +259,10 @@ const COMMAND = `npx @lo-tek/interfaces@${pkg.version} theme lotek.theme.json --
 /** LO-TEK's own colour of each family: what a family has until it is given one. */
 const OWN = contract.brands as Record<string, string>
 
+/** How the file is taken into use, where a bundler reads the CSS. */
+const USE = `@import "@lo-tek/interfaces/tokens.css";
+@import "./theme.css";`
+
 const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 ---
 
@@ -624,6 +628,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						<a class="lt-link" href="/customising/#when-the-variable-is-not-enough">you set there</a>.
 					</p>
 					<pre class="builder__json" tabindex="0" role="region" aria-label="The command that builds the theme"><code>{COMMAND}</code></pre>
+					<p class="builder__line">
+						Then load <code>theme.css</code> together with LO-TEK's stylesheet,
+						and the components have your theme.
+						<a class="lt-link" href="/your-own-theme/#using-it">Using it</a>
+						shows the same in plain HTML and with Tailwind.
+					</p>
+					<pre class="builder__json" tabindex="0" role="region" aria-label="How to load the theme"><code>{USE}</code></pre>
 				</section>
 
 				<section class="builder__out" aria-labelledby="paste-title">

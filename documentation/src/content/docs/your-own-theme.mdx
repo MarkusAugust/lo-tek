@@ -13,7 +13,6 @@ LO-TEK has its own hues. If your organisation has others, you can write the cell
 
 The generator takes your brand colours and builds the rest.
 
-You can try it before you install anything. The [theme builder](/theme-builder/) shows LO-TEK's components with the theme your colours give, in the light and the dark appearance side by side, says what became of each colour, and gives you the recipe and the command below. It runs in your browser, and what you enter is sent nowhere.
 
 ## Who decides what
 
@@ -25,6 +24,15 @@ The generator decides more than most theme tools do, and that is how it can prom
 - **The way out** is your own CSS. The theme is in a layer of its own, and CSS you write outside a layer beats it, so what the recipe does not have, you set there. See [The theme beats the defaults](#the-theme-beats-the-defaults) and [Customising](../customising/#when-the-variable-is-not-enough). The contrast of what you set yourself is yours to keep, and `lotek check-theme` checks it.
 
 ## Creating the theme
+
+The generator is the same wherever you run it, and the recipe is what the ways share: a `lotek.theme.json`.
+
+- **In the browser.** The [theme builder](/theme-builder/) shows LO-TEK's components with the theme as you set it, light and dark side by side, says what became of each colour, and gives you the recipe and the file. Nothing is installed, and what you enter is sent nowhere.
+- **On the command line.** `npx @lo-tek/interfaces theme`, from flags or from the recipe. That is the rest of this section.
+- **In a build step.** `buildTheme()` in TypeScript. See [Programmatic use](#programmatic-use).
+- **From Kotlin and Gradle.** `Lotek.buildTheme()` and the `lotekTheme` task. See [The theme](../kotlin/#the-theme) on the Kotlin page.
+
+Whichever you choose, you end up with one file, `theme.css`, and [Using it](#using-it) is the same.
 
 ```bash
 npx @lo-tek/interfaces theme \
@@ -66,12 +74,31 @@ All of them are optional. A family you leave out inherits LO-TEK's own hue.
 
 ## Using it
 
-Load the file after `tokens.css`. It overrides what the recipe mentions, and the rest still comes from there:
+The theme is one CSS file. Load it together with LO-TEK's own stylesheet, and that is all: the components take their colours, font and corners from it.
+
+**With a bundler,** import it after `tokens.css`:
 
 ```css
 @import "@lo-tek/interfaces/tokens.css";
 @import "./theme.css";
 ```
+
+**In plain HTML,** link it after LO-TEK's stylesheet:
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css">
+<link rel="stylesheet" href="/theme.css">
+```
+
+**With Tailwind,** import it the same way, and put its layer in the layer order on the first line of your CSS:
+
+```css
+@layer theme, base, lotek, lotek-theme, components, utilities;
+```
+
+See [Layer order](../tailwind/#layer-order) for why the line has to be first.
+
+The file overrides what the recipe mentions, and the rest still comes from `tokens.css`. It beats LO-TEK's defaults whichever of the two is loaded first, since it puts itself in a layer of its own; see [The theme beats the defaults](#the-theme-beats-the-defaults).
 
 The theme covers both the light and the dark theme, and both the system setting and an explicit `data-theme`.
 

@@ -9605,6 +9605,18 @@
           "section": "Using it"
         },
         {
+          "lang": "html",
+          "meta": null,
+          "code": "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@lo-tek/interfaces@VERSION/dist/lotek.css\">\n<link rel=\"stylesheet\" href=\"/theme.css\">",
+          "section": "Using it"
+        },
+        {
+          "lang": "css",
+          "meta": null,
+          "code": "@layer theme, base, lotek, lotek-theme, components, utilities;",
+          "section": "Using it"
+        },
+        {
           "lang": "css",
           "meta": null,
           "code": ":root {\n\tcolor-scheme: light dark;\n}",
@@ -9669,6 +9681,12 @@
         "lotek check-theme",
         "lotek check-theme",
         "lotek.theme.json",
+        "npx @lo-tek/interfaces theme",
+        "buildTheme()",
+        "Lotek.buildTheme()",
+        "lotekTheme",
+        "theme.css",
+        "lotek.theme.json",
         "--accent",
         "--danger",
         "--success",
@@ -9678,6 +9696,7 @@
         "--brand1",
         "--brand2",
         "--brand3",
+        "tokens.css",
         "tokens.css",
         "data-theme",
         "color-scheme",

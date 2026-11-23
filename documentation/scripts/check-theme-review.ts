@@ -207,17 +207,18 @@ const code = await s.run(async () => {
   points += 1
 
   /*
-   * The two blocks of code: regions with a name that says which is which.
+   * The blocks of code: regions with a name that says which is which.
    * That they have a role at all is held by `check-accessibility.ts`, for
    * these as for every code block of the documentation.
    */
   expect(
-    start.blocks.length === 2,
-    `the page has ${start.blocks.length} blocks of code that take focus, not the recipe and the command`,
+    start.blocks.length === 3,
+    `the page has ${start.blocks.length} blocks of code that take focus, not the recipe, the command and the loading of the theme`,
   )
   for (const [what, wanted] of [
     ["recipe", /recipe/i],
     ["command", /command/i],
+    ["loading of the theme", /\bloads?\b|\buses?\b|\busing\b|\bloading\b/i],
   ] as const)
     expect(
       start.blocks.some((b) => b.role === "region" && wanted.test(b.name)),
