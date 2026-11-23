@@ -312,68 +312,24 @@ block(async () => {
  * role, so a light yellow gives an olive fill. The one who runs the command
  * is told so, with why the yellow cannot be the fill as it is, in words
  * that do not need the contract beside them: "against the page", and not
- * "fill on canvas". The lines are compared whole, since the wording is what
- * the consumer reads. The figures are the ones the core reports in
- * `brands`, read here through the package, and the sentences are put
- * together from them as the wording is specified.
+ * "fill on canvas".
+ *
+ * The words are the core's. It writes a summary and its reasons for each
+ * colour, and the command shows them: the summary on a line, and each
+ * reason under it behind two spaces. So what the command writes is held to
+ * what the core answers through the package, line for line, and this check
+ * puts no sentence together itself. The wording is held where it is made,
+ * in the core's own tests and its expected results.
  */
-const { default: colourContract } = await import(
-  "../src/tokens/color-contract.json"
-)
 const { buildTheme } = await import("../src/tokens/theme.js")
 
-/** A promise about the fill, said in plain words. */
-const IN_PLAIN_WORDS: Record<string, string> = {
-  "fill on canvas": "against the page it",
-  "fill on raised": "against a raised surface it",
-  "content on top of fill": "text on it",
-}
-
-/** The lines the command writes about the colours of a recipe, as specified. */
+/** The lines the command writes about the colours of a recipe: what the core says of each. */
 function explained(recipe: Record<string, string>): string[] {
-  return buildTheme(recipe).brands.flatMap((brand) => {
-    const sides = [
-      ["light", brand.light],
-      ["dark", brand.dark],
-    ] as const
-    return [
-      `${brand.family}: ${brand.given} gives the fill ${brand.light.fill} in the light theme and ${brand.dark.fill} in the dark theme.`,
-      ...sides.flatMap(([appearance, { breaks }]) =>
-        breaks.length === 0
-          ? []
-          : [
-              `  In the ${appearance} theme ${brand.given} cannot be the fill as it is: ${breaks
-                .map(
-                  (b) =>
-                    `${IN_PLAIN_WORDS[b.promise]} would have a contrast of ${b.ratio.toFixed(2)}:1, and ${b.required}:1 is required`,
-                )
-                .join("; ")}.`,
-            ],
-      ),
-      ...sides.flatMap(([appearance, { chromaKept }]) =>
-        Math.round(chromaKept * 100) === 100
-          ? []
-          : [
-              `  In the ${appearance} theme the fill is less saturated than ${brand.given}, with ${Math.round(chromaKept * 100)}% of its chroma: a screen cannot show more at that lightness.`,
-            ],
-      ),
-    ]
-  })
+  return buildTheme(recipe).brands.flatMap((brand) => [
+    brand.summary,
+    ...brand.reasons.map((reason) => `  ${reason}`),
+  ])
 }
-
-// The three promises about the fill are the ones with words here. A fourth
-// in the contract would be written with `undefined` for a name, so it stops
-// the check before any line is compared.
-block(async () => {
-  const aboutTheFill = colourContract.promises
-    .filter((p) => p.foreground === "fill" || p.background === "fill")
-    .map((p) => p.name)
-  expect(
-    JSON.stringify(aboutTheFill) ===
-      JSON.stringify(Object.keys(IN_PLAIN_WORDS)),
-    `the contract has the promises ${aboutTheFill.join(", ")} about the fill, and the command has plain words for ${Object.keys(IN_PLAIN_WORDS).join(", ")}`,
-  )
-})
 
 block(async () => {
   const { code, out, err } = await run(["theme", "--brand1=#F7DF1E"])
@@ -656,6 +612,120 @@ block(async () => {
 })
 
 /*
+ * A flag and the file together: the flag is in the theme whenever the core
+ * reads the file's block as not given or as an object, and the run fails
+ * with the core's refusal when the file's block is something the core
+ * refuses, flag or no flag.
+ *
+ * The command decided for itself which blocks of a file were broken, and
+ * excepted only `null`, where the core also reads `false` and an empty text
+ * as a block that is not given. So `"shape": false` in the file made
+ * `--button-radius=9px` vanish without a word, and the theme was written
+ * without it.
+ */
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  const { buildTheme } = await import("../src/tokens/theme.js")
+  const refusal = (recipe: unknown) => {
+    try {
+      buildTheme(recipe as never)
+    } catch (error) {
+      return (error as Error).message
+    }
+    return "(the core takes it)"
+  }
+  /** The file with this for `shape`, or without it when it is left out. */
+  const file = (shape: unknown[], more: object = {}) =>
+    writeFile(
+      path,
+      JSON.stringify(shape.length > 0 ? { ...more, shape: shape[0] } : more),
+    )
+
+  // Not given, or an object: the flag is in the theme, with a colour in the
+  // file and without one.
+  for (const shape of [
+    [],
+    [null],
+    [false],
+    [""],
+    [{}],
+    [{ surfaceRadius: "2px" }],
+    [{ buttonRadius: "1rem" }],
+  ])
+    for (const more of [{ accent: "#7c3aed" }, {}]) {
+      await file(shape, more)
+      const { code, out, err } = await run([
+        "theme",
+        path,
+        "--button-radius=9px",
+      ])
+      const what = `--button-radius with ${JSON.stringify({ ...more, shape: shape[0] })} in the file`
+      expect(
+        code === 0,
+        `${what} exited with code ${code}: ${err.slice(0, 160)}`,
+      )
+      expect(
+        out.includes("--lt-button-radius: 9px;") && !out.includes("1rem"),
+        `${what} is not in the theme`,
+      )
+      if (shape.length > 0 && typeof shape[0] === "object" && shape[0] !== null)
+        expect(
+          "surfaceRadius" in shape[0] ===
+            out.includes("--lt-card-radius: 2px;"),
+          `${what}: the other key of the file's block is ${out.includes("--lt-card-radius: 2px;") ? "there and should not be" : "gone"}`,
+        )
+    }
+  // The same for the font, which is in the other block.
+  for (const typography of [false, "", null]) {
+    await writeFile(path, JSON.stringify({ typography }))
+    const { code, out } = await run(["theme", path, "--font=Georgia, serif"])
+    expect(
+      code === 0 && out.includes("--lt-font-family-base: Georgia, serif;"),
+      `--font with ${JSON.stringify({ typography })} in the file gave code ${code}, or is not in the theme`,
+    )
+  }
+
+  // Something the core refuses as a block: its refusal, flag or no flag.
+  for (const shape of [5, "Inter", [1], true])
+    for (const flags of [["--button-radius=9px"], []]) {
+      await file([shape], { accent: "#7c3aed" })
+      const { code, out, err } = await run(["theme", path, ...flags])
+      const said = refusal({ accent: "#7c3aed", shape })
+      const what = `${JSON.stringify({ shape })} in the file${flags.length ? " with a flag for a key of it" : ""}`
+      expect(code === 1 && out === "", `${what} gave code ${code}`)
+      expect(
+        said.startsWith("shape is not an object") && err.includes(said),
+        `${what} is not answered with the core's refusal of the block: ${JSON.stringify(err.slice(0, 200))}`,
+      )
+    }
+
+  // A value in the file that the core refuses, and a flag over it: builds.
+  await file([{ buttonRadius: "4px; }" }], { accent: "purple" })
+  const over = await run([
+    "theme",
+    path,
+    "--button-radius=9px",
+    "--accent=#7c3aed",
+  ])
+  expect(
+    over.code === 0 &&
+      over.out.includes("--lt-button-radius: 9px;") &&
+      over.out.includes("--lt-color-accent-fill: #7935e9;"),
+    `flags over values the core refuses gave code ${over.code}: ${over.err.slice(0, 160)}`,
+  )
+  // And an empty file with flags is the flags.
+  await writeFile(path, "{}")
+  const empty = await run(["theme", path, "--button-radius=9px"])
+  expect(
+    empty.code === 0 && empty.out.includes("--lt-button-radius: 9px;"),
+    `an empty file with a flag gave code ${empty.code}: ${empty.err.slice(0, 160)}`,
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+/*
  * A colour in the file that is not text is not dropped without a word.
  *
  * `"danger": 12` used to give a theme with LO-TEK's own red, as if the key
@@ -665,8 +735,10 @@ block(async () => {
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
+  // The sentence is the core's, whole: that the value is no colour, and
+  // how a colour is written. The command adds nothing after a refusal.
   const answer = (value: string) =>
-    `\n"${value}" is not a valid hexadecimal colour\n\nColours are written as hexadecimal values, for example #7c3aed.\n\n`
+    `\n"${value}" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.\n\n`
 
   await writeFile(path, JSON.stringify({ accent: "#7c3aed", danger: 12 }))
   const number = await run(["theme", path])
@@ -679,8 +751,12 @@ block(async () => {
   await writeFile(path, JSON.stringify({ accent: true }))
   const boolean = await run(["theme", path])
   expect(boolean.code === 1, `a colour that is true gave ${boolean.code}`)
+  // `true` is not text, and the core says so, where it used to try to read
+  // the word as a colour.
   expect(
-    boolean.err === answer("true"),
+    boolean.err.includes(
+      "The value of accent must be text or a number. Got: true",
+    ) && boolean.out === "",
     `a colour that is true was not refused: ${JSON.stringify(boolean.err.slice(0, 200))}`,
   )
 
@@ -710,13 +786,13 @@ block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
 
-  for (const recipe of [{ typography: 12 }, { shape: {} }]) {
+  for (const recipe of [{ typography: null }, { shape: {} }]) {
     await writeFile(path, JSON.stringify(recipe))
     const { code, err } = await run(["theme", path])
     expect(code === 1, `${JSON.stringify(recipe)} alone gave code ${code}`)
     expect(
       err ===
-        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\nColours are written as hexadecimal values, for example #7c3aed.\n\n",
+        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\n",
       `${JSON.stringify(recipe)} alone is not the empty theme: ${JSON.stringify(err.slice(0, 200))}`,
     )
   }
@@ -773,7 +849,7 @@ block(async () => {
 })
 
 // Text where the weights or the line heights should be an object is
-// unknown keys, one per character, as it is in Kotlin
+// refused where it stands, in the core's words, as it is in Kotlin
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
@@ -783,12 +859,99 @@ block(async () => {
     const { code, out, err } = await run(["theme", path])
     expect(code === 1, `text for ${block} gave code ${code}`)
     expect(
-      err ===
-        `Unknown key in the recipe: typography.${block}.0, typography.${block}.1\n\nFull overview: lotek --help\n\n` &&
-        out === "",
-      `text for ${block} was not refused as unknown keys: ${JSON.stringify(err.slice(0, 200))}`,
+      err.includes(
+        `typography.${block} is not an object with its keys in it. Got: "ab"`,
+      ) && out === "",
+      `text for ${block} was not refused as a block that is not an object: ${JSON.stringify(err.slice(0, 200))}`,
     )
   }
+  // And a number, which used to be passed over without a word.
+  await writeFile(path, JSON.stringify({ accent: "#7c3aed", typography: 12 }))
+  const number = await run(["theme", path])
+  expect(
+    number.code === 1 &&
+      number.err.includes(
+        "typography is not an object with its keys in it. Got: 12",
+      ) &&
+      number.out === "",
+    `a number for typography was not refused: ${JSON.stringify(number.err.slice(0, 200))}`,
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+/*
+ * What the command says of a recipe it will not build is what the core says,
+ * and nothing after it. It used to add how a colour is written to every
+ * refusal that did not begin with certain words, so the empty theme was told
+ * about colours; and for a file that was a list it had a sentence of its
+ * own. Exactly, for the three the hint was right or wrong for:
+ */
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  const { buildTheme } = await import("../src/tokens/theme.js")
+  const refusal = (recipe: unknown) => {
+    try {
+      buildTheme(recipe as never)
+    } catch (error) {
+      return (error as Error).message
+    }
+    return "(the core takes it)"
+  }
+
+  const colour = await run(["theme", "--accent=purple"])
+  expect(
+    colour.code === 1 &&
+      colour.err ===
+        '\n"purple" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.\n\n',
+    `a colour that is not one: ${JSON.stringify(colour.err)}`,
+  )
+  const corner = await run(["theme", "--button-radius=4px;"])
+  expect(
+    corner.code === 1 &&
+      corner.err === `\n${refusal({ shape: { buttonRadius: "4px;" } })}\n\n` &&
+      !corner.err.includes("hexadecimal"),
+    `a corner the core refuses: ${JSON.stringify(corner.err)}`,
+  )
+  const nothing = await run(["theme"])
+  expect(
+    nothing.code === 1 &&
+      nothing.err ===
+        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\n",
+    `an empty theme: ${JSON.stringify(nothing.err)}`,
+  )
+
+  // A file that is JSON and no recipe: the core's sentence about it. The
+  // command may say which file first; the sentence it had itself is gone.
+  for (const text of ["[1]", '"#7c3aed"', "12", "null"]) {
+    await writeFile(path, text)
+    const { code, out, err } = await run(["theme", path])
+    expect(
+      code === 1 && out === "",
+      `${text} as a recipe file gave code ${code}`,
+    )
+    expect(
+      err.includes(refusal(JSON.parse(text))) &&
+        refusal(JSON.parse(text)).startsWith("The recipe is not an object."),
+      `${text} as a recipe file is not answered in the core's words: ${JSON.stringify(err.slice(0, 200))}`,
+    )
+    expect(
+      !err.includes("but not a recipe"),
+      `${text} as a recipe file is still answered with the command's own sentence`,
+    )
+  }
+
+  // An unknown key does not hide what else is wrong, as far as the core
+  // tells of it in one refusal; the pointer to the overview is the command's.
+  await writeFile(path, JSON.stringify({ acent: "#000", dangr: "#111" }))
+  const unknown = await run(["theme", path])
+  expect(
+    unknown.code === 1 &&
+      unknown.err ===
+        `${refusal({ acent: "#000", dangr: "#111" })}\n\nFull overview: lotek --help\n\n`,
+    `unknown keys in a recipe file: ${JSON.stringify(unknown.err)}`,
+  )
 
   await rm(folder, { recursive: true, force: true })
 })
@@ -1351,6 +1514,53 @@ block(async () => {
     named.join(", ") === books.join(", "),
     `the help names the rulebooks ${named.join(", ")}, and there are ${books.join(", ")}`,
   )
+})
+
+/*
+ * The help says what each corner flag sets, and that is what the core sets.
+ *
+ * The core has the lists: which components a recipe's `buttonRadius`,
+ * `fieldRadius` and `surfaceRadius` reach. The panel of a term was added to
+ * the surfaces, and the help went on listing eleven. The lists are read
+ * from the core's source, and every name in one must be in the lines of its
+ * flag, as words: `skip-link` is "skip link" there, and `textarea` "text
+ * area", so both are compared without spaces and hyphens.
+ */
+block(async () => {
+  const core = await readFile(
+    join(packageDir, "../core/src/theme/mod.rs"),
+    "utf8",
+  )
+  const list = (name: string) =>
+    [
+      ...(
+        new RegExp(`const ${name}: \\[&str; \\d+\\] = \\[([^\\]]*)\\]`).exec(
+          core,
+        )?.[1] ?? ""
+      ).matchAll(/"([a-z-]+)"/g),
+    ].map((m) => m[1])
+  const { out } = await run(["--help"])
+  const squashed = (text: string) => text.toLowerCase().replace(/[\s-]+/g, "")
+  for (const [flag, name] of [
+    ["--button-radius", "BUTTONS"],
+    ["--field-radius", "FIELDS"],
+    ["--surface-radius", "SURFACES"],
+  ]) {
+    const components = list(name)
+    expect(
+      components.length >= 3,
+      `found only ${components.length} components in ${name} in the core`,
+    )
+    // The lines of the flag: from it to the next flag.
+    const lines = squashed(
+      new RegExp(`${flag}=[\\s\\S]*?(?=\\n\\s+--[a-z])`).exec(out)?.[0] ?? "",
+    )
+    const missing = components.filter((c) => !lines.includes(squashed(c)))
+    expect(
+      lines !== "" && missing.length === 0,
+      `the help for ${flag} does not name ${missing.join(", ") || "anything"}, which the core sets with it`,
+    )
+  }
 })
 
 // The old Norwegian verbs and help flags are gone, not kept as aliases

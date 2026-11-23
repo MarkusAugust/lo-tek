@@ -193,11 +193,11 @@ const empty = (property: Property): Record<string, unknown> =>
   )
 
 /**
- * The sentences a row of the report can hold, as `lotek theme` writes them:
- * why the colour could not be the fill in an appearance, and how much of its
- * chroma the fill has there.
+ * The reasons a row of the report can hold: the core's own sentences about
+ * a colour, in its order. It gives at most four, two for each appearance,
+ * and a signal cannot hold a list, so a row has four places for them.
  */
-const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
+const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
 
 /*
  * The signals. `own` says which families have a colour of the consumer's,
@@ -342,7 +342,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<!-- What was chosen becomes the recipe, and the recipe becomes the
 				     theme. The core is asked only when it has been loaded. -->
 				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
-				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own, $fields))"></div>
+				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own))"></div>
 				<div hidden data-effect="$ready && ($built.ok ? ($shown = $built.css) : $built.error === '' && ($shown = ''))"></div>
 
 				<section class="builder__recipe" aria-labelledby="recipe-title">
@@ -373,7 +373,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 <span
 											class="builder__changed"
 											style="display: none"
-											data-show={`$own.${name} && $fields.${name}.trim() !== ''`}
+											data-show={`$own.${name} && $fields.${name} !== ''`}
 											>
 												Changed
 </span>
@@ -402,7 +402,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											aria-label={`Pick the colour of ${name}`}
 											value={OWN[name]}
 											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
-											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name}.trim() === '' && (el.value = '${OWN[name]}')`}
+											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name} === '' && (el.value = '${OWN[name]}')`}
 										/>
 										<input
 											class="lt-input"
@@ -496,7 +496,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											<span
 												class="builder__changed"
 												style="display: none"
-												data-show={`$fields.${path}.trim() !== '' && $fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												data-show={`$fields.${path} !== '' && $fields.${path} !== '${range?.text ?? ""}'`}
 												>
 													Changed
 											</span>
@@ -505,7 +505,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 												type="button"
 												aria-label={`Reset ${label}`}
 												style="display: none"
-												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												data-show={`$fields.${path} !== '${range?.text ?? ""}'`}
 												data-on:click={`$fields.${path} = '${range?.text ?? ""}'; document.getElementById('${id(path)}').focus()`}
 											>
 												Reset
@@ -863,6 +863,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		gap: var(--lt-spacing-1) var(--lt-spacing-3);
 	}
 	
+	/* What stopped a paste can be several things, each on a line of its own. */
+	#paste-error {
+		white-space: pre-line;
+	}
+
 	.builder__changed {
 		font-size: var(--lt-font-size-xs);
 		letter-spacing: 0.08em;
@@ -1116,7 +1121,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		const kept: Fields = {}
 		for (const [name, value] of Object.entries(fields)) {
 			const own =
-				typeof value === "string" ? value.trim() : filled(value, rest[name] as Fields)
+				typeof value === "string" ? value : filled(value, rest[name] as Fields)
 			if (own !== undefined && own !== "" && own !== rest[name]) kept[name] = own
 		}
 		return Object.keys(kept).length > 0 ? kept : undefined
@@ -1131,7 +1136,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			const chosen: Fields = {}
 			for (const [name, value] of Object.entries(fields)) {
 				if (typeof value !== "string") continue
-				if (own[name] && value.trim() !== "") chosen[name] = value.trim()
+				if (own[name] && value !== "") chosen[name] = value
 			}
 			return JSON.stringify(
 				{
@@ -1144,62 +1149,78 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	type Broken = { promise: string; ratio: number; required: number }
-	type Fill = { fill: string; chromaKept: number; breaks: Broken[] }
 	type Row = Record<string, string>
 
-	/** A promise about the fill, as what it is measured against. As in `lotek theme`. */
-	const PLAINLY: Record<string, string> = {
-		"fill on canvas": "against the page it",
-		"fill on raised": "against a raised surface it",
-		"content on top of fill": "text on it",
-	}
+	type Problem = { path: string[]; kind: string; message: string }
+	type Value = { path: string[]; text: string }
 
-	/** The two sentences about one appearance, as `lotek theme` writes them. */
-	const why = (appearance: string, given: string, fill: Fill) => {
-		const percent = Math.round(fill.chromaKept * 100)
-		return [
-			fill.breaks.length === 0
-				? ""
-				: `In the ${appearance} theme ${given} cannot be the fill as it is: ${fill.breaks
-					.map(
-						(b) =>
-							`${PLAINLY[b.promise] ?? b.promise} would have a contrast of ${b.ratio.toFixed(2)}:1, and ${b.required}:1 is required`,
-					)
-					.join("; ")}.`,
-			percent < 100
-				? `In the ${appearance} theme the fill is less saturated than ${given}, with ${percent}% of its chroma: a screen cannot show more at that lightness.`
-				: "",
-		]
-	}
+	/** Whether two paths are the same key. */
+	const same = (a: string[], b: string[]) =>
+		a.length === b.length && a.every((segment, at) => segment === b[at])
 
-	/** What the core answers to a recipe of one key, when it refuses it. */
-	const refusal = (recipe: Fields): string => {
-		try {
-			core.buildTheme(recipe)
-			return ""
-		} catch (error) {
-			return error instanceof Error ? error.message : String(error)
-		}
-	}
+	/** The problem with a value at `path`, when the core refuses it. */
+	const refusedAt = (problems: Problem[], path: string[]) =>
+		problems.find((p) => p.kind === "refused" && same(p.path, path))
 
-	/** What is wrong with every field of a block, in the shape of the block. */
-	const wrongIn = (block: Fields, alone: (leaf: Fields) => Fields): Fields =>
+	/**
+	 * What the core finds wrong, laid at the fields: the reason at every
+	 * field whose value the core refuses, and nothing at the others, in the
+	 * shape of `blank`.
+	 */
+	const atFields = (blank: Fields, problems: Problem[], at: string[] = []): Fields =>
 		Object.fromEntries(
-			Object.entries(block).map(([name, value]) => [
+			Object.entries(blank).map(([name, value]) => [
 				name,
-				typeof value !== "string"
-					? wrongIn(value, (leaf) => alone({ [name]: leaf }))
-					: value.trim() === ""
-						? ""
-						: refusal(alone({ [name]: value.trim() })),
+				typeof value === "string"
+					? (refusedAt(problems, [...at, name])?.message ?? "")
+					: atFields(value, problems, [...at, name]),
 			]),
 		)
 
-	// The report of the last theme that was built: what the rows hold while
-	// a field is being typed in and the recipe does not build, for the
-	// families that are still in the recipe.
-	let lastReport: Record<string, Row> | undefined
+	/**
+	 * What a recipe gives, laid at the fields: the core's text at every field
+	 * the recipe has a value for, and what the field holds at rest at the
+	 * others, in the shape of `blank`.
+	 */
+	const placed = (blank: Fields, values: Value[], at: string[] = []): Fields =>
+		Object.fromEntries(
+			Object.entries(blank).map(([name, value]) => [
+				name,
+				typeof value === "string"
+					? (values.find((v) => same(v.path, [...at, name]))?.text ?? value)
+					: placed(value, values, [...at, name]),
+			]),
+		)
+
+	/** A recipe made of values the core has read: each text at its path. */
+	const rebuilt = (values: Value[]) => {
+		const recipe: Fields = {}
+		for (const { path, text } of values) {
+			let at = recipe
+			path.forEach((segment, depth) => {
+				if (depth === path.length - 1) at[segment] = text
+				else {
+					at[segment] ??= {}
+					at = at[segment] as Fields
+				}
+			})
+		}
+		return recipe
+	}
+
+	type Says = { family: string; given: string; light: { fill: string }; dark: { fill: string }; reasons: string[] }
+
+	/** The rows of the report: what became of each colour, and the core's sentences in their places. */
+	const rows = (brands: Says[]): Record<string, Row> =>
+		Object.fromEntries(
+			brands.map((brand) => {
+				const [reason1 = "", reason2 = "", reason3 = "", reason4 = ""] = brand.reasons
+				return [
+					brand.family,
+					{ given: brand.given, light: brand.light.fill, dark: brand.dark.fill, reason1, reason2, reason3, reason4 },
+				]
+			}),
+		)
 
 	// The core's answer to a recipe: the theme, what is wrong with each
 	// field, and what became of each colour. A recipe with nothing in it is
@@ -1207,64 +1228,37 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	// the note at the signals.
 	action({
 		name: "buildTheme",
-		apply(_: unknown, recipe: string, own: Record<string, boolean>, fields: Fields) {
+		apply(_: unknown, recipe: string, own: Record<string, boolean>) {
 			const families = Object.keys(own)
-			const noRow = { given: "", light: "", dark: "", lightWhy: "", darkWhy: "", lightChroma: "", darkChroma: "" }
+			const noRow = { given: "", light: "", dark: "", reason1: "", reason2: "", reason3: "", reason4: "" }
 			const empty = Object.fromEntries(families.map((name) => [name, { ...noRow }]))
-			// A field is asked about alone, so the answer is about that field:
-			// the core stops at the first thing it refuses.
-			const wrong: Fields = {
-				...Object.fromEntries(
-					families.map((name) => {
-						const value = fields[name]
-						return [
-							name,
-							own[name] && typeof value === "string" && value.trim() !== ""
-								? refusal({ [name]: value.trim() })
-								: "",
-						]
-					}),
-				),
-				typography: wrongIn(fields.typography as Fields, (leaf) => ({ typography: leaf })),
-				shape: wrongIn(fields.shape as Fields, (leaf) => ({ shape: leaf })),
-			}
 			const chosen = JSON.parse(recipe)
-			if (Object.keys(chosen).length === 0) {
-				lastReport = undefined
+			// The core says what is wrong with every key at once, and the
+			// page lays each reason at its field.
+			const problems: Problem[] = core.checkRecipe(chosen)
+			const wrong = atFields(first.fields, problems)
+			// Nothing is chosen yet. The core calls that an empty theme, and
+			// here it is no mistake.
+			if (problems.some((p) => p.kind === "empty"))
 				return { ok: false, css: "", error: "", wrong, report: empty }
-			}
-			try {
+			if (problems.length === 0) {
 				const { css, brands } = core.buildTheme(chosen)
-				const report = { ...empty }
-				for (const brand of brands) {
-					const [lightWhy, lightChroma] = why("light", brand.given, brand.light)
-					const [darkWhy, darkChroma] = why("dark", brand.given, brand.dark)
-					report[brand.family] = {
-						given: brand.given,
-						light: brand.light.fill,
-						dark: brand.dark.fill,
-						lightWhy,
-						darkWhy,
-						lightChroma,
-						darkChroma,
-					}
-				}
-				lastReport = report
-				return { ok: true, css, error: "", wrong, report }
-			} catch (error) {
-				return {
-					ok: false,
-					css: "",
-					error: error instanceof Error ? error.message : String(error),
-					wrong,
-					report: Object.fromEntries(
-						families.map((name) => [
-							name,
-							name in chosen && lastReport ? lastReport[name] : { ...noRow },
-						]),
-					),
-				}
+				return { ok: true, css, error: "", wrong, report: { ...empty, ...rows(brands) } }
 			}
+			// Something is refused, so there is no theme. What became of a
+			// colour depends on that colour alone, so the rows are those of
+			// the values the core does take, built without the others: a
+			// colour that is put right says what it becomes at once, also
+			// while another field is still wrong.
+			const taken = (core.recipeValues(chosen) as Value[]).filter(
+				(v) => !refusedAt(problems, v.path),
+			)
+			const others = rebuilt(taken)
+			const report =
+				core.checkRecipe(others).length === 0
+					? { ...empty, ...rows(core.buildTheme(others).brands) }
+					: empty
+			return { ok: false, css: "", error: problems[0].message, wrong, report }
 		},
 	})
 
@@ -1323,20 +1317,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	const REMEMBERED = "lotek-theme-builder"
 
 	/**
-	 * Whether `from` has something other than text or a number where `blank`
-	 * has a field, or other than an object where it has a block. Nothing and
-	 * `null` are a value that is not given.
-	 */
-	const odd = (blank: Fields, from: unknown): boolean =>
-		Object.entries(blank).some(([name, value]) => {
-			const given = (from as Record<string, unknown>)[name] ?? undefined
-			if (given === undefined) return false
-			if (typeof value === "string")
-				return typeof given !== "string" && typeof given !== "number"
-			return typeof given !== "object" || Array.isArray(given) || odd(value, given)
-		})
-
-	/**
 	 * The values of `from` laid into the shape of `blank`, as text. A field
 	 * `from` does not name, or gives something else than a value, is as in
 	 * `blank`.
@@ -1375,11 +1355,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	// A recipe file pasted in becomes what is chosen. A text that is not a
-	// recipe changes nothing and says why. A key the core does not know is
-	// the core's to name, and so is a value that is not text, which no field
-	// can hold. A text it refuses is taken: the field then holds it, and says
-	// what is wrong with it.
+	// A recipe file pasted in becomes what is chosen. Text that is not JSON
+	// changes nothing, and the page says so itself: that is about the field.
+	// Everything about the recipe is the core's to say.
 	action({
 		name: "useRecipe",
 		apply(_: unknown, text: string) {
@@ -1390,26 +1368,21 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			} catch {
 				return refuse("This is not JSON. Paste the text of a lotek.theme.json.")
 			}
-			if (recipe === null || typeof recipe !== "object" || Array.isArray(recipe))
-				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
-			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
-			const answer = refusal(keys as Fields)
-			const strange = odd(first.fields, keys)
-			if (answer.startsWith("Unknown key in the recipe") || (answer !== "" && strange))
-				return refuse(answer)
-			// The core writes `true` where it is given `true`. No field can
-			// hold it, and to leave it out without a word would be to change
-			// the recipe.
-			if (strange)
-				return refuse(
-					"A value in the recipe is not text or a number. The builder cannot show it, so nothing was changed.",
-				)
-			const fields = laid(first.fields, keys)
+			// The core reads the recipe: what it gives, and what is wrong
+			// with it. A text the core refuses does not stop a paste: a
+			// field can hold it, and says what is wrong with it. Anything
+			// else does, an empty recipe too, and then nothing changes and
+			// the core's own words about what stopped it are shown.
+			const problems: Problem[] = core.checkRecipe(recipe)
+			const values: Value[] = core.recipeValues(recipe)
+			const given = (path: string[]) => values.some((v) => same(v.path, path))
+			const stops = problems.filter((p) => !(p.kind === "refused" && given(p.path)))
+			if (stops.length > 0) return refuse(stops.map((p) => p.message).join("\n"))
 			mergePatch({
 				own: Object.fromEntries(
-					Object.keys(first.own).map((name) => [name, fields[name] !== ""]),
+					Object.keys(first.own).map((name) => [name, given([name])]),
 				),
-				fields,
+				fields: placed(first.fields, values),
 				pasteError: "",
 			})
 		},

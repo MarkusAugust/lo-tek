@@ -108,6 +108,42 @@ export type Brand = {
   given: string
   light: BrandFill
   dark: BrandFill
+  /** What became of the colour, in one sentence: the first line `lotek theme` writes about it. */
+  summary: string
+  /**
+   * Why, in the core's own sentences: where the colour could not be the fill
+   * as it is, and where the fill has less chroma. Show them as they are.
+   */
+  reasons: string[]
+}
+
+/**
+ * One thing that is wrong with a recipe.
+ *
+ * `kind` says what sort of problem it is, and is what code decides on:
+ * `unknown` is a key the recipe does not have, `refused` a value the core
+ * does not take, and `empty` and `notARecipe` are about the recipe as a
+ * whole. `message` is the sentence for a person, and is not to be read by
+ * code: its wording may change.
+ */
+export type RecipeProblem = {
+  /**
+   * The key it is about, as the segments of its path: `["shape",
+   * "buttonRadius"]`. Empty for `empty` and `notARecipe`. A key may have a
+   * dot in its name, which is why the path is not one text.
+   */
+  path: string[]
+  kind: "unknown" | "refused" | "empty" | "notARecipe"
+  message: string
+}
+
+/**
+ * One value a recipe gives, as the core reads it: the key, as the segments
+ * of its path, and the value as text. A number is its text.
+ */
+export type RecipeValue = {
+  path: string[]
+  text: string
 }
 
 /** The theme `buildTheme` returns: the tokens per appearance, the promises that break, what became of the brand colours, and the CSS. */
@@ -154,6 +190,17 @@ export type Core = {
   version(): CoreVersion
   /** Builds a theme from the recipe. Throws without a colour contract, or when the recipe cannot be used. */
   buildTheme(recipe: unknown): CoreTheme
+  /**
+   * What is wrong with a recipe, all at once. Empty exactly when `buildTheme`
+   * takes the recipe. Throws without a colour contract, and for a value that
+   * cannot be written as JSON.
+   */
+  checkRecipe(recipe: unknown): RecipeProblem[]
+  /**
+   * What a recipe gives, as the core reads it: each key that has a value,
+   * with the value as text. Throws as `checkRecipe` does.
+   */
+  recipeValues(recipe: unknown): RecipeValue[]
   /** Checks every promise in a theme written as CSS. Throws without a colour contract. */
   inspectTheme(css: string): CoreThemeReport
   /** The classes and attribute values a stylesheet styles, read with the core's CSS reader. */
@@ -175,6 +222,8 @@ type Exports = {
   load_contract_raw(pointer: number, length: number): number
   version_raw(): void
   build_theme_raw(pointer: number, length: number): number
+  check_recipe_raw(pointer: number, length: number): number
+  recipe_values_raw(pointer: number, length: number): number
   inspect_theme_raw(pointer: number, length: number): number
   inspect_styles_raw(pointer: number, length: number): void
   diagnose_styled_raw(pointer: number, length: number): number
@@ -244,6 +293,10 @@ export function loadCore(source: BufferSource | WebAssembly.Module): Core {
     },
     buildTheme: (recipe) =>
       answer(e.build_theme_raw(...write(JSON.stringify(recipe)))),
+    checkRecipe: (recipe) =>
+      answer(e.check_recipe_raw(...write(JSON.stringify(recipe)))),
+    recipeValues: (recipe) =>
+      answer(e.recipe_values_raw(...write(JSON.stringify(recipe)))),
     inspectTheme: (css) => answer(e.inspect_theme_raw(...write(css))),
     inspectStyles: (css) => {
       e.inspect_styles_raw(...write(css))

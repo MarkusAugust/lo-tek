@@ -1,8 +1,14 @@
-import type { Brand, BrandFill, Violation } from "../diagnostics/core.js"
+import type {
+  Brand,
+  BrandFill,
+  RecipeProblem,
+  RecipeValue,
+  Violation,
+} from "../diagnostics/core.js"
 import { defaultCore } from "../diagnostics/default-core.js"
 import type { Family } from "./matrix.js"
 
-export type { Brand, BrandFill, Violation }
+export type { Brand, BrandFill, RecipeProblem, RecipeValue, Violation }
 
 /**
  * Builds a complete colour theme from a few brand colours.
@@ -108,4 +114,41 @@ export type Theme = {
  */
 export function buildTheme(input: ThemeInput): Theme {
   return defaultCore().buildTheme(input)
+}
+
+/**
+ * Says what is wrong with a recipe, all at once.
+ *
+ * `buildTheme` refuses with one sentence, which suits a run. A form with a
+ * field per key wants every reason, each at its field. The answer is a list
+ * of problems: the `path` of the key as segments, the `kind`, and the
+ * `message` for a person. A problem about the recipe as a whole is alone.
+ * Otherwise the keys the recipe does not have come first, then the values
+ * the core refuses, in the order of the keys.
+ *
+ * The list is empty exactly when `buildTheme` takes the recipe. Decide on
+ * `kind`, never on the wording of `message`. It throws for what the core
+ * cannot read as JSON at all: a value that cannot be written as JSON, such
+ * as `undefined`, and one nested deeper than the core reads.
+ */
+export function checkRecipe(input: unknown): RecipeProblem[] {
+  return defaultCore().checkRecipe(input)
+}
+
+/**
+ * Says what a recipe gives, as the core reads it.
+ *
+ * The answer has each key that has a value, in the order of the keys, with
+ * its `path` as segments and the value as `text`: the text as it is written,
+ * not normalised, a number as its text, and a key that is not given is not
+ * there. A text the core then refuses is
+ * there, with a problem beside it in `checkRecipe`. A value that cannot be
+ * one, `true`, a list or an object, is not, and neither is a key the theme
+ * does not have.
+ *
+ * A form over the recipe is filled from this, so it has no reading of its
+ * own that could disagree with the core's about what counts as given.
+ */
+export function recipeValues(input: unknown): RecipeValue[] {
+  return defaultCore().recipeValues(input)
 }

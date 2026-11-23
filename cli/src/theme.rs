@@ -14,7 +14,7 @@ use crate::output::{error, fail, log, shown};
 use crate::{refuse_unknown_flags, refuse_without_value, Arguments};
 use lotek_core::json::{parse, Json};
 use lotek_core::theme::contract::contract;
-use lotek_core::theme::{build_theme, js_number, to_fixed2, unknown_recipe_keys, Brand, BrandFill};
+use lotek_core::theme::{build_theme, check_recipe, Brand, RecipeKind};
 
 /// The order the colour flags are listed in, as in `lotek --help`. Which
 /// families exist is the contract's to say, not this list's.
@@ -41,20 +41,11 @@ fn set(object: &mut Object, key: &str, value: Json) {
     }
 }
 
-/// `{ ...value }`: the names and values as JavaScript spreads them.
-fn spread(value: Option<&Json>) -> Object {
+/// The keys a block of the recipe file has, to set the flags on top of. A
+/// block that is not an object has none: the core says what it is.
+fn keys_of(value: Option<&Json>) -> Object {
     match value {
         Some(Json::Object(entries)) => entries.clone(),
-        Some(Json::Array(items)) => items
-            .iter()
-            .enumerate()
-            .map(|(i, v)| (i.to_string(), v.clone()))
-            .collect(),
-        Some(Json::String(s)) => s
-            .encode_utf16()
-            .enumerate()
-            .map(|(i, u)| (i.to_string(), Json::String(String::from_utf16_lossy(&[u]))))
-            .collect(),
         _ => Vec::new(),
     }
 }
@@ -69,72 +60,27 @@ fn read_recipe(file: &str) -> Object {
     };
     match parse(&String::from_utf8_lossy(&bytes)) {
         Ok(Json::Object(entries)) => entries,
-        // `null`, a list and a string are all valid JSON, and none of them is
-        // a recipe.
-        Ok(_) => fail(&format!(
-            "\"{path}\" is valid JSON, but not a recipe.\n\nThe file must be an object with the colours in it, for example:\n  {{\"accent\": \"#7c3aed\", \"danger\": \"#b3261e\"}}\n"
-        )),
+        // `null`, a list and a text are all valid JSON, and none of them is
+        // a recipe. The core says so, and the file is named before it.
+        Ok(other) => {
+            crate::package::load_contract();
+            let said: Vec<String> = check_recipe(&other)
+                .into_iter()
+                .map(|p| p.message)
+                .collect();
+            fail(&format!("\"{path}\": {}\n", said.join(" ")))
+        }
         Err(reason) => fail(&format!("\"{path}\" is not valid JSON: {reason}\n")),
     }
 }
 
-/// A promise about the fill, as what it is measured against. The contract
-/// names its promises for the matrix, `fill on raised`, and a reader of the
-/// run has not read the contract. A promise that is not known here is said
-/// by its name.
-fn plainly(promise: &str) -> String {
-    match promise {
-        "fill on canvas" => "against the page it".into(),
-        "fill on raised" => "against a raised surface it".into(),
-        "content on top of fill" => "text on it".into(),
-        other => other.into(),
-    }
-}
-
-/// What became of each brand colour, as the lines the run writes.
-///
-/// The lightness is the role's, so the colour is moved, and a light one is
-/// moved far. The run says so, with the reason in plain words,
-/// rather than answering only that every promise holds.
+/// What became of each brand colour, as the lines the run writes: the
+/// core's summary, and its reasons under it. The sentences are the core's.
 fn brand_lines(brands: &[Brand]) -> Vec<String> {
     let mut lines = Vec::new();
     for brand in brands {
-        let appearances: [(&str, &BrandFill); 2] = [("light", &brand.light), ("dark", &brand.dark)];
-        lines.push(format!(
-            "{}: {} gives the fill {} in the light theme and {} in the dark theme.",
-            brand.family, brand.given, brand.light.fill, brand.dark.fill
-        ));
-        for (appearance, fill) in appearances {
-            if fill.breaks.is_empty() {
-                continue;
-            }
-            let breaks: Vec<String> = fill
-                .breaks
-                .iter()
-                .map(|v| {
-                    format!(
-                        "{} would have a contrast of {}:1, and {}:1 is required",
-                        plainly(&v.promise),
-                        to_fixed2(v.ratio),
-                        js_number(v.required)
-                    )
-                })
-                .collect();
-            lines.push(format!(
-                "  In the {appearance} theme {} cannot be the fill as it is: {}.",
-                brand.given,
-                breaks.join("; ")
-            ));
-        }
-        for (appearance, fill) in appearances {
-            let percent = (fill.chroma_kept * 100.0).round();
-            if percent < 100.0 {
-                lines.push(format!(
-                    "  In the {appearance} theme the fill is less saturated than {}, with {percent}% of its chroma: a screen cannot show more at that lightness.",
-                    brand.given
-                ));
-            }
-        }
+        lines.push(brand.summary.clone());
+        lines.extend(brand.reasons.iter().map(|reason| format!("  {reason}")));
     }
     lines
 }
@@ -168,12 +114,15 @@ pub fn run(arguments: &[String]) {
     // knows the keys, and is asked before the flags are, so a mistake in the
     // recipe is reported before an unknown flag.
     crate::package::load_contract();
-    let unknown = unknown_recipe_keys(&from_file);
-    if !unknown.is_empty() {
-        fail(&format!(
-            "Unknown key in the recipe: {}\n\nFull overview: lotek --help\n",
-            unknown.join(", ")
-        ));
+    let in_file = check_recipe(&from_file);
+    let unknown = in_file
+        .iter()
+        .any(|problem| problem.kind == RecipeKind::Unknown);
+    if unknown {
+        // The core's own refusal of the file as it is: it names every key
+        // the recipe does not have.
+        let refusal = build_theme(&from_file).err().unwrap_or_default();
+        fail(&format!("{refusal}\n\nFull overview: lotek --help\n"));
     }
 
     // The colour families. The flag, the recipe key and the family have the
@@ -204,7 +153,7 @@ pub fn run(arguments: &[String]) {
         ("typography", &TYPOGRAPHY_FLAGS[..]),
         ("shape", &SHAPE_FLAGS[..]),
     ] {
-        let mut keys = spread(from_file.get(block));
+        let mut keys = keys_of(from_file.get(block));
         let mut flagged = false;
         for (flag, key) in flags {
             if let Some(v) = arguments.flag(flag) {
@@ -212,42 +161,30 @@ pub fn run(arguments: &[String]) {
                 flagged = true;
             }
         }
-        if flagged {
+        // A block of the file the core refuses is left as it is, for the
+        // core to refuse: a flag does not paper over it. Whether it does is
+        // the core's to say. Any other block is an object or not given, and
+        // the flags are set on the keys it has.
+        let broken = in_file.iter().any(|problem| {
+            problem.kind == RecipeKind::Refused && problem.path == [block.to_string()]
+        });
+        if flagged && !broken {
             set(&mut input, block, Json::Object(keys));
         }
     }
 
     let theme = match build_theme(&Json::Object(input)) {
         Ok(theme) => theme,
-        Err(message) => {
-            // The hint about hexadecimal colours is left out when the error
-            // is about a font or shape value that could break out of its CSS
-            // rule. Those errors name the value, and start that way.
-            let about_colors = !message.starts_with("The value of ");
-            fail(&format!(
-                "\n{message}\n{}",
-                if about_colors {
-                    "\nColours are written as hexadecimal values, for example #7c3aed.\n"
-                } else {
-                    ""
-                }
-            ));
-        }
+        // The core says what is wrong, and what a colour is where that is
+        // the mistake. Nothing is added here.
+        Err(message) => fail(&format!("\n{message}\n")),
     };
 
     if !theme.violations.is_empty() {
         let lines: Vec<String> = theme
             .violations
             .iter()
-            .map(|v| {
-                format!(
-                    "  {}: {} is {}:1, the requirement is {}:1",
-                    v.family,
-                    v.promise,
-                    to_fixed2(v.ratio),
-                    js_number(v.required)
-                )
-            })
+            .map(|v| format!("  {}", v.summary()))
             .collect();
         fail(&format!(
             "\nThe theme does not meet the contrast requirement:\n\n{}\n",

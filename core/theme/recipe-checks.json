@@ -1,0 +1,783 @@
+{
+  "nothing-wrong": {
+    "recipe": {
+      "$schema": "https://lo-tek.sobernetics.no/theme.schema.json",
+      "accent": "#7c3aed",
+      "typography": {
+        "weights": {
+          "bold": 700
+        }
+      },
+      "shape": {
+        "fieldRadius": 0
+      }
+    },
+    "problems": [],
+    "refusal": null,
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "#7c3aed"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "text": "700"
+      },
+      {
+        "path": [
+          "shape",
+          "fieldRadius"
+        ],
+        "text": "0"
+      }
+    ]
+  },
+  "empty": {
+    "recipe": {},
+    "problems": [
+      {
+        "path": [],
+        "kind": "empty",
+        "message": "The theme is empty. Give either brand colours, or typography and shape."
+      }
+    ],
+    "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
+    "values": []
+  },
+  "only-the-schema": {
+    "recipe": {
+      "$schema": "https://lo-tek.sobernetics.no/theme.schema.json"
+    },
+    "problems": [
+      {
+        "path": [],
+        "kind": "empty",
+        "message": "The theme is empty. Give either brand colours, or typography and shape."
+      }
+    ],
+    "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
+    "values": []
+  },
+  "not-given": {
+    "recipe": {
+      "accent": "",
+      "danger": null,
+      "success": 0,
+      "warning": false,
+      "typography": {
+        "fontFamily": "",
+        "weights": {
+          "bold": null
+        },
+        "lineHeights": {}
+      },
+      "shape": {
+        "buttonRadius": false
+      }
+    },
+    "problems": [
+      {
+        "path": [],
+        "kind": "empty",
+        "message": "The theme is empty. Give either brand colours, or typography and shape."
+      }
+    ],
+    "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
+    "values": []
+  },
+  "blocks-not-given": {
+    "recipe": {
+      "typography": null,
+      "shape": {}
+    },
+    "problems": [
+      {
+        "path": [],
+        "kind": "empty",
+        "message": "The theme is empty. Give either brand colours, or typography and shape."
+      }
+    ],
+    "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
+    "values": []
+  },
+  "blocks-that-are-false-or-an-empty-text": {
+    "recipe": {
+      "typography": false,
+      "shape": "",
+      "accent": ""
+    },
+    "problems": [
+      {
+        "path": [],
+        "kind": "empty",
+        "message": "The theme is empty. Give either brand colours, or typography and shape."
+      }
+    ],
+    "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
+    "values": []
+  },
+  "zero-is-a-value-in-a-block": {
+    "recipe": {
+      "typography": {
+        "lineHeights": {
+          "default": 0
+        }
+      },
+      "shape": {
+        "fieldRadius": 0
+      }
+    },
+    "problems": [],
+    "refusal": null,
+    "values": [
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "default"
+        ],
+        "text": "0"
+      },
+      {
+        "path": [
+          "shape",
+          "fieldRadius"
+        ],
+        "text": "0"
+      }
+    ]
+  },
+  "zero-for-a-family-is-not-given": {
+    "recipe": {
+      "accent": 0,
+      "danger": "#b91c1c"
+    },
+    "problems": [],
+    "refusal": null,
+    "values": [
+      {
+        "path": [
+          "danger"
+        ],
+        "text": "#b91c1c"
+      }
+    ]
+  },
+  "one-refused-colour": {
+    "recipe": {
+      "accent": "purple"
+    },
+    "problems": [
+      {
+        "path": [
+          "accent"
+        ],
+        "kind": "refused",
+        "message": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      }
+    ],
+    "refusal": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "purple"
+      }
+    ]
+  },
+  "one-unknown-key": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "acent": "#000"
+    },
+    "problems": [
+      {
+        "path": [
+          "acent"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: acent"
+      }
+    ],
+    "refusal": "Unknown key in the recipe: acent",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "#7c3aed"
+      }
+    ]
+  },
+  "a-key-with-a-dot-in-its-name": {
+    "recipe": {
+      "shape.buttonRadius": "4px",
+      "accent": "#7c3aed",
+      "shape": {
+        "buttonRadius": "4px;"
+      }
+    },
+    "problems": [
+      {
+        "path": [
+          "shape.buttonRadius"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: shape.buttonRadius"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "kind": "refused",
+        "message": "The value of buttonRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 4px;"
+      }
+    ],
+    "refusal": "Unknown key in the recipe: shape.buttonRadius",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "#7c3aed"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "text": "4px;"
+      }
+    ]
+  },
+  "three-at-once": {
+    "recipe": {
+      "accent": "purple",
+      "acent": "#000",
+      "danger": "#b91c1c",
+      "shape": {
+        "buttonRadius": "4px; } html { display: none"
+      }
+    },
+    "problems": [
+      {
+        "path": [
+          "acent"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: acent"
+      },
+      {
+        "path": [
+          "accent"
+        ],
+        "kind": "refused",
+        "message": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "kind": "refused",
+        "message": "The value of buttonRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 4px; } html { display: none"
+      }
+    ],
+    "refusal": "Unknown key in the recipe: acent",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "purple"
+      },
+      {
+        "path": [
+          "danger"
+        ],
+        "text": "#b91c1c"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "text": "4px; } html { display: none"
+      }
+    ]
+  },
+  "every-place": {
+    "recipe": {
+      "brand1": "zz",
+      "form": {},
+      "typography": {
+        "fontFamily": "Arial (",
+        "weights": {
+          "bold": "a;b",
+          "blod": 700
+        },
+        "lineHeights": {
+          "body": 1.5,
+          "article": "1.6<"
+        }
+      },
+      "shape": {
+        "radius": "0",
+        "surfaceRadius": "1px</style>"
+      }
+    },
+    "problems": [
+      {
+        "path": [
+          "form"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: form"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "blod"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: typography.weights.blod"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "body"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: typography.lineHeights.body"
+      },
+      {
+        "path": [
+          "shape",
+          "radius"
+        ],
+        "kind": "unknown",
+        "message": "Unknown key in the recipe: shape.radius"
+      },
+      {
+        "path": [
+          "brand1"
+        ],
+        "kind": "refused",
+        "message": "\"zz\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      },
+      {
+        "path": [
+          "typography",
+          "fontFamily"
+        ],
+        "kind": "refused",
+        "message": "The value of fontFamily has an unbalanced parenthesis, bracket or quote. A parenthesis that is not closed swallows the rest of the style sheet. Got: Arial ("
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "kind": "refused",
+        "message": "The value of weights.bold cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: a;b"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "article"
+        ],
+        "kind": "refused",
+        "message": "The value of lineHeights.article cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 1.6<"
+      },
+      {
+        "path": [
+          "shape",
+          "surfaceRadius"
+        ],
+        "kind": "refused",
+        "message": "The value of surfaceRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 1px</style>"
+      }
+    ],
+    "refusal": "Unknown key in the recipe: form, typography.weights.blod, typography.lineHeights.body, shape.radius",
+    "values": [
+      {
+        "path": [
+          "brand1"
+        ],
+        "text": "zz"
+      },
+      {
+        "path": [
+          "typography",
+          "fontFamily"
+        ],
+        "text": "Arial ("
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "text": "a;b"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "article"
+        ],
+        "text": "1.6<"
+      },
+      {
+        "path": [
+          "shape",
+          "surfaceRadius"
+        ],
+        "text": "1px</style>"
+      }
+    ]
+  },
+  "values-that-are-not-text": {
+    "recipe": {
+      "success": 12,
+      "danger": [
+        "#fff"
+      ],
+      "brand1": {
+        "fill": "#b91c1c"
+      },
+      "accent": true,
+      "typography": {
+        "fontFamily": [
+          "Arial"
+        ],
+        "weights": {
+          "bold": true
+        }
+      },
+      "shape": {
+        "buttonRadius": {
+          "a": 1
+        }
+      }
+    },
+    "problems": [
+      {
+        "path": [
+          "accent"
+        ],
+        "kind": "refused",
+        "message": "The value of accent must be text or a number. Got: true"
+      },
+      {
+        "path": [
+          "brand1"
+        ],
+        "kind": "refused",
+        "message": "The value of brand1 must be text or a number. Got: {\"fill\":\"#b91c1c\"}"
+      },
+      {
+        "path": [
+          "danger"
+        ],
+        "kind": "refused",
+        "message": "The value of danger must be text or a number. Got: [\"#fff\"]"
+      },
+      {
+        "path": [
+          "success"
+        ],
+        "kind": "refused",
+        "message": "\"12\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      },
+      {
+        "path": [
+          "typography",
+          "fontFamily"
+        ],
+        "kind": "refused",
+        "message": "The value of fontFamily must be text or a number. Got: [\"Arial\"]"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "kind": "refused",
+        "message": "The value of weights.bold must be text or a number. Got: true"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "kind": "refused",
+        "message": "The value of buttonRadius must be text or a number. Got: {\"a\":1}"
+      }
+    ],
+    "refusal": "The value of accent must be text or a number. Got: true",
+    "values": [
+      {
+        "path": [
+          "success"
+        ],
+        "text": "12"
+      }
+    ]
+  },
+  "blocks-that-are-not-objects": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "shape": 5,
+      "typography": "Inter"
+    },
+    "problems": [
+      {
+        "path": [
+          "typography"
+        ],
+        "kind": "refused",
+        "message": "typography is not an object with its keys in it. Got: \"Inter\""
+      },
+      {
+        "path": [
+          "shape"
+        ],
+        "kind": "refused",
+        "message": "shape is not an object with its keys in it. Got: 5"
+      }
+    ],
+    "refusal": "typography is not an object with its keys in it. Got: \"Inter\"",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "#7c3aed"
+      }
+    ]
+  },
+  "blocks-in-typography-that-are-not-objects": {
+    "recipe": {
+      "typography": {
+        "lineHeights": true,
+        "weights": [
+          400
+        ]
+      }
+    },
+    "problems": [
+      {
+        "path": [
+          "typography",
+          "weights"
+        ],
+        "kind": "refused",
+        "message": "typography.weights is not an object with its keys in it. Got: [400]"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights"
+        ],
+        "kind": "refused",
+        "message": "typography.lineHeights is not an object with its keys in it. Got: true"
+      }
+    ],
+    "refusal": "typography.weights is not an object with its keys in it. Got: [400]",
+    "values": []
+  },
+  "a-text": {
+    "recipe": "text",
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "a-list": {
+    "recipe": [
+      1
+    ],
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "an-empty-list": {
+    "recipe": [],
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "null": {
+    "recipe": null,
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "a-number": {
+    "recipe": 12,
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "true": {
+    "recipe": true,
+    "problems": [
+      {
+        "path": [],
+        "kind": "notARecipe",
+        "message": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}."
+      }
+    ],
+    "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
+    "values": []
+  },
+  "what-a-recipe-gives": {
+    "recipe": {
+      "$schema": "s",
+      "shape": {
+        "fieldRadius": 0,
+        "buttonRadius": "1rem"
+      },
+      "typography": {
+        "weights": {
+          "bold": 700
+        },
+        "lineHeights": {
+          "article": 1.75
+        },
+        "fontFamily": "Georgia, serif"
+      },
+      "warning": null,
+      "visited": 0,
+      "danger": "#b91c1c",
+      "accent": "#7c3aed"
+    },
+    "problems": [],
+    "refusal": null,
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "#7c3aed"
+      },
+      {
+        "path": [
+          "danger"
+        ],
+        "text": "#b91c1c"
+      },
+      {
+        "path": [
+          "typography",
+          "fontFamily"
+        ],
+        "text": "Georgia, serif"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "text": "700"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "article"
+        ],
+        "text": "1.75"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "text": "1rem"
+      },
+      {
+        "path": [
+          "shape",
+          "fieldRadius"
+        ],
+        "text": "0"
+      }
+    ]
+  },
+  "a-refused-text-is-still-what-the-recipe-gives": {
+    "recipe": {
+      "accent": "purple",
+      "danger": "#b91c1c"
+    },
+    "problems": [
+      {
+        "path": [
+          "accent"
+        ],
+        "kind": "refused",
+        "message": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      }
+    ],
+    "refusal": "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "purple"
+      },
+      {
+        "path": [
+          "danger"
+        ],
+        "text": "#b91c1c"
+      }
+    ]
+  }
+}

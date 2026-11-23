@@ -210,6 +210,99 @@ if (builderFailures.length > 0)
   )
 if (browserFailures.length > 0 || builderFailures.length > 0) process.exit(1)
 
+/*
+ * And every operation that reaches the core answers when it is the first
+ * thing a process does.
+ *
+ * The core carries no data: the package gives it the manifest and the
+ * colour contract, each the first time an operation needs it. An operation
+ * that is not told it needs one works in every test, where another has run
+ * before it in the same process, and fails for the one who calls only that
+ * one: `checkRecipe` answered "The core has not been given a colour
+ * contract" as the first call, with every check green. So each is called
+ * here from the built package in a process of its own, with Node, as a
+ * consumer runs it, and none can lean on another.
+ *
+ * The operations are read from the entry points and not from a list: a
+ * function one of them exports has a call here, or is named as one that
+ * does not reach the core, or the check stops.
+ */
+const FIRST_CALLS: Record<string, Record<string, string>> = {
+  "./theme": {
+    buildTheme: `const t = m.buildTheme({ accent: "#7c3aed" }); if (!t.css.includes("lotek-theme")) throw new Error("no theme")`,
+    recipeValues: `const v = m.recipeValues({ accent: "#7c3aed" }); if (v.length !== 1 || v[0].text !== "#7c3aed") throw new Error("the colour was not given")`,
+    checkRecipe: `const w = m.checkRecipe({ accent: "purple" }); if (w.length !== 1 || w[0].kind !== "refused") throw new Error("the refused colour was not found")`,
+  },
+  "./theme-check": {
+    inspectTheme: `const r = m.inspectTheme(":root { --lt-color-accent-text: #ffffff; }"); if (r.blocks !== 1) throw new Error("no block read")`,
+    checkTheme: `const p = m.checkTheme(":root { --lt-color-accent-text: #ffffff; }"); if (p.length === 0) throw new Error("no problem found")`,
+  },
+  "./diagnostics": {
+    diagnoseMarkup: `const f = m.diagnoseMarkup('<button class="lt-buton">Send</button>'); if (f.length !== 1) throw new Error("findings: " + f.length)`,
+    diagnosePage: `const f = m.diagnosePage('<!doctype html><html lang="en"><head><title>t</title></head><body><button class="lt-buton">Send</button></body></html>'); if (f.length === 0) throw new Error("no findings")`,
+    "diagnoseMarkup, with stylesheets": `const f = m.diagnoseMarkup('<button class="lt-button">Send</button>', { css: [".x {}"] }); if (f.length === 0) throw new Error("no findings")`,
+    diagnoseRendered: `const f = await m.diagnoseRendered({ evaluate: async () => ({ html: '<!doctype html><html lang="en"><head><title>t</title></head><body><button class="lt-buton">Send</button></body></html>', css: [] }) }); if (f.length === 0) throw new Error("no findings")`,
+  },
+}
+/** Functions those entry points export that do not go through the package's own core. */
+const NOT_THROUGH_THE_CORE: Record<string, string[]> = {
+  // `loadCore` gives a core of the caller's own, which the caller gives its
+  // data, and `READ_RENDERED_PAGE` runs in a browser.
+  "./diagnostics": ["loadCore", "READ_RENDERED_PAGE"],
+}
+
+const firstCallFailures: string[] = []
+let firstCalls = 0
+for (const [name, calls] of Object.entries(FIRST_CALLS)) {
+  const file = entryPoints.find(([entry]) => entry === name)?.[1]
+  if (!file) {
+    firstCallFailures.push(`  ${name}: the package has no such entry point`)
+    continue
+  }
+  const address = new URL(file, packageRoot).href
+  const exported = Object.entries(await import(address))
+    .filter(([, value]) => typeof value === "function")
+    .map(([exportName]) => exportName)
+  for (const exportName of exported)
+    if (
+      !Object.keys(calls).some((call) => call.split(",")[0] === exportName) &&
+      !(NOT_THROUGH_THE_CORE[name] ?? []).includes(exportName)
+    )
+      firstCallFailures.push(
+        `  ${name} exports ${exportName}, and this check has no first call for it`,
+      )
+  for (const [call, script] of Object.entries(calls)) {
+    const run = Bun.spawnSync(
+      [
+        "node",
+        "--input-type=module",
+        "-e",
+        `const m = await import(${JSON.stringify(address)}); ${script}`,
+      ],
+      { stdout: "pipe", stderr: "pipe" },
+    )
+    firstCalls += 1
+    if (run.exitCode !== 0)
+      firstCallFailures.push(
+        `  ${name}, ${call}: ${
+          run.stderr
+            .toString()
+            .split("\n")
+            .find((line) => /^\w*Error: /.test(line)) ??
+          `exit code ${run.exitCode}`
+        }`,
+      )
+  }
+}
+if (firstCalls < 8)
+  firstCallFailures.push(`  only ${firstCalls} first calls were made`)
+if (firstCallFailures.length > 0) {
+  console.error(
+    `These operations do not answer as the first thing a process does:\n\n${firstCallFailures.join("\n")}\n`,
+  )
+  process.exit(1)
+}
+
 console.log(
-  `All ${entryPoints.length} entry points can be imported without a DOM, all ${registrations.length} registrations are silent there, and all ${builders} builder functions run there without touching the browser.`,
+  `All ${entryPoints.length} entry points can be imported without a DOM, all ${registrations.length} registrations are silent there, all ${builders} builder functions run there without touching the browser, and all ${firstCalls} operations that reach the core answer as the first call of a process.`,
 )

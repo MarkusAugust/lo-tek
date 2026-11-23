@@ -403,12 +403,15 @@ pub unsafe extern "C" fn build_theme_raw(ptr: *mut u8, length: usize) -> u32 {
                 .brands
                 .iter()
                 .map(|b| {
+                    let reasons: Vec<String> = b.reasons.iter().map(|r| json_string(r)).collect();
                     format!(
-                        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{}}}",
+                        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{},\"summary\":{},\"reasons\":[{}]}}",
                         json_string(&b.family),
                         json_string(&b.given),
                         json_brand_fill(&b.light),
-                        json_brand_fill(&b.dark)
+                        json_brand_fill(&b.dark),
+                        json_string(&b.summary),
+                        reasons.join(",")
                     )
                 })
                 .collect();
@@ -420,6 +423,72 @@ pub unsafe extern "C" fn build_theme_raw(ptr: *mut u8, length: usize) -> u32 {
                 brands.join(","),
                 json_string(&t.css)
             ));
+            0
+        }
+        Err(error) => refuse(&error),
+    }
+}
+
+/// Says what is wrong with a recipe, all at once: a list of problems, each
+/// with the `path` of its key as segments, its `kind` and the `message`.
+/// Answers 0 with the list, empty exactly when `build_theme_raw` would take
+/// the recipe, or 1 when the input is not JSON or the core has not been
+/// given a colour contract.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn check_recipe_raw(ptr: *mut u8, length: usize) -> u32 {
+    if !theme::contract::loaded() {
+        return refuse(NO_CONTRACT);
+    }
+    match json::parse(&read_input(ptr, length)) {
+        Ok(input) => {
+            let problems: Vec<String> = theme::check_recipe(&input)
+                .iter()
+                .map(|problem| {
+                    let path: Vec<String> = problem.path.iter().map(|s| json_string(s)).collect();
+                    format!(
+                        "{{\"path\":[{}],\"kind\":{},\"message\":{}}}",
+                        path.join(","),
+                        json_string(problem.kind.as_str()),
+                        json_string(&problem.message)
+                    )
+                })
+                .collect();
+            respond(format!("[{}]", problems.join(",")));
+            0
+        }
+        Err(error) => refuse(&error),
+    }
+}
+
+/// Says what a recipe gives, as the core reads it: a list with the `path` of
+/// each key that has a value, as segments, and the value as `text`. Answers 0
+/// with the list, or 1 when the input is not JSON or the core has not been
+/// given a colour contract.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn recipe_values_raw(ptr: *mut u8, length: usize) -> u32 {
+    if !theme::contract::loaded() {
+        return refuse(NO_CONTRACT);
+    }
+    match json::parse(&read_input(ptr, length)) {
+        Ok(input) => {
+            let values: Vec<String> = theme::recipe_values(&input)
+                .iter()
+                .map(|value| {
+                    let path: Vec<String> = value.path.iter().map(|s| json_string(s)).collect();
+                    format!(
+                        "{{\"path\":[{}],\"text\":{}}}",
+                        path.join(","),
+                        json_string(&value.text)
+                    )
+                })
+                .collect();
+            respond(format!("[{}]", values.join(",")));
             0
         }
         Err(error) => refuse(&error),

@@ -42,7 +42,12 @@ if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
 
 const { buildTheme } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
-)) as { buildTheme(recipe: unknown): { css: string } }
+)) as {
+  buildTheme(recipe: unknown): {
+    css: string
+    brands: { given: string; light: { fill: string }; dark: { fill: string } }[]
+  }
+}
 const contract = JSON.parse(
   readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
 ) as { families: string[] }
@@ -67,19 +72,11 @@ const NOT_TEXT: unknown[] = [
   { accent: true },
   { brand1: ["#fff"] },
   { danger: { fill: "#b91c1c" } },
-]
-/** The same, where the core takes the recipe and writes something of its own for the value. */
-const TAKEN_BUT_NOT_TEXT: unknown[] = [
+  // These two the core used to take, and write `true` and nothing for: the
+  // page had the recipe and left the field at rest without a word.
   { typography: { weights: { bold: true } } },
   { typography: { fontFamily: ["x"] } },
 ]
-for (const recipe of TAKEN_BUT_NOT_TEXT)
-  if (refusal(recipe) !== null) {
-    console.error(
-      `✗ The core refuses ${JSON.stringify(recipe)}, so its own answer is what the page shows. The check is older than the core.`,
-    )
-    process.exit(1)
-  }
 for (const recipe of NOT_TEXT)
   if (refusal(recipe) === null) {
     console.error(
@@ -127,6 +124,24 @@ function read(families: string[]) {
     rows: [...document.querySelectorAll<HTMLElement>("[data-family]")]
       .filter((row) => row.getClientRects().length > 0)
       .map((row) => row.dataset.family ?? ""),
+    /** What each row that can be seen says, and what each picker shows. */
+    said: Object.fromEntries(
+      [...document.querySelectorAll<HTMLElement>("[data-family]")]
+        .filter((row) => row.getClientRects().length > 0)
+        .map((row) => [
+          row.dataset.family ?? "",
+          collapsed(row.textContent ?? "").toLowerCase(),
+        ]),
+    ),
+    pickers: Object.fromEntries(
+      families.map((family) => [
+        family,
+        control(family)
+          ?.closest('fieldset, [role="group"]')
+          ?.querySelector<HTMLInputElement>('input[type="color"]')
+          ?.value.toLowerCase() ?? "",
+      ]),
+    ),
     told: (textarea?.getAttribute("aria-describedby") ?? "")
       .split(/\s+/)
       .map((id) => (id ? document.getElementById(id) : null))
@@ -312,24 +327,10 @@ const code = await s.run(async () => {
       after.told.includes(message),
       `pasting ${JSON.stringify(recipe)}: the paste field is told ${JSON.stringify(after.told)}, and the core says ${JSON.stringify(message)}`,
     )
-    points += 1
-  }
-  /*
-   * And where the core takes it: it writes `true` for a weight and nothing
-   * for a list, and the page had the recipe and left the field at rest
-   * without a word. There is no answer of the core's to show, so the page
-   * says what a value must be.
-   */
-  for (const recipe of TAKEN_BUT_NOT_TEXT) {
-    await paste(recipe)
-    const after = await until((state) => /text or a number/i.test(state.told))
-    expect(
-      JSON.stringify(after.form) === JSON.stringify(before),
-      `pasting ${JSON.stringify(recipe)} changed the form: ${JSON.stringify(after.form)}`,
-    )
+    // Whatever the value is, the reader is told what one must be.
     expect(
       /text or a number/i.test(after.told),
-      `pasting ${JSON.stringify(recipe)}: the paste field is told ${JSON.stringify(after.told)}, and not that a value must be text or a number`,
+      `pasting ${JSON.stringify(recipe)}: the paste field does not say that a value must be text or a number: ${JSON.stringify(after.told)}`,
     )
     points += 1
   }
@@ -432,6 +433,73 @@ const code = await s.run(async () => {
   expect(
     JSON.stringify(kept.rows) === '["accent"]',
     `while another value is refused, the report has the rows ${kept.rows.join(", ") || "none"}, not the one family that is still in the recipe and was built`,
+  )
+
+  /*
+   * And the row of a family is the row of what its field holds now. With
+   * accent and danger both refused and accent then put right, the row and
+   * the picker of accent showed the colour it had before, under a field
+   * with another one in it, until danger was put right too. A family whose
+   * own value the core takes has the row of that value, whatever else in
+   * the recipe is refused; one whose value is refused has none. The frames
+   * are another matter: they show a whole theme, and so the last that built.
+   */
+  await button("Start again").click()
+  await own("accent").check()
+  await field("accent").fill("#7c3aed")
+  await own("danger").check()
+  await field("danger").fill("#b3261e")
+  const whole = buildTheme({ accent: "#7c3aed", danger: "#b3261e" }).css
+  const framed = async () =>
+    Promise.all(
+      ["light", "dark"].map(async (appearance) => {
+        const handle = await page
+          .locator(`iframe[data-appearance="${appearance}"]`)
+          .elementHandle()
+        const frame = await handle?.contentFrame()
+        return (
+          (await frame?.evaluate(() =>
+            [...document.querySelectorAll("style")]
+              .map((style) => style.textContent ?? "")
+              .filter((text) => text.includes("lotek-theme")),
+          )) ?? []
+        )
+      }),
+    )
+  const holdsWhole = (held: string[][]) =>
+    held.every((frame) => frame.length === 1 && frame[0] === whole)
+  for (let attempt = 0; attempt < 40 && !holdsWhole(await framed()); attempt++)
+    await page.waitForTimeout(100)
+  await field("accent").fill("purple")
+  await field("danger").fill("#b3261")
+  await until((state) => state.rows.length === 0)
+  await field("accent").fill("#00ff00")
+  const [green] = buildTheme({ accent: "#00ff00" }).brands
+  const fresh = await until(
+    (state) =>
+      (state.said.accent ?? "").includes(green.light.fill) &&
+      state.pickers.accent === "#00ff00",
+  )
+  for (const hex of [green.given, green.light.fill, green.dark.fill])
+    expect(
+      (fresh.said.accent ?? "").includes(hex),
+      `with danger refused and accent #00ff00, the row of accent does not say ${hex}: "${(fresh.said.accent ?? "there is no row").slice(0, 120)}"`,
+    )
+  expect(
+    !(fresh.said.accent ?? "").includes("#7c3aed"),
+    "with danger refused and accent #00ff00, the row of accent still shows the colour it had before",
+  )
+  expect(
+    fresh.pickers.accent === "#00ff00",
+    `with danger refused and accent #00ff00, the picker of accent shows ${fresh.pickers.accent}`,
+  )
+  expect(
+    !fresh.rows.includes("danger"),
+    "a family whose own value is refused has a row",
+  )
+  expect(
+    holdsWhole(await framed()),
+    "while a value is refused, the frames do not hold the last theme that built as a whole",
   )
   points += 1
 
@@ -586,7 +654,7 @@ if (code !== 0) {
 // The guard comes last. Seven points of its own, and one for each pasted
 // recipe that is not text: the groups, the blocks, the keyboard, the null,
 // the copy, the report and the generator.
-const POINTS = 7 + NOT_TEXT.length + TAKEN_BUT_NOT_TEXT.length
+const POINTS = 7 + NOT_TEXT.length
 if (points !== POINTS) {
   console.error(
     `✗ The check went through ${points} points where it has ${POINTS}. It has not looked at everything.`,

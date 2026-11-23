@@ -279,7 +279,36 @@ theme.violations // promises that do not hold. Empty when the theme is fine
 theme.brands     // what became of each colour you gave
 ```
 
-Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`.
+Each row in `brands` has the `family`, the colour you gave as `given`, written `#rrggbb`, and `light` and `dark` with the `fill` it got, `chromaKept` as a share from 0 to 1, and `breaks`: the promises your colour would break as the fill itself, in the same form as `violations`. It also has what the core says about the colour, ready to show: `summary`, the first line `lotek theme` writes, and `reasons`, the sentences under it. Show them as they are rather than writing your own from the numbers.
+
+If you build a form over the recipe, `checkRecipe` says everything that is wrong with it at once, where `buildTheme` refuses with one sentence:
+
+```ts
+import { checkRecipe } from "@lo-tek/interfaces/theme"
+
+checkRecipe({ accent: "purple", shape: { buttonRadius: "1px (" }, colour: "#000" })
+// [
+//   { path: ["colour"], kind: "unknown", message: "Unknown key in the recipe: colour" },
+//   { path: ["accent"], kind: "refused", message: "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed." },
+//   { path: ["shape", "buttonRadius"], kind: "refused", message: "The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …" }
+// ]
+```
+
+Each problem has the `path` of its key as segments, since a key may have a dot in its name, the `kind`, and the `message` for a person. `unknown` is a key the recipe does not have and `refused` a value the core does not take. Two kinds are about the recipe as a whole and have an empty path: `empty`, when it gives nothing, and `notARecipe`, when it is not an object. Decide on `kind`, and show `message` as it is: its wording may change.
+
+The list is empty exactly when `buildTheme` takes the recipe.
+
+`recipeValues` is the other half of such a form: what the recipe gives, as the core reads it. Each key that has a value comes with its `path` and the value as `text`, and a key that is not given is not there. The text is the value as it is written, `#7C3AED` and not the `#7c3aed` that `brands` gives as `given`. Fill the fields from it rather than reading the recipe yourself, and the form cannot disagree with the generator about what counts as given: `0` is a value for a corner, and not a colour.
+
+```ts
+import { recipeValues } from "@lo-tek/interfaces/theme"
+
+recipeValues({ accent: "#7c3aed", danger: null, shape: { fieldRadius: 0 } })
+// [
+//   { path: ["accent"], text: "#7c3aed" },
+//   { path: ["shape", "fieldRadius"], text: "0" }
+// ]
+```
 
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 

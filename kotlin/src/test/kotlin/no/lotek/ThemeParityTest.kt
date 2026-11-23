@@ -44,7 +44,17 @@ class ThemeParityTest {
         assertAnswer(expected["violations"], theme.violations.map { violation(it) }, "violations")
         assertAnswer(
             expected["brands"],
-            theme.brands.map { mapOf("family" to it.family, "given" to it.given, "light" to side(it.light), "dark" to side(it.dark)) },
+            theme.brands.map {
+                mapOf(
+                    "family" to it.family,
+                    "given" to it.given,
+                    // The sentences are the core's own, and reach Kotlin as it wrote them.
+                    "summary" to it.summary,
+                    "reasons" to it.reasons,
+                    "light" to side(it.light),
+                    "dark" to side(it.dark),
+                )
+            },
             "brands",
         )
         assertEquals(expected["css"], theme.css, "css")
@@ -79,6 +89,58 @@ class ThemeParityTest {
         }
     }
 
+    /**
+     * `checkRecipe` says what is wrong with a recipe, problem by problem and
+     * all at once: the path of the key as its parts, the kind, and the
+     * sentence, in the core's order. It never refuses a recipe itself: also a
+     * text or a list, which is no recipe, is answered by the core and passed
+     * on as it is. And `buildTheme` refuses the same recipe with the one
+     * sentence the expected results give, or takes it.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("recipeChecks")
+    fun `checkRecipe answers the same as TypeScript`(name: String) {
+        val case = RECIPE_CHECKS.getValue(name) as Map<*, *>
+        assertEquals(setOf("recipe", "problems", "refusal", "values"), case.keys, "the expected results have a field the reader does not compare")
+        val recipe = Json.write(case["recipe"])
+        assertEquals(
+            case["problems"],
+            Lotek.checkRecipe(recipe).map { mapOf("path" to it.path, "kind" to it.kind, "message" to it.message) },
+            name,
+        )
+        assertEquals(case["refusal"], refusal(recipe), "$name: what buildTheme says")
+        // What the recipe gives, as the core reads it, for a host that puts a recipe into a form.
+        assertEquals(
+            case["values"],
+            Lotek.recipeValues(recipe).map { mapOf("path" to it.path, "text" to it.text) },
+            "$name: what the recipe gives",
+        )
+    }
+
+    /** What `buildTheme` refuses a recipe with, or nothing when it takes it. */
+    private fun refusal(recipe: String): String? =
+        try {
+            Lotek.buildTheme(recipe)
+            null
+        } catch (refused: IllegalArgumentException) {
+            refused.message
+        }
+
+    @Test
+    fun `checkRecipe finds nothing exactly when buildTheme takes the recipe`() {
+        // Both ways, over every recipe of the expected results, those that
+        // are no recipe at all included.
+        var held = 0
+        for ((file, cases) in listOf("recipes.json" to RECIPES, "recipe-checks.json" to RECIPE_CHECKS)) {
+            for ((name, case) in cases) {
+                val recipe = Json.write((case as Map<*, *>)["recipe"])
+                assertEquals(refusal(recipe) == null, Lotek.checkRecipe(recipe).isEmpty(), "$file, $name")
+                held += 1
+            }
+        }
+        assertTrue(held > 40, "only $held recipes")
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("themes")
     fun `inspectTheme answers the same as TypeScript`(name: String) {
@@ -107,11 +169,11 @@ class ThemeParityTest {
     fun `a recipe with an unknown key is refused, with the path to the key`() {
         val error = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme("""{"accent": "#7c3aed", "acent": "#000", "shape": {"radius": "0"}}""") }
         assertEquals("Unknown key in the recipe: acent, shape.radius", error.message)
-        // A string or list where an object should have been, as `lotek theme` reports it.
+        // A text or a list where an object should have been is refused where it stands.
         val text = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme("""{"accent": "#7c3aed", "typography": "Inter"}""") }
-        assertEquals("Unknown key in the recipe: typography.0, typography.1, typography.2, typography.3, typography.4", text.message)
+        assertEquals("""typography is not an object with its keys in it. Got: "Inter"""", text.message)
         val list = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme("""{"typography": {"weights": [400]}}""") }
-        assertEquals("Unknown key in the recipe: typography.weights.0", list.message)
+        assertEquals("typography.weights is not an object with its keys in it. Got: [400]", list.message)
     }
 
     @Test
@@ -125,17 +187,27 @@ class ThemeParityTest {
     }
 
     @Test
-    fun `a recipe that is not an object is refused before the core sees it`() {
-        // The answer is about the text that was given, and is this package's
-        // own: the core is only ever given an object.
-        for (recipe in listOf("[]", "12", "\"#7c3aed\"", "null")) {
+    fun `a recipe that is not an object is refused by the core, in its words`() {
+        // This package had a sentence of its own for it. The core says what
+        // is wrong with what it is given, and the package passes it on.
+        for (recipe in listOf("[]", "12", "\"#7c3aed\"", "null", "true")) {
             val error = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme(recipe) }
-            assertEquals("The recipe is valid JSON, but not an object with the colours in it.", error.message, recipe)
+            assertEquals(
+                """The recipe is not an object. Write it as an object with the colours in it, for example {"accent": "#7c3aed"}.""",
+                error.message,
+                recipe,
+            )
+            assertEquals(listOf("notARecipe"), Lotek.checkRecipe(recipe).map { it.kind }, recipe)
         }
+        // Only a text that is not JSON at all cannot be asked about.
+        assertFailsWith<Exception> { Lotek.checkRecipe("{") }
     }
 
     companion object {
         private val DIR = File(System.getProperty("theme"))
+
+        @Suppress("UNCHECKED_CAST")
+        private val RECIPE_CHECKS = Json.parse(File(DIR, "recipe-checks.json").readText()) as Map<String, Any?>
         private const val FLOAT = 1e-6
 
         @Suppress("UNCHECKED_CAST")
@@ -148,6 +220,12 @@ class ThemeParityTest {
         fun recipes(): List<String> {
             assertTrue(RECIPES.isNotEmpty() && RECIPES.values.any { (it as Map<*, *>).containsKey("error") }, "The expected results must have recipes, and at least one that is rejected")
             return RECIPES.keys.sorted()
+        }
+
+        @JvmStatic
+        fun recipeChecks(): List<String> {
+            assertTrue(RECIPE_CHECKS.size > 10, "The expected results for checkRecipe must have cases")
+            return RECIPE_CHECKS.keys.sorted()
         }
 
         @JvmStatic

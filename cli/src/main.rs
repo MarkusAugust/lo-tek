@@ -75,8 +75,8 @@ pub const HELP: &str = r#"lotek <command>
     --field-radius=<size>    Corners on input, text area and select
     --surface-radius=<size>  Corners on card, dialog, popover, alert,
                              accordion, error summary, file upload,
-                             session timeout, suggestion list, toast and
-                             tooltip
+                             session timeout, suggestion list, toast,
+                             tooltip and term
     --button-border=<size>   Border width of the button
     --button-weight=<weight> Font weight of the button text
     --out=<file>             Write to a file instead of standard output

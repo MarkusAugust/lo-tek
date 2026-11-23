@@ -35,9 +35,35 @@ if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
   process.exit(1)
 }
 
-const { buildTheme } = (await import(
+const { buildTheme, checkRecipe } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
-)) as { buildTheme(recipe: unknown): { css: string } }
+)) as {
+  buildTheme(recipe: unknown): { css: string }
+  checkRecipe(
+    recipe: unknown,
+  ): { path: string[]; kind: string; message: string }[]
+}
+if (typeof checkRecipe !== "function") {
+  console.error(
+    "✗ The package has no checkRecipe. Is interfaces/dist built from this commit?",
+  )
+  process.exit(1)
+}
+
+/** Paths and values as the recipe nests them. */
+function nestedOf(values: Record<string, string>) {
+  const recipe: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(values)) {
+    const parts = key.split(".")
+    let at = recipe
+    for (const part of parts.slice(0, -1)) {
+      at[part] ??= {}
+      at = at[part] as Record<string, unknown>
+    }
+    at[parts[parts.length - 1]] = value
+  }
+  return recipe
+}
 const contract = JSON.parse(
   readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
 ) as { families: string[] }
@@ -263,6 +289,80 @@ const code = await s.run(async () => {
     }
     cases += 1
   }
+
+  /*
+   * Several things wrong at once: each field is told its own, and at the
+   * same time. The core says what is wrong with a recipe in one answer,
+   * `checkRecipe`, problem by problem, and the page shows the sentence of
+   * each refused value under the field of its key. The expected texts are the package's, for the recipe
+   * that is on the page.
+   */
+  const several: Record<string, string> = {
+    accent: "purple",
+    "typography.fontFamily": "Arial (",
+    "shape.buttonRadius": "4px; } html { display: none",
+    "typography.weights.bold": "a;b",
+  }
+  for (const [key, value] of Object.entries(several)) {
+    if (contract.families.includes(key)) await own(key).check()
+    await field(key).fill(value)
+  }
+  const recipe = { ...built, ...nestedOf(several) }
+  // The refused values of the recipe, by the name of the field each is
+  // under: a field is named by the parts of its key's path, with dots.
+  const problems = checkRecipe(recipe)
+  expect(
+    Array.isArray(problems) && problems.every((p) => p.kind === "refused"),
+    `the package's checkRecipe answers ${JSON.stringify(problems).slice(0, 200)} for values that are refused`,
+  )
+  const wrong: Record<string, string> = Object.fromEntries(
+    (Array.isArray(problems) ? problems : []).map((p) => [
+      p.path.join("."),
+      p.message,
+    ]),
+  )
+  expect(
+    JSON.stringify(Object.keys(wrong).sort()) ===
+      JSON.stringify(Object.keys(several).sort()),
+    `the package's checkRecipe finds ${Object.keys(wrong).join(", ") || "nothing"} wrong, and the check typed ${Object.keys(several).join(", ")}: the check is older than the core`,
+  )
+  const all = await until(
+    () => page.evaluate(marks),
+    (state) =>
+      Object.entries(wrong).every(([key, message]) =>
+        (state.marked[key] ?? "").includes(message.replace(/\s+/g, " ")),
+      ) && Object.keys(state.marked).length === Object.keys(wrong).length,
+  )
+  for (const [key, message] of Object.entries(wrong))
+    expect(
+      (all.marked[key] ?? "").includes(message.replace(/\s+/g, " ")),
+      `with several things wrong, ${key} is told ${JSON.stringify(all.marked[key] ?? "nothing")}, and the core says ${JSON.stringify(message)}`,
+    )
+  const strangers = Object.keys(all.marked).filter((key) => !(key in wrong))
+  expect(
+    strangers.length === 0,
+    `with several things wrong, fields the core says nothing about are marked: ${strangers.join(", ")}`,
+  )
+  expect(
+    !all.offered,
+    "the page offers a theme.css while several values are refused",
+  )
+  // Put right one at a time, the others stay told.
+  await field("typography.fontFamily").fill("")
+  const fewer = await until(
+    () => page.evaluate(marks),
+    (state) => !("typography.fontFamily" in state.marked),
+  )
+  expect(
+    JSON.stringify(Object.keys(fewer.marked).sort()) ===
+      JSON.stringify(
+        Object.keys(wrong)
+          .filter((key) => key !== "typography.fontFamily")
+          .sort(),
+      ),
+    `with one of four put right, the fields marked are ${Object.keys(fewer.marked).join(", ") || "none"}`,
+  )
+  cases += 1
 })
 
 if (code !== 0) {
@@ -273,9 +373,9 @@ if (code !== 0) {
 }
 
 // The guard comes last.
-if (cases !== REFUSED.length + 4) {
+if (cases !== REFUSED.length + 5) {
   console.error(
-    `✗ The check went through ${cases} cases where it has ${REFUSED.length + 4}. It has not looked at everything.`,
+    `✗ The check went through ${cases} cases where it has ${REFUSED.length + 5}. It has not looked at everything.`,
   )
   process.exit(1)
 }

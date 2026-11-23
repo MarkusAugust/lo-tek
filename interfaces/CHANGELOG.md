@@ -24,6 +24,61 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Breaking
+
+- **Each row of `brands` has two more fields, `summary` and `reasons`.**
+  They are required in `Brand` in TypeScript and in `ThemeBrand` in Kotlin,
+  where they come after `dark`. Code that only reads a theme is unaffected.
+  Code that builds a row by hand must add them.
+- **`Core` has two new operations, `checkRecipe` and `recipeValues`.** Code
+  that implements `Core` itself must add them.
+
+### Added
+
+- **The theme says in words what became of a brand colour.** `summary` is
+  the first line `lotek theme` writes about the colour, and `reasons` the
+  sentences under it. They are written by the core, so the command line, the
+  theme builder, TypeScript and Kotlin give the same text, and a host shows
+  it rather than composing its own from the numbers.
+- **`checkRecipe` says everything that is wrong with a recipe at once.**
+  `buildTheme` refuses with one sentence. `checkRecipe` answers with a list
+  of problems, each with the `path` of its key as segments, a `kind`
+  (`unknown`, `refused`, `empty` or `notARecipe`) and the `message`, and with
+  an empty list exactly when `buildTheme` takes the recipe. It is
+  `checkRecipe` from `@lo-tek/interfaces/theme`, `Lotek.checkRecipe` in
+  Kotlin, and on the `Core` that `loadCore` gives.
+
+- **`recipeValues` says what a recipe gives, as the core reads it.** Each
+  key that has a value, with its `path` as segments and the value as `text`.
+  A form over the recipe is filled from it, and so cannot disagree with the
+  generator about what counts as given. `recipeValues` from
+  `@lo-tek/interfaces/theme`, `Lotek.recipeValues` in Kotlin, and on `Core`.
+
+### Changed
+
+- **A colour that is not valid says what a colour is.** The refusal ends
+  with `Colours are written as hexadecimal values, for example #7c3aed.`
+  from every host. `lotek theme` added that line itself, after any refusal
+  that did not begin with "The value of", so an empty recipe got it too.
+- **`lotek theme` says of a recipe file what the core says.** A file that
+  is valid JSON and not an object is refused with the core's sentence, after
+  the name of the file, where the command line had one of its own. The
+  output for a key the recipe does not have is unchanged.
+- **A recipe whose blocks give nothing, and that has no colour, is empty.**
+  `{"typography": {"fontFamily": ""}}` and `{"shape": {}}` beside nothing
+  else built a file with an empty layer. They are refused as an empty theme,
+  as `{}` is. With a colour beside them the theme is as before.
+- **A recipe that is not an object is refused as that.** A text was refused
+  for unknown keys `0, 1, 2, 3`, and `null` as an empty theme. Both are now
+  `The recipe is not an object. …`, from every host: Kotlin no longer has a
+  sentence of its own for it.
+- **A block that is not an object is refused at the block.**
+  `"typography": "Inter"` was refused for the unknown key `typography.0`,
+  and `"shape": 5` was passed over in silence.
+- **A value that is `true`, a list or an object is refused.** `true` was
+  written into the CSS as `true`. In a block, `null` and `false` are now not
+  given, as they are for a colour, where `null` was written as `null`.
+
 ## 0.48.0 (2026-11-23)
 
 ### Added

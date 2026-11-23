@@ -295,6 +295,20 @@ pub struct Violation {
     pub required: f64,
 }
 
+impl Violation {
+    /// The promise that does not hold, in one sentence. A host shows this,
+    /// and writes none of its own from the numbers.
+    pub fn summary(&self) -> String {
+        format!(
+            "{}: {} is {}:1, the requirement is {}:1.",
+            self.family,
+            self.promise,
+            super::to_fixed2(self.ratio),
+            super::js_number(self.required)
+        )
+    }
+}
+
 /// Every promise for one family: the name, the ratio and the requirement.
 pub fn promises_for(family: &Family, layers: &Layers) -> Result<Vec<(String, f64, f64)>, String> {
     let ratio = |a: &str, b: &str| -> Result<f64, String> {
