@@ -9667,6 +9667,7 @@
       ],
       "inline": [
         "lotek check-theme",
+        "lotek check-theme",
         "lotek.theme.json",
         "--accent",
         "--danger",

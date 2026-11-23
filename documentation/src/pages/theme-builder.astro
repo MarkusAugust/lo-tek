@@ -310,8 +310,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<div class="builder__head">
 					<h1 class="builder__name profile-name">Theme builder</h1>
 					<p class="builder__line">
-						Set what is yours. The generator builds the rest, and keeps the
-						contrast promises in both themes. Nothing leaves this page.
+						You choose the hue, the font and the corners. The generator sets how
+						light each colour is, so every contrast promise holds in the light
+						theme and the dark.
+						<a class="lt-link" href="/your-own-theme/#who-decides-what">What it decides, and why</a>.
+						Nothing leaves this page.
 					</p>
 					<p class="profile-label">
 						Built with @lo-tek/interfaces {pkg.version}
@@ -330,9 +333,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					<fieldset class="lt-fieldset builder__group">
 						<legend class="lt-legend">Colours</legend>
 						<p class="builder__note">
-							The lightness of every colour is the role's, so yours is moved to
-							it, and a light one far. Below each colour you give is what it
-							became, and why it could not be the fill as it was.
+							Below each colour you give is what it became in the light theme
+							and the dark.
 						</p>
 						{
 							families.map(([name, property]) => (
@@ -617,7 +619,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					</p>
 					<p class="builder__line">
 						Keep the recipe in the repository as <code>lotek.theme.json</code>,
-						and build the theme from it:
+						and build the theme from it. The theme is in a layer of its own, and
+						your own CSS beats it: what the recipe does not have,
+						<a class="lt-link" href="/customising/#when-the-variable-is-not-enough">you set there</a>.
 					</p>
 					<pre class="builder__json" tabindex="0" role="region" aria-label="The command that builds the theme"><code>{COMMAND}</code></pre>
 				</section>

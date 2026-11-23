@@ -15,6 +15,15 @@ The generator takes your brand colours and builds the rest.
 
 You can try it before you install anything. The [theme builder](/theme-builder/) shows LO-TEK's components with the theme your colours give, in the light and the dark appearance side by side, says what became of each colour, and gives you the recipe and the command below. It runs in your browser, and what you enter is sent nowhere.
 
+## Who decides what
+
+The generator decides more than most theme tools do, and that is how it can promise the contrast.
+
+- **You decide** the colours, by their hue and chroma, one for each family, and the font, the weights, the line heights, the three kinds of corners, and the border and the weight of the button.
+- **The generator decides** how light every colour is, which families and roles there are, and with that the contrast, in the light theme and the dark. See [What the generator does](#what-the-generator-does).
+- **Not in the recipe** are a scale for spacing or for type size, a light brand colour kept as the fill, and roles of your own. See [What the generator does not do](#what-the-generator-does-not-do).
+- **The way out** is your own CSS. The theme is in a layer of its own, and CSS you write outside a layer beats it, so what the recipe does not have, you set there. See [The theme beats the defaults](#the-theme-beats-the-defaults) and [Customising](../customising/#when-the-variable-is-not-enough). The contrast of what you set yourself is yours to keep, and `lotek check-theme` checks it.
+
 ## Creating the theme
 
 ```bash
