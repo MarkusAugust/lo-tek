@@ -24,6 +24,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+## 0.48.0 (2026-11-23)
+
 ### Added
 
 - **A theme builder in the documentation,** at
@@ -43,14 +45,19 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   required`. The line about chroma says the fill is less saturated, and no
   longer names sRGB. A script that reads these lines must follow; the first
   line per colour and `brands` are unchanged.
+- **The rulebooks for coding agents say what a theme recipe has.** The hue
+  and chroma of each family, the font, the weights, the line heights, three
+  kinds of corners, and the border and the weight of the button. They also
+  say what it does not have, a scale for spacing or type size and roles of
+  its own, and that CSS outside a layer beats the theme.
 
 ### Fixed
 
 - **The theme generator refuses a square bracket that is not closed.**
   `fontFamily: "Inter ["` built a theme where the `[` swallowed the
   declaration after it, as an unclosed parenthesis does. It is refused now,
-  with a message that names the bracket, and `a[b]` is still taken. A bracket and a
-  parenthesis must also close in the order they opened.
+  with a message that names the bracket, and `a[b]` is still taken. A
+  bracket and a parenthesis must also close in the order they opened.
 - **The links to the IntelliJ plugin led to the plugin it replaced.** The
   editor page and the Kotlin page pointed at the earlier plugin on JetBrains
   Marketplace, which stops at 0.4.0. They point at LO-TEK Interfaces now.
