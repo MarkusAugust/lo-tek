@@ -121,10 +121,16 @@
     color: var(--lt-color-accent-text-strong);
   }
 
-  .page,
   .main-pane,
   .content-panel {
     background: transparent;
+  }
+
+  /* The page stands on the same paper as the front page: `profile.css` lays
+     the grain behind everything in Starlight's frame, and the blend needs
+     the frame to carry the surface colour itself. */
+  .page {
+    background: var(--lt-color-neutral-canvas);
   }
 
   .page {
@@ -160,6 +166,9 @@
   header.header {
     border-bottom: var(--profile-rule);
     background: var(--lt-color-neutral-canvas);
+    /* The grain of `profile.css` is laid under the header's own content,
+       and blends with the header's surface and nothing behind it. */
+    isolation: isolate;
   }
 
   .site-title {
@@ -215,6 +224,16 @@
        no track of its own. */
     scrollbar-width: thin;
     scrollbar-color: var(--lt-color-neutral-border) transparent;
+  }
+
+  /* Beside the page the menu stands on the page's paper. Nothing scrolls
+     under it there, so it can be see-through. On a narrow screen it is laid
+     over the page, and keeps its surface. */
+  @media (min-width: 50rem) {
+    .sidebar-pane,
+    .sidebar-content {
+      background: transparent;
+    }
   }
 
   .sidebar-content {
