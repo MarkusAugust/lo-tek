@@ -9,8 +9,8 @@
  *
  * The pages under `demo/` are exempt. They are shown in an `<iframe>` on the
  * pattern pages and are examples the reader copies, so sharing tags do not
- * belong in them. So is the component sheet of the theme builder, which is
- * only ever shown in the builder's own `<iframe>`.
+ * belong in them. So are the component sheet and the composed page of the
+ * theme builder, which are only ever shown in the builder's own `<iframe>`.
  *
  * Run with: bun documentation/scripts/check-share-card.ts
  * Requires `documentation/dist` to be built.
@@ -100,7 +100,11 @@ const expected =
 
 /** A page that is only shown in an `<iframe>`, as a source file or as built. */
 function framed(rel: string): boolean {
-  return rel.startsWith("demo/") || rel.startsWith("theme-builder/sheet")
+  return (
+    rel.startsWith("demo/") ||
+    rel.startsWith("theme-builder/sheet") ||
+    rel.startsWith("theme-builder/page")
+  )
 }
 
 for (const page of ["index.html", "404.html"]) {

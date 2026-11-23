@@ -1,0 +1,369 @@
+---
+/**
+ * The composed page of the theme builder: one real page, to look at a theme
+ * on as a whole.
+ *
+ * The component sheet shows every component by itself. A theme is not
+ * judged that way: what matters is whether a page holds together, with a
+ * failed form next to a table and a row of alerts above them. So this is a
+ * page as an application has one, by the page skeleton pattern, with the
+ * skip link first, one `<main>` and the landmarks.
+ *
+ * It is put together to show where a theme matters most. Every colour
+ * family is in use somewhere: the accent in the buttons and the controls
+ * that are on, danger in the field that failed, the four colours of an
+ * alert, and the three brand families in the sectors, which is what they
+ * are for. No component reads a brand family by itself, so the sectors have
+ * rules of their own below, written with the tokens as a consumer would
+ * write them. The page writes no colour of its own.
+ *
+ * `/theme-builder/` shows the page in a frame and gives it the theme it has
+ * built. Opened on its own it shows LO-TEK's own colours.
+ * `check-theme-page.ts` holds what is on it.
+ */
+
+import "@lo-tek/interfaces/lotek.css"
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<title>Job 222-0481 | Meridian Lattice</title>
+	</head>
+	<body>
+		<a class="lt-skip-link" href="#main-content">Skip to main content</a>
+
+		<header class="console-top">
+			<div class="console-width console-top__content">
+				<a class="console-mark" href="#" aria-label="Meridian Lattice, console home">
+					Meridian Lattice
+				</a>
+				<nav aria-label="Main menu">
+					<ul class="lt-list console-menu" data-variant="plain">
+						<li><a class="lt-link" href="#" aria-current="page">Jobs</a></li>
+						<li><a class="lt-link" href="#">Sectors</a></li>
+						<li><a class="lt-link" href="#">Relays</a></li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+
+		<div class="console-width console-path">
+			<nav aria-label="You are here">
+				<ol class="lt-breadcrumbs">
+					<li><a class="lt-link" href="#">Console</a></li>
+					<li><a class="lt-link" href="#">Jobs</a></li>
+					<li><span aria-current="page">Job 222-0481</span></li>
+				</ol>
+			</nav>
+		</div>
+
+		<main class="console-width console-main" id="main-content" tabindex="-1">
+			<h1 class="lt-heading" data-size="xl">Job 222-0481</h1>
+			<p class="lt-paragraph" data-size="large">
+				Recovery on floor 222 of Saltline Tower. The board writes to the fixer,
+				never to the crew, and the terms are in
+				<a class="lt-link" href="#">the small print</a>.
+			</p>
+
+			<div class="console-stack">
+				<div class="lt-alert" data-color="info">
+					<p>The console has been updated. You need to sign in again.</p>
+				</div>
+				<div class="lt-alert" data-color="success">
+					<p>Relay 14 is back. Traffic for sector 9 runs through it again.</p>
+				</div>
+				<div class="lt-alert" data-color="warning">
+					<p>Someone is on the wire in sector 3.</p>
+				</div>
+				<div class="lt-alert" data-color="danger">
+					<p class="lt-alert__title">Sector 9 is dark</p>
+					<p>Crews are on the way.</p>
+				</div>
+			</div>
+
+			<section class="console-section" aria-labelledby="order-title">
+				<h2 class="lt-heading" data-size="l" id="order-title">Order the job</h2>
+
+				<form class="console-stack" action="#" method="post" novalidate>
+					<lt-error-summary
+						id="order-errors"
+						aria-labelledby="order-errors-title"
+						data-autofocus="false"
+					>
+						<h2 id="order-errors-title">The form has one error</h2>
+						<ul class="lt-list">
+							<li><a href="#fixer">Enter the fixer's address with an at sign</a></li>
+						</ul>
+					</lt-error-summary>
+
+					<div class="console-field">
+						<label class="lt-label" for="fixer" data-required="symbol">Fixer's address</label>
+						<input
+							class="lt-input"
+							id="fixer"
+							name="fixer"
+							type="email"
+							required
+							value="fixer.relay.example"
+							data-state="invalid"
+							aria-invalid="true"
+							aria-describedby="fixer-error"
+						/>
+						<p class="lt-error-text" id="fixer-error">
+							Enter the fixer's address with an at sign.
+						</p>
+					</div>
+
+					<div class="console-field">
+						<label class="lt-label" for="budget">Budget</label>
+						<input
+							class="lt-input"
+							id="budget"
+							name="budget"
+							type="text"
+							inputmode="numeric"
+							value="4400"
+							aria-describedby="budget-help"
+						/>
+						<p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p>
+					</div>
+
+					<div class="console-field">
+						<label class="lt-label" for="building">Building</label>
+						<select class="lt-select" id="building" name="building">
+							<option>Saltline Tower</option>
+							<option>Tidewall Annex</option>
+						</select>
+					</div>
+
+					<fieldset class="lt-fieldset">
+						<legend class="lt-legend">Who takes the job?</legend>
+						<div class="lt-radio-row">
+							<input class="lt-radio" type="radio" id="crew-any" name="crew" value="any" checked />
+							<label class="lt-label" for="crew-any">Any crew</label>
+						</div>
+						<div class="lt-radio-row">
+							<input class="lt-radio" type="radio" id="crew-named" name="crew" value="named" />
+							<label class="lt-label" for="crew-named">A crew the fixer names</label>
+						</div>
+					</fieldset>
+
+					<div class="lt-checkbox-row">
+						<input class="lt-checkbox" type="checkbox" id="advance" name="advance" checked />
+						<label class="lt-label" for="advance">The crew keeps the advance</label>
+					</div>
+
+					<div class="lt-switch-row">
+						<input class="lt-switch" type="checkbox" role="switch" id="renew" name="renew" checked />
+						<label class="lt-label" for="renew">Renew the walls while the job runs</label>
+					</div>
+
+					<div class="console-row">
+						<button class="lt-button" type="submit">Order the job</button>
+						<button class="lt-button" data-variant="secondary" type="button">Save draft</button>
+						<button class="lt-button" data-variant="ghost" type="button">Attach floor plans</button>
+						<button class="lt-button" data-variant="danger" type="button">Cancel the job</button>
+					</div>
+				</form>
+			</section>
+
+			<section class="console-section" aria-labelledby="recovery-title">
+				<h2 class="lt-heading" data-size="l" id="recovery-title">Recovery</h2>
+				<progress
+					class="lt-progress"
+					value="2"
+					max="5"
+					aria-label="Recovery of job 222-0481"
+					aria-valuetext="Two of five items recovered."></progress>
+
+				<table class="lt-table" data-variant="striped">
+					<caption>Appraisal LR-2079-0112</caption>
+					<thead>
+						<tr>
+							<th scope="col">Item</th>
+							<th scope="col">Condition</th>
+							<th scope="col" data-align="end">Offer</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<th scope="row">Smartgun link, left eye</th>
+							<td><span class="lt-badge" data-color="success">Removed intact</span></td>
+							<td data-align="end">EB 1,800</td>
+						</tr>
+						<tr>
+							<th scope="row">Subdermal plating, torso</th>
+							<td><span class="lt-badge" data-color="warning">Dented</span></td>
+							<td data-align="end">EB 950</td>
+						</tr>
+						<tr>
+							<th scope="row">Boosted reflexes</th>
+							<td><span class="lt-badge" data-color="danger">Still running</span></td>
+							<td data-align="end">EB 4,400</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+
+			<section class="console-section" aria-labelledby="sectors-title">
+				<h2 class="lt-heading" data-size="l" id="sectors-title">Sectors on the route</h2>
+				<ul class="lt-list console-sectors" data-variant="plain">
+					<li class="console-sector" data-brand="1">
+						<h3 class="lt-heading" data-size="s">Sector 3</h3>
+						<p class="lt-paragraph">Dry floors. Guard rotation every four hours.</p>
+					</li>
+					<li class="console-sector" data-brand="2">
+						<h3 class="lt-heading" data-size="s">Sector 9</h3>
+						<p class="lt-paragraph">Seasonal floors. The relay is back.</p>
+					</li>
+					<li class="console-sector" data-brand="3">
+						<h3 class="lt-heading" data-size="s">Sector 14</h3>
+						<p class="lt-paragraph">Below the tide line. Bring your own air.</p>
+					</li>
+				</ul>
+			</section>
+		</main>
+
+		<footer class="console-foot">
+			<div class="console-width">
+				<p class="lt-paragraph" data-size="small">
+					Meridian Lattice, 2079. Unsaved routes are lost when the session ends.
+				</p>
+			</div>
+		</footer>
+	</body>
+</html>
+
+<style is:global>
+	body {
+		margin: 0;
+		/* LO-TEK inherits the font of the page it is on, and has none of its
+		   own. The page has the system's until a theme names one. */
+		font-family: var(--lt-font-family-base, system-ui, sans-serif);
+		color: var(--lt-color-neutral-text-strong);
+		background: var(--lt-color-neutral-canvas);
+	}
+
+	.console-width {
+		max-inline-size: 60rem;
+		margin-inline: auto;
+		padding-inline: var(--lt-spacing-6);
+	}
+
+	.console-top {
+		border-block-end: var(--lt-spacing-px) solid var(--lt-color-neutral-border-subtle);
+		background: var(--lt-color-neutral-surface);
+	}
+
+	.console-top__content {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--lt-spacing-4);
+		padding-block: var(--lt-spacing-4);
+	}
+
+	.console-mark {
+		font-weight: var(--lt-font-weight-bold);
+		color: var(--lt-color-neutral-text-strong);
+		text-decoration: none;
+	}
+
+	.console-menu {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lt-spacing-4);
+	}
+
+	.console-main {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-6);
+		padding-block: var(--lt-spacing-6) var(--lt-spacing-12);
+	}
+
+	.console-main:focus {
+		outline: none;
+	}
+
+	.console-section,
+	.console-stack {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-4);
+	}
+
+	.console-field {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-1);
+		max-inline-size: 28rem;
+	}
+
+	.console-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lt-spacing-3);
+	}
+
+	.console-path {
+		padding-block-start: var(--lt-spacing-4);
+	}
+
+	/* The list sets its items apart one below the other. In a grid the gap
+	   does that, and the margin would push every card but the first down. */
+	.console-sectors > li {
+		margin: 0;
+	}
+
+	.console-sectors {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+		gap: var(--lt-spacing-4);
+	}
+
+	/* The brand families are for surfaces, sections and categories. No
+	   component reads one by itself: a consumer says which is which. */
+	.console-sector {
+		padding: var(--lt-spacing-4);
+		border-inline-start-width: var(--lt-spacing-1);
+		border-inline-start-style: solid;
+		border-radius: var(--lt-card-radius, var(--lt-spacing-1));
+	}
+
+	.console-sector[data-brand="1"] {
+		border-color: var(--lt-color-brand1-fill);
+		color: var(--lt-color-brand1-text-strong);
+		background: var(--lt-color-brand1-surface);
+	}
+
+	.console-sector[data-brand="2"] {
+		border-color: var(--lt-color-brand2-fill);
+		color: var(--lt-color-brand2-text-strong);
+		background: var(--lt-color-brand2-surface);
+	}
+
+	.console-sector[data-brand="3"] {
+		border-color: var(--lt-color-brand3-fill);
+		color: var(--lt-color-brand3-text-strong);
+		background: var(--lt-color-brand3-surface);
+	}
+
+	.console-foot {
+		padding-block: var(--lt-spacing-6);
+		border-block-start: var(--lt-spacing-px) solid var(--lt-color-neutral-border-subtle);
+		color: var(--lt-color-neutral-text-subtle);
+	}
+</style>
+
+<script>
+	import { defineLt } from "@lo-tek/interfaces/register"
+
+	defineLt()
+</script>
