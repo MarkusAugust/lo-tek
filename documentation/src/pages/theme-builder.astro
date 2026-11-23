@@ -78,7 +78,8 @@ const empty = (property: Property): Record<string, unknown> =>
  * The signals. `own` says which families have a colour of the consumer's,
  * `fields` holds what is written in every field, in the shape of the recipe.
  * `recipe` is what was chosen and only that, as the text of the recipe file,
- * and `built` is the core's answer to it.
+ * and `built` is the core's answer to it. `shown` is the theme the frames
+ * have, and `view` which page they frame.
  *
  * A signal an action answers into always has the same keys, and only text,
  * numbers and booleans at its leaves. Datastar merges what is assigned into
@@ -97,7 +98,12 @@ const signals = {
   },
   recipe: "{}",
   built: { ok: false, css: "", error: "" },
+  shown: "",
+  view: "sheet",
 }
+
+/** The two appearances a theme has, each in a frame of its own. */
+const APPEARANCES = ["light", "dark"] as const
 
 const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 ---
@@ -157,6 +163,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				     theme. The core is asked only when it has been loaded. -->
 				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
 				<div hidden data-effect="$ready && ($built = @buildTheme($recipe))"></div>
+				<div hidden data-effect="$ready && ($shown = $built.css)"></div>
 
 				<section class="builder__recipe" aria-labelledby="recipe-title">
 					<h2 class="profile-label" id="recipe-title">Recipe</h2>
@@ -248,6 +255,44 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					}
 				</section>
 
+				<div class="builder__side">
+				<section class="builder__preview" aria-labelledby="preview-title">
+					<div class="builder__preview-head">
+						<h2 class="profile-label" id="preview-title">Preview</h2>
+						<fieldset class="lt-toggle-group">
+							<legend class="lt-sr-only">What the theme is shown on</legend>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="view" value="sheet" checked data-bind="view" />
+								Components
+							</label>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="view" value="page" data-bind="view" />
+								Page
+							</label>
+						</fieldset>
+					</div>
+					<!-- Each frame is a page of the site with the theme laid on it,
+					     the file itself and not a likeness of it. The frame says
+					     which appearance it is, and the framed page takes it before
+					     it paints. -->
+					<div class="builder__frames">
+						{
+							APPEARANCES.map((appearance) => (
+								<figure class="builder__frame">
+									<figcaption class="profile-label">{appearance}</figcaption>
+									<iframe
+										title={`The theme in the ${appearance} appearance`}
+										data-appearance={appearance}
+										src="/theme-builder/sheet/"
+										data-attr:src="'/theme-builder/' + $view + '/'"
+										data-effect={`$ready && @showTheme(el, '${appearance}', $shown)`}
+									/>
+								</figure>
+							))
+						}
+					</div>
+				</section>
+
 				<section class="builder__out" aria-labelledby="out-title">
 					<h2 class="profile-label" id="out-title">lotek.theme.json</h2>
 					<pre class="builder__json" data-recipe tabindex="0" data-text="$recipe">{"{}"}</pre>
@@ -263,6 +308,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						</a>
 					</p>
 				</section>
+				</div>
 			</main>
 		</div>
 	</body>
@@ -374,6 +420,48 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		line-height: var(--lt-line-height-default);
 	}
 
+	.builder__side {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-8);
+		min-inline-size: 0;
+	}
+
+	.builder__preview {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-4);
+	}
+
+	.builder__preview-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--lt-spacing-4);
+	}
+
+	.builder__frames {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+		gap: var(--lt-spacing-4);
+	}
+
+	.builder__frame {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+		min-inline-size: 0;
+		margin: 0;
+	}
+
+	.builder__frame iframe {
+		display: block;
+		inline-size: 100%;
+		block-size: min(46rem, 80vh);
+		border: var(--profile-rule);
+	}
+
 	.builder__actions {
 		margin: 0;
 	}
@@ -459,6 +547,41 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					error: error instanceof Error ? error.message : String(error),
 				}
 			}
+		},
+	})
+
+	/*
+	 * The theme of a frame: the appearance on `<html>`, and the CSS in one
+	 * `<style>` in `<head>`, the file as the generator writes it. An empty
+	 * theme empties the element, and the page shows LO-TEK's own colours.
+	 */
+	const themes = new WeakMap<HTMLIFrameElement, { appearance: string; css: string }>()
+
+	const lay = (frame: HTMLIFrameElement) => {
+		const theme = themes.get(frame)
+		const page = frame.contentDocument
+		// Before the page has come, or between two pages: `load` lays it then.
+		if (!theme || !page?.head || page.location.href === "about:blank") return
+		page.documentElement.dataset.theme = theme.appearance
+		page.documentElement.style.colorScheme = theme.appearance
+		let style = page.head.querySelector<HTMLStyleElement>("style[data-theme-builder]")
+		if (!style) {
+			if (theme.css === "") return
+			style = page.createElement("style")
+			style.setAttribute("data-theme-builder", "")
+			page.head.append(style)
+		}
+		if (style.textContent !== theme.css) style.textContent = theme.css
+	}
+
+	// A frame is given a theme now and again every time it has loaded a page:
+	// the other page of the two, or the same one once more.
+	action({
+		name: "showTheme",
+		apply(_: unknown, frame: HTMLIFrameElement, appearance: string, css: string) {
+			if (!themes.has(frame)) frame.addEventListener("load", () => lay(frame))
+			themes.set(frame, { appearance, css })
+			lay(frame)
 		},
 	})
 

@@ -71,11 +71,14 @@ const sheets = (names: string[] = []) =>
  * tooltip is there on hover and on focus. The dialog of the session timeout
  * is opened above everything.
  *
- * The panel of a popover and a list of suggestions are placed by their web
- * components against the window, and kept inside it. In a frame that is
- * scrolled, that leaves them at its lower edge long before their own
- * component has come into view. Here they stand where they are written,
- * below the button and the field, and move with the page.
+ * The panel of a popover and a list of suggestions are opened by their web
+ * components into the layer above the page, placed against the window and
+ * kept inside it. In a frame that is scrolled, that leaves them at its edge
+ * long before their own component has come into view. So they are not
+ * opened here at all. The panel is shown closed as it stands, below its
+ * button, and the list below its field, in the flow of the page. The script
+ * at the foot marks which of the two fields shows matches and which shows
+ * none.
  */
 const IN_PLACE = `
 	.lt-toast,
@@ -101,10 +104,23 @@ const IN_PLACE = `
 		margin: 0;
 	}
 
-	.lt-popover:popover-open,
-	.lt-suggestion__list:popover-open {
-		position: absolute;
-		inset: auto;
+	.lt-popover:not(:popover-open) {
+		display: block;
+		position: static;
+	}
+
+	[data-shows] .lt-suggestion__list {
+		display: block;
+		position: static;
+	}
+
+	[data-shows="matches"] .lt-suggestion__empty,
+	[data-shows="none"] .lt-suggestion__list {
+		display: none;
+	}
+
+	[data-shows="none"] .lt-suggestion__empty {
+		display: block;
 	}
 `
 
@@ -169,6 +185,27 @@ const components = [...pages]
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
+		<!--
+			In a frame of the theme builder, the page takes the appearance the
+			frame has before it paints: one frame is light and the other dark,
+			whatever the reader's own setting is. The builder sets it too, but
+			only once the page has loaded, after it has been drawn once in the
+			system's. Blocking and inline, because a module script runs too
+			late. Opened on its own, the page has no frame and follows the
+			system.
+		-->
+		<script is:inline>
+			try {
+				const appearance = window.frameElement?.dataset.appearance
+				if (appearance === "light" || appearance === "dark") {
+					document.documentElement.dataset.theme = appearance
+					document.documentElement.style.colorScheme = appearance
+				}
+			} catch {
+				// A frame of another origin may not be read. Then it is not the
+				// builder's, and the page follows the system.
+			}
+		</script>
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 		<title>Every component, to look at a theme on</title>
 	</head>
@@ -235,14 +272,6 @@ const components = [...pages]
 		line-height: var(--lt-line-height-compact);
 		color: var(--lt-color-neutral-text-subtle);
 	}
-
-	/* A panel that opens below its button lies above the page, and takes no
-	   room in it. The room is left here, so it does not cover the next
-	   component, and the button stands where the panel has room to open. */
-	[data-component="popover"] .lt-preview,
-	[data-component="suggestion"] .lt-preview {
-		padding-block-end: 9rem;
-	}
 </style>
 
 <script>
@@ -274,9 +303,6 @@ const components = [...pages]
 		"lt-connection-status",
 	)?.reportFailure()
 
-	// Open, as after a press on the button.
-	find("popover", "lt-popover")?.setAttribute("open", "")
-
 	// The error summary is empty and hidden until the server answers that
 	// the form failed. Written here as the recipe's own script writes it, and
 	// without moving focus into the frame.
@@ -297,9 +323,8 @@ const components = [...pages]
 
 	// A suggestion list is closed until someone types, and shows either the
 	// matches or that there are none. Both are shown, each in its own field:
-	// the recipe's as it is, and a copy of it with nothing in the list. The
-	// attribute says that something else decides whether the list is open,
-	// which is true here, so neither needs focus.
+	// the recipe's as it is, and a copy of it with nothing in the list.
+	// Neither is opened: the stylesheet shows each as its mark says.
 	const suggestion = find<HTMLElement>("suggestion", "lt-suggestion")
 	if (suggestion) {
 		const none = suggestion.cloneNode(true) as HTMLElement
@@ -312,11 +337,8 @@ const components = [...pages]
 		}
 		for (const option of none.querySelectorAll("li")) option.remove()
 		suggestion.after(none)
-		for (const host of [suggestion, none]) {
-			host.setAttribute("server-controlled", "")
-			host.querySelector(".lt-suggestion__list")?.removeAttribute("hidden")
-			host.querySelector(".lt-suggestion__empty")?.removeAttribute("hidden")
-		}
+		suggestion.dataset.shows = "matches"
+		none.dataset.shows = "none"
 	}
 
 	// The dialog of the session timeout, shown where it stands rather than
