@@ -8,7 +8,8 @@
  * comment. On the page it is a report: a row for each family that was
  * given, with the colour given and the fill it became in the light and in
  * the dark appearance, each as its text and as a swatch painted with it,
- * and the reasons the command gives.
+ * and the reasons the command gives, which are kept folded until they are
+ * asked for: under nine colours they were most of the page.
  *
  * The page writes none of this itself, so the check takes none of it from
  * the page. The colours are those `buildTheme` in the package reports, run
@@ -124,7 +125,16 @@ function wanted(recipe: Record<string, string>): Wanted[] {
 }
 
 /** Runs in the builder. The rows that can be seen, and what is wrong with them. */
-function report(rows: Wanted[]) {
+function report({
+  rows,
+  opened,
+  fresh,
+}: {
+  rows: Wanted[]
+  opened: boolean
+  /** The families whose reasons are new, and so must not be open yet. */
+  fresh: string[]
+}) {
   const collapsed = (text: string) => text.replace(/\s+/g, " ").trim()
   const seen = [
     ...document.querySelectorAll<HTMLElement>("[data-family]"),
@@ -163,16 +173,43 @@ function report(rows: Wanted[]) {
       if (!swatches.includes(paint))
         wrong.push(`${family}: nothing in the row is painted ${hex}`)
     }
-    for (const sentence of sentences)
-      if (!text.includes(collapsed(sentence)))
-        wrong.push(`${family}: the row does not say "${sentence}"`)
-    // And no reason the command does not give: each kind as often as there.
-    for (const kind of ["could not be the fill itself", "of the chroma of"]) {
-      const count = (in_: string) => in_.split(kind).length - 1
-      if (count(text) !== count(sentences.join(" ")))
+    /*
+     * The reasons are not in plain sight: one `<details>` when the command
+     * has something to say of the colour, and none when it has not. Closed
+     * until it is asked for, and its summary says the colour was adjusted.
+     */
+    const details = [...row.querySelectorAll("details")].filter(
+      (d) => d.getClientRects().length > 0,
+    )
+    if (details.length !== (sentences.length > 0 ? 1 : 0))
+      wrong.push(
+        `${family}: the row has ${details.length} <details>, and the command has ${sentences.length} sentences about the colour`,
+      )
+    for (const d of details) {
+      if (!opened && d.open && fresh.includes(family))
         wrong.push(
-          `${family}: the row says "${kind}" ${count(text)} times, and the command ${count(sentences.join(" "))}`,
+          `${family}: the reasons are open before anyone asked for them`,
         )
+      if (!/adjusted/i.test(d.querySelector("summary")?.innerText ?? ""))
+        wrong.push(
+          `${family}: the summary does not say the colour was adjusted: "${collapsed(d.querySelector("summary")?.textContent ?? "")}"`,
+        )
+      if (!opened) continue
+      // Opened: the command's sentences, word for word, and no other.
+      const said = collapsed(d.innerText)
+      for (const sentence of sentences)
+        if (!said.includes(collapsed(sentence)))
+          wrong.push(`${family}: the reasons do not say "${sentence}"`)
+      for (const kind of [
+        "cannot be the fill as it is",
+        "less saturated than",
+      ]) {
+        const count = (in_: string) => in_.split(kind).length - 1
+        if (count(said) !== count(sentences.join(" ")))
+          wrong.push(
+            `${family}: the reasons say "${kind}" ${count(said)} times, and the command ${count(sentences.join(" "))}`,
+          )
+      }
     }
   }
   return wrong
@@ -204,7 +241,7 @@ const STEPS: [string, Record<string, string>][] = [
     first.length !== 2 ||
     !first.every((s) => s.startsWith("In the dark theme")) ||
     second.length !== 3 ||
-    !second[0].includes("content on top of fill")
+    !second[0].includes("text on it would have a contrast of")
   ) {
     console.error(
       `✗ lotek theme does not give the reasons the check is written for: ${JSON.stringify([first, second])}. The check is older than the command.`,
@@ -216,6 +253,9 @@ const STEPS: [string, Record<string, string>][] = [
 const s = await site({ pages: 1 })
 const page = s.page
 let steps = 0
+let opened = 0
+/** What each family was told in the step before, to know which reasons are new. */
+const told: Record<string, string> = {}
 
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
@@ -230,12 +270,35 @@ const code = await s.run(async () => {
       } else await own(family).uncheck()
     }
     const rows = Object.keys(recipe).length === 0 ? [] : wanted(recipe)
-    let wrong = await page.evaluate(report, rows)
+    // Reasons that are the same as in the step before may still be open,
+    // or closed again: the page is free to do either. New ones are closed.
+    const fresh = rows
+      .filter((row) => told[row.family] !== row.sentences.join(" "))
+      .map((row) => row.family)
+    for (const family of Object.keys(told)) delete told[family]
+    for (const row of rows) told[row.family] = row.sentences.join(" ")
+    let wrong = await page.evaluate(report, { rows, opened: false, fresh })
     for (let attempt = 0; attempt < 50 && wrong.length > 0; attempt++) {
       await page.waitForTimeout(100)
-      wrong = await page.evaluate(report, rows)
+      wrong = await page.evaluate(report, { rows, opened: false, fresh })
     }
     for (const finding of wrong) s.fail(`${name}: ${finding}`)
+    // The reasons, asked for as a reader asks, by the summary, where they
+    // are not open already.
+    for (const { family, sentences } of rows) {
+      const details = page.locator(`[data-family="${family}"] details`)
+      if (sentences.length === 0 || (await details.count()) !== 1) continue
+      if (!(await details.evaluate((d) => (d as HTMLDetailsElement).open)))
+        await details.locator("summary").click()
+      opened += 1
+    }
+    if (rows.some((row) => row.sentences.length > 0))
+      for (const finding of await page.evaluate(report, {
+        rows,
+        opened: true,
+        fresh,
+      }))
+        s.fail(`${name}, with the reasons opened: ${finding}`)
     steps += 1
   }
 
@@ -253,9 +316,9 @@ if (code !== 0) {
 }
 
 // The guard comes last.
-if (steps !== STEPS.length + 2) {
+if (steps !== STEPS.length + 2 || opened < 7) {
   console.error(
-    `✗ The check went through ${steps} recipes where it has ${STEPS.length + 2}. It has not looked at everything.`,
+    `✗ The check went through ${steps} recipes where it has ${STEPS.length + 2}, and opened the reasons of ${opened} colours where the recipes have 7. It has not looked at everything.`,
   )
   process.exit(1)
 }

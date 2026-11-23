@@ -81,6 +81,20 @@ const sheets = (names: string[] = []) =>
  * none.
  */
 const IN_PLACE = `
+	/* A recipe is often a whole form. LO-TEK leaves the distance between the
+	   fields of a form to the page, and here the sheet is the page: the
+	   same distance the surface gives what stands directly on it. */
+	form:not([class]) {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--lt-spacing-3);
+	}
+
+	form:not([class]) > .lt-button {
+		align-self: start;
+	}
+
 	.lt-toast,
 	.lt-connection-status__bar {
 		position: static;

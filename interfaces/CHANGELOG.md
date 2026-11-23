@@ -34,6 +34,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the command. It runs the core in the browser, and nothing is sent
   anywhere. Nothing in the npm package is new for it.
 
+### Changed
+
+- **`lotek theme` says in plain words why a colour was moved.** The reason
+  named the promises of the contract, `fill on raised would be 1.06:1, the
+  requirement is 3.1:1`. It says what the fill is measured against now:
+  `against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is
+  required`. The line about chroma says the fill is less saturated, and no
+  longer names sRGB. A script that reads these lines must follow; the first
+  line per colour and `brands` are unchanged.
+
 ### Fixed
 
 - **The theme generator refuses a square bracket that is not closed.**

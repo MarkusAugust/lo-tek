@@ -433,14 +433,26 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											</span>
 										))}
 									</p>
-									{WHY.map((key) => (
-										<p
-											class="builder__why"
-											style="display: none"
-											data-show={`$built.report.${name}.${key} !== ''`}
-											data-text={`$built.report.${name}.${key}`}
-										/>
-									))}
+									<!-- The reason takes room, and is the same every time the
+									     colour is looked at: it is there for the asking. It
+										     is closed again when it changes, since what was
+										     opened was the reason for another colour. -->
+									<details
+										class="builder__reason"
+										style="display: none"
+										data-show={WHY.map((key) => `$built.report.${name}.${key} !== ''`).join(" || ")}
+										data-effect={`${WHY.map((key) => `$built.report.${name}.${key}`).join(", ")}, (el.open = false)`}
+									>
+										<summary>The colour was adjusted to fit the theme. Show why</summary>
+										{WHY.map((key) => (
+											<p
+												class="builder__why"
+												style="display: none"
+												data-show={`$built.report.${name}.${key} !== ''`}
+												data-text={`$built.report.${name}.${key}`}
+											/>
+										))}
+									</details>
 								</div>
 								</div>
 							))
@@ -902,6 +914,25 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		border: var(--profile-rule);
 	}
 
+	.builder__reason > summary {
+		font-size: var(--lt-font-size-xs);
+		color: var(--lt-color-neutral-text);
+		cursor: pointer;
+	}
+	
+	.builder__reason > summary:hover {
+		color: var(--lt-color-neutral-text-strong);
+	}
+	
+	.builder__reason > summary:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: var(--lt-spacing-1);
+	}
+	
+	.builder__reason > p {
+		margin: var(--lt-spacing-2) 0 0;
+	}
+	
 	.builder__why {
 		font-size: var(--lt-font-size-xs);
 		line-height: var(--lt-line-height-article);
@@ -1078,20 +1109,27 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	type Fill = { fill: string; chromaKept: number; breaks: Broken[] }
 	type Row = Record<string, string>
 
+	/** A promise about the fill, as what it is measured against. As in `lotek theme`. */
+	const PLAINLY: Record<string, string> = {
+		"fill on canvas": "against the page it",
+		"fill on raised": "against a raised surface it",
+		"content on top of fill": "text on it",
+	}
+
 	/** The two sentences about one appearance, as `lotek theme` writes them. */
 	const why = (appearance: string, given: string, fill: Fill) => {
 		const percent = Math.round(fill.chromaKept * 100)
 		return [
 			fill.breaks.length === 0
 				? ""
-				: `In the ${appearance} theme ${given} could not be the fill itself: ${fill.breaks
-						.map(
-							(b) =>
-								`${b.promise} would be ${b.ratio.toFixed(2)}:1, the requirement is ${b.required}:1`,
-						)
-						.join("; ")}.`,
+				: `In the ${appearance} theme ${given} cannot be the fill as it is: ${fill.breaks
+					.map(
+						(b) =>
+							`${PLAINLY[b.promise] ?? b.promise} would have a contrast of ${b.ratio.toFixed(2)}:1, and ${b.required}:1 is required`,
+					)
+					.join("; ")}.`,
 			percent < 100
-				? `In the ${appearance} theme the fill has ${percent}% of the chroma of ${given}: sRGB cannot show more at that lightness and hue.`
+				? `In the ${appearance} theme the fill is less saturated than ${given}, with ${percent}% of its chroma: a screen cannot show more at that lightness.`
 				: "",
 		]
 	}

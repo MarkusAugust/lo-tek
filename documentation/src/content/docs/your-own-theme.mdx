@@ -96,14 +96,14 @@ Since the lightness is the role's, the colour you gave is rarely one of the cell
 
 ```
 accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.
-  In the light theme #f7df1e could not be the fill itself: fill on canvas would be 1.35:1, the requirement is 3.1:1; fill on raised would be 1.06:1, the requirement is 3.1:1; content on top of fill would be 1.32:1, the requirement is 4.6:1.
-  In the light theme the fill has 61% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.
-  In the dark theme the fill has 74% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.
+  In the light theme #f7df1e cannot be the fill as it is: against the page it would have a contrast of 1.35:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is required; text on it would have a contrast of 1.32:1, and 4.6:1 is required.
+  In the light theme the fill is less saturated than #f7df1e, with 61% of its chroma: a screen cannot show more at that lightness.
+  In the dark theme the fill is less saturated than #f7df1e, with 74% of its chroma: a screen cannot show more at that lightness.
 ```
 
 The first line is also written at the top of the generated file, so the file still says it later.
 
-The second line is the reason, in the contract's own terms: the promises about `fill` your colour would break if it were the fill itself. The theme does not break them. A colour that fits as the fill on a light page is too dark on a dark one, and the other way round, so every colour gets such a line for at least one of the themes.
+The second line is the reason: the promises about `fill` your colour would break if it were the fill itself, each said as what the fill is measured against. The theme does not break them. A colour that fits as the fill on a light page is too dark on a dark one, and the other way round, so every colour gets such a line for at least one of the themes.
 
 ## What the generator does not do
 

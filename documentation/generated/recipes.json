@@ -9613,7 +9613,7 @@
         {
           "lang": null,
           "meta": null,
-          "code": "accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.\n  In the light theme #f7df1e could not be the fill itself: fill on canvas would be 1.35:1, the requirement is 3.1:1; fill on raised would be 1.06:1, the requirement is 3.1:1; content on top of fill would be 1.32:1, the requirement is 4.6:1.\n  In the light theme the fill has 61% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.\n  In the dark theme the fill has 74% of the chroma of #f7df1e: sRGB cannot show more at that lightness and hue.",
+          "code": "accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.\n  In the light theme #f7df1e cannot be the fill as it is: against the page it would have a contrast of 1.35:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is required; text on it would have a contrast of 1.32:1, and 4.6:1 is required.\n  In the light theme the fill is less saturated than #f7df1e, with 61% of its chroma: a screen cannot show more at that lightness.\n  In the dark theme the fill is less saturated than #f7df1e, with 74% of its chroma: a screen cannot show more at that lightness.",
           "section": "What became of your colour"
         },
         {
