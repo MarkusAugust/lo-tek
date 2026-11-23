@@ -207,9 +207,68 @@ if (listed.exitCode !== 0) {
   process.exit(1)
 }
 
+/*
+ * What the core says, only the core writes.
+ *
+ * The core is where a theme is computed, and where what is said about it is
+ * worded: the command, the package, Kotlin and the theme builder are
+ * adapters, which pass a question on and show the answer. The sentences
+ * about a brand colour that was moved stood in three of them, each put
+ * together from the numbers, and a change of wording had to be made three
+ * times and was held by a fourth copy in a check.
+ *
+ * So the phrases those sentences are made of may stand in source code only
+ * under `core/src/`. In the hosts they are a host that has started to word
+ * an answer itself. Tests, checks, expected results, documentation and the
+ * changelogs quote them freely: they hold the wording, they do not make it.
+ */
+const CORE_SAYS = [
+  "gives the fill",
+  "cannot be the fill as it is",
+  "is less saturated than",
+  "against a raised surface it",
+]
+/** Where a host's own code is. A test in it is not the host. */
+const isHost = (rel: string) =>
+  (/^(cli\/src|interfaces\/src|documentation\/src\/pages|documentation\/src\/components)\//.test(
+    rel,
+  ) ||
+    /^kotlin\/(.*\/)?src\/main\//.test(rel)) &&
+  !/\.test\.ts$/.test(rel) &&
+  !rel.startsWith("interfaces/src/testing/")
+const hostFiles = new Map<string, number>(
+  ["cli/src/", "interfaces/src/", "documentation/src/pages/", "kotlin/"].map(
+    (host) => [host, 0],
+  ),
+)
+const saidByTheCore = new Map<string, number>(CORE_SAYS.map((p) => [p, 0]))
+
 let searched = 0
 for (const rel of new Set(listed.stdout.toString().split("\0"))) {
-  if (rel === "" || OLD_NAME_ALLOWED.has(rel)) continue
+  if (rel === "") continue
+  if (isHost(rel) || rel.startsWith("core/src/")) {
+    let source = ""
+    try {
+      source = readFileSync(ROOT + rel, "utf8")
+    } catch {
+      // Listed by git but deleted in the working tree.
+    }
+    for (const phrase of CORE_SAYS) {
+      if (!source.includes(phrase)) continue
+      if (rel.startsWith("core/src/"))
+        saidByTheCore.set(phrase, (saidByTheCore.get(phrase) ?? 0) + 1)
+      else {
+        const line = source.slice(0, source.indexOf(phrase)).split("\n").length
+        findings.push(
+          `${rel}:${line} writes "${phrase}". That sentence is the core's: a host shows what the core answers, and words nothing itself.`,
+        )
+      }
+    }
+    for (const host of hostFiles.keys())
+      if (isHost(rel) && rel.startsWith(host))
+        hostFiles.set(host, (hostFiles.get(host) ?? 0) + 1)
+  }
+  if (OLD_NAME_ALLOWED.has(rel)) continue
 
   let text: string
   try {
@@ -232,6 +291,13 @@ for (const rel of new Set(listed.stdout.toString().split("\0"))) {
 }
 
 const empty = [...read].filter(([, count]) => count === 0)
+// A host the guard read no file of is a host it does not guard, and a
+// phrase the core does not write is one that has changed under the guard.
+for (const [host, count] of hostFiles)
+  if (count === 0) empty.push([`${host} (what only the core says)`, 0])
+for (const [phrase, count] of saidByTheCore)
+  if (count === 0)
+    empty.push([`core/src/ for "${phrase}" (the core no longer says it)`, 0])
 if (searched === 0) empty.push(["every file git lists (the old name)", 0])
 
 if (empty.length > 0) {

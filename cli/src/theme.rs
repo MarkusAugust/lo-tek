@@ -14,7 +14,7 @@ use crate::output::{error, fail, log, shown};
 use crate::{refuse_unknown_flags, refuse_without_value, Arguments};
 use lotek_core::json::{parse, Json};
 use lotek_core::theme::contract::contract;
-use lotek_core::theme::{build_theme, js_number, to_fixed2, unknown_recipe_keys, Brand, BrandFill};
+use lotek_core::theme::{build_theme, js_number, to_fixed2, unknown_recipe_keys, Brand};
 
 /// The order the colour flags are listed in, as in `lotek --help`. Which
 /// families exist is the contract's to say, not this list's.
@@ -78,63 +78,13 @@ fn read_recipe(file: &str) -> Object {
     }
 }
 
-/// A promise about the fill, as what it is measured against. The contract
-/// names its promises for the matrix, `fill on raised`, and a reader of the
-/// run has not read the contract. A promise that is not known here is said
-/// by its name.
-fn plainly(promise: &str) -> String {
-    match promise {
-        "fill on canvas" => "against the page it".into(),
-        "fill on raised" => "against a raised surface it".into(),
-        "content on top of fill" => "text on it".into(),
-        other => other.into(),
-    }
-}
-
-/// What became of each brand colour, as the lines the run writes.
-///
-/// The lightness is the role's, so the colour is moved, and a light one is
-/// moved far. The run says so, with the reason in plain words,
-/// rather than answering only that every promise holds.
+/// What became of each brand colour, as the lines the run writes: the
+/// core's summary, and its reasons under it. The sentences are the core's.
 fn brand_lines(brands: &[Brand]) -> Vec<String> {
     let mut lines = Vec::new();
     for brand in brands {
-        let appearances: [(&str, &BrandFill); 2] = [("light", &brand.light), ("dark", &brand.dark)];
-        lines.push(format!(
-            "{}: {} gives the fill {} in the light theme and {} in the dark theme.",
-            brand.family, brand.given, brand.light.fill, brand.dark.fill
-        ));
-        for (appearance, fill) in appearances {
-            if fill.breaks.is_empty() {
-                continue;
-            }
-            let breaks: Vec<String> = fill
-                .breaks
-                .iter()
-                .map(|v| {
-                    format!(
-                        "{} would have a contrast of {}:1, and {}:1 is required",
-                        plainly(&v.promise),
-                        to_fixed2(v.ratio),
-                        js_number(v.required)
-                    )
-                })
-                .collect();
-            lines.push(format!(
-                "  In the {appearance} theme {} cannot be the fill as it is: {}.",
-                brand.given,
-                breaks.join("; ")
-            ));
-        }
-        for (appearance, fill) in appearances {
-            let percent = (fill.chroma_kept * 100.0).round();
-            if percent < 100.0 {
-                lines.push(format!(
-                    "  In the {appearance} theme the fill is less saturated than {}, with {percent}% of its chroma: a screen cannot show more at that lightness.",
-                    brand.given
-                ));
-            }
-        }
+        lines.push(brand.summary.clone());
+        lines.extend(brand.reasons.iter().map(|reason| format!("  {reason}")));
     }
     lines
 }

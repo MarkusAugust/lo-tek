@@ -193,11 +193,11 @@ const empty = (property: Property): Record<string, unknown> =>
   )
 
 /**
- * The sentences a row of the report can hold, as `lotek theme` writes them:
- * why the colour could not be the fill in an appearance, and how much of its
- * chroma the fill has there.
+ * The reasons a row of the report can hold: the core's own sentences about
+ * a colour, in its order. It gives at most four, two for each appearance,
+ * and a signal cannot hold a list, so a row has four places for them.
  */
-const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
+const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
 
 /*
  * The signals. `own` says which families have a colour of the consumer's,
@@ -1144,34 +1144,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	type Broken = { promise: string; ratio: number; required: number }
-	type Fill = { fill: string; chromaKept: number; breaks: Broken[] }
 	type Row = Record<string, string>
-
-	/** A promise about the fill, as what it is measured against. As in `lotek theme`. */
-	const PLAINLY: Record<string, string> = {
-		"fill on canvas": "against the page it",
-		"fill on raised": "against a raised surface it",
-		"content on top of fill": "text on it",
-	}
-
-	/** The two sentences about one appearance, as `lotek theme` writes them. */
-	const why = (appearance: string, given: string, fill: Fill) => {
-		const percent = Math.round(fill.chromaKept * 100)
-		return [
-			fill.breaks.length === 0
-				? ""
-				: `In the ${appearance} theme ${given} cannot be the fill as it is: ${fill.breaks
-					.map(
-						(b) =>
-							`${PLAINLY[b.promise] ?? b.promise} would have a contrast of ${b.ratio.toFixed(2)}:1, and ${b.required}:1 is required`,
-					)
-					.join("; ")}.`,
-			percent < 100
-				? `In the ${appearance} theme the fill is less saturated than ${given}, with ${percent}% of its chroma: a screen cannot show more at that lightness.`
-				: "",
-		]
-	}
 
 	/** What the core answers to a recipe of one key, when it refuses it. */
 	const refusal = (recipe: Fields): string => {
@@ -1209,7 +1182,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		name: "buildTheme",
 		apply(_: unknown, recipe: string, own: Record<string, boolean>, fields: Fields) {
 			const families = Object.keys(own)
-			const noRow = { given: "", light: "", dark: "", lightWhy: "", darkWhy: "", lightChroma: "", darkChroma: "" }
+			const noRow = { given: "", light: "", dark: "", reason1: "", reason2: "", reason3: "", reason4: "" }
 			const empty = Object.fromEntries(families.map((name) => [name, { ...noRow }]))
 			// A field is asked about alone, so the answer is about that field:
 			// the core stops at the first thing it refuses.
@@ -1236,17 +1209,17 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			try {
 				const { css, brands } = core.buildTheme(chosen)
 				const report = { ...empty }
+				// The sentences are the core's. The page puts them in their places.
 				for (const brand of brands) {
-					const [lightWhy, lightChroma] = why("light", brand.given, brand.light)
-					const [darkWhy, darkChroma] = why("dark", brand.given, brand.dark)
+					const [reason1 = "", reason2 = "", reason3 = "", reason4 = ""] = brand.reasons
 					report[brand.family] = {
 						given: brand.given,
 						light: brand.light.fill,
 						dark: brand.dark.fill,
-						lightWhy,
-						darkWhy,
-						lightChroma,
-						darkChroma,
+						reason1,
+						reason2,
+						reason3,
+						reason4,
 					}
 				}
 				lastReport = report

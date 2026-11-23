@@ -312,68 +312,24 @@ block(async () => {
  * role, so a light yellow gives an olive fill. The one who runs the command
  * is told so, with why the yellow cannot be the fill as it is, in words
  * that do not need the contract beside them: "against the page", and not
- * "fill on canvas". The lines are compared whole, since the wording is what
- * the consumer reads. The figures are the ones the core reports in
- * `brands`, read here through the package, and the sentences are put
- * together from them as the wording is specified.
+ * "fill on canvas".
+ *
+ * The words are the core's. It writes a summary and its reasons for each
+ * colour, and the command shows them: the summary on a line, and each
+ * reason under it behind two spaces. So what the command writes is held to
+ * what the core answers through the package, line for line, and this check
+ * puts no sentence together itself. The wording is held where it is made,
+ * in the core's own tests and its expected results.
  */
-const { default: colourContract } = await import(
-  "../src/tokens/color-contract.json"
-)
 const { buildTheme } = await import("../src/tokens/theme.js")
 
-/** A promise about the fill, said in plain words. */
-const IN_PLAIN_WORDS: Record<string, string> = {
-  "fill on canvas": "against the page it",
-  "fill on raised": "against a raised surface it",
-  "content on top of fill": "text on it",
-}
-
-/** The lines the command writes about the colours of a recipe, as specified. */
+/** The lines the command writes about the colours of a recipe: what the core says of each. */
 function explained(recipe: Record<string, string>): string[] {
-  return buildTheme(recipe).brands.flatMap((brand) => {
-    const sides = [
-      ["light", brand.light],
-      ["dark", brand.dark],
-    ] as const
-    return [
-      `${brand.family}: ${brand.given} gives the fill ${brand.light.fill} in the light theme and ${brand.dark.fill} in the dark theme.`,
-      ...sides.flatMap(([appearance, { breaks }]) =>
-        breaks.length === 0
-          ? []
-          : [
-              `  In the ${appearance} theme ${brand.given} cannot be the fill as it is: ${breaks
-                .map(
-                  (b) =>
-                    `${IN_PLAIN_WORDS[b.promise]} would have a contrast of ${b.ratio.toFixed(2)}:1, and ${b.required}:1 is required`,
-                )
-                .join("; ")}.`,
-            ],
-      ),
-      ...sides.flatMap(([appearance, { chromaKept }]) =>
-        Math.round(chromaKept * 100) === 100
-          ? []
-          : [
-              `  In the ${appearance} theme the fill is less saturated than ${brand.given}, with ${Math.round(chromaKept * 100)}% of its chroma: a screen cannot show more at that lightness.`,
-            ],
-      ),
-    ]
-  })
+  return buildTheme(recipe).brands.flatMap((brand) => [
+    brand.summary,
+    ...brand.reasons.map((reason) => `  ${reason}`),
+  ])
 }
-
-// The three promises about the fill are the ones with words here. A fourth
-// in the contract would be written with `undefined` for a name, so it stops
-// the check before any line is compared.
-block(async () => {
-  const aboutTheFill = colourContract.promises
-    .filter((p) => p.foreground === "fill" || p.background === "fill")
-    .map((p) => p.name)
-  expect(
-    JSON.stringify(aboutTheFill) ===
-      JSON.stringify(Object.keys(IN_PLAIN_WORDS)),
-    `the contract has the promises ${aboutTheFill.join(", ")} about the fill, and the command has plain words for ${Object.keys(IN_PLAIN_WORDS).join(", ")}`,
-  )
-})
 
 block(async () => {
   const { code, out, err } = await run(["theme", "--brand1=#F7DF1E"])

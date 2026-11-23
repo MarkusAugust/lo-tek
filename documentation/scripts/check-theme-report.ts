@@ -197,6 +197,17 @@ function report({
       if (!opened) continue
       // Opened: the command's sentences, word for word, and no other.
       const said = collapsed(d.innerText)
+      // Each once, in the order the command gives them, and nothing more:
+      // what is left of the reasons when the summary is taken away is the
+      // sentences, one after the other.
+      const summary = collapsed(d.querySelector("summary")?.innerText ?? "")
+      const under = collapsed(
+        said.startsWith(summary) ? said.slice(summary.length) : said,
+      )
+      if (under !== sentences.map(collapsed).join(" "))
+        wrong.push(
+          `${family}: the reasons are not the command's sentences, each once and in its order: "${under}"`,
+        )
       for (const sentence of sentences)
         if (!said.includes(collapsed(sentence)))
           wrong.push(`${family}: the reasons do not say "${sentence}"`)
