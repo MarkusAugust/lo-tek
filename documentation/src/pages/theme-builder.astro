@@ -790,6 +790,12 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		text-wrap: pretty;
 	}
 
+	/* The introduction has the width of the page to itself, and takes more
+	   of it than a line further down does. */
+	.builder__head .builder__line {
+		max-inline-size: 72rem;
+	}
+
 	.builder__recipe,
 	.builder__out,
 	.builder__group,
