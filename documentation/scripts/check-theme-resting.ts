@@ -1,28 +1,35 @@
 /**
  * That the theme builder starts from LO-TEK, shows it, and goes back to it.
  *
- * An empty form says nothing about what one is changing from. So a key that
- * is a number has a slider that rests at LO-TEK's own value, a colour
- * family has a picker that rests at LO-TEK's own colour, and "Start again"
- * puts every one of them back. A control that only rests chooses nothing:
- * the recipe is still `{}`, and that is the thing that goes wrong unseen,
- * since a slider standing at 600 looks the same whether the recipe has the
- * weight or not.
+ * An empty form says nothing about what one is changing from. So the fields
+ * of typography and shape hold LO-TEK's own value as text where LO-TEK has
+ * one, each number has a slider that stands at it, and a colour family has
+ * a picker that shows LO-TEK's colour. What stands at rest is not chosen:
+ * the recipe is `{}` on a first visit, and a key is in it exactly when its
+ * field holds something else than its resting text. That is the thing that
+ * goes wrong unseen, since `600` in a field looks the same whether the
+ * recipe has the weight or not. So a field that is changed says so, and has
+ * a button that puts that one value back.
  *
- * The values at rest are not written here where the repository states
- * them. The weights and the line heights are read from the descriptions in
- * `theme.schema.json` ("400 if left out"), the corners, the border and the
- * weight of the button from what the component stylesheets fall back to,
- * and the colours from `brands` in the colour contract. The page is held to
- * those, so a slider that rests somewhere LO-TEK does not is found.
+ * The values at rest are read from where the repository states them, in
+ * `theme-rest.ts`, and the page is held to those.
  *
  * Run with: bun documentation/scripts/check-theme-resting.ts
  * Requires `documentation/dist` to be built.
  */
 
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import {
+  BLOCK_KEYS,
+  BRANDS,
+  FAMILIES,
+  KEYS,
+  RESTING,
+  SLIDERS,
+  unread,
+} from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -32,155 +39,19 @@ if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
   )
   process.exit(1)
 }
+if (unread.length > 0) {
+  console.error(
+    `✗ The check cannot read where LO-TEK rests:\n\n${unread.map((p) => `  ${p}`).join("\n")}\n`,
+  )
+  process.exit(1)
+}
 
 const { buildTheme } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
 )) as { buildTheme(recipe: unknown): { css: string } }
-type Schema = { description?: string; properties?: Record<string, Schema> }
-const schema = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/theme.schema.json`, "utf8"),
-) as Schema
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[]; brands: Record<string, string> }
-const FAMILIES = contract.families
-const tokens = readFileSync(`${ROOT}interfaces/src/tokens/tokens.css`, "utf8")
-const css = (file: string) =>
-  readFileSync(`${ROOT}interfaces/src/components/css/${file}`, "utf8")
 
-const problems: string[] = []
-
-/** Every key of the recipe that takes a value, as a path with dots. */
-function leaves(at: Schema, path = ""): string[] {
-  return Object.entries(at.properties ?? {}).flatMap(([name, property]) =>
-    path === "" && name === "$schema"
-      ? []
-      : property.properties
-        ? leaves(property, `${path}${name}.`)
-        : [`${path}${name}`],
-  )
-}
-const KEYS = leaves(schema)
-
-/** The value of a token in `tokens.css`, as a number: pixels for a length. */
-function token(name: string): number {
-  const value = new RegExp(`${name}:\\s*([^;]+);`).exec(tokens)?.[1].trim()
-  const number = Number.parseFloat(value ?? "")
-  if (Number.isNaN(number)) problems.push(`tokens.css has no ${name}`)
-  return value?.endsWith("rem") ? number * 16 : number
-}
-/** What a stylesheet falls back to when the theme does not set a hook. */
-function fallback(file: string, hook: string): number {
-  const value = new RegExp(
-    `var\\(\\s*${hook}\\s*,\\s*(var\\(\\s*(--lt-[a-z0-9-]+)\\s*\\)|[0-9.]+px)\\s*\\)`,
-  ).exec(css(file))
-  if (!value) {
-    problems.push(`${file} has no fallback for ${hook}`)
-    return Number.NaN
-  }
-  return value[2] ? token(value[2]) : Number.parseFloat(value[1])
-}
-/** "400 if left out." in the description of a key in the schema. */
-function leftOut(group: "weights" | "lineHeights", key: string): number {
-  const description =
-    schema.properties?.typography?.properties?.[group]?.properties?.[key]
-      ?.description ?? ""
-  const value = /([0-9.]+) if left out/.exec(description)?.[1]
-  if (!value)
-    problems.push(`the schema does not say what ${group}.${key} is if left out`)
-  return Number.parseFloat(value ?? "")
-}
-
-/** A slider: its range, where it rests, and the unit it writes. */
-type Slider = {
-  min: number
-  max: number
-  step: number
-  rest: number
-  unit: string
-}
-const SLIDERS: Record<string, Slider> = {
-  ...Object.fromEntries(
-    ["regular", "medium", "semibold", "bold"].map((key) => [
-      `typography.weights.${key}`,
-      {
-        min: 100,
-        max: 900,
-        step: 100,
-        rest: leftOut("weights", key),
-        unit: "",
-      },
-    ]),
-  ),
-  ...Object.fromEntries(
-    ["default", "heading", "article", "compact"].map((key) => [
-      `typography.lineHeights.${key}`,
-      {
-        min: 1,
-        max: 2,
-        step: 0.05,
-        rest: leftOut("lineHeights", key),
-        unit: "",
-      },
-    ]),
-  ),
-  "shape.buttonRadius": {
-    min: 0,
-    max: 32,
-    step: 1,
-    rest: fallback("button/button.css", "--lt-button-radius"),
-    unit: "px",
-  },
-  "shape.fieldRadius": {
-    min: 0,
-    max: 32,
-    step: 1,
-    rest: fallback("input/input.css", "--lt-input-radius"),
-    unit: "px",
-  },
-  // Most surfaces have the corner of the alert; the card and the dialog
-  // have a larger one of their own.
-  "shape.surfaceRadius": {
-    min: 0,
-    max: 32,
-    step: 1,
-    rest: fallback("alert/alert.css", "--lt-alert-radius"),
-    unit: "px",
-  },
-  "shape.buttonBorderWidth": {
-    min: 0,
-    max: 4,
-    step: 1,
-    rest: fallback("button/button.css", "--lt-button-border-width"),
-    unit: "px",
-  },
-  "shape.buttonFontWeight": {
-    min: 100,
-    max: 900,
-    step: 100,
-    rest: fallback("button/button.css", "--lt-button-font-weight"),
-    unit: "",
-  },
-}
 /** The keys that are not numbers, and so have no slider. */
 const WITHOUT = KEYS.filter((key) => !(key in SLIDERS))
-if (
-  JSON.stringify(WITHOUT) !==
-  JSON.stringify([...FAMILIES, "typography.fontFamily"])
-)
-  problems.push(
-    `the keys without a slider are ${WITHOUT.join(", ")}, and should be the families and the font: the check is older than the schema`,
-  )
-for (const [key, { rest, min, max }] of Object.entries(SLIDERS))
-  if (!(rest >= min && rest <= max))
-    problems.push(`${key} rests at ${rest}, outside ${min} to ${max}`)
-
-if (problems.length > 0) {
-  console.error(
-    `✗ The check cannot read where LO-TEK rests:\n\n${problems.map((p) => `  ${p}`).join("\n")}\n`,
-  )
-  process.exit(1)
-}
 
 const s = await site({ pages: 1 })
 const page = s.page
@@ -254,6 +125,87 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
                 label,
               }
             : null,
+        ]
+      }),
+    ),
+    /** The group of each family: whether it says it is changed, and its reset button. */
+    groups: Object.fromEntries(
+      families.map((family) => {
+        const group = control(family)?.closest<HTMLElement>(
+          'fieldset, [role="group"]',
+        )
+        const reset = [...(group?.querySelectorAll("button") ?? [])].find(
+          (button) =>
+            /^reset/i.test(
+              collapsed(
+                button.getAttribute("aria-label") ?? button.textContent ?? "",
+              ),
+            ),
+        )
+        return [
+          family,
+          {
+            changed: /changed/i.test(group?.innerText ?? ""),
+            reset: reset
+              ? {
+                  name: collapsed(
+                    reset.getAttribute("aria-label") ?? reset.textContent ?? "",
+                  ),
+                  shown:
+                    reset.getClientRects().length > 0 &&
+                    getComputedStyle(reset).visibility !== "hidden",
+                }
+              : null,
+          },
+        ]
+      }),
+    ),
+    /** The families the report has a row for. */
+    rows: [...document.querySelectorAll<HTMLElement>("[data-family]")]
+      .filter((row) => row.getClientRects().length > 0)
+      .map((row) => row.dataset.family ?? ""),
+    /** The block of each field: whether it says it is changed, its reset button, its help. */
+    blocks: Object.fromEntries(
+      keys.map((key) => {
+        const field = control(key)
+        let block = field?.parentElement ?? null
+        const fieldsIn = (element: Element) =>
+          element.querySelectorAll(
+            'input[name]:not([role="switch"]), select[name], textarea[name]',
+          ).length
+        // The nearest element that holds this field and no other.
+        while (block?.parentElement && fieldsIn(block.parentElement) === 1)
+          block = block.parentElement
+        const reset = [...(block?.querySelectorAll("button") ?? [])].find(
+          (button) =>
+            /^reset/i.test(
+              collapsed(
+                button.getAttribute("aria-label") ?? button.textContent ?? "",
+              ),
+            ),
+        )
+        return [
+          key,
+          {
+            changed: /changed/i.test(block?.innerText ?? ""),
+            reset: reset
+              ? {
+                  name: collapsed(
+                    reset.getAttribute("aria-label") ?? reset.textContent ?? "",
+                  ),
+                  shown:
+                    reset.getClientRects().length > 0 &&
+                    getComputedStyle(reset).visibility !== "hidden",
+                }
+              : null,
+            label: collapsed(field?.labels?.[0]?.textContent ?? ""),
+            help: collapsed(
+              (field?.getAttribute("aria-describedby") ?? "")
+                .split(/\s+/)
+                .map((id) => document.getElementById(id)?.textContent ?? "")
+                .join(" "),
+            ),
+          },
         ]
       }),
     ),
@@ -335,26 +287,42 @@ async function framesHold(theme: string | null): Promise<boolean> {
   return holds(frames)
 }
 
+/** The text a field rests at: LO-TEK's own, and nothing for a colour. */
+const rest = (key: string) => RESTING[key] ?? ""
+
 /** What is not at rest, in words. Nothing when the page is LO-TEK's own. */
 function away(state: State): string[] {
   return [
     ...FAMILIES.filter((f) => state.own[f]).map(
       (f) => `the switch of ${f} is on`,
     ),
-    ...KEYS.filter((k) => state.fields[k] !== "").map(
-      (k) => `${k} holds ${JSON.stringify(state.fields[k])}`,
+    ...KEYS.filter((k) => state.fields[k] !== rest(k)).map(
+      (k) =>
+        `${k} holds ${JSON.stringify(state.fields[k])}, not ${JSON.stringify(rest(k))}`,
     ),
     ...Object.entries(SLIDERS)
-      .filter(([key, { rest }]) => state.sliders[key]?.value !== rest)
+      .filter(([key, slider]) => state.sliders[key]?.value !== slider.rest)
       .map(
-        ([key, { rest }]) =>
-          `the slider of ${key} stands at ${state.sliders[key]?.value ?? "nothing"}, not ${rest}`,
+        ([key, slider]) =>
+          `the slider of ${key} stands at ${state.sliders[key]?.value ?? "nothing"}, not ${slider.rest}`,
       ),
     ...FAMILIES.filter(
-      (f) => state.pickers[f]?.value.toLowerCase() !== contract.brands[f],
+      (f) => state.pickers[f]?.value.toLowerCase() !== BRANDS[f],
     ).map(
       (f) =>
-        `the picker of ${f} shows ${state.pickers[f]?.value ?? "nothing"}, not ${contract.brands[f]}`,
+        `the picker of ${f} shows ${state.pickers[f]?.value ?? "nothing"}, not ${BRANDS[f]}`,
+    ),
+    ...BLOCK_KEYS.filter((k) => state.blocks[k].changed).map(
+      (k) => `${k} says it is changed`,
+    ),
+    ...BLOCK_KEYS.filter((k) => state.blocks[k].reset?.shown).map(
+      (k) => `${k} has a button to reset it`,
+    ),
+    ...FAMILIES.filter((f) => state.groups[f].changed).map(
+      (f) => `the family ${f} says it is changed`,
+    ),
+    ...FAMILIES.filter((f) => state.groups[f].reset?.shown).map(
+      (f) => `the family ${f} has a button to reset it`,
     ),
     ...(shown(state) === "[]" ? [] : [`the recipe is ${state.recipe}`]),
   ]
@@ -382,7 +350,7 @@ const code = await s.run(async () => {
   const first = await until(rested)
 
   /*
-   * A first visit: everything at rest, and nothing chosen.
+   * A first visit: every field at LO-TEK's own, and nothing chosen.
    */
   for (const finding of away(first)) s.fail(`on a first visit, ${finding}`)
   expect(
@@ -414,6 +382,12 @@ const code = await s.run(async () => {
       first.sliders[key] === null,
       `${key} has a slider, and is not a number`,
     )
+  // The value is in the field, so the help does not say it a second time.
+  for (const key of BLOCK_KEYS)
+    expect(
+      !/if left out/i.test(first.blocks[key].help),
+      `the help of ${key} still says what it is if left out: "${first.blocks[key].help}"`,
+    )
   for (const family of FAMILIES) {
     expect(
       first.pickers[family]?.disabled === false,
@@ -424,99 +398,181 @@ const code = await s.run(async () => {
       `the field of ${family} can be typed in while its switch is off`,
     )
     expect(
-      first.placeholders[family].toLowerCase() === contract.brands[family],
-      `the field of ${family} has the placeholder "${first.placeholders[family]}", not LO-TEK's ${contract.brands[family]}`,
+      first.placeholders[family].toLowerCase() === BRANDS[family],
+      `the field of ${family} has the placeholder "${first.placeholders[family]}", not LO-TEK's ${BRANDS[family]}`,
     )
   }
   points += 1
 
-  /*
-   * A slider that is moved writes its field, and the key is then chosen.
-   */
-  const moves: [string, string[], string][] = [
-    ["typography.weights.bold", ["ArrowLeft"], "600"],
-    ["typography.lineHeights.article", ["ArrowRight"], "1.65"],
-    ["shape.buttonRadius", ["End"], "32px"],
-    ["shape.buttonBorderWidth", ["ArrowRight"], "2px"],
-    ["shape.fieldRadius", ["Home"], "0px"],
-  ]
-  // The expected text is the resting value moved by the keys, worked out
-  // here: a step up from 1.6 is 1.65 and not 1.6500000000000001.
-  for (const [key, keys, text] of moves) {
-    const { rest, step, min, max, unit } = SLIDERS[key]
-    const moved = keys.reduce(
-      (value, pressed) =>
-        pressed === "End"
-          ? max
-          : pressed === "Home"
-            ? min
-            : value + (pressed === "ArrowRight" ? step : -step),
-      rest,
-    )
-    if (`${Number(moved.toFixed(2))}${unit}` !== text)
-      throw new Error(
-        `the check expects ${text} for ${key}, and the keys give ${moved}`,
-      )
-  }
+  /** The recipe that is chosen so far, as paths and values. */
   const chosen: Record<string, string> = {}
-  for (const [key, keys, text] of moves) {
-    expect(await slide(key, ...keys), `${key} has no slider to move`)
-    chosen[key] = text
+  /**
+   * Holds one field after something was done to it: what it holds, where
+   * its slider stands, whether it is in the recipe, and that it says it is
+   * changed, with a button to reset it, exactly when it is not at rest.
+   */
+  const holds = async (
+    what: string,
+    key: string,
+    text: string,
+    slider: number | undefined,
+  ) => {
+    const changed = text !== rest(key)
+    if (changed && text !== "") chosen[key] = text
+    else delete chosen[key]
     const after = await until(
       (state) =>
-        state.fields[key] === text && shown(state) === recipeOf(chosen),
+        state.fields[key] === text &&
+        shown(state) === recipeOf(chosen) &&
+        state.blocks[key].changed === changed &&
+        (state.blocks[key].reset?.shown ?? false) === changed,
     )
     expect(
       after.fields[key] === text,
-      `moving the slider of ${key} wrote ${JSON.stringify(after.fields[key])} in its field, not ${JSON.stringify(text)}`,
+      `${what}: ${key} holds ${JSON.stringify(after.fields[key])}, not ${JSON.stringify(text)}`,
     )
+    if (slider !== undefined)
+      expect(
+        after.sliders[key]?.value === slider,
+        `${what}: the slider of ${key} stands at ${after.sliders[key]?.value}, not ${slider}`,
+      )
     expect(
       shown(after) === recipeOf(chosen),
-      `after the slider of ${key} was moved the recipe is ${after.recipe}`,
+      `${what}: the recipe is ${after.recipe}, and what is changed is ${JSON.stringify(chosen)}`,
     )
+    expect(
+      after.blocks[key].changed === changed,
+      `${what}: ${key} ${changed ? "does not say" : "says"} it is changed`,
+    )
+    const reset = after.blocks[key].reset
+    expect(
+      (reset?.shown ?? false) === changed,
+      `${what}: ${key} ${changed ? "has no" : "has a"} button to reset it`,
+    )
+    if (changed && reset?.shown)
+      expect(
+        reset.name
+          .toLowerCase()
+          .includes(after.blocks[key].label.toLowerCase()),
+        `${what}: the reset button of ${key} is called "${reset.name}", which does not name "${after.blocks[key].label}"`,
+      )
+    return after
   }
+  /** Presses the reset button of a field. */
+  const reset = async (key: string) => {
+    let block = field(key).locator("xpath=..")
+    for (let up = 0; up < 6; up++) {
+      if ((await block.getByRole("button", { name: /^reset/i }).count()) > 0)
+        break
+      block = block.locator("xpath=..")
+    }
+    const button = block.getByRole("button", { name: /^reset/i })
+    if ((await button.count()) !== 1) return false
+    await button.click()
+    return true
+  }
+
+  /*
+   * Written by hand: another value is changed and in the recipe, the
+   * resting text written again is at rest, and an emptied field is changed
+   * and still out of the recipe.
+   */
+  const bold = "typography.weights.bold"
+  await field(bold).fill("800")
+  await holds("800 written", bold, "800", 800)
+  await field(bold).fill(rest(bold))
+  await holds(
+    "the resting text written again",
+    bold,
+    rest(bold),
+    SLIDERS[bold].rest,
+  )
+  await field(bold).fill("")
+  await holds("the field emptied", bold, "", SLIDERS[bold].rest)
   expect(
-    await framesHold(buildTheme(nested(chosen)).css),
-    "the frames do not have the theme of what the sliders chose",
+    await reset(bold),
+    `${bold} has no reset button to press while it is empty`,
+  )
+  await holds("an emptied field reset", bold, rest(bold), SLIDERS[bold].rest)
+  // A text the slider cannot show is the value, and the slider stays.
+  const fieldRadius = "shape.fieldRadius"
+  await field(fieldRadius).fill("12px")
+  await holds("12px written", fieldRadius, "12px", 12)
+  await field(fieldRadius).fill("0.5rem")
+  await holds("0.5rem written", fieldRadius, "0.5rem", 8)
+  await field(fieldRadius).fill("calc(1rem + 2px)")
+  await holds("a calculation written", fieldRadius, "calc(1rem + 2px)", 8)
+  await field(fieldRadius).fill("0")
+  await holds("0 written", fieldRadius, "0", 0)
+  points += 1
+
+  /*
+   * The sliders, moved with the keyboard. A weight moved back to its
+   * resting number is at rest. A corner moved back is `4px`, which is not
+   * the `0.25rem` LO-TEK writes, and so is changed.
+   */
+  expect(await slide(bold, "ArrowLeft"), `${bold} has no slider to move`)
+  await holds("the slider moved a step down", bold, "600", 600)
+  await slide(bold, "ArrowRight")
+  await holds("the slider moved back", bold, rest(bold), SLIDERS[bold].rest)
+  const article = "typography.lineHeights.article"
+  await slide(article, "ArrowRight")
+  // A step up from 1.6 is 1.65, and not 1.6500000000000001.
+  await holds("a line height moved a step up", article, "1.65", 1.65)
+  const buttonRadius = "shape.buttonRadius"
+  await slide(buttonRadius, "End")
+  await holds("a corner moved to the end", buttonRadius, "32px", 32)
+  await slide(buttonRadius, "Home")
+  await holds("a corner moved to the start", buttonRadius, "0px", 0)
+  for (let step = 0; step < SLIDERS[buttonRadius].rest; step++)
+    await slide(buttonRadius, "ArrowRight")
+  await holds(
+    "a corner moved back to its resting number",
+    buttonRadius,
+    `${SLIDERS[buttonRadius].rest}px`,
+    SLIDERS[buttonRadius].rest,
   )
   points += 1
 
   /*
-   * A field that is written moves its slider, when the text is a number
-   * the slider can show.
+   * The three fields that rest empty: written is changed, reset is empty.
    */
-  const written: [string, string, number | "stays" | "rest"][] = [
-    ["typography.weights.bold", "300", 300],
-    ["shape.fieldRadius", "12px", 12],
-    ["shape.fieldRadius", "0", 0],
-    ["shape.fieldRadius", "0.5rem", 8],
-    ["shape.fieldRadius", "calc(1rem + 2px)", "stays"],
-    ["typography.weights.bold", "bold", "stays"],
-    ["typography.lineHeights.heading", "1.35", 1.35],
-    ["shape.fieldRadius", "", "rest"],
-    ["typography.weights.bold", "", "rest"],
-  ]
-  for (const [key, text, where] of written) {
-    const before = (await now()).sliders[key]?.value
+  for (const [key, text, slider] of [
+    ["typography.fontFamily", "Georgia, serif", undefined],
+    ["shape.surfaceRadius", "0.5rem", 8],
+    ["shape.buttonFontWeight", "700", 700],
+  ] as const) {
+    expect(rest(key) === "", `${key} was expected to rest empty`)
     await field(key).fill(text)
-    const wanted =
-      where === "stays" ? before : where === "rest" ? SLIDERS[key].rest : where
-    if (text === "") delete chosen[key]
-    else chosen[key] = text
-    const after = await until(
-      (state) =>
-        state.sliders[key]?.value === wanted &&
-        shown(state) === recipeOf(chosen),
-    )
-    expect(
-      after.sliders[key]?.value === wanted,
-      `with ${JSON.stringify(text)} in ${key} its slider stands at ${after.sliders[key]?.value}, not ${wanted}`,
-    )
-    expect(
-      shown(after) === recipeOf(chosen),
-      `with ${JSON.stringify(text)} in ${key} the recipe is ${after.recipe}`,
-    )
+    await holds(`${text} written`, key, text, slider)
   }
+  expect(
+    await framesHold(buildTheme(nested(chosen)).css),
+    "the frames do not have the theme of what is changed, and of that only",
+  )
+
+  /*
+   * Reset of one value: that field back to rest, and every other as it was.
+   */
+  const before = await now()
+  for (const key of [buttonRadius, article, "shape.surfaceRadius"]) {
+    expect(await reset(key), `${key} has no reset button to press`)
+    await holds("reset", key, rest(key), SLIDERS[key].rest)
+  }
+  const after = await now()
+  const touched = KEYS.filter(
+    (key) =>
+      ![buttonRadius, article, "shape.surfaceRadius"].includes(key) &&
+      after.fields[key] !== before.fields[key],
+  )
+  expect(
+    touched.length === 0,
+    `resetting three values changed others too: ${touched.join(", ")}`,
+  )
+  expect(
+    await framesHold(buildTheme(nested(chosen)).css),
+    "the frames do not have the theme of what is left after three values were reset",
+  )
   points += 1
 
   /*
@@ -527,13 +583,7 @@ const code = await s.run(async () => {
     field(family)
       .locator('xpath=ancestor::*[self::fieldset or @role="group"][1]')
       .locator('input[type="color"]')
-  let picked = true
-  try {
-    await picker("accent").fill("#7c3aed", { timeout: 3000 })
-  } catch {
-    picked = false
-  }
-  expect(picked, "a colour cannot be picked for accent while its switch is off")
+  await picker("accent").fill("#7c3aed", { timeout: 3000 })
   chosen.accent = "#7c3aed"
   const afterPick = await until(
     (state) => state.own.accent && state.fields.accent === "#7c3aed",
@@ -546,36 +596,138 @@ const code = await s.run(async () => {
     shown(afterPick) === recipeOf(chosen),
     `after a colour was picked the recipe is ${afterPick.recipe}`,
   )
-  if (afterPick.own.accent) {
-    await field("accent").fill("#0f766e")
-    const typed = await until(
-      (state) => state.pickers.accent?.value.toLowerCase() === "#0f766e",
-    )
-    expect(
-      typed.pickers.accent?.value.toLowerCase() === "#0f766e",
-      `with #0f766e in the field of accent its picker shows ${typed.pickers.accent?.value}`,
-    )
-    await field("accent").fill("")
-    const emptied = await until(
-      (state) =>
-        state.pickers.accent?.value.toLowerCase() === contract.brands.accent,
-    )
-    expect(
-      emptied.pickers.accent?.value.toLowerCase() === contract.brands.accent,
-      `with the field of accent emptied its picker shows ${emptied.pickers.accent?.value}, not LO-TEK's ${contract.brands.accent}`,
-    )
-    await field("accent").fill("#0f766e")
-  }
+  // A family that is chosen says so, and can be put back.
+  expect(
+    afterPick.groups.accent.changed &&
+      afterPick.groups.accent.reset?.shown === true,
+    "a family with a colour of its own does not say it is changed, or has no button to reset it",
+  )
+  expect(
+    /accent/i.test(afterPick.groups.accent.reset?.name ?? ""),
+    `the reset button of accent is called "${afterPick.groups.accent.reset?.name ?? ""}"`,
+  )
+  await field("accent").fill("")
+  const emptied = await until(
+    (state) => state.pickers.accent?.value.toLowerCase() === BRANDS.accent,
+  )
+  expect(
+    emptied.pickers.accent?.value.toLowerCase() === BRANDS.accent,
+    `with the field of accent emptied its picker shows ${emptied.pickers.accent?.value}, not LO-TEK's ${BRANDS.accent}`,
+  )
+  // The switch on is a change in itself, with nothing in the field yet.
+  expect(
+    emptied.own.accent && emptied.groups.accent.changed,
+    "a family whose switch is on and whose field is empty does not say it is changed",
+  )
   points += 1
 
   /*
-   * Start again: everything back to LO-TEK. From controls that were moved,
-   * from a pasted recipe, and from what the page remembered.
+   * Switching a family off puts it back: the field empty and the picker at
+   * LO-TEK's colour, and so it is when the switch goes on again.
+   */
+  /** Holds that a family is at rest, with its switch as given. */
+  const familyRests = async (what: string, family: string, on: boolean) => {
+    const state = await until(
+      (now) =>
+        now.own[family] === on &&
+        now.fields[family] === "" &&
+        now.pickers[family]?.value.toLowerCase() === BRANDS[family] &&
+        now.groups[family].changed === on &&
+        !now.rows.includes(family),
+    )
+    expect(
+      state.own[family] === on,
+      `${what}: the switch of ${family} is ${state.own[family] ? "on" : "off"}`,
+    )
+    expect(
+      state.fields[family] === "",
+      `${what}: the field of ${family} still holds ${JSON.stringify(state.fields[family])}`,
+    )
+    expect(
+      state.pickers[family]?.value.toLowerCase() === BRANDS[family],
+      `${what}: the picker of ${family} shows ${state.pickers[family]?.value}, not LO-TEK's ${BRANDS[family]}`,
+    )
+    expect(
+      state.groups[family].changed === on &&
+        (state.groups[family].reset?.shown ?? false) === on,
+      `${what}: ${family} ${state.groups[family].changed ? "says" : "does not say"} it is changed, and ${state.groups[family].reset?.shown ? "has" : "has no"} button to reset it`,
+    )
+    expect(
+      !state.rows.includes(family) && shown(state) === recipeOf(chosen),
+      `${what}: ${family} is still in the report or the recipe: ${state.recipe}`,
+    )
+  }
+  await field("accent").fill("#7c3aed")
+  await until((state) => state.rows.includes("accent"))
+  delete chosen.accent
+  await page.locator('input[role="switch"][name="own.accent"]').uncheck()
+  await familyRests("the switch of accent turned off", "accent", false)
+  await page.locator('input[role="switch"][name="own.accent"]').check()
+  await familyRests("the switch of accent turned on again", "accent", true)
+  await page.locator('input[role="switch"][name="own.accent"]').uncheck()
+
+  // The reset button of a family does the same from a colour that was given.
+  await picker("visited").fill("#9f1239", { timeout: 3000 })
+  const given = await until(
+    (state) =>
+      state.rows.includes("visited") &&
+      state.groups.visited.reset?.shown === true,
+  )
+  expect(
+    given.groups.visited.reset?.shown === true,
+    "visited has no reset button to press after a colour was picked for it",
+  )
+  if (given.groups.visited.reset?.shown)
+    await field("visited")
+      .locator('xpath=ancestor::*[self::fieldset or @role="group"][1]')
+      .getByRole("button", { name: /^reset/i })
+      .click()
+  await familyRests("visited reset", "visited", false)
+  points += 1
+
+  // Something chosen again, to be remembered below.
+  await picker("accent").fill("#0f766e", { timeout: 3000 })
+  chosen.accent = "#0f766e"
+  await until((state) => state.fields.accent === "#0f766e")
+
+  /*
+   * What is remembered comes back as it was: the changed, the emptied and
+   * the rest.
+   */
+  await field("typography.weights.medium").fill("")
+  await until((state) => state.blocks["typography.weights.medium"].changed)
+  await page.waitForTimeout(300)
+  const left = await now()
+  await s.open("/theme-builder/")
+  const back = await until(
+    (state) => JSON.stringify(state.fields) === JSON.stringify(left.fields),
+  )
+  const differing = KEYS.filter((key) => back.fields[key] !== left.fields[key])
+  expect(
+    differing.length === 0 &&
+      JSON.stringify(back.own) === JSON.stringify(left.own),
+    `the page loaded again is not as it was left: ${differing.map((k) => `${k} holds ${JSON.stringify(back.fields[k])}, not ${JSON.stringify(left.fields[k])}`).join("; ")}`,
+  )
+  expect(
+    back.blocks["typography.weights.medium"].changed &&
+      back.blocks["typography.fontFamily"].changed &&
+      !back.blocks[bold].changed,
+    "the page loaded again does not say of the same fields that they are changed",
+  )
+  expect(
+    shown(back) === shown(left),
+    `the page loaded again shows the recipe ${back.recipe}`,
+  )
+  points += 1
+
+  /*
+   * Start again: everything back to LO-TEK. From what was changed and
+   * remembered, and from a pasted recipe.
    */
   const startsAgain = async (from: string) => {
     await button("Start again").click()
-    const after = await until(rested)
-    for (const finding of away(after))
+    const state = await until(rested)
+    for (const finding of away(state))
       s.fail(`after "Start again" ${from}, ${finding}`)
     expect(
       await framesHold(null),
@@ -583,31 +735,44 @@ const code = await s.run(async () => {
     )
     points += 1
   }
-  await startsAgain("from controls that were moved")
+  await startsAgain("on a page that remembered")
 
+  // A pasted recipe sets the fields it names and puts the others at rest.
+  await field("shape.fieldRadius").fill("12px")
+  await field("typography.fontFamily").fill("Georgia, serif")
   const pasted = {
     brand1: "#f7df1e",
     typography: { weights: { bold: 800 }, lineHeights: { article: 1.75 } },
     shape: { surfaceRadius: "16px", buttonBorderWidth: "3px" },
   }
-  const paste = async () => {
-    await page
-      .getByRole("textbox", { name: /recipe/i })
-      .and(page.locator("textarea"))
-      .fill(JSON.stringify(pasted))
-    await button("Use this recipe").click()
-    return until(
-      (state) =>
-        state.own.brand1 && state.fields["shape.surfaceRadius"] === "16px",
-    )
+  await page
+    .getByRole("textbox", { name: /recipe/i })
+    .and(page.locator("textarea"))
+    .fill(JSON.stringify(pasted))
+  await button("Use this recipe").click()
+  const named: Record<string, string> = {
+    brand1: "#f7df1e",
+    "typography.weights.bold": "800",
+    "typography.lineHeights.article": "1.75",
+    "shape.surfaceRadius": "16px",
+    "shape.buttonBorderWidth": "3px",
   }
-  const afterPaste = await paste()
-  // A pasted recipe moves the sliders and the picker as writing does.
+  const afterPaste = await until((state) =>
+    KEYS.every((key) => state.fields[key] === (named[key] ?? rest(key))),
+  )
+  const wrong = KEYS.filter(
+    (key) => afterPaste.fields[key] !== (named[key] ?? rest(key)),
+  )
+  expect(
+    wrong.length === 0,
+    `after a pasted recipe: ${wrong.map((k) => `${k} holds ${JSON.stringify(afterPaste.fields[k])}, not ${JSON.stringify(named[k] ?? rest(k))}`).join("; ")}`,
+  )
   for (const [key, value] of [
     ["typography.weights.bold", 800],
     ["typography.lineHeights.article", 1.75],
     ["shape.surfaceRadius", 16],
     ["shape.buttonBorderWidth", 3],
+    ["shape.fieldRadius", SLIDERS["shape.fieldRadius"].rest],
   ] as const)
     expect(
       afterPaste.sliders[key]?.value === value,
@@ -617,18 +782,11 @@ const code = await s.run(async () => {
     afterPaste.pickers.brand1?.value.toLowerCase() === "#f7df1e",
     `after a pasted recipe the picker of brand1 shows ${afterPaste.pickers.brand1?.value}`,
   )
-  await startsAgain("from a pasted recipe")
-
-  await paste()
-  await page.waitForTimeout(300)
-  await s.open("/theme-builder/")
-  const remembered = await until((state) => state.own.brand1)
   expect(
-    remembered.own.brand1 &&
-      remembered.sliders["shape.surfaceRadius"]?.value === 16,
-    "the page loaded again did not remember what was pasted, so there was nothing to start again from",
+    shown(afterPaste) === recipeOf(named),
+    `after a pasted recipe the page shows ${afterPaste.recipe}`,
   )
-  await startsAgain("on a page that remembered")
+  await startsAgain("from a pasted recipe")
 })
 
 if (code !== 0) {
@@ -638,15 +796,16 @@ if (code !== 0) {
   process.exit(code)
 }
 
-// The guard comes last: the first visit, the sliders moved, the fields
-// written, the picker, and three times started again.
-if (points !== 7) {
+// The guard comes last: the first visit, the fields written, the sliders
+// moved, the values reset, the picker, a family put back, the page loaded
+// again, and twice started again.
+if (points !== 9) {
   console.error(
-    `✗ The check went through ${points} points where it has 7. It has not looked at everything.`,
+    `✗ The check went through ${points} points where it has 9. It has not looked at everything.`,
   )
   process.exit(1)
 }
 
 console.log(
-  `✓ The theme builder rests at LO-TEK's own in ${Object.keys(SLIDERS).length} sliders and ${FAMILIES.length} pickers, chooses nothing until one is moved, and goes back with "Start again" (${points} points).`,
+  `✓ The theme builder shows LO-TEK's own in its fields, ${Object.keys(SLIDERS).length} sliders and ${FAMILIES.length} pickers, has in the recipe only what is changed, says which that is, and puts one value or all of them back (${points} points).`,
 )

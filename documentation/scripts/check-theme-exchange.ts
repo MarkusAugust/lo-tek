@@ -24,6 +24,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { RESTING } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -80,19 +81,24 @@ function formOf(recipe: unknown): Form {
   const values = Object.fromEntries(flat(recipe))
   return {
     own: Object.fromEntries(FAMILIES.map((f) => [f, f in values])),
-    fields: Object.fromEntries(KEYS.map((key) => [key, values[key] ?? ""])),
+    // A field the recipe does not name holds LO-TEK's own value, which
+    // for a colour is nothing.
+    fields: Object.fromEntries(
+      KEYS.map((key) => [key, values[key] ?? RESTING[key] ?? ""]),
+    ),
   }
 }
 
 /*
  * The recipe file that is pasted: with the address of its schema, as an
  * editor wants it, numbers where a file has numbers, and neither the family
- * nor the field that was on the page before.
+ * nor the field that was on the page before. No value in it is LO-TEK's
+ * own: the page takes such a key for one that is not chosen.
  */
 const PASTED = {
   accent: "#7c3aed",
   danger: "#b91c1c",
-  typography: { fontFamily: "Georgia, serif", weights: { bold: 700 } },
+  typography: { fontFamily: "Georgia, serif", weights: { bold: 800 } },
   shape: { buttonRadius: "1rem", fieldRadius: 0 },
 }
 const FILE = JSON.stringify(

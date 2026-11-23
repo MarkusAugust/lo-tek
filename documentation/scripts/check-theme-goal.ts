@@ -86,14 +86,14 @@ const CASES: [string, "typed" | "pasted", Recipe][] = [
       typography: {
         fontFamily: "Georgia, serif",
         weights: {
-          regular: "400",
-          medium: "500",
-          semibold: "600",
-          bold: "700",
+          regular: "300",
+          medium: "400",
+          semibold: "500",
+          bold: "800",
         },
         lineHeights: {
-          default: "1.5",
-          heading: "1.2",
+          default: "1.45",
+          heading: "1.1",
           article: "1.7",
           compact: "1.3",
         },

@@ -75,7 +75,8 @@ if (KEYS.length < 20 || !FAMILIES.every((family) => KEYS.includes(family)))
 /*
  * The recipes that are tried. The second has every key there is; its
  * colours are the ones the core's expected results use for every family,
- * and the rest are values the pages about typography and shape show.
+ * and no other value in it is LO-TEK's own, which the page takes for a key
+ * that is not chosen.
  */
 type Recipe = Record<string, string | Record<string, unknown>>
 const EVERY_KEY: Recipe = {
@@ -90,10 +91,10 @@ const EVERY_KEY: Recipe = {
   success: "#00e676",
   typography: {
     fontFamily: "Georgia, serif",
-    weights: { regular: "400", medium: "500", semibold: "600", bold: "700" },
+    weights: { regular: "300", medium: "400", semibold: "500", bold: "800" },
     lineHeights: {
-      default: "1.5",
-      heading: "1.2",
+      default: "1.45",
+      heading: "1.1",
       article: "1.7",
       compact: "1.3",
     },

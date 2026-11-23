@@ -9,7 +9,8 @@
  * - The keyboard has a way past the two frames, which hold more than two
  *   hundred stops between the choice of what is framed and the recipe.
  * - A colour family is a group named for the family, with its switch, its
- *   picker and its field in it, so the switch is tied to what it enables.
+ *   picker, its field and the button that resets it, and nothing else, so
+ *   the switch is tied to what it enables.
  * - The recipe and the command, which take focus so they can be scrolled,
  *   are regions with a name.
  * - A pasted recipe the core refuses for a value that is not text changes
@@ -145,10 +146,13 @@ function read(families: string[]) {
             controls: [
               ...(group?.querySelectorAll("input, select, textarea, button") ??
                 []),
-            ].map(
-              (c) =>
-                c.getAttribute("name") ??
-                `${c.tagName.toLowerCase()}[type=${c.getAttribute("type")}]`,
+            ].map((c) =>
+              // A button is told by what it is called, and of that the
+              // first word: the rest names the family.
+              c.tagName === "BUTTON"
+                ? `button "${collapsed(c.getAttribute("aria-label") ?? c.textContent ?? "").split(" ")[0]}"`
+                : (c.getAttribute("name") ??
+                  `${c.tagName.toLowerCase()}[type=${c.getAttribute("type")}]`),
             ),
           },
         ]
@@ -189,8 +193,15 @@ const code = await s.run(async () => {
     )
     expect(
       JSON.stringify([...group.controls].sort()) ===
-        JSON.stringify([family, "input[type=color]", `own.${family}`].sort()),
-      `the group of ${family} holds ${group.controls.join(", ") || "nothing"}, not its switch, its picker and its field`,
+        JSON.stringify(
+          [
+            family,
+            "input[type=color]",
+            `own.${family}`,
+            'button "Reset"',
+          ].sort(),
+        ),
+      `the group of ${family} holds ${group.controls.join(", ") || "nothing"}, not its switch, its picker, its field and the button that resets it`,
     )
   }
   points += 1

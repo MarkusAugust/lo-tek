@@ -63,10 +63,24 @@ type Range = {
   step: number
   rest: number
   unit: string
+  /**
+   * What the field holds at rest: LO-TEK's value as text, or nothing where
+   * LO-TEK has no one value, and then `none` says what holds instead.
+   */
+  text: string
+  none?: string
 }
 
 const WEIGHT = { min: 100, max: 900, step: 100, unit: "" }
-const CORNER = { min: 0, max: 32, step: 1, unit: "px" }
+/** A corner at rest is `--lt-spacing-1`, as `tokens.css` writes it. */
+const CORNER = {
+  min: 0,
+  max: 32,
+  step: 1,
+  unit: "px",
+  rest: 4,
+  text: "0.25rem",
+}
 
 /**
  * The keys of `shape`. Their resting values are the fallbacks in the
@@ -75,11 +89,27 @@ const CORNER = { min: 0, max: 32, step: 1, unit: "px" }
  * card and the dialog have twice it.
  */
 const SHAPE: Record<string, Range> = {
-  "shape.buttonRadius": { ...CORNER, rest: 4 },
-  "shape.fieldRadius": { ...CORNER, rest: 4 },
-  "shape.surfaceRadius": { ...CORNER, rest: 4 },
-  "shape.buttonBorderWidth": { min: 0, max: 4, step: 1, rest: 1, unit: "px" },
-  "shape.buttonFontWeight": { ...WEIGHT, rest: 500 },
+  "shape.buttonRadius": CORNER,
+  "shape.fieldRadius": CORNER,
+  "shape.surfaceRadius": {
+    ...CORNER,
+    text: "",
+    none: "0.25rem, and 0.5rem on card and dialog",
+  },
+  "shape.buttonBorderWidth": {
+    min: 0,
+    max: 4,
+    step: 1,
+    rest: 1,
+    unit: "px",
+    text: "1px",
+  },
+  "shape.buttonFontWeight": {
+    ...WEIGHT,
+    rest: 500,
+    text: "",
+    none: "as weights medium",
+  },
 }
 
 /** The weights and line heights say in the schema what they are if left out. */
@@ -88,8 +118,8 @@ const rangeOf = (path: string, help: string): Range | undefined => {
   if (!said) return SHAPE[path]
   const rest = Number(said[1])
   return rest >= 100
-    ? { ...WEIGHT, rest }
-    : { min: 1, max: 2, step: 0.05, rest, unit: "" }
+    ? { ...WEIGHT, rest, text: said[1] }
+    : { min: 1, max: 2, step: 0.05, rest, unit: "", text: said[1] }
 }
 
 /**
@@ -124,6 +154,23 @@ const leaves = (path: string, property: Property): Field[] =>
 const typography = leaves("typography", top.typography)
 const shape = leaves("shape", top.shape)
 
+/** LO-TEK's value at every leaf that has one, in the shape of the recipe. */
+const resting = (path: string, property: Property): Record<string, unknown> =>
+  Object.fromEntries(
+    Object.entries(property.properties ?? {}).map(([name, child]) => [
+      name,
+      child.properties
+        ? resting(`${path}.${name}`, child)
+        : (rangeOf(`${path}.${name}`, child.description ?? "")?.text ?? ""),
+    ]),
+  )
+
+/**
+ * What a field says below it. That a key has a value when it is left out is
+ * for the editor, where the key is not there: here the value is in the field.
+ */
+const below = (help: string) => help.replace(/\s*[\d.]+ if left out\./, "")
+
 /** An empty value at every leaf, in the shape of the recipe. */
 const empty = (property: Property): Record<string, unknown> =>
   Object.fromEntries(
@@ -142,7 +189,8 @@ const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
 
 /*
  * The signals. `own` says which families have a colour of the consumer's,
- * `fields` holds what is written in every field, in the shape of the recipe.
+ * `fields` holds what is written in every field, in the shape of the recipe:
+ * LO-TEK's own value until another is written, where LO-TEK has one.
  * `recipe` is what was chosen and only that, as the text of the recipe file,
  * and `built` is the core's answer to it: the theme, what is wrong with
  * each field, in the shape of `fields`, and what became of each colour.
@@ -165,8 +213,8 @@ const signals = {
   own: Object.fromEntries(families.map(([name]) => [name, false])),
   fields: {
     ...Object.fromEntries(families.map(([name]) => [name, ""])),
-    typography: empty(top.typography),
-    shape: empty(top.shape),
+    typography: resting("typography", top.typography),
+    shape: resting("shape", top.shape),
   },
   recipe: "{}",
   built: {
@@ -297,10 +345,28 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											id={`own-${name}`}
 											name={`own.${name}`}
 											data-bind={`own.${name}`}
-										/>
-										<label class="lt-label" id={`own-${name}-label`} for={`own-${name}`}>
+											data-on:change={`!el.checked && ($fields.${name} = '')`}
+/>
+<label class="lt-label" id={`own-${name}-label`} for={`own-${name}`}>
 											{name}
-										</label>
+</label>
+<span
+											class="builder__changed"
+											style="display: none"
+											data-show={`$own.${name} || $fields.${name} !== ''`}
+>
+											Changed
+</span>
+<button
+											class="builder__reset"
+											type="button"
+											aria-label={`Reset ${name}`}
+											style="display: none"
+											data-show={`$own.${name} || $fields.${name} !== ''`}
+											data-on:click={`$fields.${name} = ''; $own.${name} = false`}
+>
+											Reset
+</button>
 									</div>
 									<!-- The picker shows LO-TEK's colour of the family until
 									     another is given, and picking one gives it: the field
@@ -390,9 +456,28 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 								<legend class="lt-legend">{legend}</legend>
 								{fields.map(({ path, label, help, range }) => (
 									<div class="builder__field">
-										<label class="lt-label" for={id(path)}>
-											{label}
-										</label>
+										<div class="builder__label">
+											<label class="lt-label" for={id(path)}>
+												{label}
+											</label>
+											<span
+												class="builder__changed"
+												style="display: none"
+												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
+											>
+												Changed
+											</span>
+											<button
+												class="builder__reset"
+												type="button"
+												aria-label={`Reset ${label}`}
+												style="display: none"
+												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												data-on:click={`$fields.${path} = '${range?.text ?? ""}'`}
+											>
+												Reset
+											</button>
+										</div>
 										{range && (
 											<input
 												class="builder__slider"
@@ -412,6 +497,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											id={id(path)}
 											name={path}
 											aria-describedby={`${id(path)}-help ${id(path)}-error`}
+											placeholder={range?.none}
 											autocomplete="off"
 											spellcheck="false"
 											data-bind={`fields.${path}`}
@@ -426,7 +512,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											data-text={`$built.wrong.${path}`}
 										/>
 										<p class="lt-help-text" id={`${id(path)}-help`}>
-											{help}
+											{below(help)}
 										</p>
 									</div>
 								))}
@@ -642,6 +728,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			grid-column: 1;
 		}
 
+		/* Beside the recipe the frames have the height of the window, less
+		   what stands above them in the preview: its head, the line that
+		   says what is shown and the caption of a frame. */
+		.builder__preview .builder__frame iframe {
+			block-size: max(24rem, calc(100dvh - 11rem));
+		}
+
 		.builder__preview {
 			grid-column: 2;
 			grid-row: 2 / span 3;
@@ -714,6 +807,55 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		gap: var(--lt-spacing-2);
 	}
 
+	/* The name of a field, and beside it that it is changed and the way back. */
+	.builder__label {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: var(--lt-spacing-1) var(--lt-spacing-3);
+	}
+	
+	.builder__changed {
+		font-size: var(--lt-font-size-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--lt-color-warning-text);
+	}
+	
+	.builder__changed::before {
+		content: "● ";
+	}
+	
+	.builder__reset {
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		font-size: var(--lt-font-size-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--lt-color-accent-text);
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
+	}
+	
+	.builder__reset:hover {
+		color: var(--lt-color-neutral-text-strong);
+	}
+	
+	.builder__reset:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: var(--lt-spacing-1);
+	}
+	
+	.builder__family .lt-switch-row {
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--lt-spacing-1) var(--lt-spacing-3);
+	}
+	
 	.builder__slider {
 		inline-size: 100%;
 		margin: 0;
@@ -885,18 +1027,34 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 
 	type Fields = { [key: string]: string | Fields }
 
-	/** The fields that have a value, in the shape they have. Nothing when none has. */
-	const filled = (fields: Fields): Fields | undefined => {
+	/*
+	 * The page as on a first visit: what the markup itself says the signals
+	 * are. It is the shape of `own` and `fields`, and what every field holds
+	 * at rest: what is not in the recipe, what a pasted recipe leaves a field
+	 * it does not name at, and what "Start again" goes back to.
+	 */
+	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
+		own: Record<string, boolean>
+		fields: Fields
+	}
+
+	/**
+	 * The fields that hold something other than they do at rest, in the
+	 * shape they have. Nothing when none does.
+	 */
+	const filled = (fields: Fields, rest: Fields): Fields | undefined => {
 		const kept: Fields = {}
 		for (const [name, value] of Object.entries(fields)) {
-			const own = typeof value === "string" ? value.trim() : filled(value)
-			if (own !== undefined && own !== "") kept[name] = own
+			const own =
+				typeof value === "string" ? value.trim() : filled(value, rest[name] as Fields)
+			if (own !== undefined && own !== "" && own !== rest[name]) kept[name] = own
 		}
 		return Object.keys(kept).length > 0 ? kept : undefined
 	}
 
 	// What was chosen, and only that: a family when its switch is on and its
-	// field has a value, a key of typography or shape when its field has one.
+	// field has a value, a key of typography or shape when its field holds
+	// something other than LO-TEK's own value.
 	action({
 		name: "recipe",
 		apply(_: unknown, own: Record<string, boolean>, fields: Fields) {
@@ -908,7 +1066,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			return JSON.stringify(
 				{
 					...chosen,
-					...filled({ typography: fields.typography, shape: fields.shape }),
+					...filled({ typography: fields.typography, shape: fields.shape }, first.fields),
 				},
 				null,
 				2,
@@ -1085,15 +1243,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	/*
-	 * The page as on a first visit: what the markup itself says the signals
-	 * are. It is the shape of `own` and `fields`, for a recipe that is pasted
-	 * in and for what was remembered, and what "Start again" goes back to.
-	 */
-	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
-		own: Record<string, boolean>
-		fields: Fields
-	}
 	const REMEMBERED = "lotek-theme-builder"
 
 	/**
@@ -1110,7 +1259,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			return typeof given !== "object" || Array.isArray(given) || odd(value, given)
 		})
 
-	/** The values of `from` laid into the shape of `blank`, as text. Anything else is left out. */
+	/**
+	 * The values of `from` laid into the shape of `blank`, as text. A field
+	 * `from` does not name, or gives something else than a value, is as in
+	 * `blank`.
+	 */
 	const laid = (blank: Fields, from: unknown): Fields =>
 		Object.fromEntries(
 			Object.entries(blank).map(([name, value]) => {
@@ -1118,7 +1271,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				if (typeof value !== "string") return [name, laid(value, given)]
 				return [
 					name,
-					typeof given === "string" || typeof given === "number" ? String(given) : "",
+					typeof given === "string" || typeof given === "number" ? String(given) : value,
 				]
 			}),
 		)
