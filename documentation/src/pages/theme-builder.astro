@@ -26,7 +26,7 @@ import "../styles/profile.css"
 import pkg from "../../../interfaces/package.json" with { type: "json" }
 import schema from "../../../interfaces/src/tokens/theme.schema.json"
 import FontPreload from "../components/FontPreload.astro"
-import Logo from "../components/Logo.astro"
+import Top from "../components/Top.astro"
 import { metaAttributes, SHARE_IMAGE } from "../share-image.mjs"
 
 const title = "Theme builder | LO-TEK Interfaces"
@@ -179,16 +179,16 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		<a class="lt-skip-link" href="#content">Skip to content</a>
 
 		<div class="builder">
-			<header class="builder__top">
-				<a class="builder__home" href="/" aria-label="LO-TEK Interfaces, front page">
-					<Logo size="sm" />
-				</a>
-				<nav aria-label="Main">
-					<a class="builder__back" href="/your-own-theme/">Your own theme</a>
-				</nav>
-			</header>
+			<Top current="/theme-builder/" />
 
 			<main class="builder__main" id="content" tabindex="-1">
+				<noscript>
+					<p class="builder__line">
+						The builder runs in the browser and needs JavaScript. Without it,
+						the generator is on the command line:
+						<code>{COMMAND}</code>. See <a class="lt-link" href="/your-own-theme/">Your own theme</a>.
+					</p>
+				</noscript>
 				<div class="builder__head">
 					<h1 class="builder__name profile-name">Theme builder</h1>
 					<p class="builder__line">
@@ -211,6 +211,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 
 					<fieldset class="lt-fieldset builder__group">
 						<legend class="lt-legend">Colours</legend>
+						<p class="builder__note">
+							The lightness of every colour is the role's, so yours is moved to
+							it, and a light one far. Below each colour you give is what it
+							became, and why it could not be the fill as it was.
+						</p>
 						{
 							families.map(([name, property]) => (
 								<div class="builder__family">
@@ -268,6 +273,38 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 									<p class="lt-help-text" id={`${id(name)}-help`}>
 										{first(property.description)}
 									</p>
+									<!-- What became of the colour, shown when the recipe gives
+									     the family. The row is in the markup and the answer
+									     fills it in: a list in a signal is not something
+									     Datastar can be handed. -->
+								<div
+									class="builder__row"
+									data-family={name}
+									style="display: none"
+									data-show={`$built.report.${name}.given !== ''`}
+								>
+									
+									<p class="builder__swatches">
+										{(["given", "light", "dark"] as const).map((key) => (
+											<span class="builder__colour-of">
+												<span class="profile-label">{key}</span>
+												<span
+													class="builder__swatch"
+													data-attr:style={`'background-color: ' + $built.report.${name}.${key}`}
+												/>
+												<code data-text={`$built.report.${name}.${key}`} />
+											</span>
+										))}
+									</p>
+									{WHY.map((key) => (
+										<p
+											class="builder__why"
+											style="display: none"
+											data-show={`$built.report.${name}.${key} !== ''`}
+											data-text={`$built.report.${name}.${key}`}
+										/>
+									))}
+								</div>
 								</div>
 							))
 						}
@@ -350,50 +387,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 							))
 						}
 					</div>
-				</section>
-
-				<section class="builder__report" aria-labelledby="report-title">
-					<h2 class="profile-label" id="report-title">What became of your colours</h2>
-					<p class="builder__line">
-						The lightness of every colour is the role's, so a colour is moved
-						to it, and a light one far. Each row says what yours became, and why
-						it could not be the fill as it was.
-					</p>
-					<!-- A row for every family, each shown when the recipe gives the
-					     family. Not a list written by script: Datastar has the rows,
-					     and the answer fills them in. -->
-					{
-						families.map(([name]) => (
-							<div
-								class="builder__row"
-								data-family={name}
-								style="display: none"
-								data-show={`$built.report.${name}.given !== ''`}
-							>
-								<p class="profile-label">{name}</p>
-								<p class="builder__swatches">
-									{(["given", "light", "dark"] as const).map((key) => (
-										<span class="builder__colour-of">
-											<span class="profile-label">{key}</span>
-											<span
-												class="builder__swatch"
-												data-attr:style={`'background-color: ' + $built.report.${name}.${key}`}
-											/>
-											<code data-text={`$built.report.${name}.${key}`} />
-										</span>
-									))}
-								</p>
-								{WHY.map((key) => (
-									<p
-										class="builder__why"
-										style="display: none"
-										data-show={`$built.report.${name}.${key} !== ''`}
-										data-text={`$built.report.${name}.${key}`}
-									/>
-								))}
-							</div>
-						))
-					}
 				</section>
 
 				<section class="builder__out" aria-labelledby="out-title">
@@ -482,54 +475,75 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 </html>
 
 <style is:global>
-	body {
-		margin: 0;
-		font-family: var(--profile-font-text);
-		color: var(--lt-color-neutral-text-strong);
+	/*
+	 * The page is a printed sheet, as the front page is, and in the same
+	 * profile. The colours come from tokens, and the only thing written in is
+	 * the geometry.
+	 */
+	html {
 		background: var(--lt-color-neutral-canvas);
+		-webkit-text-size-adjust: 100%;
+	}
+
+	body {
+		min-block-size: 100dvh;
+		margin: 0;
+		/* On the body as well as on html: the grain blends inside the body's
+		   isolated group, and a transparent body would leave it nothing to
+		   blend with. */
+		background: var(--lt-color-neutral-canvas);
+		color: var(--lt-color-neutral-text);
+		font-family: var(--profile-font-data);
+		font-size: var(--lt-font-size-s);
+		line-height: var(--lt-line-height-default);
+	}
+
+	code {
+		font-family: var(--profile-font-data);
 	}
 
 	.builder {
-		max-inline-size: 90rem;
+		max-inline-size: 104rem;
 		margin-inline: auto;
-		padding: var(--lt-spacing-6);
+		padding: var(--lt-spacing-5) var(--lt-spacing-5) var(--lt-spacing-12);
 	}
 
-	.builder__top {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		justify-content: space-between;
-		gap: var(--lt-spacing-4);
-		padding-block-end: var(--lt-spacing-6);
-	}
-
-	.builder__home {
-		color: inherit;
-		text-decoration: none;
-	}
-
-	.builder__back {
-		font-family: var(--profile-font-data);
-		font-size: var(--lt-font-size-xs);
-		letter-spacing: 0.08em;
-		text-transform: uppercase;
-		color: var(--lt-color-neutral-text-strong);
+	@media (min-width: 48rem) {
+		.builder {
+			padding: var(--lt-spacing-8) var(--lt-spacing-10) var(--lt-spacing-16);
+		}
 	}
 
 	.builder__main {
 		display: grid;
-		grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		gap: var(--lt-spacing-8);
 		align-items: start;
+		padding-block-start: var(--lt-spacing-8);
 	}
 
 	.builder__main:focus {
 		outline: none;
 	}
 
+	/* The recipe beside what it gives, when there is room for both. The
+	   preview stays in view while the recipe, which is long, is scrolled. */
+	@media (min-width: 72rem) {
+		.builder__main {
+			grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
+		}
+
+		.builder__head {
+			grid-column: 1 / -1;
+		}
+
+		.builder__preview {
+			position: sticky;
+			inset-block-start: var(--lt-spacing-4);
+		}
+	}
+
 	.builder__head {
-		grid-column: 1 / -1;
 		display: flex;
 		flex-direction: column;
 		gap: var(--lt-spacing-3);
@@ -537,23 +551,47 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 
 	.builder__name {
 		margin: 0;
-		font-size: var(--lt-font-size-xxl);
+		font-size: clamp(var(--lt-font-size-xl), 5vw, var(--lt-font-size-mega));
+		color: var(--lt-color-neutral-text-strong);
 	}
 
-	.builder__line {
+	.builder__line,
+	.builder__note {
 		margin: 0;
-		max-inline-size: 40rem;
-		line-height: var(--lt-line-height-article);
-		color: var(--lt-color-neutral-text);
+		max-inline-size: 44rem;
+		text-wrap: pretty;
 	}
 
 	.builder__recipe,
+	.builder__side,
 	.builder__out,
-	.builder__group {
+	.builder__group,
+	.builder__preview {
 		display: flex;
 		flex-direction: column;
 		gap: var(--lt-spacing-4);
 		min-inline-size: 0;
+	}
+
+	.builder__side {
+		gap: var(--lt-spacing-8);
+	}
+
+	/* A group of the recipe: a plate's worth of fields under a rule. */
+	.builder__group {
+		margin: 0;
+		padding: var(--lt-spacing-4) 0 0;
+		border: 0;
+		border-block-start: var(--profile-rule);
+	}
+
+	.builder__group > legend {
+		padding: 0;
+		font-family: var(--profile-font-name);
+		font-size: var(--lt-font-size-m);
+		font-weight: 400;
+		text-transform: uppercase;
+		color: var(--lt-color-neutral-text-strong);
 	}
 
 	.builder__family,
@@ -561,6 +599,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		display: flex;
 		flex-direction: column;
 		gap: var(--lt-spacing-1);
+	}
+
+	.builder__family {
+		padding-block-end: var(--lt-spacing-3);
+		border-block-end: var(--profile-rule-subtle);
 	}
 
 	.builder__colour {
@@ -577,28 +620,12 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		background: none;
 	}
 
-	.builder__json {
-		margin: 0;
-		padding: var(--lt-spacing-4);
-		overflow: auto;
-		border: var(--profile-rule);
-		font-family: var(--profile-font-data);
-		font-size: var(--lt-font-size-s);
-		line-height: var(--lt-line-height-default);
-	}
-
-	.builder__report {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lt-spacing-4);
-	}
-
+	/* What became of a colour: the three swatches, and why. */
 	.builder__row {
 		display: flex;
 		flex-direction: column;
 		gap: var(--lt-spacing-2);
-		padding-block-start: var(--lt-spacing-3);
-		border-block-start: var(--profile-rule-subtle);
+		padding-block-start: var(--lt-spacing-2);
 	}
 
 	.builder__row > p {
@@ -608,42 +635,26 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	.builder__swatches {
 		display: flex;
 		flex-wrap: wrap;
-		gap: var(--lt-spacing-6);
+		gap: var(--lt-spacing-2) var(--lt-spacing-5);
 	}
 
 	.builder__colour-of {
 		display: inline-flex;
 		align-items: center;
 		gap: var(--lt-spacing-2);
-		font-family: var(--profile-font-data);
-		font-size: var(--lt-font-size-s);
 	}
 
 	.builder__swatch {
 		display: inline-block;
-		inline-size: var(--lt-spacing-8);
-		block-size: var(--lt-spacing-8);
+		inline-size: var(--lt-spacing-6);
+		block-size: var(--lt-spacing-6);
 		border: var(--profile-rule);
 	}
 
 	.builder__why {
-		max-inline-size: 60rem;
-		font-size: var(--lt-font-size-s);
+		font-size: var(--lt-font-size-xs);
 		line-height: var(--lt-line-height-article);
-		color: var(--lt-color-neutral-text);
-	}
-
-	.builder__side {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lt-spacing-8);
-		min-inline-size: 0;
-	}
-
-	.builder__preview {
-		display: flex;
-		flex-direction: column;
-		gap: var(--lt-spacing-4);
+		text-wrap: pretty;
 	}
 
 	.builder__preview-head {
@@ -671,24 +682,38 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	.builder__frame iframe {
 		display: block;
 		inline-size: 100%;
-		block-size: min(46rem, 80vh);
+		block-size: min(44rem, 72dvh);
 		border: var(--profile-rule);
 	}
 
-	.builder__said {
+	.builder__json {
+		margin: 0;
+		padding: var(--lt-spacing-4);
+		overflow: auto;
+		border: var(--profile-rule);
 		font-family: var(--profile-font-data);
 		font-size: var(--lt-font-size-s);
-		color: var(--lt-color-neutral-text);
+		line-height: var(--lt-line-height-default);
+		color: var(--lt-color-neutral-text-strong);
 	}
 
 	.builder__actions {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--lt-spacing-3);
 		margin: 0;
 	}
 
-	@media (max-width: 48rem) {
-		.builder__main {
-			grid-template-columns: minmax(0, 1fr);
-		}
+	.builder__said {
+		font-size: var(--lt-font-size-s);
+	}
+
+	/* The buttons are square on this page, as on the front page. */
+	.builder {
+		--lt-button-radius: 0;
+		--lt-input-radius: 0;
+		--lt-textarea-radius: 0;
 	}
 </style>
 

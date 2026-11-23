@@ -1,0 +1,111 @@
+---
+/**
+ * The top of a page that stands outside Starlight: the mark on the left, the
+ * menu on the right, a rule below. The front page and the theme builder have
+ * the same one, so it is written once.
+ */
+
+import Logo from "./Logo.astro"
+import VersionBadge from "./VersionBadge.astro"
+
+interface Props {
+  /** The address of the page this is the top of, marked in the menu. */
+  current?: string
+}
+
+const { current } = Astro.props
+
+const MENU = [
+  { href: "/introduction/", text: "Documentation" },
+  { href: "/components/", text: "Components" },
+  { href: "/theme-builder/", text: "Theme builder" },
+  { href: "/llms.txt", text: "llms.txt" },
+  {
+    href: "https://github.com/MarkusAugust/lo-tek",
+    text: "GitHub",
+    rel: "noreferrer",
+  },
+]
+---
+
+<header class="top">
+	<div class="top__mark">
+		<a href="/" class="top__home" aria-label="LO-TEK Interfaces, front page">
+			<Logo size="sm" />
+		</a>
+		<VersionBadge />
+	</div>
+	<nav class="top__nav" aria-label="Main">
+		<ul>
+			{
+				MENU.map(({ href, text, rel }) => (
+					<li>
+						<a href={href} rel={rel} aria-current={href === current ? "page" : undefined}>
+							{text}
+						</a>
+					</li>
+				))
+			}
+		</ul>
+	</nav>
+</header>
+
+<style>
+	.top {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--lt-spacing-3) var(--lt-spacing-6);
+		padding-block-end: var(--lt-spacing-4);
+		border-block-end: var(--profile-rule);
+	}
+
+	.top__mark {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--lt-spacing-4);
+	}
+
+	.top__home {
+		color: var(--lt-color-neutral-text-strong);
+		text-decoration: none;
+	}
+
+	.top__nav ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lt-spacing-2) var(--lt-spacing-5);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.top__nav a {
+		font-family: var(--profile-font-data);
+		font-size: var(--lt-font-size-xs);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: var(--lt-color-neutral-text);
+		text-decoration: none;
+	}
+
+	.top__nav a:hover,
+	.top__nav a[aria-current="page"] {
+		color: var(--lt-color-neutral-text-strong);
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+	}
+
+	.top__home:focus-visible,
+	.top__nav a:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: var(--lt-spacing-1);
+	}
+
+	@media (prefers-contrast: more) {
+		.top__nav a {
+			text-decoration: underline;
+		}
+	}
+</style>

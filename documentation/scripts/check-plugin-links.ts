@@ -109,9 +109,12 @@ export async function verdict(
     await verdict(
       "34764",
       "no.lotek",
-      answering(200, '{"xmlId":"no.fristil"}'),
+      answering(200, '{"xmlId":"org.example.other"}'),
     ),
-    { kind: "wrong", why: "it is the plugin no.fristil, and ours is no.lotek" },
+    {
+      kind: "wrong",
+      why: "it is the plugin org.example.other, and ours is no.lotek",
+    },
   )
   expect(
     "a number the Marketplace does not have",

@@ -24,6 +24,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ## Unreleased
 
+### Added
+
+- **A theme builder in the documentation,** at
+  `lo-tek.sobernetics.no/theme-builder/`. Set your brand colours, font and
+  corners, and see every component, or a whole page, with the theme the
+  generator builds from them, light and dark side by side. It says what
+  became of each colour, as `lotek theme` does, and gives the recipe and
+  the command. It runs the core in the browser, and nothing is sent
+  anywhere. Nothing in the npm package is new for it.
+
 ### Fixed
 
 - **The links to the IntelliJ plugin led to the plugin it replaced.** The

@@ -10,7 +10,7 @@ import Film from "../components/Film.astro"
 import FontPreload from "../components/FontPreload.astro"
 import Logo from "../components/Logo.astro"
 import Plate from "../components/Plate.astro"
-import VersionBadge from "../components/VersionBadge.astro"
+import Top from "../components/Top.astro"
 import { metaAttributes, SHARE_IMAGE } from "../share-image.mjs"
 
 const title = "LO-TEK Interfaces"
@@ -87,22 +87,7 @@ const GRADE = [
   <a class="skip lt-sr-only" href="#content">Skip to content</a>
 
   <div class="sheet">
-    <header class="top">
-      <div class="top__mark">
-        <a href="/" class="top__home" aria-label="LO-TEK Interfaces, front page">
-          <Logo size="sm" />
-        </a>
-        <VersionBadge />
-      </div>
-      <nav class="top__nav" aria-label="Main">
-        <ul>
-          <li><a href="/introduction/">Documentation</a></li>
-          <li><a href="/components/">Components</a></li>
-          <li><a href="/llms.txt">llms.txt</a></li>
-          <li><a href="https://github.com/MarkusAugust/lo-tek" rel="noreferrer">GitHub</a></li>
-        </ul>
-      </nav>
-    </header>
+    <Top />
 
     <main id="content">
       <!-- The masthead: the name, the line, the register and the plate. -->
@@ -438,54 +423,6 @@ form.html:3:13: warning: The class "lt-modal"
     background-repeat: no-repeat;
   }
 
-  /* The top: the mark on the left, the menu on the right, a rule below. */
-  .top {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--lt-spacing-3) var(--lt-spacing-6);
-    padding-block-end: var(--lt-spacing-4);
-    border-block-end: var(--profile-rule);
-  }
-
-  .top__mark {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--lt-spacing-4);
-  }
-
-  .top__home {
-    color: var(--lt-color-neutral-text-strong);
-    text-decoration: none;
-  }
-
-  .top__nav ul {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--lt-spacing-2) var(--lt-spacing-5);
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .top__nav a {
-    font-family: var(--profile-font-data);
-    font-size: var(--lt-font-size-xs);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--lt-color-neutral-text);
-    text-decoration: none;
-  }
-
-  .top__nav a:hover {
-    color: var(--lt-color-neutral-text-strong);
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
-  }
-
-  .top__home:focus-visible,
-  .top__nav a:focus-visible,
   .masthead__link:focus-visible,
   .node__code:focus-visible,
   .node__pre:focus-visible,
@@ -773,7 +710,6 @@ form.html:3:13: warning: The class "lt-modal"
   }
 
   @media (prefers-contrast: more) {
-    .top__nav a,
     .masthead__link {
       text-decoration: underline;
     }
