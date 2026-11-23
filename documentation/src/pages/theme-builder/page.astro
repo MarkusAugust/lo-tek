@@ -296,7 +296,11 @@ import "@lo-tek/interfaces/lotek.css"
 		text-decoration: none;
 	}
 
+	/* The list sets its items apart one below the other. Side by side that
+	   distance pushed every item but the first down, and the gap sets them
+	   apart here. */
 	.console-menu {
+		--lt-list-gap: 0;
 		display: flex;
 		flex-wrap: wrap;
 		gap: var(--lt-spacing-4);
