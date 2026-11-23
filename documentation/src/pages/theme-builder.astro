@@ -1157,15 +1157,15 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	}
 
 	type Problem = { path: string[]; kind: string; message: string }
+	type Value = { path: string[]; text: string }
+
+	/** Whether two paths are the same key. */
+	const same = (a: string[], b: string[]) =>
+		a.length === b.length && a.every((segment, at) => segment === b[at])
 
 	/** The problem with a value at `path`, when the core refuses it. */
 	const refusedAt = (problems: Problem[], path: string[]) =>
-		problems.find(
-			(p) =>
-				p.kind === "refused" &&
-				p.path.length === path.length &&
-				p.path.every((segment, at) => segment === path[at]),
-		)
+		problems.find((p) => p.kind === "refused" && same(p.path, path))
 
 	/**
 	 * What the core finds wrong, laid at the fields: the reason at every
@@ -1182,12 +1182,20 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			]),
 		)
 
-	/** Whether the builder has a field for the key at `path`. */
-	const hasField = (blank: Fields, path: string[]) =>
-		typeof path.reduce<string | Fields | undefined>(
-			(inner, name) => (typeof inner === "object" ? inner[name] : undefined),
-			blank,
-		) === "string"
+	/**
+	 * What a recipe gives, laid at the fields: the core's text at every field
+	 * the recipe has a value for, and what the field holds at rest at the
+	 * others, in the shape of `blank`.
+	 */
+	const placed = (blank: Fields, values: Value[], at: string[] = []): Fields =>
+		Object.fromEntries(
+			Object.entries(blank).map(([name, value]) => [
+				name,
+				typeof value === "string"
+					? (values.find((v) => same(v.path, [...at, name]))?.text ?? value)
+					: placed(value, values, [...at, name]),
+			]),
+		)
 
 	// The report of the last theme that was built: what the rows hold while
 	// a field is being typed in and the recipe does not build, for the
@@ -1305,20 +1313,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	const REMEMBERED = "lotek-theme-builder"
 
 	/**
-	 * Whether `from` has something other than text or a number where `blank`
-	 * has a field, or other than an object where it has a block. Nothing and
-	 * `null` are a value that is not given.
-	 */
-	const odd = (blank: Fields, from: unknown): boolean =>
-		Object.entries(blank).some(([name, value]) => {
-			const given = (from as Record<string, unknown>)[name] ?? undefined
-			if (given === undefined) return false
-			if (typeof value === "string")
-				return typeof given !== "string" && typeof given !== "number"
-			return typeof given !== "object" || Array.isArray(given) || odd(value, given)
-		})
-
-	/**
 	 * The values of `from` laid into the shape of `blank`, as text. A field
 	 * `from` does not name, or gives something else than a value, is as in
 	 * `blank`.
@@ -1357,11 +1351,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	// A recipe file pasted in becomes what is chosen. A text that is not a
-	// recipe changes nothing and says why. A key the core does not know is
-	// the core's to name, and so is a value that is not text, which no field
-	// can hold. A text it refuses is taken: the field then holds it, and says
-	// what is wrong with it.
+	// A recipe file pasted in becomes what is chosen. Text that is not JSON
+	// changes nothing, and the page says so itself: that is about the field.
+	// Everything about the recipe is the core's to say.
 	action({
 		name: "useRecipe",
 		apply(_: unknown, text: string) {
@@ -1372,27 +1364,24 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			} catch {
 				return refuse("This is not JSON. Paste the text of a lotek.theme.json.")
 			}
-			if (recipe === null || typeof recipe !== "object" || Array.isArray(recipe))
-				return refuse("This is JSON, but not a recipe. A recipe is an object with the colours in it.")
-			const { $schema: _schema, ...keys } = recipe as Record<string, unknown>
-			const answer = refusal(keys)
-			const strange = odd(first.fields, keys)
-			// What the builder can take is a recipe whose only problems are
-			// values the core refuses at keys the builder has a field for,
-			// and then only when the value is one a field can hold. Anything
-			// else changes nothing, and what the core says of the recipe as
-			// a whole is shown.
-			const problems: Problem[] = core.checkRecipe(keys)
+			// The core reads the recipe: what it gives, and what is wrong
+			// with it. The builder takes a recipe whose only problems are
+			// texts the core refuses, since a field can hold such a text
+			// and say what is wrong with it, and one that gives nothing.
+			// Anything else changes nothing, and what the core says of the
+			// recipe as a whole is shown.
+			const problems: Problem[] = core.checkRecipe(recipe)
+			const values: Value[] = core.recipeValues(recipe)
+			const given = (path: string[]) => values.some((v) => same(v.path, path))
 			const stops = problems.some(
-				(p) => p.kind !== "refused" || !hasField(first.fields, p.path),
+				(p) => p.kind !== "empty" && !(p.kind === "refused" && given(p.path)),
 			)
-			if (answer !== "" && (stops || strange)) return refuse(answer)
-			const fields = laid(first.fields, keys)
+			if (stops) return refuse(refusal(recipe))
 			mergePatch({
 				own: Object.fromEntries(
-					Object.keys(first.own).map((name) => [name, fields[name] !== ""]),
+					Object.keys(first.own).map((name) => [name, given([name])]),
 				),
-				fields,
+				fields: placed(first.fields, values),
 				pasteError: "",
 			})
 		},

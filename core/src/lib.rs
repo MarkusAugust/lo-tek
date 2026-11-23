@@ -463,6 +463,38 @@ pub unsafe extern "C" fn check_recipe_raw(ptr: *mut u8, length: usize) -> u32 {
     }
 }
 
+/// Says what a recipe gives, as the core reads it: a list with the `path` of
+/// each key that has a value, as segments, and the value as `text`. Answers 0
+/// with the list, or 1 when the input is not JSON or the core has not been
+/// given a colour contract.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn recipe_values_raw(ptr: *mut u8, length: usize) -> u32 {
+    if !theme::contract::loaded() {
+        return refuse(NO_CONTRACT);
+    }
+    match json::parse(&read_input(ptr, length)) {
+        Ok(input) => {
+            let values: Vec<String> = theme::recipe_values(&input)
+                .iter()
+                .map(|value| {
+                    let path: Vec<String> = value.path.iter().map(|s| json_string(s)).collect();
+                    format!(
+                        "{{\"path\":[{}],\"text\":{}}}",
+                        path.join(","),
+                        json_string(&value.text)
+                    )
+                })
+                .collect();
+            respond(format!("[{}]", values.join(",")));
+            0
+        }
+        Err(error) => refuse(&error),
+    }
+}
+
 /// Checks a theme the host has written in, as CSS text. Returns 0 with the
 /// report, or 1 when the core has not been given a colour contract.
 ///

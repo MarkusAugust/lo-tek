@@ -101,7 +101,7 @@ class ThemeParityTest {
     @MethodSource("recipeChecks")
     fun `checkRecipe answers the same as TypeScript`(name: String) {
         val case = RECIPE_CHECKS.getValue(name) as Map<*, *>
-        assertEquals(setOf("recipe", "problems", "refusal"), case.keys, "the expected results have a field the reader does not compare")
+        assertEquals(setOf("recipe", "problems", "refusal", "values"), case.keys, "the expected results have a field the reader does not compare")
         val recipe = Json.write(case["recipe"])
         assertEquals(
             case["problems"],
@@ -109,6 +109,12 @@ class ThemeParityTest {
             name,
         )
         assertEquals(case["refusal"], refusal(recipe), "$name: what buildTheme says")
+        // What the recipe gives, as the core reads it, for a host that puts a recipe into a form.
+        assertEquals(
+            case["values"],
+            Lotek.recipeValues(recipe).map { mapOf("path" to it.path, "text" to it.text) },
+            "$name: what the recipe gives",
+        )
     }
 
     /** What `buildTheme` refuses a recipe with, or nothing when it takes it. */

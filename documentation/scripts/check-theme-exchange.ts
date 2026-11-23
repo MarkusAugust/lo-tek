@@ -127,8 +127,10 @@ const DOTTED = { "shape.buttonRadius": "4px", accent: "#7c3aed" }
 /** What is not a recipe, and what the text area must at least say about it. */
 const NOT_RECIPES: [string, string, string][] = [
   ["text that is not JSON", '{"accent": "#7c3aed"', ""],
-  ["JSON that is a list", '["#7c3aed"]', ""],
-  ["JSON that is a text", '"#7c3aed"', ""],
+  // JSON, and no recipe: the core says so, and the page shows its sentence.
+  ["JSON that is a list", '["#7c3aed"]', refusal(["#7c3aed"])],
+  ["JSON that is a text", '"#7c3aed"', refusal("#7c3aed")],
+  ["JSON that is null", "null", refusal(null)],
   ["a key the core does not know", JSON.stringify(UNKNOWN), refusal(UNKNOWN)],
   [
     "a key with a dot in its name",
@@ -142,9 +144,12 @@ if (refusal(DOTTED) !== NOT_RECIPES_DOTTED) {
   )
   process.exit(1)
 }
-if (!NOT_RECIPES[3][2].startsWith("Unknown key in the recipe: acent")) {
+if (
+  !refusal(UNKNOWN).startsWith("Unknown key in the recipe: acent") ||
+  !refusal(null).startsWith("The recipe is not an object.")
+) {
   console.error(
-    `✗ The core answers ${JSON.stringify(NOT_RECIPES[3][2])} for an unknown key. The check is older than the core.`,
+    `✗ The core answers ${JSON.stringify([refusal(UNKNOWN), refusal(null)])} for an unknown key and for null. The check is older than the core.`,
   )
   process.exit(1)
 }
@@ -417,6 +422,11 @@ const code = await s.run(async () => {
       after.told.includes(message),
       `${name}: the text area is told ${JSON.stringify(after.told)}, and the core says ${JSON.stringify(message)}`,
     )
+    // The page had a sentence of its own for what is JSON and no recipe.
+    expect(
+      !/but not a recipe/i.test(after.told),
+      `${name}: the text area is still told in the page's own words: ${JSON.stringify(after.told)}`,
+    )
     points += 1
   }
 
@@ -436,6 +446,42 @@ const code = await s.run(async () => {
     JSON.stringify(taken.invalid) === '["accent"]',
     `after a recipe with a refused colour, the fields marked are: ${taken.invalid.join(", ") || "none"}`,
   )
+  points += 1
+
+  /*
+   * What a pasted recipe puts in the fields is what the core says the
+   * recipe gives, and not the page's own reading of it. `0` is not a colour,
+   * so a family with `0` is not given: its switch stays off and its field
+   * empty, and the rest of the recipe is taken. `null` for a corner is a
+   * corner that is not given, and the recipe is taken with it at rest.
+   */
+  for (const [what, pasted, gives] of [
+    [
+      "a family that is 0",
+      { accent: 0, danger: "#b91c1c" },
+      { danger: "#b91c1c" },
+    ],
+    ["a corner that is null", { shape: { buttonRadius: null } }, {}],
+    [
+      "a number for a weight and 0 for a corner",
+      { typography: { weights: { bold: 800 } }, shape: { fieldRadius: 0 } },
+      { typography: { weights: { bold: "800" } }, shape: { fieldRadius: "0" } },
+    ],
+  ] as const) {
+    await area.fill(JSON.stringify(pasted))
+    await button("Use this recipe").click()
+    const after = await until(
+      (state) => same(state.form, formOf(gives)) && state.told === quiet,
+    )
+    expect(
+      same(after.form, formOf(gives)),
+      `after a pasted recipe with ${what}, the form is not what the recipe gives: ${parting(after.form, formOf(gives))}`,
+    )
+    expect(
+      after.invalid.length === 0 && after.told === quiet,
+      `a pasted recipe with ${what} is told ${JSON.stringify(after.told)}, and marks ${after.invalid.join(", ") || "nothing"}`,
+    )
+  }
   points += 1
 
   // Remembered: the page loaded again is the page that was left.
@@ -511,10 +557,11 @@ if (code !== 0) {
   process.exit(code)
 }
 
-// The guard comes last. Seven points of its own, and one for each text
+// The guard comes last. Eight points of its own, and one for each text
 // that is not a recipe: the first visit, the command, the copy, the paste,
-// the refused value that is taken, the page loaded again and the start again.
-const POINTS = 7 + NOT_RECIPES.length
+// the refused value that is taken, what a recipe gives, the page loaded
+// again and the start again.
+const POINTS = 8 + NOT_RECIPES.length
 if (points !== POINTS) {
   console.error(
     `✗ The check went through ${points} points where it has ${POINTS}. It has not looked at everything.`,

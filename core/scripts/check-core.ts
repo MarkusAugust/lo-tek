@@ -296,7 +296,12 @@ for (const [name, { recipe, theme, error: expectedError }] of Object.entries(
  */
 const recipeChecks: Record<
   string,
-  { recipe: unknown; problems: unknown; refusal: string | null }
+  {
+    recipe: unknown
+    problems: unknown
+    refusal: string | null
+    values: unknown
+  }
 > = JSON.parse(readFileSync(join(THEME, "recipe-checks.json"), "utf8"))
 /** What `buildTheme` refuses a recipe with, or `null` when it takes it. */
 const refusalOf = (recipe: unknown): string | null => {
@@ -307,7 +312,7 @@ const refusalOf = (recipe: unknown): string | null => {
     return e instanceof Error ? e.message : String(e)
   }
 }
-for (const [name, { recipe, problems, refusal }] of Object.entries(
+for (const [name, { recipe, problems, refusal, values }] of Object.entries(
   recipeChecks,
 )) {
   count += 1
@@ -324,6 +329,18 @@ for (const [name, { recipe, problems, refusal }] of Object.entries(
   if (refusalOf(recipe) !== refusal)
     failures.push(
       `theme/recipe-checks.json, ${name}: buildTheme answers ${JSON.stringify(refusalOf(recipe))}, expected ${JSON.stringify(refusal)}`,
+    )
+  // What the recipe gives, as the core reads it: the path and the text of
+  // each value, for a host that puts a recipe into a form.
+  let gives: unknown
+  try {
+    gives = core.recipeValues(recipe)
+  } catch (e) {
+    gives = `threw: ${e instanceof Error ? e.message : e}`
+  }
+  if (sorted(gives) !== sorted(values))
+    failures.push(
+      `theme/recipe-checks.json, ${name}, recipeValues\n  Expected: ${sorted(values).slice(0, 400)}\n  Core:     ${sorted(gives).slice(0, 400)}`,
     )
 }
 for (const [file, cases] of [

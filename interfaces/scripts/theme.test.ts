@@ -17,6 +17,8 @@ import {
   buildTheme,
   checkRecipe,
   type RecipeProblem,
+  type RecipeValue,
+  recipeValues,
   type ThemeInput,
 } from "../src/tokens/theme.js"
 
@@ -178,4 +180,28 @@ test("a key with a dot in its name is not the key it looks like", () => {
     [["shape.buttonRadius"], "unknown"],
     [["shape", "buttonRadius"], "refused"],
   ])
+})
+
+/*
+ * What a recipe gives, as the core reads it: for a host that puts a recipe
+ * into a form. `0` is not a colour, so it is not given for a family, and a
+ * number comes as the text the core writes.
+ */
+test("recipeValues is what the recipe gives, as the core reads it", () => {
+  const values: RecipeValue[] = recipeValues({
+    shape: { fieldRadius: 0, buttonRadius: "1rem", surfaceRadius: true },
+    typography: { weights: { bold: 700 } },
+    acent: "#000",
+    visited: 0,
+    danger: "purple",
+    accent: "#7c3aed",
+  })
+  expect(values).toEqual([
+    { path: ["accent"], text: "#7c3aed" },
+    { path: ["danger"], text: "purple" },
+    { path: ["typography", "weights", "bold"], text: "700" },
+    { path: ["shape", "buttonRadius"], text: "1rem" },
+    { path: ["shape", "fieldRadius"], text: "0" },
+  ])
+  expect(recipeValues([1])).toEqual([])
 })

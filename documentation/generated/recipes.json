@@ -8414,6 +8414,7 @@
         "kind",
         "message",
         "buildTheme",
+        "Lotek.recipeValues(recipe)",
         "violations",
         "lotek theme",
         "buildTheme",
@@ -9687,6 +9688,12 @@
         {
           "lang": "ts",
           "meta": null,
+          "code": "import { recipeValues } from \"@lo-tek/interfaces/theme\"\n\nrecipeValues({ accent: \"#7c3aed\", danger: null, shape: { fieldRadius: 0 } })\n// [\n//   { path: [\"accent\"], text: \"#7c3aed\" },\n//   { path: [\"shape\", \"fieldRadius\"], text: \"0\" }\n// ]",
+          "section": "Programmatic use"
+        },
+        {
+          "lang": "ts",
+          "meta": null,
           "code": "import { loadCore } from \"@lo-tek/interfaces/diagnostics\"\nimport wasmUrl from \"@lo-tek/interfaces/core.wasm?url\"\nimport contract from \"@lo-tek/interfaces/color-contract.json?raw\"\n\nconst core = loadCore(await WebAssembly.compileStreaming(fetch(wasmUrl)))\ncore.loadContract(contract)\nconst theme = core.buildTheme({ accent: \"#7c3aed\" })",
           "section": "Programmatic use"
         }
@@ -9796,6 +9803,10 @@
         "kind",
         "message",
         "buildTheme",
+        "recipeValues",
+        "path",
+        "text",
+        "0",
         "accent",
         "visited",
         "brand1",

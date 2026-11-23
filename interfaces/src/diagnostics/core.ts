@@ -137,6 +137,15 @@ export type RecipeProblem = {
   message: string
 }
 
+/**
+ * One value a recipe gives, as the core reads it: the key, as the segments
+ * of its path, and the value as text. A number is its text.
+ */
+export type RecipeValue = {
+  path: string[]
+  text: string
+}
+
 /** The theme `buildTheme` returns: the tokens per appearance, the promises that break, what became of the brand colours, and the CSS. */
 export type CoreTheme = {
   light: Record<string, string>
@@ -187,6 +196,11 @@ export type Core = {
    * cannot be written as JSON.
    */
   checkRecipe(recipe: unknown): RecipeProblem[]
+  /**
+   * What a recipe gives, as the core reads it: each key that has a value,
+   * with the value as text. Throws as `checkRecipe` does.
+   */
+  recipeValues(recipe: unknown): RecipeValue[]
   /** Checks every promise in a theme written as CSS. Throws without a colour contract. */
   inspectTheme(css: string): CoreThemeReport
   /** The classes and attribute values a stylesheet styles, read with the core's CSS reader. */
@@ -209,6 +223,7 @@ type Exports = {
   version_raw(): void
   build_theme_raw(pointer: number, length: number): number
   check_recipe_raw(pointer: number, length: number): number
+  recipe_values_raw(pointer: number, length: number): number
   inspect_theme_raw(pointer: number, length: number): number
   inspect_styles_raw(pointer: number, length: number): void
   diagnose_styled_raw(pointer: number, length: number): number
@@ -280,6 +295,8 @@ export function loadCore(source: BufferSource | WebAssembly.Module): Core {
       answer(e.build_theme_raw(...write(JSON.stringify(recipe)))),
     checkRecipe: (recipe) =>
       answer(e.check_recipe_raw(...write(JSON.stringify(recipe)))),
+    recipeValues: (recipe) =>
+      answer(e.recipe_values_raw(...write(JSON.stringify(recipe)))),
     inspectTheme: (css) => answer(e.inspect_theme_raw(...write(css))),
     inspectStyles: (css) => {
       e.inspect_styles_raw(...write(css))

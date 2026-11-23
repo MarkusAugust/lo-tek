@@ -2,12 +2,13 @@ import type {
   Brand,
   BrandFill,
   RecipeProblem,
+  RecipeValue,
   Violation,
 } from "../diagnostics/core.js"
 import { defaultCore } from "../diagnostics/default-core.js"
 import type { Family } from "./matrix.js"
 
-export type { Brand, BrandFill, RecipeProblem, Violation }
+export type { Brand, BrandFill, RecipeProblem, RecipeValue, Violation }
 
 /**
  * Builds a complete colour theme from a few brand colours.
@@ -131,4 +132,21 @@ export function buildTheme(input: ThemeInput): Theme {
  */
 export function checkRecipe(input: unknown): RecipeProblem[] {
   return defaultCore().checkRecipe(input)
+}
+
+/**
+ * Says what a recipe gives, as the core reads it.
+ *
+ * The answer has each key that has a value, in the order of the keys, with
+ * its `path` as segments and the value as `text`: a number is its text, and
+ * a key that is not given is not there. A text the core then refuses is
+ * there, with a problem beside it in `checkRecipe`. A value that cannot be
+ * one, `true`, a list or an object, is not, and neither is a key the theme
+ * does not have.
+ *
+ * A form over the recipe is filled from this, so it has no reading of its
+ * own that could disagree with the core's about what counts as given.
+ */
+export function recipeValues(input: unknown): RecipeValue[] {
+  return defaultCore().recipeValues(input)
 }

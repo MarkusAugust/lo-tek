@@ -1492,7 +1492,7 @@
     "recipe": {
       "accent": "rød"
     },
-    "error": "\"rød\" is not a valid hexadecimal colour"
+    "error": "\"rød\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
   },
   "dangerous-radius": {
     "recipe": {
@@ -1582,7 +1582,7 @@
       "accent": "#7c3aed",
       "danger": 12
     },
-    "error": "\"12\" is not a valid hexadecimal colour"
+    "error": "\"12\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
   },
   "colour-is-true": {
     "recipe": {

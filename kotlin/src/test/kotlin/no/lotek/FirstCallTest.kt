@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource
  */
 class FirstCallTest {
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = ["checkRecipe", "buildTheme", "inspectTheme", "diagnoseMarkup", "diagnosePage", "diagnoseRendered"])
+    @ValueSource(strings = ["checkRecipe", "recipeValues", "buildTheme", "inspectTheme", "diagnoseMarkup", "diagnosePage", "diagnoseRendered"])
     fun `answers as the first call in a JVM of its own`(operation: String) {
         val java = File(System.getProperty("java.home"), "bin/java").path
         val process =
@@ -47,6 +47,7 @@ object FirstCall {
         val answered =
             when (args.single()) {
                 "checkRecipe" -> Lotek.checkRecipe("""{"accent": "purple"}""").any { it.kind == "refused" }
+                "recipeValues" -> Lotek.recipeValues("""{"accent": "#7c3aed"}""").map { it.text } == listOf("#7c3aed")
                 "buildTheme" -> Lotek.buildTheme("""{"accent": "#7c3aed"}""").css.contains("lotek-theme")
                 "inspectTheme" -> Lotek.inspectTheme(":root { --lt-color-accent-text: #ffffff; }").blocks == 1
                 "diagnoseMarkup" -> Lotek.diagnoseMarkup("""<button class="lt-buton">Send</button>""").size == 1

@@ -298,6 +298,18 @@ Each problem has the `path` of its key as segments, since a key may have a dot i
 
 The list is empty exactly when `buildTheme` takes the recipe.
 
+`recipeValues` is the other half of such a form: what the recipe gives, as the core reads it. Each key that has a value comes with its `path` and the value as `text`, and a key that is not given is not there. Fill the fields from it rather than reading the recipe yourself, and the form cannot disagree with the generator about what counts as given: `0` is a value for a corner, and not a colour.
+
+```ts
+import { recipeValues } from "@lo-tek/interfaces/theme"
+
+recipeValues({ accent: "#7c3aed", danger: null, shape: { fieldRadius: 0 } })
+// [
+//   { path: ["accent"], text: "#7c3aed" },
+//   { path: ["shape", "fieldRadius"], text: "0" }
+// ]
+```
+
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 
 The theme is computed by the core, written in Rust and compiled to WebAssembly, the same one `lotek theme` and LO-TEK for Kotlin use. `buildTheme` loads it from the package in Node, Bun and Deno. In the browser, for example in a theme picker, you load it yourself:

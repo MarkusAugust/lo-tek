@@ -230,6 +230,7 @@ if (browserFailures.length > 0 || builderFailures.length > 0) process.exit(1)
 const FIRST_CALLS: Record<string, Record<string, string>> = {
   "./theme": {
     buildTheme: `const t = m.buildTheme({ accent: "#7c3aed" }); if (!t.css.includes("lotek-theme")) throw new Error("no theme")`,
+    recipeValues: `const v = m.recipeValues({ accent: "#7c3aed" }); if (v.length !== 1 || v[0].text !== "#7c3aed") throw new Error("the colour was not given")`,
     checkRecipe: `const w = m.checkRecipe({ accent: "purple" }); if (w.length !== 1 || w[0].kind !== "refused") throw new Error("the refused colour was not found")`,
   },
   "./theme-check": {

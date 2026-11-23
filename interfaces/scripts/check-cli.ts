@@ -621,8 +621,10 @@ block(async () => {
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
+  // The sentence is the core's, whole: that the value is no colour, and
+  // how a colour is written. The command adds nothing after a refusal.
   const answer = (value: string) =>
-    `\n"${value}" is not a valid hexadecimal colour\n\nColours are written as hexadecimal values, for example #7c3aed.\n\n`
+    `\n"${value}" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.\n\n`
 
   await writeFile(path, JSON.stringify({ accent: "#7c3aed", danger: 12 }))
   const number = await run(["theme", path])
@@ -676,7 +678,7 @@ block(async () => {
     expect(code === 1, `${JSON.stringify(recipe)} alone gave code ${code}`)
     expect(
       err ===
-        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\nColours are written as hexadecimal values, for example #7c3aed.\n\n",
+        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\n",
       `${JSON.stringify(recipe)} alone is not the empty theme: ${JSON.stringify(err.slice(0, 200))}`,
     )
   }
@@ -759,6 +761,82 @@ block(async () => {
       ) &&
       number.out === "",
     `a number for typography was not refused: ${JSON.stringify(number.err.slice(0, 200))}`,
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+/*
+ * What the command says of a recipe it will not build is what the core says,
+ * and nothing after it. It used to add how a colour is written to every
+ * refusal that did not begin with certain words, so the empty theme was told
+ * about colours; and for a file that was a list it had a sentence of its
+ * own. Exactly, for the three the hint was right or wrong for:
+ */
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  const { buildTheme } = await import("../src/tokens/theme.js")
+  const refusal = (recipe: unknown) => {
+    try {
+      buildTheme(recipe as never)
+    } catch (error) {
+      return (error as Error).message
+    }
+    return "(the core takes it)"
+  }
+
+  const colour = await run(["theme", "--accent=purple"])
+  expect(
+    colour.code === 1 &&
+      colour.err ===
+        '\n"purple" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.\n\n',
+    `a colour that is not one: ${JSON.stringify(colour.err)}`,
+  )
+  const corner = await run(["theme", "--button-radius=4px;"])
+  expect(
+    corner.code === 1 &&
+      corner.err === `\n${refusal({ shape: { buttonRadius: "4px;" } })}\n\n` &&
+      !corner.err.includes("hexadecimal"),
+    `a corner the core refuses: ${JSON.stringify(corner.err)}`,
+  )
+  const nothing = await run(["theme"])
+  expect(
+    nothing.code === 1 &&
+      nothing.err ===
+        "\nThe theme is empty. Give either brand colours, or typography and shape.\n\n",
+    `an empty theme: ${JSON.stringify(nothing.err)}`,
+  )
+
+  // A file that is JSON and no recipe: the core's sentence about it. The
+  // command may say which file first; the sentence it had itself is gone.
+  for (const text of ["[1]", '"#7c3aed"', "12", "null"]) {
+    await writeFile(path, text)
+    const { code, out, err } = await run(["theme", path])
+    expect(
+      code === 1 && out === "",
+      `${text} as a recipe file gave code ${code}`,
+    )
+    expect(
+      err.includes(refusal(JSON.parse(text))) &&
+        refusal(JSON.parse(text)).startsWith("The recipe is not an object."),
+      `${text} as a recipe file is not answered in the core's words: ${JSON.stringify(err.slice(0, 200))}`,
+    )
+    expect(
+      !err.includes("but not a recipe"),
+      `${text} as a recipe file is still answered with the command's own sentence`,
+    )
+  }
+
+  // An unknown key does not hide what else is wrong, as far as the core
+  // tells of it in one refusal; the pointer to the overview is the command's.
+  await writeFile(path, JSON.stringify({ acent: "#000", dangr: "#111" }))
+  const unknown = await run(["theme", path])
+  expect(
+    unknown.code === 1 &&
+      unknown.err ===
+        `${refusal({ acent: "#000", dangr: "#111" })}\n\nFull overview: lotek --help\n\n`,
+    `unknown keys in a recipe file: ${JSON.stringify(unknown.err)}`,
   )
 
   await rm(folder, { recursive: true, force: true })

@@ -230,31 +230,33 @@ const CORE_SAYS = [
   // A host that reads this off an answer is telling the core's refusals
   // apart by their wording. `checkRecipe` says which key is which.
   "Unknown key in the recipe",
+  // What is no recipe, and how a colour is written: the page and the
+  // command each had a sentence of their own for the first, and the command
+  // added the second to refusals it was not about.
+  "The recipe is not an object",
+  "Colours are written as hexadecimal values",
 ]
-/*
- * One host still writes one of them, and is named so it is seen: the
- * command puts "Unknown key in the recipe: …" together itself, from the
- * keys the core lists, to add where the full overview is. Take the line
- * out when the command shows the core's own message.
- */
-const STILL_SAID_BY = new Map([
-  ["Unknown key in the recipe", "cli/src/theme.rs"],
-])
+/** Sentences the hosts had for what the core now says. They are gone, and stay gone. */
+const NO_LONGER_SAID = ["but not a recipe"]
 /** Where a host's own code is. A test in it is not the host. */
 const isHost = (rel: string) =>
-  (/^(cli\/src|interfaces\/src|documentation\/src\/pages|documentation\/src\/components)\//.test(
+  (/^(cli\/src|interfaces\/src|vscode\/src|documentation\/src\/pages|documentation\/src\/components)\//.test(
     rel,
   ) ||
-    /^kotlin\/(.*\/)?src\/main\//.test(rel)) &&
+    /^(kotlin|intellij)\/(.*\/)?src\/main\//.test(rel)) &&
   !/\.test\.ts$/.test(rel) &&
   !rel.startsWith("interfaces/src/testing/")
 const hostFiles = new Map<string, number>(
-  ["cli/src/", "interfaces/src/", "documentation/src/pages/", "kotlin/"].map(
-    (host) => [host, 0],
-  ),
+  [
+    "cli/src/",
+    "interfaces/src/",
+    "vscode/src/",
+    "documentation/src/pages/",
+    "kotlin/",
+    "intellij/",
+  ].map((host) => [host, 0]),
 )
 const saidByTheCore = new Map<string, number>(CORE_SAYS.map((p) => [p, 0]))
-let stillSaid = 0
 
 let searched = 0
 for (const rel of new Set(listed.stdout.toString().split("\0"))) {
@@ -270,7 +272,6 @@ for (const rel of new Set(listed.stdout.toString().split("\0"))) {
       if (!source.includes(phrase)) continue
       if (rel.startsWith("core/src/"))
         saidByTheCore.set(phrase, (saidByTheCore.get(phrase) ?? 0) + 1)
-      else if (STILL_SAID_BY.get(phrase) === rel) stillSaid += 1
       else {
         const line = source.slice(0, source.indexOf(phrase)).split("\n").length
         findings.push(
@@ -278,6 +279,16 @@ for (const rel of new Set(listed.stdout.toString().split("\0"))) {
         )
       }
     }
+    if (isHost(rel))
+      for (const phrase of NO_LONGER_SAID)
+        if (source.includes(phrase)) {
+          const line = source
+            .slice(0, source.indexOf(phrase))
+            .split("\n").length
+          findings.push(
+            `${rel}:${line} writes "${phrase}". The core says what is wrong with a recipe; the host had a sentence of its own for it, and it is to be gone.`,
+          )
+        }
     for (const host of hostFiles.keys())
       if (isHost(rel) && rel.startsWith(host))
         hostFiles.set(host, (hostFiles.get(host) ?? 0) + 1)
@@ -309,12 +320,6 @@ const empty = [...read].filter(([, count]) => count === 0)
 // phrase the core does not write is one that has changed under the guard.
 for (const [host, count] of hostFiles)
   if (count === 0) empty.push([`${host} (what only the core says)`, 0])
-// An exception nothing uses any more is an exception to take out.
-if (stillSaid !== STILL_SAID_BY.size)
-  empty.push([
-    `the hosts named as still writing a sentence of the core's (${[...STILL_SAID_BY.values()].join(", ")} no longer does)`,
-    0,
-  ])
 for (const [phrase, count] of saidByTheCore)
   if (count === 0)
     empty.push([`core/src/ for "${phrase}" (the core no longer says it)`, 0])

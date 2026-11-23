@@ -122,6 +122,26 @@ object Lotek {
     }
 
     /**
+     * Says what a recipe gives, as the core reads it: each key that has a
+     * value, in the order of the keys, with its path as segments and the
+     * value as text. A key that is not given is not there, and neither is a
+     * value that cannot be one, or a key the theme does not have. A text the
+     * core then refuses is there, with a problem beside it in [checkRecipe].
+     *
+     * [recipe] is the JSON text of a recipe, handed to the core as it is.
+     * Text that is not JSON throws [IllegalArgumentException]. If the colour
+     * contract is missing from the jar, it throws [IllegalStateException].
+     */
+    fun recipeValues(recipe: String): List<RecipeValue> {
+        val (status, answer) = withCore { it.useContract(); it.callWithStatus(RECIPE_VALUES, recipe) }
+        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        return (Json.parse(answer) as List<*>).map { v ->
+            val m = v as Map<*, *>
+            RecipeValue(path = (m["path"] as List<*>).map { it as String }, text = m["text"] as String)
+        }
+    }
+
+    /**
      * Builds a colour theme from the recipe, as `lotek theme` does.
      *
      * [recipe] is the JSON text of a recipe file: the nine colours
@@ -278,6 +298,7 @@ object Lotek {
     private const val STYLED = "diagnose_styled_raw"
     private const val BUILD_THEME = "build_theme_raw"
     private const val CHECK_RECIPE = "check_recipe_raw"
+    private const val RECIPE_VALUES = "recipe_values_raw"
     private const val INSPECT_THEME = "inspect_theme_raw"
 
     private fun finding(f: Map<*, *>): Finding =
@@ -405,6 +426,12 @@ data class RecipeProblem(
     val path: List<String>,
     val kind: String,
     val message: String,
+)
+
+/** One value a recipe gives, as the core reads it: the key, as the segments of its path, and the value as text. */
+data class RecipeValue(
+    val path: List<String>,
+    val text: String,
 )
 
 /**

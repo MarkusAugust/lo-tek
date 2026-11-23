@@ -13,7 +13,7 @@ use super::contract::{
     build_matrix, check_promises, contract, promises_for, role_to_css, token_name, Appearance,
     Family, Layers,
 };
-use super::{is_js_space, js_number, js_trim};
+use super::{is_js_space, js_trim};
 use cssparser::{
     AtRuleParser, CowRcStr, DeclarationParser, ParseError, Parser, ParserState,
     QualifiedRuleParser, RuleBodyItemParser, RuleBodyParser, StyleSheetParser, Token,
@@ -750,13 +750,7 @@ pub fn inspect_theme(css: &str) -> Report {
         for violation in check_promises(&complete, &layers).unwrap_or_default() {
             problems.push(Problem {
                 selector: block.selector.clone(),
-                message: format!(
-                    "{}: {} is {}:1, the requirement is {}:1.",
-                    violation.family,
-                    violation.promise,
-                    super::to_fixed2(violation.ratio),
-                    js_number(violation.required)
-                ),
+                message: violation.summary(),
             });
         }
     }
