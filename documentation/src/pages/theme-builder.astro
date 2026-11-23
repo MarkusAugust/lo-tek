@@ -380,7 +380,10 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					</div>
 					<!-- Each frame holds a whole page, and every control in it is a
 					     stop for the keyboard. -->
-					<a class="lt-skip-link" href="#out">Skip past the preview</a>
+					<a class="builder__past" href="#out">Skip past the preview, to the recipe as a file</a>
+					<p class="builder__note" data-text="$shown === '' ? 'Nothing is set yet, so this is LO-TEK with the colours it comes with.' : $built.ok ? 'LO-TEK with the theme your recipe gives.' : 'The last theme that was built. The recipe as it stands is refused.'">
+						Nothing is set yet, so this is LO-TEK with the colours it comes with.
+					</p>
 					<!-- Each frame is a page of the site with the theme laid on it,
 					     the file itself and not a likeness of it. The frame says
 					     which appearance it is, and the framed page takes it before
@@ -542,18 +545,34 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		outline: none;
 	}
 
+	/* The preview and what follows it are placed by the page's own grid. */
+	.builder__side {
+		display: contents;
+	}
+
 	/* The recipe beside what it gives, when there is room for both. The
-	   preview stays in view while the recipe, which is long, is scrolled. */
+	   preview has the right column to itself and stays in view while the
+	   left one, which is long, is scrolled: the recipe, and below it the
+	   file and the field to paste one into. Were anything below the preview
+	   in its column, the preview would stay and lie over it. */
 	@media (min-width: 72rem) {
 		.builder__main {
 			grid-template-columns: minmax(0, 26rem) minmax(0, 1fr);
 		}
 
-		.builder__head {
+		.builder__main > * {
 			grid-column: 1 / -1;
 		}
 
+		.builder__recipe,
+		.builder__out {
+			grid-column: 1;
+		}
+
 		.builder__preview {
+			grid-column: 2;
+			grid-row: 2 / span 3;
+			align-self: start;
 			position: sticky;
 			inset-block-start: var(--lt-spacing-4);
 		}
@@ -579,7 +598,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	}
 
 	.builder__recipe,
-	.builder__side,
 	.builder__out,
 	.builder__group,
 	.builder__preview {
@@ -587,10 +605,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		flex-direction: column;
 		gap: var(--lt-spacing-4);
 		min-inline-size: 0;
-	}
-
-	.builder__side {
-		gap: var(--lt-spacing-8);
 	}
 
 	/* A group of the recipe: a plate's worth of fields under a rule. */
@@ -679,6 +693,28 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		align-items: center;
 		justify-content: space-between;
 		gap: var(--lt-spacing-4);
+	}
+
+	/* The way past the frames is for the keyboard: out of sight until it has
+	   focus, and then where it stands, above the frames it leads past. The
+	   skip link of the package cannot be used here, since it hides above the
+	   top of the window and this one is far down the page. */
+	.builder__past:not(:focus) {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	.builder__past:focus {
+		align-self: start;
+		padding: var(--lt-spacing-2) var(--lt-spacing-3);
+		background: var(--lt-color-neutral-text-strong);
+		color: var(--lt-color-neutral-canvas);
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: 2px;
 	}
 
 	.builder__frames {
