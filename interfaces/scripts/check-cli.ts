@@ -406,9 +406,14 @@ block(async () => {
  * it writes about. What it shows is what the command writes.
  */
 block(async () => {
-  const page = await readFile(
-    join(packageDir, "../documentation/src/content/docs/your-own-theme.mdx"),
-    "utf8",
+  // A checkout on Windows has the page with `\r\n`, and the block is found
+  // and compared line by line, so both are read with `\n` alone.
+  const lines = (text: string) => text.replace(/\r\n/g, "\n")
+  const page = lines(
+    await readFile(
+      join(packageDir, "../documentation/src/content/docs/your-own-theme.mdx"),
+      "utf8",
+    ),
   )
   const shown = /```\n(accent: #f7df1e gives the fill [\s\S]*?)\n```/.exec(
     page,
@@ -419,7 +424,7 @@ block(async () => {
   )
   const { err } = await run(["theme", "--accent=#f7df1e"])
   expect(
-    shown === err.trimEnd(),
+    shown === lines(err).trimEnd(),
     `your-own-theme.mdx shows another answer than the command gives:\n${shown}\nthe command:\n${err}`,
   )
 })

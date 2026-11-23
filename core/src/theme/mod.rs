@@ -172,17 +172,15 @@ fn balanced(value: &str) -> bool {
             }
             continue;
         }
-        match c {
-            '"' | '\'' => quote = Some(c),
-            '(' => open.push(')'),
-            '[' => open.push(']'),
+        if c == '"' || c == '\'' {
+            quote = Some(c);
+        } else if c == '(' {
+            open.push(')');
+        } else if c == '[' {
+            open.push(']');
+        } else if (c == ')' || c == ']') && open.pop() != Some(c) {
             // Blocks nest: each one is closed by its own kind, innermost first.
-            ')' | ']' => {
-                if open.pop() != Some(c) {
-                    return false;
-                }
-            }
-            _ => {}
+            return false;
         }
     }
     open.is_empty() && quote.is_none()
