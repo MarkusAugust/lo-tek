@@ -139,15 +139,20 @@
  * nothing under it, and the tile is laid on as it is: the inverted dark tile
  * then darkens the whole page instead of only lightening the specks.
  *
- * Only the front page is on paper for now. The documentation pages stand on
- * the flat surface.
+ * `.profile-grain` is a class a page of its own sets on its body: the front
+ * page and the theme builder. On a documentation page Starlight writes the
+ * markup, and `.page` is its frame around everything on the page, so that is
+ * what stands on the paper there. Its header stays in place while the page
+ * is scrolled under it, so it cannot be see-through, and has the paper laid
+ * under it once more. `global.css` gives both the surface colour the blend
+ * needs.
  */
-.profile-grain {
+:is(.profile-grain, body > .page) {
   position: relative;
   isolation: isolate;
 }
 
-.profile-grain::before {
+:is(.profile-grain, body > .page, body > .page > header.header)::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -161,14 +166,16 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .profile-grain::before {
+  :root:not([data-theme="light"])
+    :is(.profile-grain, body > .page, body > .page > header.header)::before {
     filter: invert(1);
     mix-blend-mode: screen;
     opacity: 0.14;
   }
 }
 
-:root[data-theme="dark"] .profile-grain::before {
+:root[data-theme="dark"]
+  :is(.profile-grain, body > .page, body > .page > header.header)::before {
   filter: invert(1);
   mix-blend-mode: screen;
   opacity: 0.14;
@@ -177,7 +184,7 @@
 /* Texture is the first thing to go when someone has asked for more contrast,
    and it is not worth a byte to someone who has asked for less data. */
 @media (prefers-contrast: more), (prefers-reduced-data: reduce), print {
-  .profile-grain::before {
+  :is(.profile-grain, body > .page, body > .page > header.header)::before {
     display: none;
   }
 }
