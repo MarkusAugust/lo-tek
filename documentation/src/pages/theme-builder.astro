@@ -74,12 +74,21 @@ const empty = (property: Property): Record<string, unknown> =>
     ]),
   )
 
+/**
+ * The sentences a row of the report can hold, as `lotek theme` writes them:
+ * why the colour could not be the fill in an appearance, and how much of its
+ * chroma the fill has there.
+ */
+const WHY = ["lightWhy", "darkWhy", "lightChroma", "darkChroma"] as const
+
 /*
  * The signals. `own` says which families have a colour of the consumer's,
  * `fields` holds what is written in every field, in the shape of the recipe.
  * `recipe` is what was chosen and only that, as the text of the recipe file,
- * and `built` is the core's answer to it. `shown` is the theme the frames
- * have, and `view` which page they frame.
+ * and `built` is the core's answer to it: the theme, what is wrong with
+ * each field, in the shape of `fields`, and what became of each colour.
+ * `shown` is the theme the frames have, the last one that was built, and
+ * `view` which page they frame.
  *
  * A signal an action answers into always has the same keys, and only text,
  * numbers and booleans at its leaves. Datastar merges what is assigned into
@@ -97,7 +106,27 @@ const signals = {
     shape: empty(top.shape),
   },
   recipe: "{}",
-  built: { ok: false, css: "", error: "" },
+  built: {
+    ok: false,
+    css: "",
+    error: "",
+    wrong: {
+      ...Object.fromEntries(families.map(([name]) => [name, ""])),
+      typography: empty(top.typography),
+      shape: empty(top.shape),
+    },
+    report: Object.fromEntries(
+      families.map(([name]) => [
+        name,
+        {
+          given: "",
+          light: "",
+          dark: "",
+          ...Object.fromEntries(WHY.map((key) => [key, ""])),
+        },
+      ]),
+    ),
+  },
   shown: "",
   view: "sheet",
 }
@@ -162,8 +191,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<!-- What was chosen becomes the recipe, and the recipe becomes the
 				     theme. The core is asked only when it has been loaded. -->
 				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
-				<div hidden data-effect="$ready && ($built = @buildTheme($recipe))"></div>
-				<div hidden data-effect="$ready && ($shown = $built.css)"></div>
+				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own, $fields))"></div>
+				<div hidden data-effect="$ready && ($built.ok ? ($shown = $built.css) : $built.error === '' && ($shown = ''))"></div>
 
 				<section class="builder__recipe" aria-labelledby="recipe-title">
 					<h2 class="profile-label" id="recipe-title">Recipe</h2>
@@ -206,15 +235,24 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											id={id(name)}
 											name={name}
 											aria-label={`The colour of ${name}, as #rrggbb`}
-											aria-describedby={`${id(name)}-help`}
+											aria-describedby={`${id(name)}-help ${id(name)}-error`}
 											placeholder="#rrggbb"
 											autocomplete="off"
 											spellcheck="false"
 											disabled
 											data-bind={`fields.${name}`}
 											data-attr:disabled={`!$own.${name}`}
+											data-attr:aria-invalid={`$built.wrong.${name} !== '' && 'true'`}
+											data-attr:data-state={`$built.wrong.${name} !== '' && 'invalid'`}
 										/>
 									</div>
+									<p
+										class="lt-error-text"
+										id={`${id(name)}-error`}
+										style="display: none"
+										data-show={`$built.wrong.${name} !== ''`}
+										data-text={`$built.wrong.${name}`}
+									/>
 									<p class="lt-help-text" id={`${id(name)}-help`}>
 										{first(property.description)}
 									</p>
@@ -240,10 +278,19 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											type="text"
 											id={id(path)}
 											name={path}
-											aria-describedby={`${id(path)}-help`}
+											aria-describedby={`${id(path)}-help ${id(path)}-error`}
 											autocomplete="off"
 											spellcheck="false"
 											data-bind={`fields.${path}`}
+											data-attr:aria-invalid={`$built.wrong.${path} !== '' && 'true'`}
+											data-attr:data-state={`$built.wrong.${path} !== '' && 'invalid'`}
+										/>
+										<p
+											class="lt-error-text"
+											id={`${id(path)}-error`}
+											style="display: none"
+											data-show={`$built.wrong.${path} !== ''`}
+											data-text={`$built.wrong.${path}`}
 										/>
 										<p class="lt-help-text" id={`${id(path)}-help`}>
 											{help}
@@ -291,6 +338,50 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 							))
 						}
 					</div>
+				</section>
+
+				<section class="builder__report" aria-labelledby="report-title">
+					<h2 class="profile-label" id="report-title">What became of your colours</h2>
+					<p class="builder__line">
+						The lightness of every colour is the role's, so a colour is moved
+						to it, and a light one far. Each row says what yours became, and why
+						it could not be the fill as it was.
+					</p>
+					<!-- A row for every family, each shown when the recipe gives the
+					     family. Not a list written by script: Datastar has the rows,
+					     and the answer fills them in. -->
+					{
+						families.map(([name]) => (
+							<div
+								class="builder__row"
+								data-family={name}
+								style="display: none"
+								data-show={`$built.report.${name}.given !== ''`}
+							>
+								<p class="profile-label">{name}</p>
+								<p class="builder__swatches">
+									{(["given", "light", "dark"] as const).map((key) => (
+										<span class="builder__colour-of">
+											<span class="profile-label">{key}</span>
+											<span
+												class="builder__swatch"
+												data-attr:style={`'background-color: ' + $built.report.${name}.${key}`}
+											/>
+											<code data-text={`$built.report.${name}.${key}`} />
+										</span>
+									))}
+								</p>
+								{WHY.map((key) => (
+									<p
+										class="builder__why"
+										style="display: none"
+										data-show={`$built.report.${name}.${key} !== ''`}
+										data-text={`$built.report.${name}.${key}`}
+									/>
+								))}
+							</div>
+						))
+					}
 				</section>
 
 				<section class="builder__out" aria-labelledby="out-title">
@@ -420,6 +511,52 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		line-height: var(--lt-line-height-default);
 	}
 
+	.builder__report {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-4);
+	}
+
+	.builder__row {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+		padding-block-start: var(--lt-spacing-3);
+		border-block-start: var(--profile-rule-subtle);
+	}
+
+	.builder__row > p {
+		margin: 0;
+	}
+
+	.builder__swatches {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lt-spacing-6);
+	}
+
+	.builder__colour-of {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--lt-spacing-2);
+		font-family: var(--profile-font-data);
+		font-size: var(--lt-font-size-s);
+	}
+
+	.builder__swatch {
+		display: inline-block;
+		inline-size: var(--lt-spacing-8);
+		block-size: var(--lt-spacing-8);
+		border: var(--profile-rule);
+	}
+
+	.builder__why {
+		max-inline-size: 60rem;
+		font-size: var(--lt-font-size-s);
+		line-height: var(--lt-line-height-article);
+		color: var(--lt-color-neutral-text);
+	}
+
 	.builder__side {
 		display: flex;
 		flex-direction: column;
@@ -530,21 +667,112 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	// The core's answer to a recipe: the theme, or why there is none. A
-	// recipe with nothing in it is not a mistake, only nothing yet. Every
-	// answer has the same keys; see the note at the signals.
+	type Broken = { promise: string; ratio: number; required: number }
+	type Fill = { fill: string; chromaKept: number; breaks: Broken[] }
+	type Row = Record<string, string>
+
+	/** The two sentences about one appearance, as `lotek theme` writes them. */
+	const why = (appearance: string, given: string, fill: Fill) => {
+		const percent = Math.round(fill.chromaKept * 100)
+		return [
+			fill.breaks.length === 0
+				? ""
+				: `In the ${appearance} theme ${given} could not be the fill itself: ${fill.breaks
+						.map(
+							(b) =>
+								`${b.promise} would be ${b.ratio.toFixed(2)}:1, the requirement is ${b.required}:1`,
+						)
+						.join("; ")}.`,
+			percent < 100
+				? `In the ${appearance} theme the fill has ${percent}% of the chroma of ${given}: sRGB cannot show more at that lightness and hue.`
+				: "",
+		]
+	}
+
+	/** What the core answers to a recipe of one key, when it refuses it. */
+	const refusal = (recipe: Fields): string => {
+		try {
+			core.buildTheme(recipe)
+			return ""
+		} catch (error) {
+			return error instanceof Error ? error.message : String(error)
+		}
+	}
+
+	/** What is wrong with every field of a block, in the shape of the block. */
+	const wrongIn = (block: Fields, alone: (leaf: Fields) => Fields): Fields =>
+		Object.fromEntries(
+			Object.entries(block).map(([name, value]) => [
+				name,
+				typeof value !== "string"
+					? wrongIn(value, (leaf) => alone({ [name]: leaf }))
+					: value.trim() === ""
+						? ""
+						: refusal(alone({ [name]: value.trim() })),
+			]),
+		)
+
+	// The report of the last theme that was built: what the rows hold while
+	// a field is being typed in and the recipe does not build.
+	let lastReport: Record<string, Row> | undefined
+
+	// The core's answer to a recipe: the theme, what is wrong with each
+	// field, and what became of each colour. A recipe with nothing in it is
+	// not a mistake, only nothing yet. Every answer has the same keys; see
+	// the note at the signals.
 	action({
 		name: "buildTheme",
-		apply(_: unknown, recipe: string) {
-			const nothing = { ok: false, css: "", error: "" }
+		apply(_: unknown, recipe: string, own: Record<string, boolean>, fields: Fields) {
+			const families = Object.keys(own)
+			const noRow = { given: "", light: "", dark: "", lightWhy: "", darkWhy: "", lightChroma: "", darkChroma: "" }
+			const empty = Object.fromEntries(families.map((name) => [name, { ...noRow }]))
+			// A field is asked about alone, so the answer is about that field:
+			// the core stops at the first thing it refuses.
+			const wrong: Fields = {
+				...Object.fromEntries(
+					families.map((name) => {
+						const value = fields[name]
+						return [
+							name,
+							own[name] && typeof value === "string" && value.trim() !== ""
+								? refusal({ [name]: value.trim() })
+								: "",
+						]
+					}),
+				),
+				typography: wrongIn(fields.typography as Fields, (leaf) => ({ typography: leaf })),
+				shape: wrongIn(fields.shape as Fields, (leaf) => ({ shape: leaf })),
+			}
 			const chosen = JSON.parse(recipe)
-			if (Object.keys(chosen).length === 0) return nothing
+			if (Object.keys(chosen).length === 0) {
+				lastReport = undefined
+				return { ok: false, css: "", error: "", wrong, report: empty }
+			}
 			try {
-				return { ...nothing, ok: true, css: core.buildTheme(chosen).css }
+				const { css, brands } = core.buildTheme(chosen)
+				const report = { ...empty }
+				for (const brand of brands) {
+					const [lightWhy, lightChroma] = why("light", brand.given, brand.light)
+					const [darkWhy, darkChroma] = why("dark", brand.given, brand.dark)
+					report[brand.family] = {
+						given: brand.given,
+						light: brand.light.fill,
+						dark: brand.dark.fill,
+						lightWhy,
+						darkWhy,
+						lightChroma,
+						darkChroma,
+					}
+				}
+				lastReport = report
+				return { ok: true, css, error: "", wrong, report }
 			} catch (error) {
 				return {
-					...nothing,
+					ok: false,
+					css: "",
 					error: error instanceof Error ? error.message : String(error),
+					wrong,
+					report: lastReport ?? empty,
 				}
 			}
 		},
