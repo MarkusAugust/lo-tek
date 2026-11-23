@@ -612,6 +612,120 @@ block(async () => {
 })
 
 /*
+ * A flag and the file together: the flag is in the theme whenever the core
+ * reads the file's block as not given or as an object, and the run fails
+ * with the core's refusal when the file's block is something the core
+ * refuses, flag or no flag.
+ *
+ * The command decided for itself which blocks of a file were broken, and
+ * excepted only `null`, where the core also reads `false` and an empty text
+ * as a block that is not given. So `"shape": false` in the file made
+ * `--button-radius=9px` vanish without a word, and the theme was written
+ * without it.
+ */
+block(async () => {
+  const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
+  const path = join(folder, "lotek.theme.json")
+  const { buildTheme } = await import("../src/tokens/theme.js")
+  const refusal = (recipe: unknown) => {
+    try {
+      buildTheme(recipe as never)
+    } catch (error) {
+      return (error as Error).message
+    }
+    return "(the core takes it)"
+  }
+  /** The file with this for `shape`, or without it when it is left out. */
+  const file = (shape: unknown[], more: object = {}) =>
+    writeFile(
+      path,
+      JSON.stringify(shape.length > 0 ? { ...more, shape: shape[0] } : more),
+    )
+
+  // Not given, or an object: the flag is in the theme, with a colour in the
+  // file and without one.
+  for (const shape of [
+    [],
+    [null],
+    [false],
+    [""],
+    [{}],
+    [{ surfaceRadius: "2px" }],
+    [{ buttonRadius: "1rem" }],
+  ])
+    for (const more of [{ accent: "#7c3aed" }, {}]) {
+      await file(shape, more)
+      const { code, out, err } = await run([
+        "theme",
+        path,
+        "--button-radius=9px",
+      ])
+      const what = `--button-radius with ${JSON.stringify({ ...more, shape: shape[0] })} in the file`
+      expect(
+        code === 0,
+        `${what} exited with code ${code}: ${err.slice(0, 160)}`,
+      )
+      expect(
+        out.includes("--lt-button-radius: 9px;") && !out.includes("1rem"),
+        `${what} is not in the theme`,
+      )
+      if (shape.length > 0 && typeof shape[0] === "object" && shape[0] !== null)
+        expect(
+          "surfaceRadius" in shape[0] ===
+            out.includes("--lt-card-radius: 2px;"),
+          `${what}: the other key of the file's block is ${out.includes("--lt-card-radius: 2px;") ? "there and should not be" : "gone"}`,
+        )
+    }
+  // The same for the font, which is in the other block.
+  for (const typography of [false, "", null]) {
+    await writeFile(path, JSON.stringify({ typography }))
+    const { code, out } = await run(["theme", path, "--font=Georgia, serif"])
+    expect(
+      code === 0 && out.includes("--lt-font-family-base: Georgia, serif;"),
+      `--font with ${JSON.stringify({ typography })} in the file gave code ${code}, or is not in the theme`,
+    )
+  }
+
+  // Something the core refuses as a block: its refusal, flag or no flag.
+  for (const shape of [5, "Inter", [1], true])
+    for (const flags of [["--button-radius=9px"], []]) {
+      await file([shape], { accent: "#7c3aed" })
+      const { code, out, err } = await run(["theme", path, ...flags])
+      const said = refusal({ accent: "#7c3aed", shape })
+      const what = `${JSON.stringify({ shape })} in the file${flags.length ? " with a flag for a key of it" : ""}`
+      expect(code === 1 && out === "", `${what} gave code ${code}`)
+      expect(
+        said.startsWith("shape is not an object") && err.includes(said),
+        `${what} is not answered with the core's refusal of the block: ${JSON.stringify(err.slice(0, 200))}`,
+      )
+    }
+
+  // A value in the file that the core refuses, and a flag over it: builds.
+  await file([{ buttonRadius: "4px; }" }], { accent: "purple" })
+  const over = await run([
+    "theme",
+    path,
+    "--button-radius=9px",
+    "--accent=#7c3aed",
+  ])
+  expect(
+    over.code === 0 &&
+      over.out.includes("--lt-button-radius: 9px;") &&
+      over.out.includes("--lt-color-accent-fill: #7935e9;"),
+    `flags over values the core refuses gave code ${over.code}: ${over.err.slice(0, 160)}`,
+  )
+  // And an empty file with flags is the flags.
+  await writeFile(path, "{}")
+  const empty = await run(["theme", path, "--button-radius=9px"])
+  expect(
+    empty.code === 0 && empty.out.includes("--lt-button-radius: 9px;"),
+    `an empty file with a flag gave code ${empty.code}: ${empty.err.slice(0, 160)}`,
+  )
+
+  await rm(folder, { recursive: true, force: true })
+})
+
+/*
  * A colour in the file that is not text is not dropped without a word.
  *
  * `"danger": 12` used to give a theme with LO-TEK's own red, as if the key
@@ -1400,6 +1514,53 @@ block(async () => {
     named.join(", ") === books.join(", "),
     `the help names the rulebooks ${named.join(", ")}, and there are ${books.join(", ")}`,
   )
+})
+
+/*
+ * The help says what each corner flag sets, and that is what the core sets.
+ *
+ * The core has the lists: which components a recipe's `buttonRadius`,
+ * `fieldRadius` and `surfaceRadius` reach. The panel of a term was added to
+ * the surfaces, and the help went on listing eleven. The lists are read
+ * from the core's source, and every name in one must be in the lines of its
+ * flag, as words: `skip-link` is "skip link" there, and `textarea` "text
+ * area", so both are compared without spaces and hyphens.
+ */
+block(async () => {
+  const core = await readFile(
+    join(packageDir, "../core/src/theme/mod.rs"),
+    "utf8",
+  )
+  const list = (name: string) =>
+    [
+      ...(
+        new RegExp(`const ${name}: \\[&str; \\d+\\] = \\[([^\\]]*)\\]`).exec(
+          core,
+        )?.[1] ?? ""
+      ).matchAll(/"([a-z-]+)"/g),
+    ].map((m) => m[1])
+  const { out } = await run(["--help"])
+  const squashed = (text: string) => text.toLowerCase().replace(/[\s-]+/g, "")
+  for (const [flag, name] of [
+    ["--button-radius", "BUTTONS"],
+    ["--field-radius", "FIELDS"],
+    ["--surface-radius", "SURFACES"],
+  ]) {
+    const components = list(name)
+    expect(
+      components.length >= 3,
+      `found only ${components.length} components in ${name} in the core`,
+    )
+    // The lines of the flag: from it to the next flag.
+    const lines = squashed(
+      new RegExp(`${flag}=[\\s\\S]*?(?=\\n\\s+--[a-z])`).exec(out)?.[0] ?? "",
+    )
+    const missing = components.filter((c) => !lines.includes(squashed(c)))
+    expect(
+      lines !== "" && missing.length === 0,
+      `the help for ${flag} does not name ${missing.join(", ") || "anything"}, which the core sets with it`,
+    )
+  }
 })
 
 // The old Norwegian verbs and help flags are gone, not kept as aliases

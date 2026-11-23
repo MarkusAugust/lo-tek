@@ -114,7 +114,8 @@ pub fn run(arguments: &[String]) {
     // knows the keys, and is asked before the flags are, so a mistake in the
     // recipe is reported before an unknown flag.
     crate::package::load_contract();
-    let unknown = check_recipe(&from_file)
+    let in_file = check_recipe(&from_file);
+    let unknown = in_file
         .iter()
         .any(|problem| problem.kind == RecipeKind::Unknown);
     if unknown {
@@ -160,10 +161,13 @@ pub fn run(arguments: &[String]) {
                 flagged = true;
             }
         }
-        // A block of the file that is not an object is left as it is, for
-        // the core to refuse: a flag does not paper over it.
-        let broken =
-            matches!(from_file.get(block), Some(v) if !matches!(v, Json::Object(_) | Json::Null));
+        // A block of the file the core refuses is left as it is, for the
+        // core to refuse: a flag does not paper over it. Whether it does is
+        // the core's to say. Any other block is an object or not given, and
+        // the flags are set on the keys it has.
+        let broken = in_file.iter().any(|problem| {
+            problem.kind == RecipeKind::Refused && problem.path == [block.to_string()]
+        });
         if flagged && !broken {
             set(&mut input, block, Json::Object(keys));
         }

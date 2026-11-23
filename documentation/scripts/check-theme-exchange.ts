@@ -35,9 +35,15 @@ if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
   process.exit(1)
 }
 
-const { buildTheme } = (await import(
+const { buildTheme, checkRecipe, recipeValues } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
-)) as { buildTheme(recipe: unknown): { css: string } }
+)) as {
+  buildTheme(recipe: unknown): { css: string }
+  checkRecipe(
+    recipe: unknown,
+  ): { path: string[]; kind: string; message: string }[]
+  recipeValues(recipe: unknown): { path: string[]; text: string }[]
+}
 const { version } = JSON.parse(
   readFileSync(`${ROOT}interfaces/package.json`, "utf8"),
 ) as { version: string }
@@ -106,15 +112,6 @@ const FILE = JSON.stringify(
   null,
   2,
 )
-/** The message of the core for a recipe it refuses. */
-function refusal(recipe: unknown): string {
-  try {
-    buildTheme(recipe)
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error)
-  }
-  throw new Error(`the core takes ${JSON.stringify(recipe)}`)
-}
 const UNKNOWN = { acent: "#7c3aed", shape: { radius: "0" } }
 /*
  * A key with a dot in its name, at the top of the recipe. It is not the
@@ -122,36 +119,94 @@ const UNKNOWN = { acent: "#7c3aed", shape: { radius: "0" } }
  * the recipe does not have. Told apart only by its dots, it was taken, and
  * the value vanished without a word.
  */
-const NOT_RECIPES_DOTTED = "Unknown key in the recipe: shape.buttonRadius"
 const DOTTED = { "shape.buttonRadius": "4px", accent: "#7c3aed" }
-/** What is not a recipe, and what the text area must at least say about it. */
-const NOT_RECIPES: [string, string, string][] = [
-  ["text that is not JSON", '{"accent": "#7c3aed"', ""],
-  // JSON, and no recipe: the core says so, and the page shows its sentence.
-  ["JSON that is a list", '["#7c3aed"]', refusal(["#7c3aed"])],
-  ["JSON that is a text", '"#7c3aed"', refusal("#7c3aed")],
-  ["JSON that is null", "null", refusal(null)],
-  ["a key the core does not know", JSON.stringify(UNKNOWN), refusal(UNKNOWN)],
-  [
-    "a key with a dot in its name",
-    JSON.stringify(DOTTED),
-    "Unknown key in the recipe: shape.buttonRadius",
-  ],
-]
-if (refusal(DOTTED) !== NOT_RECIPES_DOTTED) {
-  console.error(
-    `✗ The core answers ${JSON.stringify(refusal(DOTTED))} for a key with a dot in its name. The check is older than the core.`,
-  )
-  process.exit(1)
+
+/**
+ * What stops a paste, in the core's words and order: every problem that is
+ * not a text the core refuses at a key the recipe gives. Such a text is
+ * taken into its field and told there; anything else is about the paste.
+ * A paste is taken exactly when this is empty.
+ */
+function stopping(recipe: unknown): string[] {
+  const given = recipeValues(recipe).map((value) => JSON.stringify(value.path))
+  return checkRecipe(recipe)
+    .filter(
+      (problem) =>
+        !(
+          problem.kind === "refused" &&
+          given.includes(JSON.stringify(problem.path))
+        ),
+    )
+    .map((problem) => problem.message)
 }
-if (
-  !refusal(UNKNOWN).startsWith("Unknown key in the recipe: acent") ||
-  !refusal(null).startsWith("The recipe is not an object.")
-) {
-  console.error(
-    `✗ The core answers ${JSON.stringify([refusal(UNKNOWN), refusal(null)])} for an unknown key and for null. The check is older than the core.`,
+/** A recipe as it is pasted, with what must stop it. */
+const stopped = (name: string, recipe: unknown): [string, string, string[]] => [
+  name,
+  JSON.stringify(recipe),
+  stopping(recipe),
+]
+
+/**
+ * What is not taken, and the lines the text area must hold about it: each
+ * problem that stops the paste on a line of its own. For text that is not
+ * JSON the page has a sentence of its own, since that is about the paste
+ * field and not about a recipe.
+ */
+const NOT_RECIPES: [string, string, string[]][] = [
+  ["text that is not JSON", '{"accent": "#7c3aed"', []],
+  // JSON, and no recipe: the core says so, and the page shows its sentence.
+  stopped("JSON that is a list", ["#7c3aed"]),
+  stopped("JSON that is a text", "#7c3aed"),
+  stopped("JSON that is null", null),
+  // Two unknown keys are two problems, and two lines: one for each key.
+  stopped("keys the core does not know", UNKNOWN),
+  stopped("a key with a dot in its name", DOTTED),
+  // The colour alone would be taken and told at its field. What stops the
+  // paste is the corner, and the paste field says that and not the other.
+  stopped("a refused text next to a value that is not text", {
+    accent: "purple",
+    shape: { buttonRadius: true },
+  }),
+  // A recipe that gives nothing is the empty theme: pasted over a form
+  // that holds something, it would empty it without a word.
+  stopped("an empty recipe", {}),
+  stopped("a recipe with only a family that is 0", { accent: 0 }),
+  stopped("a recipe with only its schema", {
+    $schema: "https://lo-tek.sobernetics.no/theme.schema.json",
+  }),
+  stopped("a recipe with only a corner that is null", {
+    shape: { buttonRadius: null },
+  }),
+]
+{
+  const lines = Object.fromEntries(
+    NOT_RECIPES.map(([name, , said]) => [name, said]),
   )
-  process.exit(1)
+  const wrong = [
+    lines["keys the core does not know"].length !== 2 &&
+      "two unknown keys are not two problems",
+    lines["a key with a dot in its name"].join() !==
+      "Unknown key in the recipe: shape.buttonRadius" &&
+      "a key with a dot in its name is not one unknown key",
+    !lines["JSON that is null"][0]?.startsWith(
+      "The recipe is not an object.",
+    ) && "null is not answered as no recipe",
+    (lines["a refused text next to a value that is not text"].length !== 1 ||
+      lines["a refused text next to a value that is not text"][0].includes(
+        "purple",
+      )) &&
+      "the refused colour is among what stops the paste",
+    !lines["an empty recipe"][0]?.startsWith("The theme is empty") &&
+      "an empty recipe is not the empty theme",
+    stopping({ accent: "purple" }).length !== 0 &&
+      "a refused colour alone stops a paste",
+  ].filter(Boolean)
+  if (wrong.length > 0) {
+    console.error(
+      `✗ The package does not answer as this check is written for: ${wrong.join("; ")}. The check is older than the core.`,
+    )
+    process.exit(1)
+  }
 }
 
 const COMMAND = `npx @lo-tek/interfaces@${version} theme lotek.theme.json --out=theme.css`
@@ -205,6 +260,16 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
     ),
     /** What the text area is told, through `aria-describedby`. */
     told: described(document.querySelector("textarea")),
+    /** The same, line by line as it is rendered. */
+    toldLines: (
+      document.querySelector("textarea")?.getAttribute("aria-describedby") ?? ""
+    )
+      .split(/\s+/)
+      .map((id) => (id ? document.getElementById(id) : null))
+      .filter((text) => text && text.getClientRects().length > 0)
+      .flatMap((text) => (text as HTMLElement).innerText.split("\n"))
+      .map(collapsed)
+      .filter((line) => line !== ""),
     statuses: [...document.querySelectorAll('[role="status"]')]
       .filter((status) => status.getClientRects().length > 0)
       .map((status) => collapsed(status.textContent ?? "")),
@@ -232,6 +297,7 @@ async function until(done: (state: State) => boolean): Promise<State> {
   return state
 }
 const same = (a: Form, b: Form) => JSON.stringify(a) === JSON.stringify(b)
+const collapse = (text: string) => text.replace(/\s+/g, " ").trim()
 /** Where two forms part, for the message. */
 const parting = (got: Form, wanted: Form) =>
   [
@@ -403,12 +469,15 @@ const code = await s.run(async () => {
   const quiet = pasted.told
   points += 1
 
-  // What is not a recipe changes nothing, and says why.
-  for (const [name, text, message] of NOT_RECIPES) {
+  // What is not taken changes nothing, and says why: each problem that
+  // stops the paste on a line of its own, in the core's order.
+  for (const [name, text, lines] of NOT_RECIPES) {
     await area.fill(text)
     await button("Use this recipe").click()
     const after = await until(
-      (state) => state.told !== quiet && state.told.includes(message),
+      (state) =>
+        state.told !== quiet &&
+        lines.every((line) => state.toldLines.includes(collapse(line))),
     )
     expect(
       same(after.form, formOf(PASTED)),
@@ -418,10 +487,25 @@ const code = await s.run(async () => {
       after.told !== quiet && after.told.trim() !== "",
       `${name}: the text area is not told what is wrong`,
     )
+    const at = after.toldLines.indexOf(collapse(lines[0] ?? ""))
     expect(
-      after.told.includes(message),
-      `${name}: the text area is told ${JSON.stringify(after.told)}, and the core says ${JSON.stringify(message)}`,
+      lines.length === 0 ||
+        (at >= 0 &&
+          JSON.stringify(after.toldLines.slice(at, at + lines.length)) ===
+            JSON.stringify(lines.map(collapse))),
+      `${name}: the text area is told ${JSON.stringify(after.toldLines)}, and what stops the paste is ${JSON.stringify(lines)}, each on a line of its own`,
     )
+    // And nothing else the core says of the recipe: what would be taken
+    // into a field is not what stopped the paste.
+    for (const other of text.startsWith("{") && lines.length > 0
+      ? checkRecipe(JSON.parse(text))
+          .map((problem) => problem.message)
+          .filter((message) => !lines.includes(message))
+      : [])
+      expect(
+        !after.told.includes(collapse(other)),
+        `${name}: the text area also says "${other}", which did not stop the paste`,
+      )
     // The page had a sentence of its own for what is JSON and no recipe.
     expect(
       !/but not a recipe/i.test(after.told),
@@ -452,8 +536,9 @@ const code = await s.run(async () => {
    * What a pasted recipe puts in the fields is what the core says the
    * recipe gives, and not the page's own reading of it. `0` is not a colour,
    * so a family with `0` is not given: its switch stays off and its field
-   * empty, and the rest of the recipe is taken. `null` for a corner is a
-   * corner that is not given, and the recipe is taken with it at rest.
+   * empty, and the rest of the recipe is taken. And a text is a text as it
+   * stands: a font that is one blank is a value to the core, so the field
+   * holds the blank and the recipe on the page has it.
    */
   for (const [what, pasted, gives] of [
     [
@@ -461,25 +546,40 @@ const code = await s.run(async () => {
       { accent: 0, danger: "#b91c1c" },
       { danger: "#b91c1c" },
     ],
-    ["a corner that is null", { shape: { buttonRadius: null } }, {}],
     [
       "a number for a weight and 0 for a corner",
       { typography: { weights: { bold: 800 } }, shape: { fieldRadius: 0 } },
       { typography: { weights: { bold: "800" } }, shape: { fieldRadius: "0" } },
     ],
+    [
+      "a font that is one blank",
+      { typography: { fontFamily: " " }, danger: "#b91c1c" },
+      { typography: { fontFamily: " " }, danger: "#b91c1c" },
+    ],
   ] as const) {
+    if (stopping(pasted).length > 0)
+      throw new Error(
+        `the core stops a recipe with ${what}: ${stopping(pasted)}`,
+      )
     await area.fill(JSON.stringify(pasted))
     await button("Use this recipe").click()
     const after = await until(
-      (state) => same(state.form, formOf(gives)) && state.told === quiet,
+      (state) =>
+        same(state.form, formOf(gives)) &&
+        state.told === quiet &&
+        parses(state.recipe, gives),
     )
     expect(
       same(after.form, formOf(gives)),
       `after a pasted recipe with ${what}, the form is not what the recipe gives: ${parting(after.form, formOf(gives))}`,
     )
     expect(
-      after.invalid.length === 0 && after.told === quiet,
-      `a pasted recipe with ${what} is told ${JSON.stringify(after.told)}, and marks ${after.invalid.join(", ") || "nothing"}`,
+      after.told === quiet,
+      `a pasted recipe with ${what} is told ${JSON.stringify(after.told)}`,
+    )
+    expect(
+      parses(after.recipe, gives),
+      `after a pasted recipe with ${what}, the page shows the recipe ${after.recipe}`,
     )
   }
   points += 1

@@ -509,7 +509,7 @@
           "fontFamily"
         ],
         "kind": "refused",
-        "message": "The value of typography.fontFamily must be text or a number. Got: [\"Arial\"]"
+        "message": "The value of fontFamily must be text or a number. Got: [\"Arial\"]"
       },
       {
         "path": [
@@ -518,7 +518,7 @@
           "bold"
         ],
         "kind": "refused",
-        "message": "The value of typography.weights.bold must be text or a number. Got: true"
+        "message": "The value of weights.bold must be text or a number. Got: true"
       },
       {
         "path": [
@@ -526,7 +526,7 @@
           "buttonRadius"
         ],
         "kind": "refused",
-        "message": "The value of shape.buttonRadius must be text or a number. Got: {\"a\":1}"
+        "message": "The value of buttonRadius must be text or a number. Got: {\"a\":1}"
       }
     ],
     "refusal": "The value of accent must be text or a number. Got: true",

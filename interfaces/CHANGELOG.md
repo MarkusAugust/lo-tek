@@ -64,6 +64,10 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   is valid JSON and not an object is refused with the core's sentence, after
   the name of the file, where the command line had one of its own. The
   output for a key the recipe does not have is unchanged.
+- **A recipe whose blocks give nothing, and that has no colour, is empty.**
+  `{"typography": {"fontFamily": ""}}` and `{"shape": {}}` beside nothing
+  else built a file with an empty layer. They are refused as an empty theme,
+  as `{}` is. With a colour beside them the theme is as before.
 - **A recipe that is not an object is refused as that.** A text was refused
   for unknown keys `0, 1, 2, 3`, and `null` as an empty theme. Both are now
   `The recipe is not an object. …`, from every host: Kotlin no longer has a

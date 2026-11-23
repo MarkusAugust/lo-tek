@@ -715,10 +715,11 @@ fn read(input: &Json) -> (Vec<RecipeValue>, Vec<RecipeProblem>) {
         kind: RecipeKind::Refused,
         message,
     };
-    let not_a_value = |path: &[&str], value: Option<&Json>| {
+    // The key is named as in every other sentence about a value: a family
+    // by its name, a key of typography or shape as `checked` names it.
+    let not_a_value = |name: &str, value: Option<&Json>| {
         format!(
-            "The value of {} must be text or a number. Got: {}",
-            path.join("."),
+            "The value of {name} must be text or a number. Got: {}",
             value.map(Json::to_compact).unwrap_or_default()
         )
     };
@@ -727,7 +728,7 @@ fn read(input: &Json) -> (Vec<RecipeValue>, Vec<RecipeProblem>) {
         let at = [name.as_str()];
         let value = input.get(name);
         match leaf(value, false) {
-            Err(()) => problems.push(refused(&at, not_a_value(&at, value))),
+            Err(()) => problems.push(refused(&at, not_a_value(name, value))),
             Ok(None) => {}
             Ok(Some(text)) => {
                 values.push(gives(&at, &text));
@@ -783,12 +784,15 @@ fn read(input: &Json) -> (Vec<RecipeValue>, Vec<RecipeProblem>) {
             let mut here = at.clone();
             here.push(key);
             let value = path(block, key);
+            let variable = variable(at[at.len() - 1], key);
             match leaf(value, true) {
-                Err(()) => problems.push(refused(&here, not_a_value(&here, value))),
+                Err(()) => {
+                    problems.push(refused(&here, not_a_value(&recipe_name(&variable), value)))
+                }
                 Ok(None) => {}
                 Ok(Some(text)) => {
                     values.push(gives(&here, &text));
-                    if let Err(message) = checked(&variable(at[at.len() - 1], key), &text) {
+                    if let Err(message) = checked(&variable, &text) {
                         problems.push(refused(&here, message));
                     }
                 }
@@ -892,9 +896,9 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
     })
 }
 
-/// A block of the recipe, when it has at least one key. An empty object, a
-/// number, a boolean and `null` have none, and are as if the block were not
-/// in the recipe: the hosts left them out before the core checked the keys.
+/// A block of the recipe, when it has at least one key. An empty object and
+/// a block that is not given have none. What is neither an object nor "not
+/// given" has been refused before this is asked.
 fn given_block(value: Option<&Json>) -> Option<&Json> {
     value.filter(|v| matches!(v, Json::Object(entries) if !entries.is_empty()))
 }
@@ -1131,6 +1135,8 @@ mod recipe_tests {
     fn a_value_that_is_true_a_list_or_an_object_is_refused() {
         // `true` was written into the file as `true`, and a list for a
         // colour was read as an empty text, "\"\" is not a valid colour".
+        // The key is named as in every other sentence about a value: by the
+        // name the core has always used, `buttonRadius` and `weights.bold`.
         for (recipe, message) in [
             (
                 r#"{"accent": true}"#,
@@ -1142,11 +1148,11 @@ mod recipe_tests {
             ),
             (
                 r#"{"shape": {"buttonRadius": {"a": 1}}}"#,
-                r#"The value of shape.buttonRadius must be text or a number. Got: {"a":1}"#,
+                r#"The value of buttonRadius must be text or a number. Got: {"a":1}"#,
             ),
             (
                 r#"{"typography": {"weights": {"bold": true}}}"#,
-                "The value of typography.weights.bold must be text or a number. Got: true",
+                "The value of weights.bold must be text or a number. Got: true",
             ),
         ] {
             assert_eq!(theme(recipe).err().as_deref(), Some(message), "{recipe}");
@@ -2351,6 +2357,50 @@ mod recipe_tests {
             .brands
             .iter()
             .any(|b| (b.light.chroma_kept * 100.0).round() == 100.0));
+    }
+
+    #[test]
+    fn a_brand_never_has_more_than_four_reasons() {
+        // The theme builder has four places for the reasons of a colour,
+        // since a list in one of its signals cannot change length. Two
+        // appearances and two kinds of sentence make four; a third kind of
+        // sentence would be a reason the page has nowhere to show. Every
+        // family, around the wheel, from nearly black to nearly white.
+        let (mut rows, mut most) = (0, 0);
+        for family in contract().families.iter() {
+            for red in [0x00, 0x33, 0x80, 0xcc, 0xff] {
+                for green in [0x00, 0x55, 0xaa, 0xff] {
+                    for blue in [0x00, 0x44, 0x99, 0xee] {
+                        let recipe =
+                            format!(r##"{{"{family}": "#{red:02x}{green:02x}{blue:02x}"}}"##);
+                        let t = theme(&recipe).unwrap_or_else(|error| panic!("{recipe}: {error}"));
+                        let reasons = t.brands[0].reasons.len();
+                        assert!(
+                            reasons <= 4,
+                            "{recipe} has {reasons} reasons, and the theme builder has four places for them: {:?}",
+                            t.brands[0].reasons
+                        );
+                        most = most.max(reasons);
+                        rows += 1;
+                    }
+                }
+            }
+        }
+        assert_eq!(rows, 9 * 80);
+        assert!(
+            most >= 3,
+            "the sweep has no colour with more than {most} reasons"
+        );
+        // And four are reached: a strong blue is too light for white text
+        // and too dark against a raised surface in the dark, and loses
+        // chroma in both. The page's four places are all in use.
+        let blue = theme(r##"{"accent": "#0078ff"}"##).unwrap();
+        assert_eq!(
+            blue.brands[0].reasons.len(),
+            4,
+            "{:?}",
+            blue.brands[0].reasons
+        );
     }
 
     #[test]

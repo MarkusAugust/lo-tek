@@ -373,7 +373,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 <span
 											class="builder__changed"
 											style="display: none"
-											data-show={`$own.${name} && $fields.${name}.trim() !== ''`}
+											data-show={`$own.${name} && $fields.${name} !== ''`}
 											>
 												Changed
 </span>
@@ -402,7 +402,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											aria-label={`Pick the colour of ${name}`}
 											value={OWN[name]}
 											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
-											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name}.trim() === '' && (el.value = '${OWN[name]}')`}
+											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name} === '' && (el.value = '${OWN[name]}')`}
 										/>
 										<input
 											class="lt-input"
@@ -496,7 +496,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											<span
 												class="builder__changed"
 												style="display: none"
-												data-show={`$fields.${path}.trim() !== '' && $fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												data-show={`$fields.${path} !== '' && $fields.${path} !== '${range?.text ?? ""}'`}
 												>
 													Changed
 											</span>
@@ -505,7 +505,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 												type="button"
 												aria-label={`Reset ${label}`}
 												style="display: none"
-												data-show={`$fields.${path}.trim() !== '${range?.text ?? ""}'`}
+												data-show={`$fields.${path} !== '${range?.text ?? ""}'`}
 												data-on:click={`$fields.${path} = '${range?.text ?? ""}'; document.getElementById('${id(path)}').focus()`}
 											>
 												Reset
@@ -863,6 +863,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		gap: var(--lt-spacing-1) var(--lt-spacing-3);
 	}
 	
+	/* What stopped a paste can be several things, each on a line of its own. */
+	#paste-error {
+		white-space: pre-line;
+	}
+
 	.builder__changed {
 		font-size: var(--lt-font-size-xs);
 		letter-spacing: 0.08em;
@@ -1116,7 +1121,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		const kept: Fields = {}
 		for (const [name, value] of Object.entries(fields)) {
 			const own =
-				typeof value === "string" ? value.trim() : filled(value, rest[name] as Fields)
+				typeof value === "string" ? value : filled(value, rest[name] as Fields)
 			if (own !== undefined && own !== "" && own !== rest[name]) kept[name] = own
 		}
 		return Object.keys(kept).length > 0 ? kept : undefined
@@ -1131,7 +1136,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			const chosen: Fields = {}
 			for (const [name, value] of Object.entries(fields)) {
 				if (typeof value !== "string") continue
-				if (own[name] && value.trim() !== "") chosen[name] = value.trim()
+				if (own[name] && value !== "") chosen[name] = value
 			}
 			return JSON.stringify(
 				{
@@ -1145,16 +1150,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	})
 
 	type Row = Record<string, string>
-
-	/** What `buildTheme` says when it refuses a recipe, or nothing when it takes it. */
-	const refusal = (recipe: unknown): string => {
-		try {
-			core.buildTheme(recipe)
-			return ""
-		} catch (error) {
-			return error instanceof Error ? error.message : String(error)
-		}
-	}
 
 	type Problem = { path: string[]; kind: string; message: string }
 	type Value = { path: string[]; text: string }
@@ -1197,10 +1192,35 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			]),
 		)
 
-	// The report of the last theme that was built: what the rows hold while
-	// a field is being typed in and the recipe does not build, for the
-	// families that are still in the recipe.
-	let lastReport: Record<string, Row> | undefined
+	/** A recipe made of values the core has read: each text at its path. */
+	const rebuilt = (values: Value[]) => {
+		const recipe: Fields = {}
+		for (const { path, text } of values) {
+			let at = recipe
+			path.forEach((segment, depth) => {
+				if (depth === path.length - 1) at[segment] = text
+				else {
+					at[segment] ??= {}
+					at = at[segment] as Fields
+				}
+			})
+		}
+		return recipe
+	}
+
+	type Says = { family: string; given: string; light: { fill: string }; dark: { fill: string }; reasons: string[] }
+
+	/** The rows of the report: what became of each colour, and the core's sentences in their places. */
+	const rows = (brands: Says[]): Record<string, Row> =>
+		Object.fromEntries(
+			brands.map((brand) => {
+				const [reason1 = "", reason2 = "", reason3 = "", reason4 = ""] = brand.reasons
+				return [
+					brand.family,
+					{ given: brand.given, light: brand.light.fill, dark: brand.dark.fill, reason1, reason2, reason3, reason4 },
+				]
+			}),
+		)
 
 	// The core's answer to a recipe: the theme, what is wrong with each
 	// field, and what became of each colour. A recipe with nothing in it is
@@ -1219,42 +1239,26 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			const wrong = atFields(first.fields, problems)
 			// Nothing is chosen yet. The core calls that an empty theme, and
 			// here it is no mistake.
-			if (problems.some((p) => p.kind === "empty")) {
-				lastReport = undefined
+			if (problems.some((p) => p.kind === "empty"))
 				return { ok: false, css: "", error: "", wrong, report: empty }
-			}
-			try {
+			if (problems.length === 0) {
 				const { css, brands } = core.buildTheme(chosen)
-				const report = { ...empty }
-				// The sentences are the core's. The page puts them in their places.
-				for (const brand of brands) {
-					const [reason1 = "", reason2 = "", reason3 = "", reason4 = ""] = brand.reasons
-					report[brand.family] = {
-						given: brand.given,
-						light: brand.light.fill,
-						dark: brand.dark.fill,
-						reason1,
-						reason2,
-						reason3,
-						reason4,
-					}
-				}
-				lastReport = report
-				return { ok: true, css, error: "", wrong, report }
-			} catch (error) {
-				return {
-					ok: false,
-					css: "",
-					error: error instanceof Error ? error.message : String(error),
-					wrong,
-					report: Object.fromEntries(
-						families.map((name) => [
-							name,
-							name in chosen && lastReport ? lastReport[name] : { ...noRow },
-						]),
-					),
-				}
+				return { ok: true, css, error: "", wrong, report: { ...empty, ...rows(brands) } }
 			}
+			// Something is refused, so there is no theme. What became of a
+			// colour depends on that colour alone, so the rows are those of
+			// the values the core does take, built without the others: a
+			// colour that is put right says what it becomes at once, also
+			// while another field is still wrong.
+			const taken = (core.recipeValues(chosen) as Value[]).filter(
+				(v) => !refusedAt(problems, v.path),
+			)
+			const others = rebuilt(taken)
+			const report =
+				core.checkRecipe(others).length === 0
+					? { ...empty, ...rows(core.buildTheme(others).brands) }
+					: empty
+			return { ok: false, css: "", error: problems[0].message, wrong, report }
 		},
 	})
 
@@ -1365,18 +1369,15 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				return refuse("This is not JSON. Paste the text of a lotek.theme.json.")
 			}
 			// The core reads the recipe: what it gives, and what is wrong
-			// with it. The builder takes a recipe whose only problems are
-			// texts the core refuses, since a field can hold such a text
-			// and say what is wrong with it, and one that gives nothing.
-			// Anything else changes nothing, and what the core says of the
-			// recipe as a whole is shown.
+			// with it. A text the core refuses does not stop a paste: a
+			// field can hold it, and says what is wrong with it. Anything
+			// else does, an empty recipe too, and then nothing changes and
+			// the core's own words about what stopped it are shown.
 			const problems: Problem[] = core.checkRecipe(recipe)
 			const values: Value[] = core.recipeValues(recipe)
 			const given = (path: string[]) => values.some((v) => same(v.path, path))
-			const stops = problems.some(
-				(p) => p.kind !== "empty" && !(p.kind === "refused" && given(p.path)),
-			)
-			if (stops) return refuse(refusal(recipe))
+			const stops = problems.filter((p) => !(p.kind === "refused" && given(p.path)))
+			if (stops.length > 0) return refuse(stops.map((p) => p.message).join("\n"))
 			mergePatch({
 				own: Object.fromEntries(
 					Object.keys(first.own).map((name) => [name, given([name])]),

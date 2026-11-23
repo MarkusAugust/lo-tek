@@ -9682,7 +9682,7 @@
         {
           "lang": "ts",
           "meta": null,
-          "code": "import { checkRecipe } from \"@lo-tek/interfaces/theme\"\n\ncheckRecipe({ accent: \"purple\", shape: { buttonRadius: \"1px (\" }, colour: \"#000\" })\n// [\n//   { path: [\"colour\"], kind: \"unknown\", message: \"Unknown key in the recipe: colour\" },\n//   { path: [\"accent\"], kind: \"refused\", message: \"\\\"purple\\\" is not a valid hexadecimal colour\" },\n//   { path: [\"shape\", \"buttonRadius\"], kind: \"refused\", message: \"The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …\" }\n// ]",
+          "code": "import { checkRecipe } from \"@lo-tek/interfaces/theme\"\n\ncheckRecipe({ accent: \"purple\", shape: { buttonRadius: \"1px (\" }, colour: \"#000\" })\n// [\n//   { path: [\"colour\"], kind: \"unknown\", message: \"Unknown key in the recipe: colour\" },\n//   { path: [\"accent\"], kind: \"refused\", message: \"\\\"purple\\\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.\" },\n//   { path: [\"shape\", \"buttonRadius\"], kind: \"refused\", message: \"The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …\" }\n// ]",
           "section": "Programmatic use"
         },
         {
@@ -9806,6 +9806,10 @@
         "recipeValues",
         "path",
         "text",
+        "#7C3AED",
+        "#7c3aed",
+        "brands",
+        "given",
         "0",
         "accent",
         "visited",

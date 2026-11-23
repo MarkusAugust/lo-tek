@@ -289,7 +289,7 @@ import { checkRecipe } from "@lo-tek/interfaces/theme"
 checkRecipe({ accent: "purple", shape: { buttonRadius: "1px (" }, colour: "#000" })
 // [
 //   { path: ["colour"], kind: "unknown", message: "Unknown key in the recipe: colour" },
-//   { path: ["accent"], kind: "refused", message: "\"purple\" is not a valid hexadecimal colour" },
+//   { path: ["accent"], kind: "refused", message: "\"purple\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed." },
 //   { path: ["shape", "buttonRadius"], kind: "refused", message: "The value of buttonRadius has an unbalanced parenthesis, bracket or quote. …" }
 // ]
 ```
@@ -298,7 +298,7 @@ Each problem has the `path` of its key as segments, since a key may have a dot i
 
 The list is empty exactly when `buildTheme` takes the recipe.
 
-`recipeValues` is the other half of such a form: what the recipe gives, as the core reads it. Each key that has a value comes with its `path` and the value as `text`, and a key that is not given is not there. Fill the fields from it rather than reading the recipe yourself, and the form cannot disagree with the generator about what counts as given: `0` is a value for a corner, and not a colour.
+`recipeValues` is the other half of such a form: what the recipe gives, as the core reads it. Each key that has a value comes with its `path` and the value as `text`, and a key that is not given is not there. The text is the value as it is written, `#7C3AED` and not the `#7c3aed` that `brands` gives as `given`. Fill the fields from it rather than reading the recipe yourself, and the form cannot disagree with the generator about what counts as given: `0` is a value for a corner, and not a colour.
 
 ```ts
 import { recipeValues } from "@lo-tek/interfaces/theme"

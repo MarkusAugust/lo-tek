@@ -42,7 +42,12 @@ if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
 
 const { buildTheme } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
-)) as { buildTheme(recipe: unknown): { css: string } }
+)) as {
+  buildTheme(recipe: unknown): {
+    css: string
+    brands: { given: string; light: { fill: string }; dark: { fill: string } }[]
+  }
+}
 const contract = JSON.parse(
   readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
 ) as { families: string[] }
@@ -119,6 +124,24 @@ function read(families: string[]) {
     rows: [...document.querySelectorAll<HTMLElement>("[data-family]")]
       .filter((row) => row.getClientRects().length > 0)
       .map((row) => row.dataset.family ?? ""),
+    /** What each row that can be seen says, and what each picker shows. */
+    said: Object.fromEntries(
+      [...document.querySelectorAll<HTMLElement>("[data-family]")]
+        .filter((row) => row.getClientRects().length > 0)
+        .map((row) => [
+          row.dataset.family ?? "",
+          collapsed(row.textContent ?? "").toLowerCase(),
+        ]),
+    ),
+    pickers: Object.fromEntries(
+      families.map((family) => [
+        family,
+        control(family)
+          ?.closest('fieldset, [role="group"]')
+          ?.querySelector<HTMLInputElement>('input[type="color"]')
+          ?.value.toLowerCase() ?? "",
+      ]),
+    ),
     told: (textarea?.getAttribute("aria-describedby") ?? "")
       .split(/\s+/)
       .map((id) => (id ? document.getElementById(id) : null))
@@ -410,6 +433,73 @@ const code = await s.run(async () => {
   expect(
     JSON.stringify(kept.rows) === '["accent"]',
     `while another value is refused, the report has the rows ${kept.rows.join(", ") || "none"}, not the one family that is still in the recipe and was built`,
+  )
+
+  /*
+   * And the row of a family is the row of what its field holds now. With
+   * accent and danger both refused and accent then put right, the row and
+   * the picker of accent showed the colour it had before, under a field
+   * with another one in it, until danger was put right too. A family whose
+   * own value the core takes has the row of that value, whatever else in
+   * the recipe is refused; one whose value is refused has none. The frames
+   * are another matter: they show a whole theme, and so the last that built.
+   */
+  await button("Start again").click()
+  await own("accent").check()
+  await field("accent").fill("#7c3aed")
+  await own("danger").check()
+  await field("danger").fill("#b3261e")
+  const whole = buildTheme({ accent: "#7c3aed", danger: "#b3261e" }).css
+  const framed = async () =>
+    Promise.all(
+      ["light", "dark"].map(async (appearance) => {
+        const handle = await page
+          .locator(`iframe[data-appearance="${appearance}"]`)
+          .elementHandle()
+        const frame = await handle?.contentFrame()
+        return (
+          (await frame?.evaluate(() =>
+            [...document.querySelectorAll("style")]
+              .map((style) => style.textContent ?? "")
+              .filter((text) => text.includes("lotek-theme")),
+          )) ?? []
+        )
+      }),
+    )
+  const holdsWhole = (held: string[][]) =>
+    held.every((frame) => frame.length === 1 && frame[0] === whole)
+  for (let attempt = 0; attempt < 40 && !holdsWhole(await framed()); attempt++)
+    await page.waitForTimeout(100)
+  await field("accent").fill("purple")
+  await field("danger").fill("#b3261")
+  await until((state) => state.rows.length === 0)
+  await field("accent").fill("#00ff00")
+  const [green] = buildTheme({ accent: "#00ff00" }).brands
+  const fresh = await until(
+    (state) =>
+      (state.said.accent ?? "").includes(green.light.fill) &&
+      state.pickers.accent === "#00ff00",
+  )
+  for (const hex of [green.given, green.light.fill, green.dark.fill])
+    expect(
+      (fresh.said.accent ?? "").includes(hex),
+      `with danger refused and accent #00ff00, the row of accent does not say ${hex}: "${(fresh.said.accent ?? "there is no row").slice(0, 120)}"`,
+    )
+  expect(
+    !(fresh.said.accent ?? "").includes("#7c3aed"),
+    "with danger refused and accent #00ff00, the row of accent still shows the colour it had before",
+  )
+  expect(
+    fresh.pickers.accent === "#00ff00",
+    `with danger refused and accent #00ff00, the picker of accent shows ${fresh.pickers.accent}`,
+  )
+  expect(
+    !fresh.rows.includes("danger"),
+    "a family whose own value is refused has a row",
+  )
+  expect(
+    holdsWhole(await framed()),
+    "while a value is refused, the frames do not hold the last theme that built as a whole",
   )
   points += 1
 

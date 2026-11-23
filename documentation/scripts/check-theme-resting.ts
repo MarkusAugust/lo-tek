@@ -463,7 +463,9 @@ const code = await s.run(async () => {
     text: string,
     slider: number | undefined,
   ) => {
-    const inRecipe = text !== rest(key) && text.trim() !== ""
+    // The text as it stands: a blank is a text, and the core is the one to
+    // say what it makes of it.
+    const inRecipe = text !== rest(key) && text !== ""
     const away = text !== rest(key)
     if (inRecipe) chosen[key] = text
     else delete chosen[key]
@@ -563,6 +565,33 @@ const code = await s.run(async () => {
   await holds("a calculation written", fieldRadius, "calc(1rem + 2px)", 8)
   await field(fieldRadius).fill("0")
   await holds("0 written", fieldRadius, "0", 0)
+  // The page has no reading of its own of what is given: the text counts as
+  // it stands. A resting value with blanks around it is another text, and
+  // a font that is one blank is a value, which the core takes.
+  const regular = "typography.weights.regular"
+  await field(regular).fill(` ${rest(regular)} `)
+  await holds(
+    "the resting text with blanks around it",
+    regular,
+    ` ${rest(regular)} `,
+    undefined,
+  )
+  await field(regular).fill(rest(regular))
+  await holds(
+    "the resting text again",
+    regular,
+    rest(regular),
+    SLIDERS[regular].rest,
+  )
+  await field("typography.fontFamily").fill(" ")
+  await holds(
+    "a font that is one blank",
+    "typography.fontFamily",
+    " ",
+    undefined,
+  )
+  await field("typography.fontFamily").fill("")
+  await holds("the font emptied", "typography.fontFamily", "", undefined)
   points += 1
 
   /*
@@ -736,12 +765,18 @@ const code = await s.run(async () => {
       emptied.groups.accent.reset?.shown === true,
     `a family whose switch is on and whose field is empty ${emptied.groups.accent.changed ? "says it is changed" : "is not marked"}, and ${emptied.groups.accent.reset?.shown ? "has" : "has no"} button to reset it`,
   )
+  // Blanks are a text: the family is in the recipe with them, as they
+  // stand, it says it is changed, and the core's answer is at the field.
   await field("accent").fill("  ")
-  await page.waitForTimeout(300)
-  expect(
-    !(await now()).groups.accent.changed,
-    "a family whose field holds only blanks says it is changed, and is not in the recipe",
+  chosen.accent = "  "
+  const blank = await until(
+    (state) => state.groups.accent.changed && shown(state) === recipeOf(chosen),
   )
+  expect(
+    blank.groups.accent.changed && shown(blank) === recipeOf(chosen),
+    `a family whose field holds blanks ${blank.groups.accent.changed ? "says" : "does not say"} it is changed, and the recipe is ${blank.recipe}`,
+  )
+  delete chosen.accent
   points += 1
 
   /*
