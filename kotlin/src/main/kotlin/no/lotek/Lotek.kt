@@ -125,6 +125,8 @@ object Lotek {
                         given = m["given"] as String,
                         light = m["light"].brandFill(),
                         dark = m["dark"].brandFill(),
+                        summary = m["summary"] as String,
+                        reasons = (m["reasons"] as List<*>).map { it as String },
                     )
                 },
             css = theme["css"] as String,
@@ -366,7 +368,8 @@ data class Theme(
 
 /**
  * What became of one brand colour: the colour the recipe [given], as
- * `#rrggbb`, and the fill it got in each scheme. The lightness is the role's,
+ * `#rrggbb`, the fill it got in each scheme, and what the core says about
+ * it, as a [summary] and the [reasons]. The lightness is the role's,
  * so a light brand colour comes out much darker as a fill.
  */
 data class ThemeBrand(
@@ -374,6 +377,10 @@ data class ThemeBrand(
     val given: String,
     val light: ThemeBrandFill,
     val dark: ThemeBrandFill,
+    /** What became of the colour, in one sentence: the first line `lotek theme` writes about it. */
+    val summary: String,
+    /** Why, in the core's own sentences. Show them as they are. */
+    val reasons: List<String>,
 )
 
 /** The fill a brand colour got in one scheme, the same fields as `BrandFill` in TypeScript. */

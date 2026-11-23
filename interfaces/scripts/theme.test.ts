@@ -27,7 +27,23 @@ test("a light brand colour comes back with what became of it", () => {
     "family",
     "given",
     "light",
+    "reasons",
+    "summary",
   ])
+  // What became of it, in the core's words: one line, and the reasons under
+  // it. The types say text and a list of texts, and `tsc` holds them to it.
+  const summary: string = brand.summary
+  const reasons: string[] = brand.reasons
+  expect(summary).toBe(
+    "brand1: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.",
+  )
+  expect(reasons.length).toBe(3)
+  expect(reasons[0]).toStartWith(
+    "In the light theme #f7df1e cannot be the fill as it is: against the page it would have a contrast of 1.35:1, and 3.1:1 is required; ",
+  )
+  expect(reasons[2]).toBe(
+    "In the dark theme the fill is less saturated than #f7df1e, with 74% of its chroma: a screen cannot show more at that lightness.",
+  )
   expect(brand.family).toBe("brand1")
   expect(brand.given).toBe("#f7df1e")
 

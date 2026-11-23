@@ -108,6 +108,13 @@ export type Brand = {
   given: string
   light: BrandFill
   dark: BrandFill
+  /** What became of the colour, in one sentence: the first line `lotek theme` writes about it. */
+  summary: string
+  /**
+   * Why, in the core's own sentences: where the colour could not be the fill
+   * as it is, and where the fill has less chroma. Show them as they are.
+   */
+  reasons: string[]
 }
 
 /** The theme `buildTheme` returns: the tokens per appearance, the promises that break, what became of the brand colours, and the CSS. */

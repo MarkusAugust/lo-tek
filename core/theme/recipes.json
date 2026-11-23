@@ -179,6 +179,11 @@
         {
           "family": "accent",
           "given": "#7c3aed",
+          "summary": "accent: #7c3aed gives the fill #7935e9 in the light theme and #986eff in the dark theme.",
+          "reasons": [
+            "In the dark theme #7c3aed cannot be the fill as it is: against a raised surface it would have a contrast of 2.22:1, and 3.1:1 is required; text on it would have a contrast of 3.40:1, and 4.6:1 is required.",
+            "In the dark theme the fill is less saturated than #7c3aed, with 84% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#7935e9",
             "chromaKept": 1,
@@ -387,6 +392,12 @@
         {
           "family": "brand1",
           "given": "#f7df1e",
+          "summary": "brand1: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.",
+          "reasons": [
+            "In the light theme #f7df1e cannot be the fill as it is: against the page it would have a contrast of 1.35:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is required; text on it would have a contrast of 1.32:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #f7df1e, with 61% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #f7df1e, with 74% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#7a6d00",
             "chromaKept": 0.6076880097389222,
@@ -609,6 +620,12 @@
         {
           "family": "accent",
           "given": "#ff0000",
+          "summary": "accent: #ff0000 gives the fill #cc0000 in the light theme and #ff3528 in the dark theme.",
+          "reasons": [
+            "In the light theme #ff0000 cannot be the fill as it is: text on it would have a contrast of 3.87:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #ff0000, with 84% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #ff0000, with 92% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#cc0000",
             "chromaKept": 0.8447276353836061,
@@ -630,6 +647,12 @@
         {
           "family": "visited",
           "given": "#ff8800",
+          "summary": "visited: #ff8800 gives the fill #a25400 in the light theme and #d57100 in the dark theme.",
+          "reasons": [
+            "In the light theme #ff8800 cannot be the fill as it is: against the page it would have a contrast of 2.39:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.88:1, and 3.1:1 is required; text on it would have a contrast of 2.32:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #ff8800, with 71% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #ff8800, with 87% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#a25400",
             "chromaKept": 0.7132288217544557,
@@ -663,6 +686,12 @@
         {
           "family": "brand1",
           "given": "#ffd600",
+          "summary": "brand1: #ffd600 gives the fill #806a00 in the light theme and #a98d00 in the dark theme.",
+          "reasons": [
+            "In the light theme #ffd600 cannot be the fill as it is: against the page it would have a contrast of 1.41:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.11:1, and 3.1:1 is required; text on it would have a contrast of 1.37:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #ffd600, with 60% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #ffd600, with 74% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#806a00",
             "chromaKept": 0.5998708009719851,
@@ -696,6 +725,12 @@
         {
           "family": "brand2",
           "given": "#39ff14",
+          "summary": "brand2: #39ff14 gives the fill #148300 in the light theme and #1fad00 in the dark theme.",
+          "reasons": [
+            "In the light theme #39ff14 cannot be the fill as it is: against the page it would have a contrast of 1.36:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.07:1, and 3.1:1 is required; text on it would have a contrast of 1.32:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #39ff14, with 62% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #39ff14, with 76% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#148300",
             "chromaKept": 0.6177554726600647,
@@ -729,6 +764,12 @@
         {
           "family": "brand3",
           "given": "#00bcd4",
+          "summary": "brand3: #00bcd4 gives the fill #007a8a in the light theme and #00a1b6 in the dark theme.",
+          "reasons": [
+            "In the light theme #00bcd4 cannot be the fill as it is: against the page it would have a contrast of 2.30:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.81:1, and 3.1:1 is required; text on it would have a contrast of 2.24:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #00bcd4, with 73% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #00bcd4, with 89% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#007a8a",
             "chromaKept": 0.7277128696441652,
@@ -762,6 +803,10 @@
         {
           "family": "neutral",
           "given": "#2b2b2b",
+          "summary": "neutral: #2b2b2b gives the fill #6c6c6c in the light theme and #8f8f8f in the dark theme.",
+          "reasons": [
+            "In the dark theme #2b2b2b cannot be the fill as it is: against the page it would have a contrast of 1.32:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.12:1, and 3.1:1 is required; text on it would have a contrast of 1.37:1, and 4.6:1 is required."
+          ],
           "light": {
             "fill": "#6c6c6c",
             "chromaKept": 1,
@@ -795,6 +840,12 @@
         {
           "family": "danger",
           "given": "#ff00ff",
+          "summary": "danger: #ff00ff gives the fill #af00af in the light theme and #e700e7 in the dark theme.",
+          "reasons": [
+            "In the light theme #ff00ff cannot be the fill as it is: against a raised surface it would have a contrast of 2.47:1, and 3.1:1 is required; text on it would have a contrast of 3.04:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #ff00ff, with 76% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #ff00ff, with 93% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#af00af",
             "chromaKept": 0.7560176253318787,
@@ -822,6 +873,10 @@
         {
           "family": "warning",
           "given": "#8a5a00",
+          "summary": "warning: #8a5a00 gives the fill #91600e in the light theme and #b7843c in the dark theme.",
+          "reasons": [
+            "In the dark theme #8a5a00 cannot be the fill as it is: against a raised surface it would have a contrast of 2.13:1, and 3.1:1 is required; text on it would have a contrast of 3.28:1, and 4.6:1 is required."
+          ],
           "light": {
             "fill": "#91600e",
             "chromaKept": 1,
@@ -849,6 +904,12 @@
         {
           "family": "success",
           "given": "#00e676",
+          "summary": "success: #00e676 gives the fill #008240 in the light theme and #00ab56 in the dark theme.",
+          "reasons": [
+            "In the light theme #00e676 cannot be the fill as it is: against the page it would have a contrast of 1.67:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.31:1, and 3.1:1 is required; text on it would have a contrast of 1.63:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #00e676, with 66% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #00e676, with 80% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#008240",
             "chromaKept": 0.6551340222358701,
@@ -1064,6 +1125,12 @@
         {
           "family": "accent",
           "given": "#ff00aa",
+          "summary": "accent: #ff00aa gives the fill #bf007e in the light theme and #fa00a7 in the dark theme.",
+          "reasons": [
+            "In the light theme #ff00aa cannot be the fill as it is: against a raised surface it would have a contrast of 2.83:1, and 3.1:1 is required; text on it would have a contrast of 3.49:1, and 4.6:1 is required.",
+            "In the light theme the fill is less saturated than #ff00aa, with 80% of its chroma: a screen cannot show more at that lightness.",
+            "In the dark theme the fill is less saturated than #ff00aa, with 99% of its chroma: a screen cannot show more at that lightness."
+          ],
           "light": {
             "fill": "#bf007e",
             "chromaKept": 0.8041938543319703,
@@ -1091,6 +1158,10 @@
         {
           "family": "neutral",
           "given": "#333333",
+          "summary": "neutral: #333333 gives the fill #6c6c6c in the light theme and #8f8f8f in the dark theme.",
+          "reasons": [
+            "In the dark theme #333333 cannot be the fill as it is: against the page it would have a contrast of 1.48:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.00:1, and 3.1:1 is required; text on it would have a contrast of 1.54:1, and 4.6:1 is required."
+          ],
           "light": {
             "fill": "#6c6c6c",
             "chromaKept": 1,
@@ -1338,6 +1409,10 @@
         {
           "family": "accent",
           "given": "#0b6e4f",
+          "summary": "accent: #0b6e4f gives the fill #247d5d in the light theme and #4ea280 in the dark theme.",
+          "reasons": [
+            "In the dark theme #0b6e4f cannot be the fill as it is: against the page it would have a contrast of 3.00:1, and 3.1:1 is required; against a raised surface it would have a contrast of 2.03:1, and 3.1:1 is required; text on it would have a contrast of 3.10:1, and 4.6:1 is required."
+          ],
           "light": {
             "fill": "#247d5d",
             "chromaKept": 1,
@@ -1371,6 +1446,10 @@
         {
           "family": "danger",
           "given": "#b3261e",
+          "summary": "danger: #b3261e gives the fill #bd3127 in the light theme and #e85a4c in the dark theme.",
+          "reasons": [
+            "In the dark theme #b3261e cannot be the fill as it is: against the page it would have a contrast of 2.87:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.94:1, and 3.1:1 is required; text on it would have a contrast of 2.98:1, and 4.6:1 is required."
+          ],
           "light": {
             "fill": "#bd3127",
             "chromaKept": 1,

@@ -44,7 +44,17 @@ class ThemeParityTest {
         assertAnswer(expected["violations"], theme.violations.map { violation(it) }, "violations")
         assertAnswer(
             expected["brands"],
-            theme.brands.map { mapOf("family" to it.family, "given" to it.given, "light" to side(it.light), "dark" to side(it.dark)) },
+            theme.brands.map {
+                mapOf(
+                    "family" to it.family,
+                    "given" to it.given,
+                    // The sentences are the core's own, and reach Kotlin as it wrote them.
+                    "summary" to it.summary,
+                    "reasons" to it.reasons,
+                    "light" to side(it.light),
+                    "dark" to side(it.dark),
+                )
+            },
             "brands",
         )
         assertEquals(expected["css"], theme.css, "css")

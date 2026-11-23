@@ -385,15 +385,7 @@ fn to_css(
     let became = if brands.is_empty() {
         String::new()
     } else {
-        let rows: Vec<String> = brands
-            .iter()
-            .map(|b| {
-                format!(
-                    " * {}: {} gives the fill {} in the light theme and {} in the dark theme.",
-                    b.family, b.given, b.light.fill, b.dark.fill
-                )
-            })
-            .collect();
+        let rows: Vec<String> = brands.iter().map(|b| format!(" * {}", b.summary)).collect();
         format!("/*\n{}\n */\n\n", rows.join("\n"))
     };
 
@@ -431,6 +423,71 @@ pub struct Brand {
     pub given: String,
     pub light: BrandFill,
     pub dark: BrandFill,
+    /// What became of the colour, in one sentence: the line the run writes
+    /// first, and the row of the comment in the generated file.
+    pub summary: String,
+    /// Why, in sentences: for each appearance where the colour could not be
+    /// the fill as it is, which promises it would break, and then for each
+    /// where the fill has less chroma, how much it kept. The numbers are
+    /// those of `light` and `dark`. A host shows these, and writes none.
+    pub reasons: Vec<String>,
+}
+
+/// A promise about the fill, as what it is measured against. The contract
+/// names its promises for the matrix, `fill on raised`, and a reader of the
+/// theme has not read the contract. A promise that is not known here is said
+/// by its name.
+fn plainly(promise: &str) -> &str {
+    match promise {
+        "fill on canvas" => "against the page it",
+        "fill on raised" => "against a raised surface it",
+        "content on top of fill" => "text on it",
+        other => other,
+    }
+}
+
+/// What the theme says about one brand colour: the summary and the reasons.
+///
+/// The lightness is the role's, so the colour is moved, and a light one is
+/// moved far. The theme says so, with the reason in plain words, rather than
+/// answering only that every promise holds.
+fn says(family: &str, given: &str, light: &BrandFill, dark: &BrandFill) -> (String, Vec<String>) {
+    let summary = format!(
+        "{family}: {given} gives the fill {} in the light theme and {} in the dark theme.",
+        light.fill, dark.fill
+    );
+    let appearances = [("light", light), ("dark", dark)];
+    let mut reasons = Vec::new();
+    for (appearance, fill) in appearances {
+        if fill.breaks.is_empty() {
+            continue;
+        }
+        let breaks: Vec<String> = fill
+            .breaks
+            .iter()
+            .map(|v| {
+                format!(
+                    "{} would have a contrast of {}:1, and {}:1 is required",
+                    plainly(&v.promise),
+                    to_fixed2(v.ratio),
+                    js_number(v.required)
+                )
+            })
+            .collect();
+        reasons.push(format!(
+            "In the {appearance} theme {given} cannot be the fill as it is: {}.",
+            breaks.join("; ")
+        ));
+    }
+    for (appearance, fill) in appearances {
+        let percent = (fill.chroma_kept * 100.0).round();
+        if percent < 100.0 {
+            reasons.push(format!(
+                "In the {appearance} theme the fill is less saturated than {given}, with {percent}% of its chroma: a screen cannot show more at that lightness."
+            ));
+        }
+    }
+    (summary, reasons)
 }
 
 /// The fill a brand colour got in one appearance.
@@ -593,11 +650,16 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
         .iter()
         .map(|(name, value)| {
             let given = to_hex(parse_hex(value)?);
+            let in_light = brand_fill(&light, Appearance::Light, name, &given)?;
+            let in_dark = brand_fill(&dark, Appearance::Dark, name, &given)?;
+            let (summary, reasons) = says(name, &given, &in_light, &in_dark);
             Ok(Brand {
                 family: name.to_string(),
-                light: brand_fill(&light, Appearance::Light, name, &given)?,
-                dark: brand_fill(&dark, Appearance::Dark, name, &given)?,
+                light: in_light,
+                dark: in_dark,
                 given,
+                summary,
+                reasons,
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
@@ -1334,6 +1396,146 @@ mod recipe_tests {
         assert!(
             css.starts_with(&format!("{FIRST_LINE}{comment}{LAYERS}")),
             "{css}"
+        );
+    }
+
+    #[test]
+    fn a_brand_says_in_words_what_became_of_it() {
+        // The sentences are the core's, made once: the command writes them,
+        // the theme builder shows them and the file has the first of them,
+        // and none of the three puts them together itself. The wording is
+        // the one `lotek theme` had when the core took it over.
+        let t = theme(r##"{"accent": "#f7df1e"}"##).unwrap();
+        let brand = &t.brands[0];
+        assert_eq!(
+            brand.summary,
+            "accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme."
+        );
+        // All three promises about the fill break on a light page, and the
+        // screen cannot show the chroma in either appearance.
+        assert_eq!(
+            brand.reasons,
+            [
+                "In the light theme #f7df1e cannot be the fill as it is: against the page it would have a contrast of 1.35:1, and 3.1:1 is required; against a raised surface it would have a contrast of 1.06:1, and 3.1:1 is required; text on it would have a contrast of 1.32:1, and 4.6:1 is required.",
+                "In the light theme the fill is less saturated than #f7df1e, with 61% of its chroma: a screen cannot show more at that lightness.",
+                "In the dark theme the fill is less saturated than #f7df1e, with 74% of its chroma: a screen cannot show more at that lightness.",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_brand_gives_no_reason_for_an_appearance_it_fits() {
+        // A colour in the middle could be the fill on a light page, and
+        // keeps all of its chroma there: both sentences are about the dark.
+        let t = theme(r##"{"accent": "#7c3aed"}"##).unwrap();
+        assert_eq!(
+            t.brands[0].reasons,
+            [
+                "In the dark theme #7c3aed cannot be the fill as it is: against a raised surface it would have a contrast of 2.22:1, and 3.1:1 is required; text on it would have a contrast of 3.40:1, and 4.6:1 is required.",
+                "In the dark theme the fill is less saturated than #7c3aed, with 84% of its chroma: a screen cannot show more at that lightness.",
+            ]
+        );
+    }
+
+    /// The reasons of a row, put together here from the row's own numbers:
+    /// first what the colour would break as the fill, light then dark, then
+    /// the chroma the fill lost, light then dark.
+    fn reasons_from_the_numbers(brand: &Brand) -> Vec<String> {
+        let sides = [("light", &brand.light), ("dark", &brand.dark)];
+        let plainly = |promise: &str| match promise {
+            "fill on canvas" => "against the page it",
+            "fill on raised" => "against a raised surface it",
+            "content on top of fill" => "text on it",
+            other => panic!("a promise about the fill without plain words: {other}"),
+        };
+        let mut reasons = Vec::new();
+        for (appearance, side) in sides {
+            if side.breaks.is_empty() {
+                continue;
+            }
+            let clauses: Vec<String> = side
+                .breaks
+                .iter()
+                .map(|b| {
+                    format!(
+                        "{} would have a contrast of {}:1, and {}:1 is required",
+                        plainly(&b.promise),
+                        to_fixed2(b.ratio),
+                        js_number(b.required)
+                    )
+                })
+                .collect();
+            reasons.push(format!(
+                "In the {appearance} theme {} cannot be the fill as it is: {}.",
+                brand.given,
+                clauses.join("; ")
+            ));
+        }
+        for (appearance, side) in sides {
+            let percent = (side.chroma_kept * 100.0).round();
+            if percent < 100.0 {
+                reasons.push(format!(
+                    "In the {appearance} theme the fill is less saturated than {}, with {percent}% of its chroma: a screen cannot show more at that lightness.",
+                    brand.given
+                ));
+            }
+        }
+        reasons
+    }
+
+    #[test]
+    fn what_a_brand_says_agrees_with_its_own_numbers() {
+        // A sentence with one number and a row with another is two answers.
+        // Nine colours around the wheel, a grey and LO-TEK's own among them.
+        let t = theme(
+            r##"{"accent": "#ff0000", "visited": "#ff8800", "brand1": "#ffd600", "brand2": "#39ff14", "brand3": "#00bcd4", "neutral": "#2b2b2b", "danger": "#ff00ff", "warning": "#8a5a00", "success": "#1362ae"}"##,
+        )
+        .unwrap();
+        assert_eq!(t.brands.len(), 9);
+        let mut said = 0;
+        for brand in &t.brands {
+            assert_eq!(
+                brand.summary,
+                format!(
+                    "{}: {} gives the fill {} in the light theme and {} in the dark theme.",
+                    brand.family, brand.given, brand.light.fill, brand.dark.fill
+                )
+            );
+            assert_eq!(
+                brand.reasons,
+                reasons_from_the_numbers(brand),
+                "{}",
+                brand.family
+            );
+            said += brand.reasons.len();
+        }
+        // Every kind of sentence is among them, and a row without one of a
+        // kind: a comparison of nothing with nothing would pass too.
+        assert!(said > 15, "only {said} reasons");
+        assert!(t.brands.iter().any(|b| b.light.breaks.is_empty()));
+        assert!(t
+            .brands
+            .iter()
+            .any(|b| (b.light.chroma_kept * 100.0).round() == 100.0));
+    }
+
+    #[test]
+    fn the_comment_in_the_file_is_the_summaries() {
+        let t =
+            theme(r##"{"danger": "#b91c1c", "brand1": "#f7df1e", "accent": "#7c3aed"}"##).unwrap();
+        let lines: Vec<String> = t
+            .brands
+            .iter()
+            .map(|brand| format!(" * {}", brand.summary))
+            .collect();
+        assert_eq!(lines.len(), 3);
+        assert!(
+            t.css.starts_with(&format!(
+                "{FIRST_LINE}/*\n{}\n */\n\n{LAYERS}",
+                lines.join("\n")
+            )),
+            "{}",
+            t.css
         );
     }
 

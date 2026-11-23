@@ -403,12 +403,15 @@ pub unsafe extern "C" fn build_theme_raw(ptr: *mut u8, length: usize) -> u32 {
                 .brands
                 .iter()
                 .map(|b| {
+                    let reasons: Vec<String> = b.reasons.iter().map(|r| json_string(r)).collect();
                     format!(
-                        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{}}}",
+                        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{},\"summary\":{},\"reasons\":[{}]}}",
                         json_string(&b.family),
                         json_string(&b.given),
                         json_brand_fill(&b.light),
-                        json_brand_fill(&b.dark)
+                        json_brand_fill(&b.dark),
+                        json_string(&b.summary),
+                        reasons.join(",")
                     )
                 })
                 .collect();
