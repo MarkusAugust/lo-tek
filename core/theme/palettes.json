@@ -127,6 +127,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#666790",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#3f7486",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#796186",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -253,6 +284,37 @@
             {
               "family": "brand3",
               "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#666790",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#3f7486",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#796186",
               "kept": false
             },
             {
@@ -395,6 +457,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#8a5491",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#496aac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#9c4e71",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -521,6 +614,37 @@
             {
               "family": "brand3",
               "color": "#8a5b72",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#74686d",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation. Some hues are moved clear of danger, warning and success, or of each other.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#b1376c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a45125",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#8b5298",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
               "kept": false
             },
             {
@@ -666,6 +790,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#666790",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#3f7486",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#796186",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -792,6 +947,37 @@
             {
               "family": "brand3",
               "color": "#856354",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#736968",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation. Some hues are moved clear of danger, warning and success, or of each other.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#a54f3b",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#935d34",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#94556f",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#71702b",
               "kept": false
             },
             {
@@ -934,6 +1120,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation. Some hues are moved clear of danger, warning and success, or of each other.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#9b554d",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#8d6046",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#8b5b71",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6f6f3d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#716a69",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -1060,6 +1277,37 @@
             {
               "family": "brand3",
               "color": "#6d6e50",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6d6c65",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation. Some hues are moved clear of danger, warning and success, or of each other.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#717013",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#697237",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#8f5f39",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#347b62",
               "kept": false
             },
             {
@@ -1202,6 +1450,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#467955",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#447769",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6b7047",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#3d767c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696d69",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -1336,6 +1615,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -1443,6 +1753,37 @@
         {
           "name": "One hue",
           "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
           "colors": [
             {
               "family": "visited",
@@ -1605,6 +1946,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#f7df1e",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#496aac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#9c4e71",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -1740,6 +2112,37 @@
               "kept": true
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#666790",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#796186",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
         }
       ]
     }
@@ -1852,6 +2255,37 @@
         {
           "name": "One hue",
           "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#5a77a8",
+              "kept": true
+            },
+            {
+              "family": "brand1",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#5b3fa0",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
           "colors": [
             {
               "family": "visited",
@@ -2016,6 +2450,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation. Some hues are moved clear of danger, warning and success, or of each other.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#8a5491",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#496aac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#955080",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -2109,6 +2574,27 @@
             {
               "family": "brand3",
               "color": "#6d658d",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#8a5491",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#9c4e71",
               "kept": false
             }
           ]
@@ -2239,6 +2725,37 @@
             {
               "family": "brand3",
               "color": "#6d658d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#8a5491",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#496aac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#9c4e71",
               "kept": false
             },
             {
@@ -2389,6 +2906,37 @@
               "kept": false
             }
           ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#8a5491",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#496aac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
         }
       ]
     }
@@ -2523,6 +3071,37 @@
             {
               "family": "brand3",
               "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Quiet",
+          "description": "The hues beside the accent, with less than half its saturation.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#666790",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#3f7486",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#796186",
               "kept": false
             },
             {

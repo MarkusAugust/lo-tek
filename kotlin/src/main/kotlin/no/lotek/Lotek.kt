@@ -193,8 +193,8 @@ object Lotek {
     }
 
     /**
-     * Suggests four palettes to go with the accent of a recipe: Near,
-     * Opposite, Three ways and One hue. Each has a colour for visited,
+     * Suggests five palettes to go with the accent of a recipe: Near,
+     * Opposite, Three ways, One hue and Quiet. Each has a colour for visited,
      * brand1, brand2, brand3 and neutral, made at the lightness of the fill,
      * so the colour is the fill the theme gets in the light theme. danger,
      * warning and success are never suggested. A family the recipe gives a

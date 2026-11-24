@@ -143,7 +143,7 @@ The second line is the reason: the promises about `fill` your colour would break
 
 ## Colours to go with the accent
 
-An organisation often has one colour, and a theme has nine families. The generator suggests four palettes for the ones you have not set:
+An organisation often has one colour, and a theme has nine families. The generator suggests five palettes for the ones you have not set:
 
 | Palette | brand1, brand2 and brand3 |
 | --- | --- |
@@ -151,12 +151,13 @@ An organisation often has one colour, and a theme has nine families. The generat
 | Opposite | The hues across the colour wheel from the accent. |
 | Three ways | Three hues that share the colour wheel evenly with the accent. |
 | One hue | The hue of the accent, in three saturations. |
+| Quiet | The hues beside the accent, with less than half its saturation. |
 
-Each also has a colour for `visited`, the accent muted, and for `neutral`, a grey with a faint cast of the accent. Those two are the same in all four. `danger`, `warning` and `success` are never suggested: red, yellow and green carry a meaning. A suggested brand colour whose hue lands near one of the three is moved away from it, and so is one that lands on the accent or on another suggestion. A palette is then less regular than its name, and its description says that hues were moved.
+Each also has a colour for `visited`, the accent muted, and for `neutral`, a grey with a faint cast of the accent. Those two are the same in all five. `danger`, `warning` and `success` are never suggested: red, yellow and green carry a meaning. A suggested brand colour whose hue lands near one of the three is moved away from it, and so is one that lands on the accent or on another suggestion. A palette is then less regular than its name, and its description says that hues were moved.
 
 A suggestion is made at the lightness of the fill, so the colour you see is the fill the theme gets in the light theme, and not one the generator then moves. A family you have set yourself stands as it is.
 
-In the [theme builder](/theme-builder/) the palettes are folded under the accent. "Use" fills the families you have not set, and "Use" on another palette swaps them. From code, see [`suggestPalettes`](#programmatic-use).
+In the [theme builder](/theme-builder/) each palette is a button under the accent, with its colours on it. Pressing one fills the families you have not set, pressing another swaps them, and "LO-TEK default" takes the suggestions away again. From code, see [`suggestPalettes`](#programmatic-use).
 
 ## What the generator does not do
 
@@ -349,7 +350,7 @@ suggestPalettes({ accent: "#7c3aed", brand2: "#0d7a5f" })
 //         { family: "neutral", color: "#6c6a74", kept: false }
 //       ]
 //     },
-//     … Opposite, Three ways, One hue
+//     … Opposite, Three ways, One hue, Quiet
 //   ]
 // }
 ```

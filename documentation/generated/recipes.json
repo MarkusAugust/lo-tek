@@ -9743,7 +9743,7 @@
         {
           "lang": "ts",
           "meta": null,
-          "code": "import { suggestPalettes } from \"@lo-tek/interfaces/theme\"\n\nsuggestPalettes({ accent: \"#7c3aed\", brand2: \"#0d7a5f\" })\n// {\n//   from: \"#7c3aed\",\n//   palettes: [\n//     {\n//       name: \"Near\",\n//       description: \"The hues beside the accent on the colour wheel.\",\n//       colors: [\n//         { family: \"visited\", color: \"#7b53b2\", kept: false },\n//         { family: \"brand1\", color: \"#a909bb\", kept: false },\n//         { family: \"brand2\", color: \"#0d7a5f\", kept: true },\n//         { family: \"brand3\", color: \"#c00077\", kept: false },\n//         { family: \"neutral\", color: \"#6c6a74\", kept: false }\n//       ]\n//     },\n//     … Opposite, Three ways, One hue\n//   ]\n// }",
+          "code": "import { suggestPalettes } from \"@lo-tek/interfaces/theme\"\n\nsuggestPalettes({ accent: \"#7c3aed\", brand2: \"#0d7a5f\" })\n// {\n//   from: \"#7c3aed\",\n//   palettes: [\n//     {\n//       name: \"Near\",\n//       description: \"The hues beside the accent on the colour wheel.\",\n//       colors: [\n//         { family: \"visited\", color: \"#7b53b2\", kept: false },\n//         { family: \"brand1\", color: \"#a909bb\", kept: false },\n//         { family: \"brand2\", color: \"#0d7a5f\", kept: true },\n//         { family: \"brand3\", color: \"#c00077\", kept: false },\n//         { family: \"neutral\", color: \"#6c6a74\", kept: false }\n//       ]\n//     },\n//     … Opposite, Three ways, One hue, Quiet\n//   ]\n// }",
           "section": "Programmatic use"
         },
         {

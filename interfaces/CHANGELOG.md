@@ -58,12 +58,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 - **The generator suggests colours to go with an accent.**
   `suggestPalettes(recipe)` from `@lo-tek/interfaces/theme`, and
-  `Lotek.suggestPalettes` in Kotlin, give four palettes, Near, Opposite,
-  Three ways and One hue, each with a colour for `visited`, `brand1` to
+  `Lotek.suggestPalettes` in Kotlin, give five palettes, Near, Opposite,
+  Three ways, One hue and Quiet, each with a colour for `visited`, `brand1` to
   `brand3` and `neutral`. A colour is the fill the theme gets in the light
   theme, the status families are never suggested, and a family the recipe
-  has set stands as it is. The theme builder shows the palettes under the
-  accent, and "Use" fills the families that are not set. See
+  has set stands as it is. The theme builder has a button for each palette
+  under the accent, which fills the families that are not set, and "Start
+  again" stands by the preview and can be undone. See
   [Colours to go with the accent](https://lo-tek.sobernetics.no/your-own-theme/#colours-to-go-with-the-accent).
 - **An editor can ask the core what to suggest.** `complete(text, offset,
   html)` on the core from `loadCore()`, and `Lotek.complete` in Kotlin, give

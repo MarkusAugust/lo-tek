@@ -207,11 +207,11 @@ const blocks = (at: "rest" | "nothing") => ({
 const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
 
 /**
- * The places the page has for palettes. The core suggests four, and a
+ * The places the page has for palettes. The core suggests five, and a
  * signal cannot hold a list, so each has a place in the markup that the
  * answer fills in.
  */
-const PLACES = ["p1", "p2", "p3", "p4"] as const
+const PLACES = ["p1", "p2", "p3", "p4", "p5"] as const
 
 /*
  * The signals. `own` says which families have a colour of the consumer's,
@@ -227,8 +227,12 @@ const PLACES = ["p1", "p2", "p3", "p4"] as const
  * `suggested` says which families hold a colour a palette filled in, and
  * not one the visitor wrote or picked, and `palettes` is the core's answer
  * to the recipe without those: the colour the palettes are built on, and
- * each palette in its place. `used` is the name of the palette the
- * suggested colours are from, which they follow when the accent changes.
+ * each palette in its place. Beside them, `none` has LO-TEK's own colour of
+ * each family the palettes have one for, and `stale` says the answer is an
+ * earlier one, shown while the accent is no colour. `used` is the name of
+ * the palette the suggested colours are from, which they follow when the
+ * accent changes. `undo` is what was chosen before "Start again", as text,
+ * while it can still be put back.
  * `failed` says the core never came.
  *
  * A signal an action answers into always has the same keys, and only text,
@@ -244,8 +248,11 @@ const signals = {
   own: Object.fromEntries(families.map(([name]) => [name, false])),
   suggested: Object.fromEntries(families.map(([name]) => [name, false])),
   used: "",
+  undo: "",
   palettes: {
     from: "",
+    stale: false,
+    none: Object.fromEntries(families.map(([name]) => [name, ""])),
     ...Object.fromEntries(
       PLACES.map((place) => [
         place,
@@ -310,6 +317,16 @@ const USE = `@import "@lo-tek/interfaces/tokens.css";
 @import "./theme.css";`
 
 const id = (path: string) => `field-${path.replaceAll(".", "-")}`
+
+/** Whether any family holds a suggestion, and whether a palette is in use. */
+const anySuggested = `(${families.map(([name]) => `$suggested.${name}`).join(" || ")})`
+const inUse = (place: string) =>
+  `$used !== '' && $used === $palettes.${place}.name && ${anySuggested}`
+/** What the palette in use says of itself, and nothing when none is. */
+const says = `${PLACES.map((place) => `${inUse(place)} ? $palettes.${place}.description : `).join("")}''`
+/** A dot of a strip: the colour as paint, and out of the way without one. */
+const dot = (color: string) =>
+  `${color} !== '' ? 'background-color: ' + ${color} : 'display: none'`
 ---
 
 <!doctype html>
@@ -517,70 +534,66 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 								</div>
 								{
 									name === "accent" && (
-										<details class="builder__reason builder__palettes" data-palettes style="display: none" data-show="$palettes.from !== ''">
-											<summary>Suggest colours to go with the accent</summary>
-											<p class="builder__why">
-												Palettes built on <code data-text="$palettes.from" />.
-												"Use" fills the families you have not set yourself,
-												and another "Use" swaps them.
-											</p>
-											{PLACES.map((place) => (
-												<div
-													class="builder__palette"
-													role="group"
-													data-palette
-													style="display: none"
-													data-show={`$palettes.${place}.name !== ''`}
-													data-attr:aria-label={`$palettes.${place}.name`}
-												>
-													<p class="builder__palette-head">
-														<strong data-text={`$palettes.${place}.name`} />
-														<span data-text={`$palettes.${place}.description`} />
-														<span
-															class="builder__changed"
-															style="display: none"
-															data-show={`$used !== '' && $used === $palettes.${place}.name && (${families.map(([family]) => `$suggested.${family}`).join(" || ")})`}
-														>
-															In use
-														</span>
-													</p>
-													<p class="builder__swatches">
-														{families.map(([family]) => (
-															<span
-																class="builder__colour-of"
-																data-family={family}
-																style="display: none"
-																data-show={`$palettes.${place}.colors.${family}.color !== ''`}
-																data-attr:data-kept={`$palettes.${place}.colors.${family}.kept ? 'true' : 'false'`}
-															>
-																<span class="profile-label">{family}</span>
-																<span
-																	class="builder__swatch"
-																	data-attr:style={`'background-color: ' + $palettes.${place}.colors.${family}.color`}
-																/>
-																<code data-text={`$palettes.${place}.colors.${family}.color`} />
-																<span
-																	class="profile-label"
-																	style="display: none"
-																	data-show={`$palettes.${place}.colors.${family}.kept`}
-																>
-																	yours
-																</span>
-															</span>
-														))}
-													</p>
+										<div class="builder__palettes" style="display: none" data-show="$palettes.from !== ''">
+											<!-- The palettes the core suggests, each a strip to press:
+											     its name and its colours as paint. The one in use is
+											     pressed and says so, and LO-TEK's own, last, takes
+											     the suggestions away. While the accent is no colour
+											     the strips stand as they were and cannot be pressed. -->
+											<p class="lt-label" id="palettes-label">Palette</p>
+											<div class="builder__strips" role="group" aria-labelledby="palettes-label" data-palettes>
+												{PLACES.map((place) => (
 													<button
-														class="lt-button"
-														data-variant="secondary"
+														class="builder__strip"
 														type="button"
-														data-attr:aria-label={`'Use ' + $palettes.${place}.name`}
+														data-palette
+														style="display: none"
+														data-show={`$palettes.${place}.name !== ''`}
+														data-attr:disabled="$palettes.stale"
+														data-attr:aria-pressed={`${inUse(place)} ? 'true' : 'false'`}
 														data-on:click={`@usePalette($palettes.${place})`}
 													>
-														Use
+														<span data-text={`$palettes.${place}.name`} />
+														<span class="builder__dots">
+															{families.map(([family]) => (
+																<span
+																	class="builder__dot"
+																	data-family={family}
+																	style="display: none"
+																	data-attr:data-kept={`$palettes.${place}.colors.${family}.kept ? 'true' : 'false'`}
+																	data-attr:data-color={`$palettes.${place}.colors.${family}.color`}
+																	data-attr:style={dot(`$palettes.${place}.colors.${family}.color`)}
+																/>
+															))}
+														</span>
+														<span class="builder__changed" style="display: none" data-show={inUse(place)}>
+															In use
+														</span>
 													</button>
-												</div>
-											))}
-										</details>
+												))}
+												<button
+													class="builder__strip"
+													type="button"
+													data-palette-default
+													data-attr:aria-pressed={`${PLACES.map((place) => `!(${inUse(place)})`).join(" && ")} ? 'true' : 'false'`}
+													data-on:click="@noPalette($suggested)"
+												>
+													<span>LO-TEK default</span>
+													<span class="builder__dots">
+														{families.map(([family]) => (
+															<span
+																class="builder__dot"
+																data-family={family}
+																style="display: none"
+																data-attr:data-color={`$palettes.none.${family}`}
+																data-attr:style={dot(`$palettes.none.${family}`)}
+															/>
+														))}
+													</span>
+												</button>
+											</div>
+											<p class="builder__why" data-palette-says style="display: none" data-show={`(${says}) !== ''`} data-text={says} />
+										</div>
 									)
 								}
 								</div>
@@ -666,6 +679,19 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<section class="builder__preview" aria-labelledby="preview-title">
 					<div class="builder__preview-head">
 						<h2 class="profile-label" id="preview-title">Preview</h2>
+						<!-- "Start again" empties everything, and is then the way
+						     back, until something is chosen again. -->
+						<div class="builder__preview-tools">
+							<div hidden data-effect="$undo !== '' && @recipe($own, $fields) !== '{}' && ($undo = '')"></div>
+							<button
+								class="lt-button"
+								data-variant="secondary"
+								type="button"
+								data-on:click="$undo !== '' ? @undoStartAgain($undo) : @startAgain($own, $fields, $suggested, $used)"
+								data-text="$undo !== '' ? 'Undo' : 'Start again'"
+							>
+								Start again
+							</button>
 						<fieldset class="lt-toggle-group">
 							<legend class="lt-sr-only">What the theme is shown on</legend>
 							<label class="lt-toggle-group__option">
@@ -677,6 +703,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 								Page
 							</label>
 						</fieldset>
+						</div>
 					</div>
 					<!-- Each frame holds a whole page, and every control in it is a
 					     stop for the keyboard. -->
@@ -734,14 +761,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						>
 							Download theme.css
 						</a>
-						<button
-							class="lt-button"
-							data-variant="ghost"
-							type="button"
-							data-on:click="@startAgain()"
-						>
-							Start again
-						</button>
 						<span class="builder__said" role="status" data-text="$copied === $recipe ? 'Copied.' : $notCopied === $recipe ? 'The browser would not copy it. Select the recipe and copy it by hand.' : ''"></span>
 					</p>
 					<p class="builder__line">
@@ -1091,35 +1110,78 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		text-wrap: pretty;
 	}
 
-	/* The palettes the core suggests, folded under the accent. */
+	/* The palettes the core suggests, under the accent: a strip each. */
 	.builder__palettes {
-		padding-block-start: var(--lt-spacing-2);
-	}
-
-	.builder__palette {
 		display: flex;
 		flex-direction: column;
-		align-items: start;
 		gap: var(--lt-spacing-2);
-		margin-block-start: var(--lt-spacing-4);
 		padding-block-start: var(--lt-spacing-3);
-		border-block-start: var(--profile-rule);
-		font-size: var(--lt-font-size-xs);
 	}
 
-	.builder__palette > p {
+	.builder__palettes > p {
 		margin: 0;
 	}
 
-	.builder__palette-head {
-		display: flex;
-		flex-wrap: wrap;
-		gap: var(--lt-spacing-1) var(--lt-spacing-3);
-		color: var(--lt-color-neutral-text);
+	.builder__strips {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(6.9rem, 1fr));
+		gap: var(--lt-spacing-2);
 	}
 
-	.builder__palette-head > strong {
-		color: var(--lt-color-neutral-text-strong);
+	.builder__strip {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+		padding: var(--lt-spacing-2) var(--lt-spacing-3);
+		border: var(--profile-rule);
+		background: none;
+		color: inherit;
+		font: inherit;
+		font-size: var(--lt-font-size-s);
+		text-align: start;
+		cursor: pointer;
+	}
+
+	.builder__strip:hover {
+		background: var(--lt-color-neutral-surface);
+	}
+
+	.builder__strip:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: 2px;
+	}
+
+	.builder__strip[aria-pressed="true"] {
+		outline: 2px solid var(--lt-color-accent-fill);
+		outline-offset: -2px;
+		font-weight: var(--lt-font-weight-semibold);
+	}
+
+	.builder__strip:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.builder__strip .builder__changed {
+		font-weight: var(--lt-font-weight-regular);
+	}
+
+	.builder__dots {
+		display: flex;
+		gap: 3px;
+	}
+
+	.builder__dot {
+		inline-size: 1.1rem;
+		block-size: 1.1rem;
+		border: var(--profile-rule-subtle);
+	}
+
+	.builder__preview-tools {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--lt-spacing-3);
 	}
 
 	.builder__preview-head {
@@ -1257,7 +1319,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
 		own: Record<string, boolean>
 		suggested: Record<string, boolean>
-		palettes: { p1: Place } & Record<string, unknown>
+		palettes: { p1: Place; none: Record<string, string> } & Record<string, unknown>
 		fields: Fields
 	}
 
@@ -1383,32 +1445,64 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
+	type Answer = {
+		from: string
+		palettes: { name: string; description: string; colors: { family: string; color: string; kept: boolean }[] }[]
+	}
+
+	/** LO-TEK's own colour of each family, from the contract the core has. */
+	const ownColours = JSON.parse(contract).brands as Record<string, string>
+
+	/** A place with no palette in it, as text. */
+	const emptyPlace = JSON.stringify(first.palettes.p1)
+
+	/** The palettes as the signal holds them, from an answer of the core. */
+	const laidOut = (answer: Answer) => {
+		// A place of its own each time: what is handed to Datastar becomes
+		// the signal's, and two places must not share a colour.
+		const blank = (): Place => JSON.parse(emptyPlace)
+		const places = Object.keys(first.palettes).filter((key) => /^p\d+$/.test(key))
+		// The families the palettes have a colour for, with LO-TEK's own.
+		const suggestedFor = new Set(answer.palettes.flatMap((p) => p.colors.map((c) => c.family)))
+		return {
+			from: answer.from,
+			stale: false,
+			none: Object.fromEntries(
+				Object.keys(first.palettes.none).map((family) => [
+					family,
+					suggestedFor.has(family) ? (ownColours[family] ?? "") : "",
+				]),
+			),
+			...Object.fromEntries(
+				places.map((place, at) => {
+					const palette = answer.palettes[at]
+					if (!palette) return [place, blank()]
+					const colors = blank().colors
+					for (const { family, color, kept } of palette.colors)
+						if (family in colors) colors[family] = { color, kept }
+					return [place, { name: palette.name, description: palette.description, colors }]
+				}),
+			),
+		}
+	}
+
 	// The core's palettes for what the visitor chose: the recipe without the
 	// families a palette filled in, so the palettes stay what they were after
-	// one is taken. Each is laid in its place, with a colour at every family
-	// the core has a row for. No answer empties every place.
+	// one is taken. With no answer, while the accent is no colour, the last
+	// one stands and says it is stale, so nothing moves while a colour is
+	// written; before any answer every place is empty.
+	// The last answer is kept as text: what an action hands Datastar becomes
+	// the signal's own, and must not be handed over twice.
+	let lastPalettes: string | undefined
 	action({
 		name: "suggestPalettes",
 		apply(_: unknown, recipe: string, suggested: Record<string, boolean>) {
 			const chosen = JSON.parse(recipe)
 			for (const [family, is] of Object.entries(suggested)) if (is) delete chosen[family]
-			const answer: { from: string; palettes: { name: string; description: string; colors: { family: string; color: string; kept: boolean }[] }[] } | null =
-				core.suggestPalettes(chosen)
-			const blank = first.palettes.p1
-			const places = Object.keys(first.palettes).filter((key) => key !== "from")
-			return {
-				from: answer?.from ?? "",
-				...Object.fromEntries(
-					places.map((place, at) => {
-						const palette = answer?.palettes[at]
-						if (!palette) return [place, blank]
-						const colors = { ...blank.colors }
-						for (const { family, color, kept } of palette.colors)
-							if (family in colors) colors[family] = { color, kept }
-						return [place, { name: palette.name, description: palette.description, colors }]
-					}),
-				),
-			}
+			const answer: Answer | null = core.suggestPalettes(chosen)
+			if (answer) lastPalettes = JSON.stringify(laidOut(answer))
+			if (!lastPalettes) return laidOut({ from: "", palettes: [] })
+			return { ...JSON.parse(lastPalettes), stale: !answer }
 		},
 	})
 
@@ -1430,6 +1524,22 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
+	// LO-TEK's own again: every family that holds a suggestion is emptied and
+	// switched off, and no palette is in use. A colour the visitor wrote is
+	// no suggestion, and stands.
+	action({
+		name: "noPalette",
+		apply(_: unknown, suggested: Record<string, boolean>) {
+			const emptied = Object.keys(suggested).filter((family) => suggested[family])
+			mergePatch({
+				own: Object.fromEntries(emptied.map((family) => [family, false])),
+				suggested: Object.fromEntries(emptied.map((family) => [family, false])),
+				fields: Object.fromEntries(emptied.map((family) => [family, ""])),
+				used: "",
+			})
+		},
+	})
+
 	// The suggested colours follow their palette: when the core's answer
 	// changes, with the accent or a status, each family that still holds a
 	// suggestion gets the colour the palette in use now has for it. A colour
@@ -1437,10 +1547,14 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	// is left alone. With no answer the colours stand.
 	action({
 		name: "followPalette",
-		apply(_: unknown, palettes: Record<string, Place | string>, suggested: Record<string, boolean>, used: string) {
-			const palette = Object.values(palettes).find(
-				(place): place is Place => typeof place !== "string" && place.name === used,
-			)
+		apply(_: unknown, palettes: Record<string, unknown>, suggested: Record<string, boolean>, used: string) {
+			// Only the places are asked for a name: to read a key a signal
+			// does not have is to give it one, and an answer without that
+			// key is then a change every time.
+			const palette = Object.entries(palettes)
+				.filter(([key]) => /^p\d+$/.test(key))
+				.map(([, place]) => place as Place)
+				.find((place) => place.name === used)
 			if (!palette) return
 			const follows = Object.entries(palette.colors).filter(
 				([family, { color, kept }]) => suggested[family] && color !== "" && !kept,
@@ -1536,12 +1650,32 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
+	// Everything as on a first visit. What was chosen is kept as text for as
+	// long as it can be put back: until something is chosen again. Nothing
+	// chosen, nothing to put back.
 	action({
 		name: "startAgain",
-		apply() {
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields, suggested: Record<string, boolean>, used: string) {
+			const nothing = JSON.stringify({ own: first.own, fields: first.fields })
 			// The empty page is what is then remembered: the effect that
 			// remembers runs on this as on any change.
-			mergePatch({ own: first.own, suggested: first.suggested, used: "", fields: first.fields, pasted: "", pasteError: "" })
+			mergePatch({
+				own: first.own,
+				suggested: first.suggested,
+				used: "",
+				fields: first.fields,
+				pasted: "",
+				pasteError: "",
+				undo: JSON.stringify({ own, fields }) === nothing ? "" : JSON.stringify({ own, fields, suggested, used }),
+			})
+		},
+	})
+
+	action({
+		name: "undoStartAgain",
+		apply(_: unknown, undo: string) {
+			const before = JSON.parse(undo)
+			mergePatch({ ...before, undo: "" })
 		},
 	})
 
@@ -1581,13 +1715,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
-	// The families the core suggests colours for: those with a row in the
-	// palettes of a recipe that gives nothing.
-	const suggestable = new Set<string>(
-		(loaded?.suggestPalettes({})?.palettes ?? []).flatMap((palette: { colors: { family: string }[] }) =>
-			palette.colors.map((color) => color.family),
-		),
-	)
+	// The families the core suggests colours for, and what its palettes are
+	// called: those of a recipe that gives nothing.
+	const offered: Answer["palettes"] = loaded?.suggestPalettes({})?.palettes ?? []
+	const suggestable = new Set(offered.flatMap((palette) => palette.colors.map((color) => color.family)))
+	const named = new Set(offered.map((palette) => palette.name))
 
 	// What was left the last time, before Datastar is told the core is here.
 	try {
@@ -1606,7 +1738,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						kept.suggested?.[name] === true && kept.own?.[name] === true && suggestable.has(name),
 					]),
 				),
-				used: typeof kept.used === "string" ? kept.used : "",
+				used: typeof kept.used === "string" && named.has(kept.used) ? kept.used : "",
 				fields: laid(first.fields, kept.fields),
 			})
 	} catch {

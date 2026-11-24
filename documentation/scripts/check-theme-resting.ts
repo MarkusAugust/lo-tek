@@ -207,7 +207,7 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
       ...document.querySelectorAll<HTMLElement>(
         // The rows of the report: the suggestions under the accent have a
         // place for each family too, and are another matter.
-        "[data-family]:not(details[data-palettes] *)",
+        "[data-family]:not([data-palettes] *)",
       ),
     ]
       .filter((row) => row.getClientRects().length > 0)

@@ -65,7 +65,7 @@ struct Make {
     shares: [f64; 3],
 }
 
-const MAKES: [Make; 4] = [
+const MAKES: [Make; 5] = [
     Make {
         name: "Near",
         description: "The hues beside the accent on the colour wheel.",
@@ -89,6 +89,12 @@ const MAKES: [Make; 4] = [
         description: "The hue of the accent, in three saturations.",
         turns: [0.0; 3],
         shares: [0.75, 0.5, 0.25],
+    },
+    Make {
+        name: "Quiet",
+        description: "The hues beside the accent, with less than half its saturation.",
+        turns: [30.0, -30.0, 60.0],
+        shares: [0.45; 3],
     },
 ];
 
@@ -174,14 +180,14 @@ fn own_fill(hue: f64, chroma: f64, lightness: f64) -> String {
     }
 }
 
-/// Four palettes to go with the accent of a recipe: Near, Opposite, Three
-/// ways and One hue, each with a colour for visited, the three brand
+/// Five palettes to go with the accent of a recipe: Near, Opposite, Three
+/// ways, One hue and Quiet, each with a colour for visited, the three brand
 /// families and neutral. The status families are never suggested.
 ///
 /// A family the recipe gives a colour stands as it is, as `kept`, and one
 /// whose value the core refuses has no row, so a host that fills a form
 /// from a palette writes over nothing. Visited and neutral are the same in
-/// all four, and stand to the accent as LO-TEK's own stand to LO-TEK's
+/// all of them, and stand to the accent as LO-TEK's own stand to LO-TEK's
 /// accent.
 ///
 /// `None` when the recipe is not an object, and when its accent is not a

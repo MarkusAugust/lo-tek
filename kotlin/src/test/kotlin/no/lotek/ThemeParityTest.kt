@@ -99,7 +99,7 @@ class ThemeParityTest {
      */
     /**
      * The palettes a recipe is suggested, to the letter: what they are built
-     * on, the four names and what each says it is, and every row with its
+     * on, the five names and what each says it is, and every row with its
      * colour. The arithmetic behind a suggested colour is held in the core.
      */
     @ParameterizedTest(name = "{0}")

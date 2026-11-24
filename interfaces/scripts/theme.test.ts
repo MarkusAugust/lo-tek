@@ -266,11 +266,11 @@ test("inspectTheme gives the verdict, and the tokens without a contrast promise"
 
 /**
  * The palettes a recipe is suggested, to the one who calls
- * `suggestPalettes` from `@lo-tek/interfaces/theme`: four, each with a
+ * `suggestPalettes` from `@lo-tek/interfaces/theme`: five, each with a
  * colour for the families the recipe has not set, and the recipe's own
  * where it has. A colour the core suggests is the fill the theme gives it.
  */
-test("suggestPalettes gives four palettes around the accent, and keeps what the recipe has set", () => {
+test("suggestPalettes gives five palettes around the accent, and keeps what the recipe has set", () => {
   const found: Palettes | null = suggestPalettes({
     accent: "#7C3AED",
     brand1: "#F7DF1E",
@@ -285,6 +285,7 @@ test("suggestPalettes gives four palettes around the accent, and keeps what the 
     "Opposite",
     "Three ways",
     "One hue",
+    "Quiet",
   ])
   for (const palette of palettes) {
     const description: string = palette.description
@@ -311,7 +312,7 @@ test("suggestPalettes gives four palettes around the accent, and keeps what the 
 
 test("suggestPalettes builds on LO-TEK's accent without one, and answers nothing to half a colour", () => {
   expect(suggestPalettes({})?.from).toBe("#1362ae")
-  expect(suggestPalettes({ accent: false })?.palettes.length).toBe(4)
+  expect(suggestPalettes({ accent: false })?.palettes.length).toBe(5)
   expect(suggestPalettes({ accent: "#7c3a" })).toBeNull()
   expect(suggestPalettes({ accent: "purple" })).toBeNull()
   expect(suggestPalettes(["#7c3aed"])).toBeNull()

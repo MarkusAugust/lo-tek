@@ -127,7 +127,7 @@ function read(families: string[]) {
       ...document.querySelectorAll<HTMLElement>(
         // The rows of the report: the suggestions under the accent have a
         // place for each family too, and are another matter.
-        "[data-family]:not(details[data-palettes] *)",
+        "[data-family]:not([data-palettes] *)",
       ),
     ]
       .filter((row) => row.getClientRects().length > 0)
@@ -138,7 +138,7 @@ function read(families: string[]) {
         ...document.querySelectorAll<HTMLElement>(
           // The rows of the report: the suggestions under the accent have a
           // place for each family too, and are another matter.
-          "[data-family]:not(details[data-palettes] *)",
+          "[data-family]:not([data-palettes] *)",
         ),
       ]
         .filter((row) => row.getClientRects().length > 0)
@@ -190,7 +190,7 @@ function read(families: string[]) {
             ]
               // The suggestions stand in the accent's group and have
               // buttons of their own, held by `check-theme-palettes.ts`.
-              .filter((c) => c.closest("details[data-palettes]") === null)
+              .filter((c) => c.closest("[data-palettes]") === null)
               .map((c) =>
                 // A button is told by what it is called, and of that the
                 // first word: the rest names the family.

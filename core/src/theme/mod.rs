@@ -1591,7 +1591,7 @@ mod recipe_tests {
 
     /// The families a palette has a colour for, in the order of its rows.
     const SUGGESTED: [&str; 5] = ["visited", "brand1", "brand2", "brand3", "neutral"];
-    const PALETTES: [&str; 4] = ["Near", "Opposite", "Three ways", "One hue"];
+    const PALETTES: [&str; 5] = ["Near", "Opposite", "Three ways", "One hue", "Quiet"];
 
     /// The recipe with these keys, each a text.
     fn recipe_of(entries: &[(&str, &str)]) -> Json {
@@ -1741,18 +1741,18 @@ mod recipe_tests {
     }
 
     #[test]
-    fn suggest_palettes_has_four_palettes_of_the_same_rows_whatever_else_the_recipe_has() {
+    fn suggest_palettes_has_five_palettes_of_the_same_rows_whatever_else_the_recipe_has() {
         // Over the expected results and six thousand recipes with something
         // odd at every place:
         // - there is an answer exactly when the recipe is an object and
         //   the core does not refuse its accent;
         // - it is built on the accent the recipe gives, or LO-TEK's own;
-        // - the four palettes are named, in order, and say what they are;
+        // - the five palettes are named, in order, and say what they are;
         // - each has a row for the five families, in order, less those the
         //   core refuses, and never one for danger, warning or success;
         // - a family the recipe gives is kept, as the colour `recipe_brands`
         //   says was given, and one it does not give is suggested;
-        // - visited and neutral are the same in all four;
+        // - visited and neutral are the same in all five;
         // - every colour is written as `#rrggbb`.
         let mut recipes: Vec<Json> = ["recipes.json", "recipe-checks.json", "palettes.json"]
             .iter()
@@ -2010,11 +2010,13 @@ mod recipe_tests {
 
     /// How each palette turns from the accent, and how much of its chroma
     /// each brand has.
-    const TURNS: [[f64; 3]; 4] = [
+    const TURNS: [[f64; 3]; 5] = [
         [30.0, -30.0, 60.0],
         [180.0, 150.0, 210.0],
         [90.0, 180.0, 270.0],
         [0.0, 0.0, 0.0],
+        // Quiet has Near's hues, with less than half the chroma.
+        [30.0, -30.0, 60.0],
     ];
 
     #[test]
@@ -2087,11 +2089,12 @@ mod recipe_tests {
         // could not stand where the first one says: "the hue of the accent"
         // is untrue of a red accent, where all three are moved clear of
         // danger.
-        const SAYS: [&str; 4] = [
+        const SAYS: [&str; 5] = [
             "The hues beside the accent on the colour wheel.",
             "The hues across the colour wheel from the accent.",
             "Three hues that share the colour wheel evenly with the accent.",
             "The hue of the accent, in three saturations.",
+            "The hues beside the accent, with less than half its saturation.",
         ];
         const MOVED: &str =
             "Some hues are moved clear of danger, warning and success, or of each other.";
@@ -2202,7 +2205,7 @@ mod recipe_tests {
         // The chroma has more room: where a screen can only just show the
         // colour, the fill of a fill is not the fill, and the colour that is
         // its own fill lies a little off.
-        const SHARES: [[f64; 3]; 4] = [[1.0; 3], [1.0; 3], [1.0; 3], [0.75, 0.5, 0.25]];
+        const SHARES: [[f64; 3]; 5] = [[1.0; 3], [1.0; 3], [1.0; 3], [0.75, 0.5, 0.25], [0.45; 3]];
         let statuses = ["danger", "warning", "success"];
         let mut recipes: Vec<Vec<(String, String)>> = accents()
             .into_iter()
@@ -2329,7 +2332,7 @@ mod recipe_tests {
     fn a_theme_of_an_accent_and_a_palette_keeps_every_promise() {
         // What the suggestions are for: someone with only an accent takes a
         // palette and has a theme. Built from the accent and the rows of
-        // any of the four, it breaks no promise.
+        // any of the five, it breaks no promise.
         let mut recipes: Vec<Vec<(String, String)>> = accents()
             .into_iter()
             .chain(["#808080", "#000000", "#ffffff"].map(str::to_string))

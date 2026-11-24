@@ -513,7 +513,7 @@ if (editingCases < 20)
 /*
  * The palettes a recipe is suggested, against `core/theme/palettes.json`,
  * which Kotlin is held to as well, to the letter: what they are built on,
- * the four names and what each says it is, and every row with its colour.
+ * the five names and what each says it is, and every row with its colour.
  * The arithmetic behind a suggested colour is held in the core's own tests;
  * here it is that the answer is the same through the port.
  */
