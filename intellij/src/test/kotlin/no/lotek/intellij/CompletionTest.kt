@@ -1,5 +1,6 @@
 package no.lotek.intellij
 
+import com.intellij.codeInsight.lookup.LookupElementPresentation
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 
 /**
@@ -187,14 +188,22 @@ class CompletionTest : BasePlatformTestCase() {
         assertTrue("lt-button should be included, got $out", out.contains("lt-button"))
     }
 
-    fun `test the catalogue has the classes from the package`() {
-        assertTrue("the catalogue should not be empty", Catalogue.classes.isNotEmpty())
-        assertNotNull("lt-button should exist", Catalogue.find("lt-button"))
-        assertNull("an invented class should not exist", Catalogue.find("lt-modal"))
-    }
+    fun `test every class of the package is suggested with the title of its component, and no other`() {
+        myFixture.configureByText("test.html", """<div class="lt-<caret>">""")
+        myFixture.completeBasic()
+        val suggested = myFixture.lookupElements.orEmpty().filter { it.lookupString.startsWith("lt-") }
+        // The classes of the manifest the plugin is built with, read from the file.
+        val inManifest =
+            Regex("\"(lt-[a-z0-9_-]+)\": \\{\\s*\"component\"").findAll(java.io.File(System.getProperty("manifest")).readText()).map { it.groupValues[1] }.toSet()
+        assertTrue("the manifest should have classes, got ${inManifest.size}", inManifest.size > 50)
+        assertEquals(inManifest, suggested.map { it.lookupString }.toSet())
+        assertFalse("an invented class should not be suggested", suggested.any { it.lookupString == "lt-modal" })
 
-    fun `test every class has a component and a link`() {
-        val without = Catalogue.classes.filter { it.component.isEmpty() || it.link.isEmpty() }
-        assertTrue("all should have a component name and a link, missing: $without", without.isEmpty())
+        val untitled =
+            suggested.filter { element ->
+                val shown = LookupElementPresentation.renderElement(element)
+                listOfNotNull(shown.typeText, shown.tailText).all { it.isBlank() }
+            }
+        assertTrue("every class should have the title of its component beside it, missing: ${untitled.map { it.lookupString }}", untitled.isEmpty())
     }
 }

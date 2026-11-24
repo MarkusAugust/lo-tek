@@ -15,9 +15,10 @@
         files without this plugin. It is not read for injected fragments, though:
         markup that lives in a Kotlin or TypeScript string marked with
         <code>@Language("HTML")</code> or <code>// language=HTML</code>. This
-        plugin closes that gap, reading the classes from the same manifest the
-        diagnostics check against, the project's own when it has one, so the
-        completion and the diagnostics never disagree.
+        plugin closes that gap: it completes the classes and the values of
+        their attributes, and shows Quick Documentation on a class, from the
+        same manifest the diagnostics check against, the project's own when it
+        has one, so the completion and the diagnostics never disagree.
         <br><br>
         Diagnostics come from LO-TEK's own checker, compiled from Rust to
         WebAssembly and run inside the IDE with Chicory, a pure Java runtime:
@@ -81,6 +82,13 @@
             language="HTML"
             order="first"
             implementationClass="no.lotek.intellij.LotekCompletionContributor" />
+
+        <!--
+            Quick Documentation on a class, with the text the core writes for
+            hover. On the HTML language for the same reason.
+        -->
+        <platform.backend.documentation.targetProvider
+            implementation="no.lotek.intellij.LotekDocumentationProvider" />
 
         <!--
             The diagnostics from the Rust core, run by Chicory in the IDE's JVM.

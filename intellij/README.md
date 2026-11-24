@@ -104,7 +104,7 @@ core cannot read the manifest, the manifest in the Kotlin package applies, and t
 latter is written to the IDE's log. See `ProjectManifest.kt`. The cases in
 `cli/manifest-lookup.json` are run by both the plugin and the language server. When the manifest appears, changes or disappears,
 the open files are checked again (`ManifestListener.kt`).
-Completion reads the classes from the same manifest, see [The data](#the-data).
+Completion and Quick Documentation ask the core with the same manifest, see [The data](#the-data).
 
 The annotator runs the core on every file, also one without a single `lt-` class:
 the rule `without-name` applies to every button and link in plain HTML, and `lotek check`
@@ -154,15 +154,18 @@ answers "No suggestions" even with the plugin enabled. `⌥↩` inside the strin
 
 ## The data
 
-The classes are read from the manifest the file is checked against: the project's when
+The plugin holds no vocabulary of its own. What to suggest at the caret, and what to
+say about a class, are the core's answers to `complete` and `hover`
+(`Lotek.complete` and `Lotek.hover` in the Kotlin package), the ones the language
+server gives other editors. See `Editing.kt`. The plugin shows the classes and the
+attribute values and leaves the names of elements and attributes to the IDE, which has
+them from `web-types.json`.
+
+The core is given the manifest the file is checked against: the project's when
 `ProjectManifest` finds one, otherwise the manifest in the Kotlin package,
-`no/lotek/manifest.json` in the jar. It is the same manifest the core
-checks against, so the plugin cannot suggest a class the diagnostics reject, and
-it suggests the classes in components the project has taken over. Previously
-completion always read the package's manifest, while the check read the project's, and with
-an older package installed a class was suggested and then underlined right
-afterwards. The manifest is read with `Manifest.parse` in the Kotlin package. See
-`Catalogue.kt`.
+`no/lotek/manifest.json` in the jar. The plugin therefore cannot suggest a class the
+diagnostics reject, and it suggests the classes in components the project has taken
+over.
 
 ## Building and testing
 

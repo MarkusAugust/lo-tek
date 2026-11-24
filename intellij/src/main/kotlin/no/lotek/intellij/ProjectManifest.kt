@@ -8,7 +8,6 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiFile
-import no.lotek.Manifest
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -47,23 +46,8 @@ internal object ProjectManifest {
 
     private val log = Logger.getInstance(ProjectManifest::class.java)
 
-    /** The text of a manifest, which version of the file it was read from, and the classes in it. */
-    private class Read(val stamp: Long, val text: String) {
-        /**
-         * The classes in the manifest, for completion, read the first time it
-         * asks and for as long as this version of the file applies. `null`
-         * when the manifest cannot be read: then the package's applies, as
-         * for the check, and it is reported in the log.
-         */
-        val classes: List<CatalogueClass>? by lazy {
-            try {
-                Catalogue.from(Manifest.parse(text))
-            } catch (unreadable: IllegalArgumentException) {
-                ProjectManifest.rejectedBy(text, unreadable.message.orEmpty())
-                null
-            }
-        }
-    }
+    /** The text of a manifest, and which version of the file it was read from. */
+    private class Read(val stamp: Long, val text: String)
 
     private val read = ConcurrentHashMap<String, Read>()
 
@@ -72,9 +56,6 @@ internal object ProjectManifest {
 
     /** The text of the manifest for [file], or `null` for the manifest in the Kotlin package. */
     fun forFile(file: PsiFile): String? = readFor(file)?.text
-
-    /** The classes in the manifest for [file], or `null` for the classes in the Kotlin package. */
-    fun classesFor(file: PsiFile): List<CatalogueClass>? = readFor(file)?.classes
 
     private fun readFor(file: PsiFile): Read? {
         val project = file.project
