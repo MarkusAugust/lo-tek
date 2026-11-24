@@ -14,10 +14,11 @@
  * browser's storage and out again. Nothing
  * else here is script.
  *
- * The fields are not written by hand. `theme.schema.json` says which keys a
- * recipe has, and the page has one field for each, so a key the generator
- * gets is a field here the next time the site is built. The schema's own
- * tests hold it to the keys the core knows.
+ * The fields are not written by hand. `theme-keys.ts` in the package
+ * describes every key of a recipe, and the page has one field for each, so
+ * a key the generator gets is a field here the next time the site is built.
+ * The schema the editors read is written from the same file, and its tests
+ * hold it to the keys the core knows.
  *
  * Everything happens in the browser. The recipe is never sent anywhere, and
  * nothing here is part of what a consumer ships: a theme is a CSS file.
@@ -29,7 +30,12 @@ import "@lo-tek/interfaces/lotek.css"
 import "../styles/profile.css"
 import pkg from "../../../interfaces/package.json" with { type: "json" }
 import contract from "../../../interfaces/src/tokens/color-contract.json"
-import schema from "../../../interfaces/src/tokens/theme.schema.json"
+import {
+  type Block,
+  isBlock,
+  type Leaf,
+  THEME_KEYS,
+} from "../../../interfaces/src/tokens/theme-keys"
 import FontPreload from "../components/FontPreload.astro"
 import Top from "../components/Top.astro"
 import { metaAttributes, SHARE_IMAGE } from "../share-image.mjs"
@@ -38,88 +44,80 @@ const title = "Theme builder | LO-TEK Interfaces"
 const description =
   "Set your brand colours, font and corners, and see LO-TEK's components with the theme the generator builds from them, in light and dark."
 
-type Property = {
-  description?: string
-  properties?: Record<string, Property>
-}
-
-/** The first sentence of a description: what the key is for. */
-const first = (text = "") => text.split(/(?<=\.)\s/)[0]
-
-const top = schema.properties as Record<string, Property>
-/** The colour families: every key at the top that is not a block or `$schema`. */
-const families = Object.entries(top).filter(
-  ([name, property]) => name !== "$schema" && !property.properties,
+/** The colour families: every key at the top that takes a value. */
+const families = Object.entries(THEME_KEYS).filter(
+  (entry): entry is [string, Leaf] => !isBlock(entry[1]),
 )
 
 /**
  * A slider beside a field whose value is a number: where it starts and
- * ends, and where it rests, which is the value LO-TEK has when the recipe
- * leaves the key out. `unit` is what is written after the number.
+ * ends, and where it rests. `unit` is what is written after the number,
+ * and `text` what the field holds at rest, which is nothing where LO-TEK
+ * has no one value for the key.
  */
 type Range = {
   min: number
   max: number
   step: number
-  rest: number
   unit: string
-  /**
-   * What the field holds at rest: LO-TEK's value as text, or nothing where
-   * LO-TEK has no one value, and then `none` says what holds instead.
-   */
+  rest: number
   text: string
-  none?: string
-}
-
-const WEIGHT = { min: 100, max: 900, step: 100, unit: "" }
-/** A corner at rest is `--lt-spacing-1`, as `tokens.css` writes it. */
-const CORNER = {
-  min: 0,
-  max: 32,
-  step: 1,
-  unit: "px",
-  rest: 4,
-  text: "0.25rem",
 }
 
 /**
- * The keys of `shape`. Their resting values are the fallbacks in the
- * component CSS: `--lt-spacing-1` for a corner, `1px` for the border and the
- * medium weight for the button text. Most surfaces have that corner; the
- * card and the dialog have twice it.
+ * A slider as the page has it: how far it goes, in which unit it writes,
+ * and, for a key LO-TEK has no one value for, where it stands until it is
+ * moved. That is the page's own: a slider is a way to set a value, not a
+ * rule about it.
  */
-const SHAPE: Record<string, Range> = {
-  "shape.buttonRadius": CORNER,
-  "shape.fieldRadius": CORNER,
-  "shape.surfaceRadius": {
-    ...CORNER,
-    text: "",
-    none: "0.25rem, and 0.5rem on card and dialog",
-  },
-  "shape.buttonBorderWidth": {
-    min: 0,
-    max: 4,
-    step: 1,
-    rest: 1,
-    unit: "px",
-    text: "1px",
-  },
-  "shape.buttonFontWeight": {
-    ...WEIGHT,
-    rest: 500,
-    text: "",
-    none: "as weights medium",
-  },
+type Slider = Pick<Range, "min" | "max" | "step" | "unit"> & { stands?: number }
+
+const WEIGHT: Slider = { min: 100, max: 900, step: 100, unit: "" }
+const CORNER: Slider = { min: 0, max: 32, step: 1, unit: "px" }
+const SLIDERS: [RegExp, Slider][] = [
+  [/^typography\.weights\./, WEIGHT],
+  [/^typography\.lineHeights\./, { min: 1, max: 2, step: 0.05, unit: "" }],
+  [/^shape\.surfaceRadius$/, { ...CORNER, stands: 4 }],
+  [/^shape\.\w+Radius$/, CORNER],
+  [/^shape\.buttonBorderWidth$/, { min: 0, max: 4, step: 1, unit: "px" }],
+  [/^shape\.buttonFontWeight$/, { ...WEIGHT, stands: 500 }],
+]
+
+/**
+ * A value of the schema as the number a slider shows: a number as it is, a
+ * length in pixels. Anything else, a keyword or another unit, cannot stand
+ * on a slider, and the build says so rather than drawing one at nothing.
+ */
+const shown = (path: string, value: string | number) => {
+  if (typeof value === "number") return value
+  const length = /^(\d*\.?\d+)(px|rem)?$/.exec(value.trim())
+  if (!length)
+    throw new Error(
+      `The default of ${path} in theme-keys.ts is ${JSON.stringify(value)}, which a slider cannot show. Give the key no slider, or teach the page the unit.`,
+    )
+  return Number(length[1]) * (length[2] === "rem" ? 16 : 1)
 }
 
-/** The weights and line heights say in the schema what they are if left out. */
-const rangeOf = (path: string, help: string): Range | undefined => {
-  const said = help.match(/([\d.]+) if left out/)
-  if (!said) return SHAPE[path]
-  const rest = Number(said[1])
-  return rest >= 100
-    ? { ...WEIGHT, rest, text: said[1] }
-    : { min: 1, max: 2, step: 0.05, rest, unit: "", text: said[1] }
+/**
+ * Where a key rests is said where the keys are described, and the schema
+ * the editors read says the same: `default` is the value LO-TEK has when
+ * the key is left out. A key without one has no one value, and its slider
+ * stands where the page has put it.
+ */
+const rangeOf = (path: string, key: Leaf): Range | undefined => {
+  const slider = SLIDERS.find(([at]) => at.test(path))?.[1]
+  if (!slider) return undefined
+  const { stands, ...range } = slider
+  const rest = key.default === undefined ? stands : shown(path, key.default)
+  if (rest === undefined)
+    throw new Error(
+      `${path} has a slider, and theme-keys.ts gives it no default. Say in SLIDERS where the slider stands.`,
+    )
+  return {
+    ...range,
+    rest,
+    text: key.default === undefined ? "" : String(key.default),
+  }
 }
 
 /**
@@ -147,50 +145,59 @@ const moves = (path: string, { rest, unit, text }: Range) =>
     ? `$fields.${path} = el.value + '${unit}'`
     : `$fields.${path} = Number(el.value) === ${rest} ? '${text}' : el.value + '${unit}'`
 
-type Field = { path: string; label: string; help: string; range?: Range }
+/**
+ * A field of typography or shape. `help` is what the key is for, and
+ * `leftOut` what holds while the field is empty, for a key that has no one
+ * value to rest at.
+ */
+type Field = {
+  path: string
+  label: string
+  help: string
+  leftOut?: string
+  range?: Range
+}
 
-/** Every leaf below a block, with its path: `typography.weights.bold`. */
-const leaves = (path: string, property: Property): Field[] =>
-  Object.entries(property.properties ?? {}).flatMap(([name, child]) =>
-    child.properties
-      ? leaves(`${path}.${name}`, child)
+/** Every field below a block, with its path: `typography.weights.bold`. */
+const fieldsOf = (path: string, block: Block): Field[] =>
+  Object.entries(block.keys).flatMap(([name, key]) =>
+    isBlock(key)
+      ? fieldsOf(`${path}.${name}`, key)
       : [
           {
             path: `${path}.${name}`,
             label: `${path}.${name}`.split(".").slice(1).join(" "),
-            help: child.description ?? "",
-            range: rangeOf(`${path}.${name}`, child.description ?? ""),
+            help: key.purpose,
+            leftOut: key.default === undefined ? key.leftOut : undefined,
+            range: rangeOf(`${path}.${name}`, key),
           },
         ],
   )
-const typography = leaves("typography", top.typography)
-const shape = leaves("shape", top.shape)
-
-/** LO-TEK's value at every leaf that has one, in the shape of the recipe. */
-const resting = (path: string, property: Property): Record<string, unknown> =>
-  Object.fromEntries(
-    Object.entries(property.properties ?? {}).map(([name, child]) => [
-      name,
-      child.properties
-        ? resting(`${path}.${name}`, child)
-        : (rangeOf(`${path}.${name}`, child.description ?? "")?.text ?? ""),
-    ]),
-  )
+const typography = fieldsOf("typography", THEME_KEYS.typography as Block)
+const shape = fieldsOf("shape", THEME_KEYS.shape as Block)
 
 /**
- * What a field says below it. That a key has a value when it is left out is
- * for the editor, where the key is not there: here the value is in the field.
+ * A text at every key of a block, in the shape of the recipe: what the key
+ * rests at, LO-TEK's own value where it has one, or nothing at all.
  */
-const below = (help: string) => help.replace(/\s*[\d.]+ if left out\./, "")
-
-/** An empty value at every leaf, in the shape of the recipe. */
-const empty = (property: Property): Record<string, unknown> =>
+const shaped = (
+  block: Block,
+  at: "rest" | "nothing",
+): Record<string, unknown> =>
   Object.fromEntries(
-    Object.entries(property.properties ?? {}).map(([name, child]) => [
+    Object.entries(block.keys).map(([name, key]) => [
       name,
-      child.properties ? empty(child) : "",
+      isBlock(key)
+        ? shaped(key, at)
+        : at === "rest" && key.default !== undefined
+          ? String(key.default)
+          : "",
     ]),
   )
+const blocks = (at: "rest" | "nothing") => ({
+  typography: shaped(THEME_KEYS.typography as Block, at),
+  shape: shaped(THEME_KEYS.shape as Block, at),
+})
 
 /**
  * The reasons a row of the report can hold: the core's own sentences about
@@ -225,8 +232,7 @@ const signals = {
   own: Object.fromEntries(families.map(([name]) => [name, false])),
   fields: {
     ...Object.fromEntries(families.map(([name]) => [name, ""])),
-    typography: resting("typography", top.typography),
-    shape: resting("shape", top.shape),
+    ...blocks("rest"),
   },
   recipe: "{}",
   built: {
@@ -235,8 +241,7 @@ const signals = {
     error: "",
     wrong: {
       ...Object.fromEntries(families.map(([name]) => [name, ""])),
-      typography: empty(top.typography),
-      shape: empty(top.shape),
+      ...blocks("nothing"),
     },
     report: Object.fromEntries(
       families.map(([name]) => [
@@ -355,7 +360,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 							and the dark.
 						</p>
 						{
-							families.map(([name, property]) => (
+							families.map(([name, key]) => (
 								<div class="builder__family" role="group" aria-labelledby={`own-${name}-label`}>
 									<div class="lt-switch-row">
 										<input
@@ -429,7 +434,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 										data-text={`$built.wrong.${name}`}
 									/>
 									<p class="lt-help-text" id={`${id(name)}-help`}>
-										{first(property.description)}
+										{key.purpose}
 									</p>
 									<!-- What became of the colour, shown when the recipe gives
 									     the family. The row is in the markup and the answer
@@ -487,7 +492,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						].map(({ legend, fields }) => (
 							<fieldset class="lt-fieldset builder__group">
 								<legend class="lt-legend">{legend}</legend>
-								{fields.map(({ path, label, help, range }) => (
+								{fields.map(({ path, label, help, leftOut, range }) => (
 									<div class="builder__field">
 										<div class="builder__label">
 											<label class="lt-label" for={id(path)}>
@@ -530,7 +535,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											id={id(path)}
 											name={path}
 											aria-describedby={`${id(path)}-help ${id(path)}-error`}
-											placeholder={range?.none}
 											autocomplete="off"
 											spellcheck="false"
 											data-bind={`fields.${path}`}
@@ -545,7 +549,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											data-text={`$built.wrong.${path}`}
 										/>
 										<p class="lt-help-text" id={`${id(path)}-help`}>
-											{below(help)}
+											{help}
+											{leftOut && ` ${leftOut}`}
 										</p>
 									</div>
 								))}

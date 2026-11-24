@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lo-tek.sobernetics.no/theme.schema.json",
   "title": "A LO-TEK theme recipe",
-  "description": "What `lotek theme` builds a theme from: a brand colour per family, and typography and shape. Everything is optional, and a family that is left out keeps LO-TEK's own hue. Written by hand. The core holds the keys, and its tests hold this file to them.",
+  "description": "What `lotek theme` builds a theme from: a brand colour per family, and typography and shape. Everything is optional, and a family that is left out keeps LO-TEK's own hue. Written from src/tokens/theme-keys.ts by scripts/generate-theme-schema.ts. The core holds the keys, and its tests hold this file to them.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -11,47 +11,47 @@
       "type": "string"
     },
     "accent": {
-      "description": "Links, buttons and focus indication. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Links, buttons and focus indication. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "visited": {
-      "description": "Visited links. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Visited links. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "brand1": {
-      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "brand2": {
-      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "brand3": {
-      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Surfaces, sections and categories. It means nothing in itself. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "neutral": {
-      "description": "The page, body text and borders. Almost without hue. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "The page, body text and borders. Almost without hue. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "danger": {
-      "description": "Errors, deletion and rejection. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Errors, deletion and rejection. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "warning": {
-      "description": "Something that needs attention. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Something that needs attention. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
     "success": {
-      "description": "Completed and approved. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's.",
+      "description": "Completed and approved. A hexadecimal colour, as #rgb or #rrggbb. The hue and chroma are yours, the lightness is the role's. Left out, the family keeps LO-TEK's own colour.",
       "type": "string",
       "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
     },
@@ -61,7 +61,7 @@
       "additionalProperties": false,
       "properties": {
         "fontFamily": {
-          "description": "The font stack the whole theme uses, written as in CSS. It is set as a token and as a rule on :root.",
+          "description": "The font stack the whole theme uses, written as in CSS. It is set as a token and as a rule on :root. Left out, LO-TEK has no font of its own and inherits the one of the page it is on.",
           "type": "string"
         },
         "weights": {
@@ -70,20 +70,36 @@
           "additionalProperties": false,
           "properties": {
             "regular": {
-              "description": "The words that mark a field as required or optional, on a label and a fieldset. 400 if left out.",
-              "type": ["string", "number"]
+              "description": "The words that mark a field as required or optional, on a label and a fieldset. Left out, it is 400.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 400
             },
             "medium": {
-              "description": "Buttons and error text. 500 if left out.",
-              "type": ["string", "number"]
+              "description": "Buttons and error text. Left out, it is 500.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 500
             },
             "semibold": {
-              "description": "Labels, titles of cards and dialogs, table headers and tabs. 600 if left out.",
-              "type": ["string", "number"]
+              "description": "Labels, titles of cards and dialogs, table headers and tabs. Left out, it is 600.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 600
             },
             "bold": {
-              "description": "Headings, and the asterisk that marks a required field. 700 if left out.",
-              "type": ["string", "number"]
+              "description": "Headings, and the asterisk that marks a required field. Left out, it is 700.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 700
             }
           }
         },
@@ -93,20 +109,36 @@
           "additionalProperties": false,
           "properties": {
             "default": {
-              "description": "Controls: button, input, table. 1.5 if left out.",
-              "type": ["string", "number"]
+              "description": "Controls: button, input, table. Left out, it is 1.5.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 1.5
             },
             "heading": {
-              "description": "Headings. 1.2 if left out.",
-              "type": ["string", "number"]
+              "description": "Headings. Left out, it is 1.2.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 1.2
             },
             "article": {
-              "description": "Body text and lists. 1.6 if left out.",
-              "type": ["string", "number"]
+              "description": "Body text and lists. Left out, it is 1.6.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 1.6
             },
             "compact": {
-              "description": "Small surfaces: help text, tooltip, card title. 1.4 if left out.",
-              "type": ["string", "number"]
+              "description": "Small surfaces: help text, tooltip, card title. Left out, it is 1.4.",
+              "type": [
+                "string",
+                "number"
+              ],
+              "default": 1.4
             }
           }
         }
@@ -118,7 +150,7 @@
       "additionalProperties": false,
       "properties": {
         "buttonRadius": {
-          "description": "The corners of the button, the pagination and the skip link, as a CSS length, or the number 0.",
+          "description": "The corners of the button, the pagination and the skip link, as a CSS length, or the number 0. Left out, it is 0.25rem.",
           "anyOf": [
             {
               "type": "string"
@@ -127,10 +159,11 @@
               "type": "number",
               "const": 0
             }
-          ]
+          ],
+          "default": "0.25rem"
         },
         "fieldRadius": {
-          "description": "The corners of the input, the textarea and the select, as a CSS length, or the number 0.",
+          "description": "The corners of the input, the textarea and the select, as a CSS length, or the number 0. Left out, it is 0.25rem.",
           "anyOf": [
             {
               "type": "string"
@@ -139,10 +172,11 @@
               "type": "number",
               "const": 0
             }
-          ]
+          ],
+          "default": "0.25rem"
         },
         "surfaceRadius": {
-          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast, tooltip and the panel of a term, as a CSS length, or the number 0.",
+          "description": "The corners of the card, dialog, popover, alert, accordion, error summary, file upload, session timeout, suggestion list, toast, tooltip and the panel of a term, as a CSS length, or the number 0. Left out, each surface keeps its own corner: 0.25rem, and 0.5rem on the card and the dialog.",
           "anyOf": [
             {
               "type": "string"
@@ -154,7 +188,7 @@
           ]
         },
         "buttonBorderWidth": {
-          "description": "The border width of the button, as a CSS length, or the number 0.",
+          "description": "The border width of the button, as a CSS length, or the number 0. Left out, it is 1px.",
           "anyOf": [
             {
               "type": "string"
@@ -163,11 +197,15 @@
               "type": "number",
               "const": 0
             }
-          ]
+          ],
+          "default": "1px"
         },
         "buttonFontWeight": {
-          "description": "The weight of the button text, as a number or a keyword.",
-          "type": ["string", "number"]
+          "description": "The weight of the button text, as a number or a keyword. Left out, it follows weights.medium.",
+          "type": [
+            "string",
+            "number"
+          ]
         }
       }
     }

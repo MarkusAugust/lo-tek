@@ -18,7 +18,7 @@
  * Requires `documentation/dist` to be built.
  */
 
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
 import { framesHold as holds, nested } from "./theme-page"
@@ -26,7 +26,9 @@ import {
   BLOCK_KEYS,
   BRANDS,
   FAMILIES,
+  HELP,
   KEYS,
+  PAGE_CHOOSES,
   RESTING,
   SLIDERS,
   unread,
@@ -45,6 +47,33 @@ if (unread.length > 0) {
     `✗ The check cannot read where LO-TEK rests:\n\n${unread.map((p) => `  ${p}`).join("\n")}\n`,
   )
   process.exit(1)
+}
+
+/*
+ * The page reads where a field rests from the schema's `default`, and not
+ * from the prose of a description or a table of its own: a value LO-TEK has
+ * when a key is left out is stated once, in the schema. The range of a
+ * slider is the page's own business.
+ */
+{
+  const source = readFileSync(
+    `${ROOT}documentation/src/pages/theme-builder.astro`,
+    "utf8",
+  )
+  const written = ["if left out", '"0.25rem"', '"1px"'].filter((text) =>
+    source.includes(text),
+  )
+  // What a key says is read from the source the schema is written from.
+  // The schema's own prose is for an editor, and the page may link to the
+  // file but does not read it for its fields.
+  if (/import\b[^;\n]*theme\.schema\.json/.test(source))
+    written.push("an import of theme.schema.json")
+  if (written.length > 0) {
+    console.error(
+      `✗ theme-builder.astro writes ${written.join(", ")} itself. Where a field rests is the schema's default for its key.`,
+    )
+    process.exit(1)
+  }
 }
 
 const { buildTheme } = (await import(
@@ -95,6 +124,9 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
     ),
     placeholders: Object.fromEntries(
       families.map((f) => [f, control(f)?.placeholder ?? ""]),
+    ),
+    blockPlaceholders: Object.fromEntries(
+      keys.map((key) => [key, control(key)?.placeholder ?? ""]),
     ),
     pickers: Object.fromEntries(
       families.map((f) => {
@@ -318,6 +350,18 @@ let points = 0
 
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
+  // Where the two sliders without a default stand is the page's choice:
+  // read off the page, held to the slider's range, and from here on what
+  // "at rest" means for them.
+  const arrival = await now()
+  for (const key of PAGE_CHOOSES) {
+    const stands = arrival.sliders[key]?.value ?? Number.NaN
+    expect(
+      stands >= SLIDERS[key].min && stands <= SLIDERS[key].max,
+      `the slider of ${key} stands at ${stands} on arrival, outside ${SLIDERS[key].min} to ${SLIDERS[key].max}`,
+    )
+    SLIDERS[key].rest = Number.isNaN(stands) ? SLIDERS[key].min : stands
+  }
   const first = await until(rested)
 
   /*
@@ -353,12 +397,21 @@ const code = await s.run(async () => {
       first.sliders[key] === null,
       `${key} has a slider, and is not a number`,
     )
-  // The value is in the field, so the help does not say it a second time.
-  for (const key of BLOCK_KEYS)
+  // The help under a field is what the source of the schema says the key
+  // is for, exactly, and for a key of typography or shape without a default
+  // also what holds when it is left out. The page takes no sentence apart.
+  for (const key of KEYS) {
+    const wanted = (HELP[key] ?? "").replace(/\s+/g, " ").trim()
     expect(
-      !/if left out/i.test(first.blocks[key].help),
-      `the help of ${key} still says what it is if left out: "${first.blocks[key].help}"`,
+      wanted !== "" && first.blocks[key].help === wanted,
+      `the help of ${key} is "${first.blocks[key].help}", and the source of the schema has "${wanted}"`,
     )
+    if (key.includes(".") && rest(key) === "")
+      expect(
+        first.blockPlaceholders[key] === "",
+        `${key} rests empty and has the placeholder "${first.blockPlaceholders[key]}": what holds when it is left out is in its description`,
+      )
+  }
   for (const family of FAMILIES) {
     expect(
       first.pickers[family]?.disabled === false,
