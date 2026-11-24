@@ -1154,10 +1154,12 @@ mod recipe_tests {
     #[test]
     fn the_schema_of_the_recipe_has_the_keys_the_core_knows() {
         // The schema is what an editor completes and checks the recipe file
-        // with, and it is written by hand. A key the core knows and the
-        // schema lacks is underlined in a recipe that works, and one the
-        // schema has and the core lacks is suggested and then refused. Both
-        // ways, in every place the core reads keys.
+        // with. It is written by `interfaces/scripts/generate-theme-schema.ts`
+        // from `interfaces/src/tokens/theme-keys.ts`, which is where a key
+        // the core gains is added. A key the core knows and the schema lacks
+        // is underlined in a recipe that works, and one the schema has and
+        // the core lacks is suggested and then refused. Both ways, in every
+        // place the core reads keys.
         let schema = parse(&crate::package_file("src/tokens/theme.schema.json")).unwrap();
         let families = contract().families.clone();
         let top: Vec<&str> = families.iter().map(String::as_str).chain(BLOCKS).collect();
@@ -1184,7 +1186,10 @@ mod recipe_tests {
                 .collect();
             described.sort_unstable();
             known.sort_unstable();
-            assert_eq!(described, known, "{place:?}");
+            assert_eq!(
+                described, known,
+                "{place:?}: the schema and the core do not have the same keys. The schema's are written from interfaces/src/tokens/theme-keys.ts; run bun run generate in interfaces/ after changing it"
+            );
             // Without this the schema lets through the key the core refuses.
             assert!(
                 matches!(object.get("additionalProperties"), Some(Json::Bool(false))),

@@ -54,6 +54,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   generator about what counts as given. `recipeValues` from
   `@lo-tek/interfaces/theme`, `Lotek.recipeValues` in Kotlin, and on `Core`.
 
+- **The schema of a theme recipe says what a key is when it is left out.**
+  Each key with one value in LO-TEK has it as `default`, which an editor
+  writes when the key is completed: the weights, the line heights, the
+  corner of a button and of a field, and the border of the button. Every
+  description ends with what holds when the key is left out, `Left out, it
+  is 700.`, and the three keys without one value say what holds instead.
+  The schema is now generated from one description of the keys, which the
+  theme builder reads too.
+
 ### Changed
 
 - **A colour that is not valid says what a colour is.** The refusal ends

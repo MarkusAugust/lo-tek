@@ -44,6 +44,16 @@ export function themesInFrames(page: Page): Promise<string[][]> {
   )
 }
 
+/** Whether both frames hold this theme right now, or none when it is `null`: one read, no waiting. */
+export async function framesHoldNow(
+  page: Page,
+  css: string | null,
+): Promise<boolean> {
+  return (await themesInFrames(page)).every((frame) =>
+    css === null ? frame.length === 0 : frame.length === 1 && frame[0] === css,
+  )
+}
+
 /** Waits until both frames hold this theme, or none when it is `null`, and says whether they came to. */
 export async function framesHold(
   page: Page,

@@ -17,6 +17,7 @@
       "!interfaces/src/vocabulary/manifest.ts",
       "!interfaces/src/components/events.ts",
       "!interfaces/src/tokens/matrix-cells.ts",
+      "!interfaces/src/tokens/theme.schema.json",
       "!interfaces/web-types.json",
       "!core/parity",
       "!core/templates",

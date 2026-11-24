@@ -30,7 +30,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { framesHold } from "./theme-page"
+import { framesHold, framesHoldNow } from "./theme-page"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -478,8 +478,9 @@ const code = await s.run(async () => {
     !fresh.rows.includes("danger"),
     "a family whose own value is refused has a row",
   )
+  // Read once, now: a theme that was dropped and came back would pass a wait.
   expect(
-    await framesHold(page, whole),
+    await framesHoldNow(page, whole),
     "while a value is refused, the frames do not hold the last theme that built as a whole",
   )
   points += 1

@@ -275,6 +275,169 @@
       }
     ]
   },
+  "written-against-the-order-of-the-answer": {
+    "recipe": {
+      "shape": {
+        "fieldRadius": "2px;",
+        "buttonRadius": "4px;"
+      },
+      "typography": {
+        "lineHeights": {
+          "compact": "1;",
+          "default": "2;"
+        },
+        "weights": {
+          "bold": "7;",
+          "regular": "4;"
+        }
+      },
+      "success": "zz",
+      "danger": "yy",
+      "accent": "xx"
+    },
+    "problems": [
+      {
+        "path": [
+          "accent"
+        ],
+        "kind": "refused",
+        "message": "\"xx\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      },
+      {
+        "path": [
+          "danger"
+        ],
+        "kind": "refused",
+        "message": "\"yy\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      },
+      {
+        "path": [
+          "success"
+        ],
+        "kind": "refused",
+        "message": "\"zz\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "regular"
+        ],
+        "kind": "refused",
+        "message": "The value of weights.regular cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 4;"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "kind": "refused",
+        "message": "The value of weights.bold cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 7;"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "default"
+        ],
+        "kind": "refused",
+        "message": "The value of lineHeights.default cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 2;"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "compact"
+        ],
+        "kind": "refused",
+        "message": "The value of lineHeights.compact cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 1;"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "kind": "refused",
+        "message": "The value of buttonRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 4px;"
+      },
+      {
+        "path": [
+          "shape",
+          "fieldRadius"
+        ],
+        "kind": "refused",
+        "message": "The value of fieldRadius cannot contain \";\", \"{\", \"}\", \"<\", \">\", \"\\\", \"/*\" or control characters. It is written straight into a CSS rule. Got: 2px;"
+      }
+    ],
+    "refusal": "\"xx\" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed.",
+    "values": [
+      {
+        "path": [
+          "accent"
+        ],
+        "text": "xx"
+      },
+      {
+        "path": [
+          "danger"
+        ],
+        "text": "yy"
+      },
+      {
+        "path": [
+          "success"
+        ],
+        "text": "zz"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "regular"
+        ],
+        "text": "4;"
+      },
+      {
+        "path": [
+          "typography",
+          "weights",
+          "bold"
+        ],
+        "text": "7;"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "default"
+        ],
+        "text": "2;"
+      },
+      {
+        "path": [
+          "typography",
+          "lineHeights",
+          "compact"
+        ],
+        "text": "1;"
+      },
+      {
+        "path": [
+          "shape",
+          "buttonRadius"
+        ],
+        "text": "4px;"
+      },
+      {
+        "path": [
+          "shape",
+          "fieldRadius"
+        ],
+        "text": "2px;"
+      }
+    ]
+  },
   "every-place": {
     "recipe": {
       "brand1": "zz",

@@ -26,7 +26,19 @@ import type {
   ThemeShape,
   ThemeTypography,
 } from "../src/tokens/theme.js"
+import { buildTheme, checkRecipe } from "../src/tokens/theme.js"
 import schema from "../src/tokens/theme.schema.json"
+import { leaves as keys } from "../src/tokens/theme-keys.js"
+import { files, ROOT } from "./generate-theme-schema"
+import { outOfDate } from "./on-disk"
+import {
+  FOLLOWS,
+  HAS_OWN_FONT,
+  LEFT_OUT,
+  SURFACE_CORNERS,
+  unread,
+} from "./theme-left-out"
+import structure from "./theme-schema.structure.json"
 
 // Strict, so a keyword the draft does not have stops the compilation
 // rather than being ignored. Compiling also holds the schema to the
@@ -40,7 +52,10 @@ const validate = new Ajv2020({
 const valid = (recipe: unknown) => validate(recipe) as boolean
 
 type Described = {
+  title?: string
   description?: string
+  default?: unknown
+  examples?: unknown[]
   properties?: Record<string, Described>
 }
 
@@ -172,6 +187,216 @@ test("a corner and a border width are text, or the number 0", () => {
         false,
       ])
   }
+})
+
+/*
+ * What a key is when it is left out is a fact about LO-TEK, and the schema
+ * states it twice, for two readers: with `default`, which an editor writes
+ * when it completes the key and the theme builder rests a field at, and in
+ * the description, which is what an editor shows on hover, since it shows
+ * no default. Both are held to what LO-TEK does, read from the tokens and
+ * the component stylesheets in `theme-left-out.ts`, and to each other.
+ */
+/** The keys that take a value, with their part of the schema, by path. */
+const leaves = properties(schema).filter(
+  ([path, part]) => !part.properties && path !== "$schema",
+)
+/** A value of the schema as LO-TEK writes it in a stylesheet. */
+const written = (value: unknown) => String(value)
+/** The recipe with one key in it, nested as the recipe nests it. */
+const only = (path: string, value: unknown) =>
+  path
+    .split(".")
+    .reduceRight<unknown>((inner, part) => ({ [part]: inner }), value)
+
+test("a default is what LO-TEK has when the key is left out, and every such key has one", () => {
+  expect(unread).toEqual([])
+  const defaults = Object.fromEntries(
+    leaves
+      .filter(([, part]) => "default" in part)
+      .map(([path, part]) => [path, written(part.default)]),
+  )
+  expect(defaults).toEqual(LEFT_OUT)
+  // A weight and a line height are numbers, as a recipe file writes them.
+  for (const [path, part] of leaves)
+    if (/^typography\.(weights|lineHeights)\./.test(path))
+      expect([path, typeof part.default]).toEqual([path, "number"])
+})
+
+test("a key with no one value has no default, and nothing an editor would complete it with", () => {
+  const without = leaves
+    .filter(([path, part]) => path.includes(".") && !("default" in part))
+    .map(([path]) => path)
+  expect(without.sort()).toEqual([
+    "shape.buttonFontWeight",
+    "shape.surfaceRadius",
+    "typography.fontFamily",
+  ])
+  // An editor completes a key without a default with its first example,
+  // and a value written into the file is the opposite of leaving it out.
+  // A colour has neither: a family that is left out keeps LO-TEK's own.
+  for (const [path, part] of leaves) {
+    expect([path, "examples" in part]).toEqual([path, false])
+    if (!path.includes("."))
+      expect([path, "default" in part]).toEqual([path, false])
+  }
+})
+
+/*
+ * The schema is not written by hand. An editor shows one text for a key,
+ * its `description`, on hover and in the list of keys it offers, and the
+ * theme builder needs the first half of that text without the second: what
+ * a key is for, without what holds when it is left out. One text cannot
+ * serve both unless somebody cuts it at a full stop. So the two halves are
+ * data in `src/tokens/theme-keys.ts`, the page reads them there, and the
+ * schema is written from them by `generate-theme-schema.ts`.
+ */
+test("the schema on disk is what the generator writes from the source", () => {
+  expect(outOfDate(ROOT, files())).toEqual([])
+  expect(Object.keys(files())).toEqual(["src/tokens/theme.schema.json"])
+  // And it says so, where it used to say it was written by hand.
+  expect(schema.description).not.toMatch(/by hand/i)
+  expect(schema.description).toContain("theme-keys.ts")
+})
+
+test("a key's description is what it is for, and then what holds when it is left out", () => {
+  const source = keys()
+  // The same keys, in the same order.
+  expect(source.map((key) => key.path.join("."))).toEqual(
+    leaves.map(([path]) => path),
+  )
+  for (const key of source) {
+    const path = key.path.join(".")
+    const part = leaves.find(([p]) => p === path)?.[1]
+    expect([
+      path,
+      key.purpose.trim() !== "",
+      /left out/i.test(key.leftOut),
+    ]).toEqual([path, true, true])
+    // The purpose is not about leaving out: the page shows it alone.
+    expect([path, /left out/i.test(key.purpose)]).toEqual([path, false])
+    // How the value is written is said between the two where it is the same
+    // for many keys and too long for under each field: the page shows the
+    // purpose alone, and an editor shows all of it.
+    expect([path, part?.description]).toEqual([
+      path,
+      [key.purpose, key.written, key.leftOut]
+        .filter((sentence) => sentence !== undefined)
+        .join(" "),
+    ])
+    expect([path, /left out/i.test(key.written ?? "")]).toEqual([path, false])
+    expect([path, (key.written ?? "x").trim() !== ""]).toEqual([path, true])
+    expect([path, part?.default]).toEqual([path, key.default])
+    // An editor completes a key with a title-less, example-less entry.
+    expect([path, "title" in (part ?? {}), "examples" in (part ?? {})]).toEqual(
+      [path, false, false],
+    )
+  }
+})
+
+test("generating changed what a key says, and nothing of what a recipe may be", () => {
+  // What the schema validates is what it validated before it was
+  // generated: the keys, the types, the patterns and what is closed. The
+  // expectation is the schema of the release it came from, with everything
+  // that only describes taken out.
+  const strip = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(strip)
+      : value && typeof value === "object"
+        ? Object.fromEntries(
+            Object.entries(value)
+              .filter(
+                ([key]) =>
+                  !["description", "title", "default", "examples"].includes(
+                    key,
+                  ),
+              )
+              .map(([key, inner]) => [key, strip(inner)]),
+          )
+        : value
+  expect(strip(schema)).toEqual(structure)
+})
+
+test("the description states the default, so hover and completion cannot disagree", () => {
+  // The value as a whole: not part of a longer number or word, so 700 is
+  // not stated by 1700 or 700.5, and is by "700." at the end of a sentence.
+  const stated = (text: string, value: string) =>
+    new RegExp(
+      `(?<![0-9a-z.])${value.replace(/[.]/g, "\\.")}(?![0-9a-z])(?!\\.[0-9])`,
+      "i",
+    ).test(text)
+  for (const [path, part] of leaves) {
+    if (!("default" in part)) continue
+    expect([
+      path,
+      part.description,
+      stated(part.description ?? "", written(part.default)),
+    ]).toEqual([path, part.description, true])
+  }
+  // The helper itself: 700 is not stated by 1700 or 700.5, and is by "700.".
+  expect([
+    stated("it is 1700.", "700"),
+    stated("it is 700.5", "700"),
+    stated("Left out, it is 700.", "700"),
+    stated("Left out, it is 1.5.", "1.5"),
+  ]).toEqual([false, false, true, true])
+})
+
+test("where a key has no one value, the description says what LO-TEK does instead", () => {
+  const description = (path: string) =>
+    leaves.find(([p]) => p === path)?.[1].description ?? ""
+  const words = (component: string) => component.replace(/-/g, " ")
+
+  // The surfaces: every corner one of them has, and which surfaces have
+  // another than most. A surface that changes its corner changes this.
+  const corners = Object.entries(SURFACE_CORNERS).sort(
+    ([, a], [, b]) => b.length - a.length,
+  )
+  expect(corners.length).toBeGreaterThan(1)
+  for (const [value, surfaces] of corners) {
+    expect([value, description("shape.surfaceRadius").includes(value)]).toEqual(
+      [value, true],
+    )
+    if (surfaces !== corners[0][1])
+      for (const surface of surfaces)
+        expect([
+          surface,
+          description("shape.surfaceRadius").includes(words(surface)),
+        ]).toEqual([surface, true])
+  }
+  // It does not state one of them as if it were the value of the key.
+  expect(/left out, it is /i.test(description("shape.surfaceRadius"))).toBe(
+    false,
+  )
+
+  // The weight of the button text follows another key, and the font is the
+  // page's: LO-TEK sets none of its own.
+  expect(Object.keys(FOLLOWS)).toEqual(["shape.buttonFontWeight"])
+  expect(description("shape.buttonFontWeight")).toContain(
+    FOLLOWS["shape.buttonFontWeight"],
+  )
+  expect(HAS_OWN_FONT).toBe(false)
+  expect(description("typography.fontFamily")).toMatch(/inherit/i)
+})
+
+test("the core takes every default, alone and together", () => {
+  const all: Record<string, unknown> = {}
+  for (const [path, part] of leaves) {
+    if (!("default" in part)) continue
+    const value = part.default
+    expect([path, checkRecipe(only(path, value))]).toEqual([path, []])
+    expect([path, valid(only(path, value))]).toEqual([path, true])
+    // Together: the recipe of every default.
+    const parts = path.split(".")
+    let at = all
+    for (const part of parts.slice(0, -1)) {
+      at[part] ??= {}
+      at = at[part] as Record<string, unknown>
+    }
+    at[parts[parts.length - 1]] = value
+  }
+  expect(Object.keys(all).sort()).toEqual(["shape", "typography"])
+  expect(buildTheme(all as never).css).toContain("--lt-font-weight-bold: 700;")
 })
 
 /*
