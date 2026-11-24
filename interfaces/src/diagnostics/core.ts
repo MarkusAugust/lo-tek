@@ -166,6 +166,24 @@ export type CoreThemeReport = {
   declarations: number
   /** Promises that were actually checked. */
   promises: number
+  /**
+   * Other `--lt-*` tokens the file sets, without a contrast promise: the
+   * font, the shape and the system colours.
+   */
+  others: number
+  /**
+   * What the check came to. Decide on `kind`, and show `message` as it is:
+   * `kept` when every promise holds, `broken` with a problem, and
+   * `withoutColours` for a theme of only font and shape. A file with no
+   * value in it is `broken`: that nothing was found is one of the problems.
+   *
+   * The message is the one `lotek check-theme` writes for one file, and says
+   * so: "Checked 83 values in 1 block, against 153 promises, in 1 file."
+   */
+  verdict: {
+    kind: "kept" | "broken" | "withoutColours"
+    message: string
+  }
 }
 
 /** What `inspectStyles` found in a stylesheet. */
@@ -201,6 +219,12 @@ export type Core = {
    * with the value as text. Throws as `checkRecipe` does.
    */
   recipeValues(recipe: unknown): RecipeValue[]
+  /**
+   * What became of each colour the core takes in a recipe, whatever else in
+   * it is wrong: the rows `buildTheme` gives as `brands`. Throws as
+   * `checkRecipe` does.
+   */
+  recipeBrands(recipe: unknown): Brand[]
   /** Checks every promise in a theme written as CSS. Throws without a colour contract. */
   inspectTheme(css: string): CoreThemeReport
   /** The classes and attribute values a stylesheet styles, read with the core's CSS reader. */
@@ -224,6 +248,7 @@ type Exports = {
   build_theme_raw(pointer: number, length: number): number
   check_recipe_raw(pointer: number, length: number): number
   recipe_values_raw(pointer: number, length: number): number
+  recipe_brands_raw(pointer: number, length: number): number
   inspect_theme_raw(pointer: number, length: number): number
   inspect_styles_raw(pointer: number, length: number): void
   diagnose_styled_raw(pointer: number, length: number): number
@@ -297,6 +322,8 @@ export function loadCore(source: BufferSource | WebAssembly.Module): Core {
       answer(e.check_recipe_raw(...write(JSON.stringify(recipe)))),
     recipeValues: (recipe) =>
       answer(e.recipe_values_raw(...write(JSON.stringify(recipe)))),
+    recipeBrands: (recipe) =>
+      answer(e.recipe_brands_raw(...write(JSON.stringify(recipe)))),
     inspectTheme: (css) => answer(e.inspect_theme_raw(...write(css))),
     inspectStyles: (css) => {
       e.inspect_styles_raw(...write(css))

@@ -26,22 +26,22 @@
 //! Kotlin. `line` and `column` start at 1, and the column is counted in
 //! UTF-16 units.
 
-pub mod accessibility;
+mod accessibility;
 pub mod complete;
 pub mod diagnose;
 pub mod json;
 pub mod manifest;
-pub mod names;
-pub mod nesting;
-pub mod parts;
-pub mod references;
+mod names;
+mod nesting;
+mod parts;
+mod references;
 pub mod styles;
-pub mod suppress;
+mod suppress;
 pub mod text;
-pub mod texts;
+mod texts;
 pub mod theme;
 pub mod types;
-pub mod wiring;
+mod wiring;
 
 /// A file in the package, for the tests: from `interfaces/` next to this
 /// directory. The build never reads it.
@@ -385,6 +385,20 @@ fn json_brand_fill(fill: &theme::BrandFill) -> String {
     )
 }
 
+/// One row of `brands`: what became of a brand colour.
+fn json_brand(b: &theme::Brand) -> String {
+    let reasons: Vec<String> = b.reasons.iter().map(|r| json_string(r)).collect();
+    format!(
+        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{},\"summary\":{},\"reasons\":[{}]}}",
+        json_string(&b.family),
+        json_string(&b.given),
+        json_brand_fill(&b.light),
+        json_brand_fill(&b.dark),
+        json_string(&b.summary),
+        reasons.join(",")
+    )
+}
+
 /// Builds a theme from the recipe the host has written in, as JSON: the same
 /// fields as `ThemeInput` in TypeScript. Answers 0 with the theme, or 1 with
 /// `{"error": …}`, like `load_manifest_raw`.
@@ -399,22 +413,7 @@ pub unsafe extern "C" fn build_theme_raw(ptr: *mut u8, length: usize) -> u32 {
     let built = json::parse(&read_input(ptr, length)).and_then(|input| theme::build_theme(&input));
     match built {
         Ok(t) => {
-            let brands: Vec<String> = t
-                .brands
-                .iter()
-                .map(|b| {
-                    let reasons: Vec<String> = b.reasons.iter().map(|r| json_string(r)).collect();
-                    format!(
-                        "{{\"family\":{},\"given\":{},\"light\":{},\"dark\":{},\"summary\":{},\"reasons\":[{}]}}",
-                        json_string(&b.family),
-                        json_string(&b.given),
-                        json_brand_fill(&b.light),
-                        json_brand_fill(&b.dark),
-                        json_string(&b.summary),
-                        reasons.join(",")
-                    )
-                })
-                .collect();
+            let brands: Vec<String> = t.brands.iter().map(json_brand).collect();
             respond(format!(
                 "{{\"light\":{},\"dark\":{},\"violations\":{},\"brands\":[{}],\"css\":{}}}",
                 json_object(&t.light),
@@ -495,6 +494,30 @@ pub unsafe extern "C" fn recipe_values_raw(ptr: *mut u8, length: usize) -> u32 {
     }
 }
 
+/// Says what became of each colour the core takes in a recipe, whatever else
+/// in it is wrong: the rows of `brands`. Answers 0 with the list, or 1 when
+/// the input is not JSON or the core has not been given a colour contract.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn recipe_brands_raw(ptr: *mut u8, length: usize) -> u32 {
+    if !theme::contract::loaded() {
+        return refuse(NO_CONTRACT);
+    }
+    match json::parse(&read_input(ptr, length)) {
+        Ok(input) => {
+            let rows: Vec<String> = theme::recipe_brands(&input)
+                .iter()
+                .map(json_brand)
+                .collect();
+            respond(format!("[{}]", rows.join(",")));
+            0
+        }
+        Err(error) => refuse(&error),
+    }
+}
+
 /// Checks a theme the host has written in, as CSS text. Returns 0 with the
 /// report, or 1 when the core has not been given a colour contract.
 ///
@@ -517,12 +540,16 @@ pub unsafe extern "C" fn inspect_theme_raw(ptr: *mut u8, length: usize) -> u32 {
             )
         })
         .collect();
+    let verdict = theme::check::verdict(std::slice::from_ref(&report));
     respond(format!(
-        "{{\"problems\":[{}],\"blocks\":{},\"declarations\":{},\"promises\":{}}}",
+        "{{\"problems\":[{}],\"blocks\":{},\"declarations\":{},\"promises\":{},\"others\":{},\"verdict\":{{\"kind\":{},\"message\":{}}}}}",
         problems.join(","),
         report.blocks,
         report.declarations,
-        report.promises
+        report.promises,
+        report.others,
+        json_string(verdict.kind.as_str()),
+        json_string(&verdict.message)
     ));
     0
 }
@@ -588,7 +615,7 @@ fn styled_input(text: &str) -> Result<(Utf16, styles::Styles, bool), String> {
 }
 
 /// What the style sheets style, as JSON.
-pub fn styles_json(styles: &styles::Styles) -> String {
+pub(crate) fn styles_json(styles: &styles::Styles) -> String {
     let classes: Vec<String> = styles.classes.iter().map(|c| json_string(c)).collect();
     let attributes: Vec<String> = styles
         .attributes

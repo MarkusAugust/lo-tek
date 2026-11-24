@@ -101,7 +101,7 @@ class ThemeParityTest {
     @MethodSource("recipeChecks")
     fun `checkRecipe answers the same as TypeScript`(name: String) {
         val case = RECIPE_CHECKS.getValue(name) as Map<*, *>
-        assertEquals(setOf("recipe", "problems", "refusal", "values"), case.keys, "the expected results have a field the reader does not compare")
+        assertEquals(setOf("recipe", "problems", "refusal", "values", "brands"), case.keys, "the expected results have a field the reader does not compare")
         val recipe = Json.write(case["recipe"])
         assertEquals(
             case["problems"],
@@ -115,6 +115,11 @@ class ThemeParityTest {
             Lotek.recipeValues(recipe).map { mapOf("path" to it.path, "text" to it.text) },
             "$name: what the recipe gives",
         )
+        // What became of each colour the core takes, whatever else is wrong: for a recipe that
+        // builds, the rows of the theme.
+        val rows = Lotek.recipeBrands(recipe)
+        assertEquals(case["brands"], rows.map { it.family }, "$name: the families with a row")
+        if (case["refusal"] == null) assertEquals(Lotek.buildTheme(recipe).brands, rows, "$name: the rows of the theme")
     }
 
     /** What `buildTheme` refuses a recipe with, or nothing when it takes it. */
@@ -145,7 +150,7 @@ class ThemeParityTest {
     @MethodSource("themes")
     fun `inspectTheme answers the same as TypeScript`(name: String) {
         val expected = REPORTS.getValue(name) as Map<*, *>
-        assertEquals(setOf("problems", "blocks", "declarations", "promises"), expected.keys, "the expected results have a field the reader does not compare")
+        assertEquals(setOf("problems", "blocks", "declarations", "promises", "others", "verdict"), expected.keys, "the expected results have a field the reader does not compare")
         val report = Lotek.inspectTheme(File(DIR, "$name.css").readText())
         assertEquals(
             expected["problems"],
@@ -153,9 +158,14 @@ class ThemeParityTest {
             "problems",
         )
         assertEquals(
-            listOf(expected["blocks"], expected["declarations"], expected["promises"]),
-            listOf(report.blocks, report.declarations, report.promises).map { it.toDouble() },
+            listOf(expected["blocks"], expected["declarations"], expected["promises"], expected["others"]),
+            listOf(report.blocks, report.declarations, report.promises, report.others).map { it.toDouble() },
             "the counts",
+        )
+        assertEquals(
+            expected["verdict"],
+            mapOf("kind" to report.verdict.kind, "message" to report.verdict.message),
+            "the verdict",
         )
     }
 

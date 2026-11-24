@@ -8,7 +8,7 @@
 //! lightness of the role, and `Theme::brands` says how far.
 
 pub mod check;
-pub mod color;
+mod color;
 pub mod contract;
 #[cfg(test)]
 mod tests;
@@ -857,8 +857,29 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
         });
     }
 
-    let mut brands = contract.brands.clone();
-    for (name, value) in &given_families {
+    let (light, dark, given) = brands_of(&given_families)?;
+    let css = to_css(&light.tokens, &dark.tokens, typography, shape, &given)?;
+    Ok(Theme {
+        brands: given,
+        violations: light
+            .violations
+            .into_iter()
+            .chain(dark.violations)
+            .collect(),
+        light: light.tokens,
+        dark: dark.tokens,
+        css,
+    })
+}
+
+/// The two matrices of a theme with these colours, and what became of each
+/// colour. A family that is not given has LO-TEK's own.
+///
+/// What a colour becomes is not its own business alone: the neutral family
+/// sets the page and the raised surface every fill is measured against.
+fn brands_of(given_families: &[(&str, String)]) -> Result<(Matrix, Matrix, Vec<Brand>), String> {
+    let mut brands = contract().brands.clone();
+    for (name, value) in given_families {
         if let Some(entry) = brands.iter_mut().find(|(n, _)| n == name) {
             entry.1 = value.clone();
         }
@@ -882,18 +903,35 @@ pub fn build_theme(input: &Json) -> Result<Theme, String> {
             })
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let css = to_css(&light.tokens, &dark.tokens, typography, shape, &given)?;
-    Ok(Theme {
-        brands: given,
-        violations: light
-            .violations
-            .into_iter()
-            .chain(dark.violations)
-            .collect(),
-        light: light.tokens,
-        dark: dark.tokens,
-        css,
-    })
+    Ok((light, dark, given))
+}
+
+/// What became of each colour the core takes, whatever else in the recipe is
+/// wrong: the rows `build_theme` gives as `brands`, for every family whose
+/// own value is a colour. A family whose value is refused has no row, and
+/// the others are as they would be without it.
+///
+/// `build_theme` answers nothing for a recipe with one thing wrong. A form
+/// that shows what each colour becomes wants the rows of the colours that
+/// are right while another field is still being written, and would
+/// otherwise have to take the recipe apart and ask again.
+pub fn recipe_brands(input: &Json) -> Vec<Brand> {
+    let (values, problems) = read(input);
+    let families = &contract().families;
+    let taken: Vec<(&str, String)> = values
+        .iter()
+        .filter(|value| value.path.len() == 1 && families.contains(&value.path[0]))
+        .filter(|value| !problems.iter().any(|problem| problem.path == value.path))
+        .map(|value| (value.path[0].as_str(), value.text.clone()))
+        .collect();
+    // No colour, no rows, and no matrices built to find that out: a form
+    // asks at every change.
+    if taken.is_empty() {
+        return Vec::new();
+    }
+    brands_of(&taken)
+        .map(|(_, _, rows)| rows)
+        .unwrap_or_default()
 }
 
 /// A block of the recipe, when it has at least one key. An empty object and
@@ -1390,6 +1428,161 @@ mod recipe_tests {
                 .map(|value| (value.path, value.text))
                 .collect();
             assert_eq!(given, values, "{name}");
+        }
+    }
+
+    /// A row of `brands`, written out so that two answers can be compared.
+    fn row(brand: &Brand) -> String {
+        let fill = |fill: &BrandFill| {
+            let breaks: Vec<String> = fill
+                .breaks
+                .iter()
+                .map(|v| format!("{} {} {} {}", v.family, v.promise, v.ratio, v.required))
+                .collect();
+            format!("{} {} {:?}", fill.fill, fill.chroma_kept, breaks)
+        };
+        format!(
+            "{} {} | {} | {:?} | {} | {}",
+            brand.family,
+            brand.given,
+            brand.summary,
+            brand.reasons,
+            fill(&brand.light),
+            fill(&brand.dark)
+        )
+    }
+
+    #[test]
+    fn recipe_brands_has_a_row_for_the_families_the_expected_results_say() {
+        // The same file the package and Kotlin are held to. `brands` there is
+        // the families with a row, worked out by hand from each case: the
+        // families the recipe gives a value the core does not refuse.
+        let cases = expected("recipe-checks.json");
+        let mut rows = 0;
+        for (name, case) in &cases {
+            let wanted: Vec<String> = case
+                .get("brands")
+                .and_then(Json::as_array)
+                .unwrap_or_else(|| panic!("{name} does not say which families have a row"))
+                .iter()
+                .map(|family| family.as_str().unwrap().to_string())
+                .collect();
+            let found: Vec<String> = recipe_brands(case.get("recipe").unwrap())
+                .into_iter()
+                .map(|brand| brand.family)
+                .collect();
+            assert_eq!(found, wanted, "{name}");
+            rows += found.len();
+        }
+        assert!(rows > 0, "no case has a row");
+    }
+
+    #[test]
+    fn recipe_brands_is_what_became_of_each_colour_the_core_takes() {
+        // Over the expected results and six thousand recipes with something
+        // odd at every place:
+        // - a family has a row exactly when the recipe gives it a value and
+        //   `check_recipe` does not refuse that value, and the rows are in
+        //   the order of the families;
+        // - a row is the row the theme of that colour and the neutral one
+        //   alone has: nothing else in the recipe, right or wrong, changes
+        //   it;
+        // - for a recipe `build_theme` takes, the rows are its `brands`.
+        let families = &contract().families;
+        let mut recipes: Vec<Json> = ["recipes.json", "recipe-checks.json"]
+            .iter()
+            .flat_map(|file| expected(file))
+            .map(|(_, case)| case.get("recipe").unwrap().clone())
+            .collect();
+        let mut seed = 20261124;
+        for _ in 0..6000 {
+            recipes.push(odd_recipe(&mut seed));
+        }
+        let (mut built, mut beside_something_wrong, mut without_a_row, mut beside_neutral) =
+            (0, 0, 0, 0);
+        for recipe in &recipes {
+            let rows = recipe_brands(recipe);
+            let problems = check_recipe(recipe);
+            let wanted: Vec<RecipeValue> = recipe_values(recipe)
+                .into_iter()
+                .filter(|value| value.path.len() == 1 && families.contains(&value.path[0]))
+                .filter(|value| {
+                    !problems
+                        .iter()
+                        .any(|p| p.kind.as_str() == "refused" && p.path == value.path)
+                })
+                .collect();
+            assert_eq!(
+                rows.iter().map(|brand| &brand.family).collect::<Vec<_>>(),
+                wanted
+                    .iter()
+                    .map(|value| &value.path[0])
+                    .collect::<Vec<_>>(),
+                "{}",
+                recipe.to_compact()
+            );
+            // The page and the raised surface a fill is measured against
+            // are the neutral family's, so a row is told by its own colour
+            // and the neutral one, when the core takes that.
+            let neutral = wanted.iter().find(|value| value.path[0] == "neutral");
+            for (brand, value) in rows.iter().zip(&wanted) {
+                let alone = Json::Object(
+                    [Some(value), neutral.filter(|n| n.path != value.path)]
+                        .into_iter()
+                        .flatten()
+                        .map(|value| (value.path[0].clone(), Json::String(value.text.clone())))
+                        .collect(),
+                );
+                let theme = build_theme(&alone)
+                    .unwrap_or_else(|e| panic!("{} alone: {e}", alone.to_compact()));
+                let same = theme
+                    .brands
+                    .iter()
+                    .find(|other| other.family == brand.family)
+                    .unwrap_or_else(|| panic!("{} has no {}", alone.to_compact(), brand.family));
+                assert_eq!(
+                    row(brand),
+                    row(same),
+                    "{} of {}",
+                    value.path[0],
+                    recipe.to_compact()
+                );
+                if neutral.is_some() && value.path[0] != "neutral" {
+                    beside_neutral += 1;
+                }
+            }
+            match build_theme(recipe) {
+                Ok(theme) => {
+                    assert_eq!(
+                        rows.iter().map(row).collect::<Vec<_>>(),
+                        theme.brands.iter().map(row).collect::<Vec<_>>(),
+                        "{}",
+                        recipe.to_compact()
+                    );
+                    built += 1;
+                }
+                Err(_) if !rows.is_empty() => beside_something_wrong += 1,
+                Err(_) => without_a_row += 1,
+            }
+        }
+        assert!(
+            built > 0 && beside_something_wrong > 0 && without_a_row > 0 && beside_neutral > 0,
+            "{built} recipes built, {beside_something_wrong} refused with a row, {without_a_row} refused without one, {beside_neutral} rows beside a neutral colour"
+        );
+    }
+
+    #[test]
+    fn what_is_no_recipe_has_no_rows() {
+        for text in [
+            "{}",
+            "[]",
+            "[\"#7c3aed\"]",
+            "\"#7c3aed\"",
+            "null",
+            "7",
+            "true",
+        ] {
+            assert!(recipe_brands(&parse(text).unwrap()).is_empty(), "{text}");
         }
     }
 

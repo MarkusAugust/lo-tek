@@ -7,7 +7,7 @@
 //! were `contract.browser.test.ts` while the theme was written in TypeScript,
 //! and the assertions are the same.
 
-use super::check::{inspect_theme, parse_blocks, ParsedBlock, Report};
+use super::check::{inspect_theme, parse_blocks, verdict, ParsedBlock, Report};
 use super::color::{contrast_ratio, parse_hex, rgb_to_oklch};
 use super::contract::{
     build_family, build_matrix, check_promises, contract, promises_for, role, role_to_css,
@@ -889,5 +889,146 @@ fn writes_numbers_like_string_in_javascript() {
         (f64::NAN, "NaN"),
     ] {
         assert_eq!(super::js_number(n), expected, "{n:?}");
+    }
+}
+
+/// The report of one of the themes in `core/theme`.
+fn report_of(name: &str) -> Report {
+    let path = format!("{}/theme/{name}.css", env!("CARGO_MANIFEST_DIR"));
+    inspect_theme(&std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path}: {e}")))
+}
+
+#[test]
+fn the_verdict_of_one_theme_is_what_the_expected_results_say() {
+    // The same file the package and Kotlin are held to. The messages there
+    // are the ones `lotek check-theme` had while the command worded the
+    // verdict itself, put together from each report's own counts.
+    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/theme/reports.json");
+    let expected = crate::json::parse(&std::fs::read_to_string(path).unwrap()).unwrap();
+    let crate::json::Json::Object(cases) = expected else {
+        panic!("reports.json is not an object")
+    };
+    let mut kinds: Vec<String> = Vec::new();
+    for (name, case) in &cases {
+        let report = report_of(name);
+        assert_eq!(
+            Some(report.others as f64),
+            case.get("others").and_then(|n| n.as_f64()),
+            "{name}: tokens without a contrast promise"
+        );
+        let wanted = case
+            .get("verdict")
+            .unwrap_or_else(|| panic!("{name} has no verdict"));
+        let text = |key: &str| wanted.get(key).unwrap().as_str().unwrap().to_string();
+        let found = verdict(&[report]);
+        assert_eq!(
+            (found.kind.as_str().to_string(), found.message),
+            (text("kind"), text("message")),
+            "{name}"
+        );
+        kinds.push(text("kind"));
+    }
+    for kind in ["kept", "broken", "withoutColours"] {
+        assert!(kinds.iter().any(|k| k == kind), "no theme is {kind}");
+    }
+}
+
+#[test]
+fn several_themes_get_one_verdict() {
+    // What `lotek check-theme` said of these files together while the
+    // command worded the verdict itself. The counts are summed, a problem in
+    // one file breaks the whole, and a theme without colours beside one with
+    // colours is nothing to remark on.
+    let cases: [(&[&str], &str, &str); 6] = [
+        (
+            &["own-theme-holds", "dark-in-media"],
+            "kept",
+            "The theme keeps every promise. Checked 249 values in 3 blocks, against 459 promises, in 2 files.",
+        ),
+        (
+            &["own-theme-holds", "text-too-light"],
+            "broken",
+            "8 problems. Checked 168 values in 3 blocks, against 612 promises, in 2 files.",
+        ),
+        (
+            &["no-tokens", "own-theme-holds"],
+            "broken",
+            "1 problem. Checked 166 values in 2 blocks, against 306 promises, in 2 files.",
+        ),
+        (
+            &["without-colors", "own-theme-holds"],
+            "kept",
+            "The theme keeps every promise. Checked 166 values in 2 blocks, against 306 promises, in 2 files.",
+        ),
+        (
+            &["without-colors", "without-colors"],
+            "withoutColours",
+            "No contrast to check: 2 files sets only 8 tokens without a contrast promise, such as font, shape and the system colours.",
+        ),
+        (
+            &["without-colors", "no-tokens"],
+            "broken",
+            "1 problem. Checked 0 values in 0 blocks, against 0 promises, in 2 files.",
+        ),
+    ];
+    for (names, kind, message) in cases {
+        let reports: Vec<Report> = names.iter().map(|name| report_of(name)).collect();
+        let found = verdict(&reports);
+        assert_eq!(
+            (found.kind.as_str(), found.message.as_str()),
+            (kind, message),
+            "{names:?}"
+        );
+    }
+}
+
+#[test]
+fn a_file_with_no_value_in_it_is_broken() {
+    // Not a theme that holds and not a theme without colours: the report has
+    // the problem that says nothing was found, and the verdict counts it.
+    for css in [
+        "",
+        "body { color: red }",
+        ":root { color-scheme: dark; }",
+        "/* --lt-color-accent-fill: #000000; */",
+        "--lt-color-accent-fill: #000000;",
+    ] {
+        let report = inspect_theme(css);
+        assert_eq!(
+            messages(&report),
+            ["Found no --lt-color-* values. Is this a LO-TEK theme, and are the values inside a block?"],
+            "{css:?}"
+        );
+        let found = verdict(&[report]);
+        assert_eq!(found.kind.as_str(), "broken", "{css:?}");
+        assert!(
+            found.message.starts_with("1 problem. Checked 0 values in "),
+            "{css:?}: {}",
+            found.message
+        );
+    }
+}
+
+#[test]
+fn reports_of_nothing_are_never_a_theme_that_holds() {
+    // No value, no other token and no problem. `inspect_theme` never
+    // answers that, so the report is written by hand: whoever puts one
+    // together, or asks about no reports at all, is not told that a theme
+    // keeps its promises. The command exits by the kind.
+    let nothing = || Report {
+        problems: Vec::new(),
+        blocks: 0,
+        declarations: 0,
+        promises: 0,
+        others: 0,
+    };
+    for reports in [vec![], vec![nothing()], vec![nothing(), nothing()]] {
+        let found = verdict(&reports);
+        assert_eq!(found.kind.as_str(), "broken", "{} reports", reports.len());
+        assert!(
+            !found.message.contains("keeps every promise"),
+            "{}",
+            found.message
+        );
     }
 }

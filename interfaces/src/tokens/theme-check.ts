@@ -19,6 +19,8 @@ import { defaultCore } from "../diagnostics/default-core.js"
  * uses.
  */
 
+import type { CoreThemeReport } from "../diagnostics/core.js"
+
 export type ThemeReport = {
   problems: ThemeProblem[]
   /** Blocks that were actually read. */
@@ -33,6 +35,16 @@ export type ThemeReport = {
   declarations: number
   /** Promises that were actually checked. */
   promises: number
+  /**
+   * Other `--lt-*` tokens the file sets, without a contrast promise: the
+   * font, the shape and the system colours.
+   */
+  others: number
+  /**
+   * What the check came to, as `lotek check-theme` says it. Decide on
+   * `kind`, and show `message` as it is.
+   */
+  verdict: CoreThemeReport["verdict"]
 }
 
 export type ThemeProblem = {

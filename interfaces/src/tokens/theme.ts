@@ -152,3 +152,18 @@ export function checkRecipe(input: unknown): RecipeProblem[] {
 export function recipeValues(input: unknown): RecipeValue[] {
   return defaultCore().recipeValues(input)
 }
+
+/**
+ * Says what became of each colour the core takes in a recipe, whatever else
+ * in it is wrong.
+ *
+ * `buildTheme` gives nothing for a recipe with one thing wrong. A form that
+ * shows what each colour becomes wants the rows of the colours that are
+ * right while another field is still being written. The answer is the rows
+ * `buildTheme` gives as `brands`, for every family whose own value is a
+ * colour, as they would be without the values the core refuses. For a recipe
+ * `buildTheme` takes, it is `buildTheme(recipe).brands`.
+ */
+export function recipeBrands(input: unknown): Brand[] {
+  return defaultCore().recipeBrands(input)
+}

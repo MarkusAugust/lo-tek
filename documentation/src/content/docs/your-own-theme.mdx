@@ -310,6 +310,8 @@ recipeValues({ accent: "#7c3aed", danger: null, shape: { fieldRadius: 0 } })
 // ]
 ```
 
+And `recipeBrands` says what became of each colour the generator takes, whatever else in the recipe is wrong: the rows `buildTheme` gives as `brands`. A form can show what a colour becomes while another field is still being written.
+
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 
 The theme is computed by the core, written in Rust and compiled to WebAssembly, the same one `lotek theme` and LO-TEK for Kotlin use. `buildTheme` loads it from the package in Node, Bun and Deno. In the browser, for example in a theme picker, you load it yourself:

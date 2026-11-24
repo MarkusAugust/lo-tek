@@ -36,6 +36,9 @@
         ],
         "text": "0"
       }
+    ],
+    "brands": [
+      "accent"
     ]
   },
   "empty": {
@@ -48,7 +51,8 @@
       }
     ],
     "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "only-the-schema": {
     "recipe": {
@@ -62,7 +66,8 @@
       }
     ],
     "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "not-given": {
     "recipe": {
@@ -89,7 +94,8 @@
       }
     ],
     "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "blocks-not-given": {
     "recipe": {
@@ -104,7 +110,8 @@
       }
     ],
     "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "blocks-that-are-false-or-an-empty-text": {
     "recipe": {
@@ -120,7 +127,8 @@
       }
     ],
     "refusal": "The theme is empty. Give either brand colours, or typography and shape.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "zero-is-a-value-in-a-block": {
     "recipe": {
@@ -151,7 +159,8 @@
         ],
         "text": "0"
       }
-    ]
+    ],
+    "brands": []
   },
   "one-unknown-key": {
     "recipe": {
@@ -175,6 +184,9 @@
         ],
         "text": "#7c3aed"
       }
+    ],
+    "brands": [
+      "accent"
     ]
   },
   "a-key-with-a-dot-in-its-name": {
@@ -217,6 +229,9 @@
         ],
         "text": "4px;"
       }
+    ],
+    "brands": [
+      "accent"
     ]
   },
   "three-at-once": {
@@ -273,6 +288,9 @@
         ],
         "text": "4px; } html { display: none"
       }
+    ],
+    "brands": [
+      "danger"
     ]
   },
   "written-against-the-order-of-the-answer": {
@@ -436,7 +454,8 @@
         ],
         "text": "2px;"
       }
-    ]
+    ],
+    "brands": []
   },
   "every-place": {
     "recipe": {
@@ -572,7 +591,8 @@
         ],
         "text": "1px</style>"
       }
-    ]
+    ],
+    "brands": []
   },
   "values-that-are-not-text": {
     "recipe": {
@@ -661,7 +681,8 @@
         ],
         "text": "12"
       }
-    ]
+    ],
+    "brands": []
   },
   "blocks-that-are-not-objects": {
     "recipe": {
@@ -693,6 +714,9 @@
         ],
         "text": "#7c3aed"
       }
+    ],
+    "brands": [
+      "accent"
     ]
   },
   "blocks-in-typography-that-are-not-objects": {
@@ -723,7 +747,8 @@
       }
     ],
     "refusal": "typography.weights is not an object with its keys in it. Got: [400]",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "a-text": {
     "recipe": "text",
@@ -735,7 +760,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "a-list": {
     "recipe": [
@@ -749,7 +775,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "an-empty-list": {
     "recipe": [],
@@ -761,7 +788,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "null": {
     "recipe": null,
@@ -773,7 +801,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "a-number": {
     "recipe": 12,
@@ -785,7 +814,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "true": {
     "recipe": true,
@@ -797,7 +827,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "false": {
     "recipe": false,
@@ -809,7 +840,8 @@
       }
     ],
     "refusal": "The recipe is not an object. Write it as an object with the colours in it, for example {\"accent\": \"#7c3aed\"}.",
-    "values": []
+    "values": [],
+    "brands": []
   },
   "what-a-recipe-gives": {
     "recipe": {
@@ -884,6 +916,10 @@
         ],
         "text": "0"
       }
+    ],
+    "brands": [
+      "accent",
+      "danger"
     ]
   },
   "a-refused-text-is-still-what-the-recipe-gives": {
@@ -914,6 +950,9 @@
         ],
         "text": "#b91c1c"
       }
+    ],
+    "brands": [
+      "danger"
     ]
   }
 }

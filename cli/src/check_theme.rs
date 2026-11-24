@@ -10,8 +10,8 @@
 
 use std::io::ErrorKind;
 
-use crate::output::{count, error, fail, log, shown};
-use lotek_core::theme::check::inspect_theme;
+use crate::output::{error, fail, log, shown};
+use lotek_core::theme::check::{inspect_theme, verdict, VerdictKind};
 
 pub fn run(arguments: &[String]) {
     // An unknown flag stops the run instead of disappearing: a typo in a flag
@@ -60,7 +60,7 @@ pub fn run(arguments: &[String]) {
     }
 
     crate::package::load_contract();
-    let (mut problems, mut blocks, mut declarations, mut promises, mut others) = (0, 0, 0, 0, 0);
+    let mut reports = Vec::new();
     for (path, css) in &sources {
         let report = inspect_theme(css);
         for problem in &report.problems {
@@ -70,44 +70,15 @@ pub fn run(arguments: &[String]) {
                 problem.selector,
                 problem.message
             ));
-            problems += 1;
         }
-        blocks += report.blocks;
-        declarations += report.declarations;
-        promises += report.promises;
-        others += report.others;
+        reports.push(report);
     }
 
-    // The count comes last, and counts the consumer's own values: the defaults
-    // fill the gaps, so one line gives as many promises as a whole theme.
-    let files = count(sources.len(), "file", "files");
-    let summary = format!(
-        "{} in {}, against {}, in {files}",
-        count(declarations, "value", "values"),
-        count(blocks, "block", "blocks"),
-        count(promises, "promise", "promises"),
-    );
-    // A theme without colours, only font and shape, has no contrast to
-    // check. That is not the same as a file without a theme.
-    if declarations == 0 && problems == 0 && others > 0 {
-        log(&format!(
-            "No contrast to check: {files} sets only {} without a contrast promise, such as font, shape and the system colours.",
-            count(others, "token", "tokens")
-        ));
-        return;
+    // The verdict is the core's, for the files together. What this does
+    // with it is the command's: where it is written, and how the run ends.
+    let verdict = verdict(&reports);
+    match verdict.kind {
+        VerdictKind::Kept | VerdictKind::WithoutColours => log(&verdict.message),
+        VerdictKind::Broken => fail(&format!("\n{}", verdict.message)),
     }
-    if declarations == 0 && problems == 0 {
-        fail(&format!(
-            "Found no --lt-color-* values in {files}. The check has not looked at anything."
-        ));
-    }
-    if problems > 0 {
-        fail(&format!(
-            "\n{}. Checked {summary}.",
-            count(problems, "problem", "problems")
-        ));
-    }
-    log(&format!(
-        "The theme keeps every promise. Checked {summary}."
-    ));
 }

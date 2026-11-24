@@ -231,10 +231,11 @@ const FIRST_CALLS: Record<string, Record<string, string>> = {
   "./theme": {
     buildTheme: `const t = m.buildTheme({ accent: "#7c3aed" }); if (!t.css.includes("lotek-theme")) throw new Error("no theme")`,
     recipeValues: `const v = m.recipeValues({ accent: "#7c3aed" }); if (v.length !== 1 || v[0].text !== "#7c3aed") throw new Error("the colour was not given")`,
+    recipeBrands: `const b = m.recipeBrands({ accent: "#7c3aed", danger: "purple" }); if (b.length !== 1 || b[0].family !== "accent") throw new Error("no row for the colour the core takes")`,
     checkRecipe: `const w = m.checkRecipe({ accent: "purple" }); if (w.length !== 1 || w[0].kind !== "refused") throw new Error("the refused colour was not found")`,
   },
   "./theme-check": {
-    inspectTheme: `const r = m.inspectTheme(":root { --lt-color-accent-text: #ffffff; }"); if (r.blocks !== 1) throw new Error("no block read")`,
+    inspectTheme: `const r = m.inspectTheme(":root { --lt-color-accent-text: #ffffff; }"); if (r.blocks !== 1) throw new Error("no block read"); if (r.verdict.kind !== "broken") throw new Error("no verdict")`,
     checkTheme: `const p = m.checkTheme(":root { --lt-color-accent-text: #ffffff; }"); if (p.length === 0) throw new Error("no problem found")`,
   },
   "./diagnostics": {
