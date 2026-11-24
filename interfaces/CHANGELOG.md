@@ -30,8 +30,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   They are required in `Brand` in TypeScript and in `ThemeBrand` in Kotlin,
   where they come after `dark`. Code that only reads a theme is unaffected.
   Code that builds a row by hand must add them.
-- **`Core` has three new operations, `checkRecipe`, `recipeValues` and
-  `recipeBrands`.** Code that implements `Core` itself must add them.
+- **`Core` has four new operations for a recipe, `checkRecipe`,
+  `recipeValues`, `recipeBrands` and `suggestPalettes`.** Code that
+  implements `Core` itself must add them.
 - **`Core` has two more operations, `complete` and `hover`.** Code that
   implements `Core` itself must add them.
 - **The report of `inspectTheme` has two more fields, `others` and
@@ -55,6 +56,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Added
 
+- **The generator suggests colours to go with an accent.**
+  `suggestPalettes(recipe)` from `@lo-tek/interfaces/theme`, and
+  `Lotek.suggestPalettes` in Kotlin, give four palettes, Near, Opposite,
+  Three ways and One hue, each with a colour for `visited`, `brand1` to
+  `brand3` and `neutral`. A colour is the fill the theme gets in the light
+  theme, the status families are never suggested, and a family the recipe
+  has set stands as it is. The theme builder shows the palettes under the
+  accent, and "Use" fills the families that are not set. See
+  [Colours to go with the accent](https://lo-tek.sobernetics.no/your-own-theme/#colours-to-go-with-the-accent).
 - **An editor can ask the core what to suggest.** `complete(text, offset,
   html)` on the core from `loadCore()`, and `Lotek.complete` in Kotlin, give
   the classes inside a class attribute, the values of an attribute, and the

@@ -348,6 +348,13 @@ File("build/lotek/theme.css").writeText(theme.css)
 
 The result has `light` and `dark`, each `--lt-color-*` token with its value, `violations`, `css`, and `brands`, which says [what became of each colour you gave](../your-own-theme/#what-became-of-your-colour), with the numbers and with the core's own `summary` and `reasons` as text. `Lotek.checkRecipe(recipe)` says everything that is wrong with a recipe at once, as a list of `RecipeProblem` with the `path` of the key, the `kind` and the `message`, [as in TypeScript](../your-own-theme/#programmatic-use). The list is empty exactly when `buildTheme` takes the recipe. `Lotek.recipeValues(recipe)` says what the recipe gives, as the core reads it, each key with its value as text. `Lotek.recipeBrands(recipe)` gives the rows of `brands` for the colours the core takes, whatever else in the recipe is wrong. The promises hold by construction, so `violations` is empty for valid colours, but check it before you write the file: `lotek theme` refuses to write when it is not empty, while `buildTheme` returns the theme with the list, as in TypeScript. A key that does not exist, and a recipe the core rejects, throw `IllegalArgumentException` with the explanation. `inspectTheme` gives `problems` with selector and message, the numbers `blocks`, `declarations` and `promises`, which say how much was actually read, `others`, the tokens the file sets that have no contrast promise, and `verdict`, what `lotek check-theme` says of the file: its `kind` is `kept`, `broken` or `withoutColours`, and its `message` the sentence. The recipe is read the way `lotek theme` reads it, and both give the answer the core gives in TypeScript, tested against the same expected results.
 
+`Lotek.suggestPalettes(recipe)` gives the [colours to go with the accent](../your-own-theme/#colours-to-go-with-the-accent) of a recipe: four palettes, each with a `name`, a `description` and its `colors`, where a `ThemePaletteColor` has the `family`, the `color` and `kept`, which is true for a colour the recipe gave itself. It is `null` when the recipe is not an object, and when its accent is not a colour.
+
+```kotlin
+val near = Lotek.suggestPalettes("""{"accent": "#7c3aed"}""")?.palettes?.first()
+near?.colors?.map { it.family to it.color } // [(visited, #7b53b2), (brand1, #a909bb), …]
+```
+
 ## The Gradle plugin
 
 The template files themselves can be checked as part of the build, without a test that renders them. The plugin runs the same command line as `lotek check` and `lotek theme`, in the Gradle process:
