@@ -65,6 +65,33 @@ class QuickDocumentationTest : BasePlatformTestCase() {
         assertDivider(documentation("View.kt", inKotlin("""<hr class="lt-div<caret>ider">""")))
     }
 
+    fun `test a class in HTML injected into a Kotlin string, asked from the Kotlin file`() {
+        // What the action has to begin with is the editor and the file the
+        // user is in, not the fragment: the platform is handed those, and
+        // has to reach the HTML in the string by itself.
+        myFixture.configureByText("View.kt", inKotlin("""<hr class="lt-div<caret>ider">"""))
+        PsiDocumentManager.getInstance(project).commitAllDocuments()
+        val found =
+            IdeDocumentationTargetProvider
+                .getInstance(project)
+                .documentationTargets(myFixture.editor, myFixture.file, myFixture.editor.caretModel.offset)
+                .mapNotNull { computeDocumentationBlocking(it.createPointer())?.html }
+        assertDivider(found)
+    }
+
+    fun `test a class in the HTML of a template file`() {
+        // A file in a template language has HTML under it, and its own
+        // language on top: the file the platform hands over is not an HTML
+        // file, and the class in it is as much a class.
+        val answered =
+            listOf("page.jsp", "page.ftl", "page.vm").associateWith { name ->
+                documentation(name, """<main><hr class="lt-div<caret>ider"></main>""").ofLotek()
+            }
+        val silent = answered.filterValues { it.isEmpty() }.keys
+        assertTrue("documentation for the class in every template file, none in $silent", silent.isEmpty())
+        answered.values.forEach(::assertDivider)
+    }
+
     fun `test nothing for the same word in running text`() {
         val found = documentation("test.html", """<p>Use lt-div<caret>ider here</p>""")
         assertTrue("nothing from LO-TEK, got $found", found.ofLotek().isEmpty())

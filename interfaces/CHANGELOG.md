@@ -134,8 +134,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   standard error,
   `Checked against build/lotek/manifest.json.`
 - **In `:class` the classes come once a name is begun.** A bound class
-  attribute holds an expression, so the language server suggests only the
-  classes that begin with what is written, as `:class="['lt-b` gives
+  attribute holds an expression, so `complete` and the language server
+  suggest only the classes that begin with what is written, as `:class="['lt-b` gives
   `lt-button`, and nothing before that. In `class="…"` every class is
   suggested as before.
 - **`lotekCheck` in the Gradle plugin runs `lotekManifest` first,** so the

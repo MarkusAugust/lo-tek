@@ -9,6 +9,7 @@ import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.psi.PsiFile
+import com.intellij.psi.templateLanguages.OuterLanguageElement
 
 /**
  * Quick Documentation on an `lt-` class in a class attribute: what the
@@ -24,10 +25,24 @@ class LotekDocumentationProvider : DocumentationTargetProvider {
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
         // The extension point is not keyed on a language, as the one for
         // completion is, so the provider is asked in every file.
-        if (!file.language.isKindOf(HTMLLanguage.INSTANCE)) return emptyList()
+        if (!inHtml(file, offset)) return emptyList()
         val text = file.text
         val hover = Editing.hover(file, text, offset) ?: return emptyList()
         return listOf(ClassDocumentation(file.project, text.substring(hover.start, hover.end), hover.text))
+    }
+}
+
+/**
+ * Whether what stands at `offset` is HTML. A file in a template language
+ * has HTML beside it in the view provider, and so has Markdown, where a
+ * code span is not HTML: there the HTML tree holds an element of the outer
+ * language.
+ */
+private fun inHtml(file: PsiFile, offset: Int): Boolean {
+    val provider = file.viewProvider
+    return provider.languages.filter { it.isKindOf(HTMLLanguage.INSTANCE) }.any { html ->
+        val element = provider.findElementAt(offset, html) ?: provider.findElementAt(maxOf(offset - 1, 0), html)
+        element != null && element !is OuterLanguageElement
     }
 }
 
