@@ -106,9 +106,11 @@ import {
   COMPONENTS,
 } from "./metadata.js"
 
+import { RULEBOOKS } from "./rulebook-choice.js"
+
 /** The package folder, which the paths from `files()` are relative to. */
 export const ROOT = fileURLToPath(new URL("..", import.meta.url))
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 /**
  * A component folder: its files without the tests, sorted, and the text of
@@ -1249,6 +1251,7 @@ function generated(input: Input) {
     schemaVersion: SCHEMA_VERSION,
     version,
     textLanguage: input.textLanguage,
+    rulebooks: RULEBOOKS,
     elements: elementsOf(input),
     classes: classEntriesOf(builderFunctions, cases, input.classes),
     builders: builderFunctions,

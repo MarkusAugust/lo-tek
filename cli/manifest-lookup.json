@@ -1,5 +1,5 @@
 {
-  "about": "Which manifest applies to a document. The language server (cli/src/lsp.rs) and the IntelliJ plugin (ProjectManifest.kt) both build every case here and must give the same answer. Paths are relative to the project folder, and `../` is outside it. `folders` are folders that have the name of a manifest. `expect` is the manifest that applies, or null when none of them does.",
+  "about": "Which manifest applies to a document. The language server and lotek check (cli/src/lookup.rs) and the IntelliJ plugin (ProjectManifest.kt) each build every case here and must give the same answer. Where `expect` is null, lotek check goes on to the package it came from, which the editor does not. Paths are relative to the project folder, and `../` is outside it. `folders` are folders that have the name of a manifest. `expect` is the manifest that applies, or null when none of them does.",
   "cases": [
     {
       "name": "the manifest the project built, at its root",

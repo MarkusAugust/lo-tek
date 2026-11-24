@@ -9,6 +9,7 @@
 
 import { expect, test } from "bun:test"
 import type { Anatomy, ClassInfo } from "../src/vocabulary/types.js"
+import { NAMES } from "./generate-agent"
 import { files, type Input } from "./generate-manifest"
 
 type Builder = Input["builders"][number]
@@ -63,6 +64,10 @@ const input = (more: Partial<Input> = {}): Input => ({
 
 const manifestOf = (given: Input) =>
   JSON.parse(files(given)["manifest/manifest.json"])
+
+test("the manifest is written with schemaVersion 2", () => {
+  expect(manifestOf(input()).schemaVersion).toBe(2)
+})
 
 /** A `box` whose anatomy is one tag around a hole that takes other elements. */
 const boxIn = (tag: string): Input => {
@@ -471,4 +476,113 @@ test("a file in scripts/metadata/ that metadata.ts does not list stops the build
   ).toThrow(
     "scripts/metadata/card.ts is not listed in metadata.ts, so nothing reads it.",
   )
+})
+
+/*
+ * What schema version 2 added, in the manifest of the package itself: the
+ * expected rows are written out here, from what the command line and the
+ * editor each held as a list of their own before the manifest had them.
+ */
+type Option = { name: string; type: { kind: string }; stableId?: unknown }
+type Written = {
+  rulebooks?: {
+    dependencies: { dependency: string; rulebook: string }[]
+    aliases: Record<string, string>
+  }
+  builders: {
+    name: string
+    options: Option[]
+    returns: { kind: string; fields?: Record<string, unknown> }
+  }[]
+}
+const ofThePackage = (): Written =>
+  JSON.parse(files()["manifest/manifest.json"])
+
+test("the manifest says which dependency points to which rulebook, in the order they are read", () => {
+  const { rulebooks } = ofThePackage()
+  // Astro first, since an Astro app with React islands has both, and
+  // `vite` last.
+  expect(rulebooks?.dependencies).toEqual([
+    { dependency: "astro", rulebook: "astro" },
+    { dependency: "react", rulebook: "react" },
+    { dependency: "vue", rulebook: "bundles" },
+    { dependency: "svelte", rulebook: "bundles" },
+    { dependency: "solid-js", rulebook: "bundles" },
+    { dependency: "lit", rulebook: "bundles" },
+    { dependency: "@starfederation/datastar-sdk", rulebook: "datastar" },
+    { dependency: "vite", rulebook: "bundles" },
+  ])
+  // `toEqual` does not see the order of the keys, and the aliases are
+  // listed in it when a name is refused.
+  expect(Object.entries(rulebooks?.aliases ?? {})).toEqual([
+    ["vue", "bundles"],
+    ["svelte", "bundles"],
+    ["solid", "bundles"],
+    ["solid-js", "bundles"],
+    ["lit", "bundles"],
+    ["vite", "bundles"],
+  ])
+})
+
+test("every rulebook the manifest points to is one the package has", () => {
+  const { rulebooks } = ofThePackage()
+  const pointedTo = [
+    ...(rulebooks?.dependencies ?? []).map((row) => row.rulebook),
+    ...Object.values(rulebooks?.aliases ?? {}),
+  ]
+  expect(pointedTo.length).toBeGreaterThan(0)
+  expect(pointedTo.filter((name) => !NAMES.includes(name))).toEqual([])
+  // An alias is another name for a rulebook, never the name of one.
+  expect(
+    Object.keys(rulebooks?.aliases ?? {}).filter((a) => NAMES.includes(a)),
+  ).toEqual([])
+})
+
+test("an option that is an id which must be the same on every render says so, and no other option does", () => {
+  const marked = ofThePackage()
+    .builders.flatMap((builder) =>
+      builder.options
+        .filter((option) => "stableId" in option)
+        .map((option) => `${builder.name}.${option.name}`),
+    )
+    .sort()
+  expect(marked).toEqual(
+    [
+      "dialog.titleId",
+      "errorSummary.id",
+      "errorSummary.titleId",
+      "field.id",
+      "field.helpId",
+      "field.errorId",
+      "popover.id",
+      "sessionTimeout.titleId",
+      "suggestion.id",
+      "suggestion.helpId",
+      "suggestion.errorId",
+      "suggestion.keys",
+      "tabs.id",
+      "tabs.keys",
+      "term.id",
+    ].sort(),
+  )
+  // Only `true` is written: an option that is no id says nothing.
+  for (const builder of ofThePackage().builders)
+    for (const option of builder.options)
+      if ("stableId" in option) expect(option.stableId).toBe(true)
+})
+
+test("the builder functions with a flag for an error and a part for its text are field and suggestion", () => {
+  // The editor warns about an error text nothing shows from exactly these.
+  // A third one shows up here.
+  const withErrorText = ofThePackage()
+    .builders.filter(
+      (builder) =>
+        builder.options.some(
+          (option) => option.name === "error" && option.type.kind === "flag",
+        ) &&
+        builder.returns.kind === "group" &&
+        "error" in (builder.returns.fields ?? {}),
+    )
+    .map((builder) => builder.name)
+  expect(withErrorText).toEqual(["field", "suggestion"])
 })

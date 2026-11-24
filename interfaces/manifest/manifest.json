@@ -1,8 +1,52 @@
 {
   "$schema": "./manifest.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "version": "0.48.0",
   "textLanguage": "en",
+  "rulebooks": {
+    "dependencies": [
+      {
+        "dependency": "astro",
+        "rulebook": "astro"
+      },
+      {
+        "dependency": "react",
+        "rulebook": "react"
+      },
+      {
+        "dependency": "vue",
+        "rulebook": "bundles"
+      },
+      {
+        "dependency": "svelte",
+        "rulebook": "bundles"
+      },
+      {
+        "dependency": "solid-js",
+        "rulebook": "bundles"
+      },
+      {
+        "dependency": "lit",
+        "rulebook": "bundles"
+      },
+      {
+        "dependency": "@starfederation/datastar-sdk",
+        "rulebook": "datastar"
+      },
+      {
+        "dependency": "vite",
+        "rulebook": "bundles"
+      }
+    ],
+    "aliases": {
+      "vue": "bundles",
+      "svelte": "bundles",
+      "solid": "bundles",
+      "solid-js": "bundles",
+      "lit": "bundles",
+      "vite": "bundles"
+    }
+  },
   "elements": {
     "lt-field": {
       "link": "https://lo-tek.sobernetics.no/components/field/",
@@ -3512,7 +3556,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "open",
@@ -3981,7 +4026,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "The id of the box, so the form can move focus here after submission. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "The id of the box, so the form can move focus here after submission. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "titleId",
@@ -3989,7 +4035,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "The id of the heading. The box takes its name from it with `aria-labelledby`. Default: the box's `id` with `-title`, so the markup carries the wiring whenever the box has an id. An empty one counts as none; one with whitespace throws."
+          "description": "The id of the heading. The box takes its name from it with `aria-labelledby`. Default: the box's `id` with `-title`, so the markup carries the wiring whenever the box has an id. An empty one counts as none; one with whitespace throws.",
+          "stableId": true
         }
       ],
       "returns": {
@@ -4158,7 +4205,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "The id of the control. Required. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "The id of the control. Required. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "help",
@@ -4182,7 +4230,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "A separate id for the help text. Derived from `id` if left out."
+          "description": "A separate id for the help text. Derived from `id` if left out.",
+          "stableId": true
         },
         {
           "name": "errorId",
@@ -4190,7 +4239,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "A separate id for the error text. Derived from `id` if left out."
+          "description": "A separate id for the error text. Derived from `id` if left out.",
+          "stableId": true
         },
         {
           "name": "required",
@@ -5586,7 +5636,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the panel. Connects the button to the panel with `aria-controls`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "Id of the panel. Connects the button to the panel with `aria-controls`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "open",
@@ -6337,7 +6388,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "Id of the heading. The dialog takes its name from it with `aria-labelledby`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "warnAt",
@@ -7146,7 +7198,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "A separate id for the help text. Derived from `id` if left out."
+          "description": "A separate id for the help text. Derived from `id` if left out.",
+          "stableId": true
         },
         {
           "name": "errorId",
@@ -7154,7 +7207,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "A separate id for the error text. Derived from `id` if left out."
+          "description": "A separate id for the error text. Derived from `id` if left out.",
+          "stableId": true
         },
         {
           "name": "describedBy",
@@ -7170,7 +7224,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "Shared id stem. The control becomes `${id}`, the list `${id}-list`, and the options `${id}-option-${key}`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "Shared id stem. The control becomes `${id}`, the list `${id}-list`, and the options `${id}-option-${key}`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "keys",
@@ -7178,7 +7233,8 @@
           "type": {
             "kind": "textList"
           },
-          "description": "One key per option the server sends, taken from the data, such as a record id. The key gives the option its id, so an update that sends the list again recognises the options. An empty key, whitespace or two identical keys throw. Default: no options."
+          "description": "One key per option the server sends, taken from the data, such as a record id. The key gives the option its id, so an update that sends the list again recognises the options. An empty key, whitespace or two identical keys throw. Default: no options.",
+          "stableId": true
         },
         {
           "name": "activeIndex",
@@ -8017,7 +8073,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "The shared id stem. The panels become `${id}-${key}`, and the headings in them `${id}-${key}-heading`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render."
+          "description": "The shared id stem. The panels become `${id}-${key}`, and the headings in them `${id}-${key}-heading`. Make it from a key in the data, never from the loop index or a counter, so it is unique on the page and the same on every render.",
+          "stableId": true
         },
         {
           "name": "keys",
@@ -8025,7 +8082,8 @@
           "type": {
             "kind": "textList"
           },
-          "description": "One key per tab, from the data, such as `[\"claim\", \"attachments\"]`. The key gives the panel its id, and the link points to it. An index is not a key: if the server inserts a tab first, the same index points to another panel. An empty key, whitespace and two identical keys throw."
+          "description": "One key per tab, from the data, such as `[\"claim\", \"attachments\"]`. The key gives the panel its id, and the link points to it. An index is not a key: if the server inserts a tab first, the same index points to another panel. An empty key, whitespace and two identical keys throw.",
+          "stableId": true
         },
         {
           "name": "label",
@@ -8320,7 +8378,8 @@
           "type": {
             "kind": "text"
           },
-          "description": "Id of the entry in the glossary: the `<div>` around the `<dt>` and `<dd>`. The word links to it, and the web component shows the entry itself as the card. Make it from the term, such as `term-signal`, so it is the same on every render."
+          "description": "Id of the entry in the glossary: the `<div>` around the `<dt>` and `<dd>`. The word links to it, and the web component shows the entry itself as the card. Make it from the term, such as `term-signal`, so it is the same on every render.",
+          "stableId": true
         }
       ],
       "returns": {

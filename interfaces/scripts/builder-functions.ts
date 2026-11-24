@@ -44,6 +44,22 @@ export type Option = {
    * option with a closed list. Set by `generate-manifest.ts`.
    */
   default?: string
+  /**
+   * The option is an id, or a list of keys ids are made from, that must be
+   * the same on every render. Only `true` is written.
+   */
+  stableId?: true
+}
+
+/**
+ * The options that name an element: `id`, the ones that end in `Id`, and
+ * `keys`, which the ids of a list are made from. A patch from the server
+ * finds an element by its id, so a value that changes between two renders
+ * breaks it, and the editor warns about a random one.
+ */
+function namesAnElement(name: string, type: OptionType): boolean {
+  if (type.kind === "textList") return name === "keys"
+  return type.kind === "text" && (name === "id" || name.endsWith("Id"))
 }
 
 export type ResultShape =
@@ -331,14 +347,16 @@ export function readBuilderFunctions(): BuilderFunction[] {
           throw new Error(
             `lt.${p.name}({ ${v.name} }): the first paragraph of the comment mentions React. It is what every other language shows, so put the React advice in a paragraph after it.`,
           )
+        const type = optionType(
+          checker.getTypeOfSymbol(v),
+          `lt.${p.name}({ ${v.name} })`,
+        )
         options.push({
           name: v.name,
           required: (v.flags & ts.SymbolFlags.Optional) === 0,
-          type: optionType(
-            checker.getTypeOfSymbol(v),
-            `lt.${p.name}({ ${v.name} })`,
-          ),
+          type,
           ...(description ? { description } : {}),
+          ...(namesAnElement(v.name, type) ? { stableId: true as const } : {}),
         })
       }
     }

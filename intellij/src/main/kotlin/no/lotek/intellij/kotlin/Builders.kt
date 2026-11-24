@@ -4,6 +4,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import no.lotek.Builder
 import no.lotek.Lotek
+import no.lotek.OptionType
+import no.lotek.Returns
 import org.jetbrains.kotlin.psi.KtArrayAccessExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
@@ -29,6 +31,20 @@ internal const val LT_EXTENSION = "no.lotek.html.lt"
 
 /** The builder functions in the manifest of the plugin, by name. */
 internal val builders: Map<String, Builder> by lazy { Lotek.manifest.builders.associateBy { it.name } }
+
+/**
+ * The builder functions that point at an error text: those with a flag
+ * `error` and a part `error` in the answer, `field` and `suggestion` today.
+ * Read from the manifest, so a third one is covered when it comes.
+ */
+internal val withErrorText: Set<String> by lazy {
+    builders.values
+        .filter { b ->
+            b.options.any { it.name == "error" && it.type == OptionType.Flag } &&
+                (b.returns as? Returns.Group)?.fields?.containsKey("error") == true
+        }.map { it.name }
+        .toSet()
+}
 
 /**
  * The builder function a call calls, like `field` for `Lt.field(…)`, or

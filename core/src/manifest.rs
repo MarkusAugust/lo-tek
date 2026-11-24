@@ -11,8 +11,26 @@ use std::rc::Rc;
 use crate::json::{parse, Json};
 use crate::types::*;
 
-/// The manifest format this core understands.
-pub const SCHEMA_VERSION: u32 = 1;
+/// The manifest format the package is written in.
+pub const SCHEMA_VERSION: u32 = 2;
+
+/// The manifest formats this core reads. Version 2 added fields and took none
+/// away, so a manifest or a fragment of version 1 is read as it always was,
+/// and the two can be merged.
+pub const UNDERSTOOD: [u32; 2] = [1, 2];
+
+/// The schema version of a manifest or a fragment, or why it cannot be read.
+fn schema_version(root: &Json, what: &str, advice: &str) -> Result<u32, String> {
+    let version = field(root, "schemaVersion", what)?
+        .as_f64()
+        .ok_or("schemaVersion must be a number.")? as u32;
+    if !UNDERSTOOD.contains(&version) {
+        return Err(format!(
+            "{what} has schemaVersion {version}, and this core understands 1 and 2.{advice}"
+        ));
+    }
+    Ok(version)
+}
 
 thread_local! {
     static CURRENT: RefCell<Option<Rc<Vocabulary>>> = const { RefCell::new(None) };
@@ -258,14 +276,7 @@ pub fn merged(base: &str, fragments: &[&str]) -> Result<Json, String> {
     let mut root = parse(base)?;
     for fragment in fragments {
         let fragment = parse(fragment)?;
-        let schema_version = field(&fragment, "schemaVersion", "The fragment")?
-            .as_f64()
-            .ok_or("schemaVersion must be a number.")? as u32;
-        if schema_version != SCHEMA_VERSION {
-            return Err(format!(
-                "The fragment has schemaVersion {schema_version}, and this core understands {SCHEMA_VERSION}."
-            ));
-        }
+        schema_version(&fragment, "The fragment", "")?;
         for section in ["elements", "classes"] {
             let Some(added) = fragment.get(section) else {
                 continue;
@@ -291,14 +302,11 @@ pub fn merged(base: &str, fragments: &[&str]) -> Result<Json, String> {
 }
 
 fn from_value(root: &Json) -> Result<Vocabulary, String> {
-    let schema_version = field(root, "schemaVersion", "The manifest")?
-        .as_f64()
-        .ok_or("schemaVersion must be a number.")? as u32;
-    if schema_version != SCHEMA_VERSION {
-        return Err(format!(
-            "The manifest has schemaVersion {schema_version}, and this core understands {SCHEMA_VERSION}. Update the core and the manifest to the same version of LO-TEK."
-        ));
-    }
+    let schema_version = schema_version(
+        root,
+        "The manifest",
+        " Update the core and the manifest to the same version of LO-TEK.",
+    )?;
     let version = text(field(root, "version", "The manifest")?, "version")?;
 
     let mut elements = Vec::new();
@@ -422,7 +430,59 @@ mod tests {
             "LO-TEK's own classes stay"
         );
         assert!(v.elements.iter().any(|e| e.tag == "app-dialog"));
-        assert!(with_fragments(&base, &[r#"{"schemaVersion": 2}"#]).is_err());
+    }
+
+    /// A manifest or a fragment with nothing in it but its version.
+    fn smallest(schema_version: u32, classes: &str) -> String {
+        format!(
+            r#"{{"schemaVersion": {schema_version}, "version": "0", "elements": {{}}, "classes": {{{classes}}}}}"#
+        )
+    }
+
+    /// Whether a refusal names the version it got and both it understands.
+    fn names_the_versions(error: &str, got: u32) -> bool {
+        let Some((before, after)) = error.split_once(&format!("schemaVersion {got}")) else {
+            return false;
+        };
+        let rest = format!("{before}{after}");
+        rest.contains('1') && rest.contains('2')
+    }
+
+    #[test]
+    fn reads_schema_version_1_and_2() {
+        for schema_version in [1, 2] {
+            let manifest = from_json(&smallest(schema_version, ""))
+                .unwrap_or_else(|e| panic!("schemaVersion {schema_version}: {e}"));
+            assert_eq!(manifest.schema_version, schema_version);
+        }
+    }
+
+    #[test]
+    fn a_fragment_of_one_version_goes_onto_a_manifest_of_the_other() {
+        const BUTTON: &str = r#""app-button": {"title": "Button", "link": "", "attributes": {}}"#;
+        const CARD: &str = r#""lt-card": {"title": "Card", "link": "", "attributes": {}}"#;
+        for (base, fragment) in [(1, 2), (2, 1), (1, 1), (2, 2)] {
+            let merged = with_fragments(&smallest(base, CARD), &[&smallest(fragment, BUTTON)])
+                .unwrap_or_else(|e| panic!("a version {fragment} fragment on version {base}: {e}"));
+            let names: Vec<&str> = merged.classes.iter().map(|c| c.name.as_str()).collect();
+            assert!(
+                names.contains(&"lt-card") && names.contains(&"app-button"),
+                "a version {fragment} fragment on version {base}: {names:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_a_fragment_of_a_schema_version_it_does_not_understand() {
+        for schema_version in [0, 3] {
+            let error = with_fragments(&smallest(2, ""), &[&smallest(schema_version, "")])
+                .err()
+                .unwrap_or_else(|| {
+                    panic!("a fragment with schemaVersion {schema_version} was taken")
+                });
+            assert!(error.contains("fragment"), "{error}");
+            assert!(names_the_versions(&error, schema_version), "{error}");
+        }
     }
 
     #[test]
@@ -458,8 +518,19 @@ mod tests {
 
     #[test]
     fn rejects_another_schema_version() {
-        let error = from_json(r#"{"schemaVersion": 2}"#).unwrap_err();
-        assert!(error.contains("schemaVersion 2"));
+        // The sentence names the version it got and both this core
+        // understands, so the reader knows which side is the old one.
+        for schema_version in [0, 3] {
+            let error = from_json(&smallest(schema_version, ""))
+                .err()
+                .unwrap_or_else(|| panic!("schemaVersion {schema_version} was taken"));
+            assert!(names_the_versions(&error, schema_version), "{error}");
+        }
+    }
+
+    #[test]
+    fn the_manifest_in_the_package_has_schema_version_2() {
+        assert_eq!(for_tests().schema_version, 2);
     }
 
     #[test]

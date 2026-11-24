@@ -16,6 +16,7 @@ import {
   readdir,
   readFile,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -1229,6 +1230,13 @@ block(async () => {
     files.includes("lotek-manifest.json"),
     "the fragment of the manifest was not written",
   )
+  const ownFragment = JSON.parse(
+    await readFile(join(folder, "ui/button/lotek-manifest.json"), "utf8"),
+  )
+  expect(
+    ownFragment.schemaVersion === 2,
+    `the fragment of the manifest has schemaVersion ${ownFragment.schemaVersion}, and the command writes 2`,
+  )
   const fragment = `--manifest=${join(folder, "ui/button/lotek-manifest.json")}`
   const page = join(folder, "page.html")
   await writeFile(
@@ -1240,6 +1248,29 @@ block(async () => {
     withFragment.code !== 0 && withFragment.out.includes("data-variant"),
     "the check with the fragment did not see the mistake in the markup for the copy",
   )
+  // A fragment written by an older command line has schemaVersion 1, and is
+  // read as before. One from a newer command line is refused, with the
+  // version it has and the ones this command line understands.
+  for (const [schemaVersion, taken] of [
+    [1, true],
+    [2, true],
+    [3, false],
+  ] as const) {
+    const other = join(folder, `version-${schemaVersion}.json`)
+    await writeFile(other, JSON.stringify({ ...ownFragment, schemaVersion }))
+    const answer = await run(["check", `--manifest=${other}`, page])
+    // Without the path, which has digits of its own.
+    const said = (answer.out + answer.err).replaceAll(other, "")
+    expect(
+      taken
+        ? answer.out.includes("data-variant")
+        : answer.code !== 0 &&
+            said.includes("schemaVersion 3") &&
+            /\b1\b/.test(said.replace("schemaVersion 3", "")) &&
+            /\b2\b/.test(said.replace("schemaVersion 3", "")),
+      `check with a fragment of schemaVersion ${schemaVersion}: ${said.slice(0, 300)}`,
+    )
+  }
   const withoutFragment = await run(["check", page])
   expect(
     withoutFragment.code === 0,
@@ -1921,6 +1952,626 @@ block(async () => {
   expect(!slowErr.includes("EAGAIN"), "reading standard input threw EAGAIN")
 
   await rm(folder, { recursive: true, force: true })
+})
+
+/*
+ * `check` finds the manifest for each file the way the editor does: from the
+ * file's folder up to the working directory, the manifest the project built
+ * before the package beside it, then the working directory's own, and only
+ * then the package the command line was given or finds installed. The cases
+ * are the table the language server and the IntelliJ plugin are held to,
+ * `cli/manifest-lookup.json`, built here with the project as the working
+ * directory.
+ *
+ * Every manifest knows one class of its own, the page uses them all, and an
+ * unknown class is reported: the class nothing is said about is the manifest
+ * that was read. The package the command falls back to has one too, so
+ * "fell back to the package" and "read the wrong manifest" are told apart.
+ */
+block(async () => {
+  const root = await mkdtemp(join(tmpdir(), "lotek-lookup-"))
+  const table: {
+    cases: {
+      name: string
+      manifests: string[]
+      folders?: string[]
+      document: string
+      expect: string | null
+    }[]
+  } = JSON.parse(
+    await readFile(join(packageDir, "../cli/manifest-lookup.json"), "utf8"),
+  )
+  const base = JSON.parse(
+    await readFile(join(packageDir, "manifest/manifest.json"), "utf8"),
+  )
+  /** The package's manifest, knowing one more class. */
+  const knowing = (name: string) =>
+    JSON.stringify({
+      ...base,
+      classes: {
+        ...base.classes,
+        [name]: { title: "M", link: "", attributes: {} },
+      },
+    })
+  const write = async (file: string, text: string) => {
+    await mkdir(dirname(file), { recursive: true })
+    await writeFile(file, text)
+  }
+
+  // The package the command falls back to: a copy that runs, as in the
+  // block about `agent` below, whose manifest knows `lt-fallback`.
+  /** A package that runs, in this folder, with this text as its manifest. */
+  const runnable = async (folder: string, manifest: string) => {
+    for (const file of [
+      "package.json",
+      "dist/cli.js",
+      "dist/wasi-host.js",
+      "core/lotek.wasm",
+    ]) {
+      await mkdir(dirname(join(folder, file)), { recursive: true })
+      await cp(join(packageDir, file), join(folder, file))
+    }
+    await write(join(folder, "manifest/manifest.json"), manifest)
+    return folder
+  }
+  const fallback = await runnable(join(root, "package"), knowing("lt-fallback"))
+
+  /** `lotek check` in a folder, and the classes it knew in each file it names. */
+  const check = async (
+    cwd: string,
+    args: string[],
+    classes: string[],
+    more: { stdin?: string; withoutPackage?: boolean; from?: string } = {},
+  ) => {
+    // The package the command reads from: the packaged command is the one
+    // in that package, and an executable is told where it is.
+    const from = more.from ?? fallback
+    const command = process.env.LOTEK_CLI
+      ? COMMAND
+      : ["node", join(from, "dist/cli.js")]
+    const { LOTEK_PACKAGE: _, ...bare } = ENVIRONMENT
+    const child = Bun.spawn([...command, "check", ...args], {
+      env: more.withoutPackage ? bare : { ...ENVIRONMENT, LOTEK_PACKAGE: from },
+      cwd,
+      stdin: more.stdin === undefined ? "ignore" : new Blob([more.stdin]),
+      stdout: "pipe",
+      stderr: "pipe",
+    })
+    runCount += 1
+    const [out, err, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ])
+    const lines = out.split("\n").map((line) => line.replaceAll("\\", "/"))
+    /** The classes nothing was said about in the file shown by this name. */
+    const known = (shownAs: string) => {
+      const about = lines.filter((line) => line.startsWith(`${shownAs}:`))
+      return classes.filter(
+        (name) => !about.some((line) => line.includes(`"${name}"`)),
+      )
+    }
+    /** The manifests the run says it read, in the order it says so. */
+    const against = err
+      .split("\n")
+      .map((line) => line.trim().replaceAll("\\", "/"))
+      .filter((line) => line.startsWith("Checked against "))
+    return { code, out, err, known, against }
+  }
+  const page = (classes: string[]) =>
+    classes.map((name) => `<p class="${name}">x</p>\n`).join("")
+
+  let found = 0
+  let fellBack = 0
+  for (const [number, entry] of table.cases.entries()) {
+    const here = join(root, `case-${number}`)
+    const project = join(here, "project")
+    // `../` is beside the project.
+    const placed = (path: string) =>
+      path.startsWith("../")
+        ? join(here, path.slice("../".length))
+        : join(project, path)
+    await mkdir(project, { recursive: true })
+    const own = entry.manifests.map((_, index) => `lt-m${index}`)
+    for (const [index, path] of entry.manifests.entries())
+      await write(placed(path), knowing(own[index]))
+    for (const path of entry.folders ?? [])
+      await mkdir(placed(path), { recursive: true })
+    const classes = [...own, "lt-fallback"]
+    await write(placed(entry.document), page(classes))
+
+    const answer = await check(project, [entry.document], classes)
+    // Exactly one vocabulary is read: the manifest the table names, or the
+    // package the command was given when the table names none.
+    const wanted =
+      entry.expect === null
+        ? "lt-fallback"
+        : own[entry.manifests.indexOf(entry.expect)]
+    const knew = answer.known(entry.document)
+    expect(
+      knew.length === 1 && knew[0] === wanted,
+      `check, ${entry.name}: read the manifest that knows ${knew.join(" and ") || "none of the classes"}, and ${wanted} is the one of ${entry.expect ?? "the package the command falls back to"}\n${(answer.out + answer.err).slice(0, 400)}`,
+    )
+    // A manifest that is not the package's own is named, on standard error,
+    // so a stale or a foreign one can be acted on. The package the command
+    // falls back to is not, and every run without a manifest of the
+    // project's own says what it always said.
+    const named =
+      entry.expect === null ? [] : [`Checked against ${entry.expect}.`]
+    expect(
+      JSON.stringify(answer.against) === JSON.stringify(named) &&
+        !answer.out.includes("Checked against"),
+      `check, ${entry.name}: standard error names ${JSON.stringify(answer.against)}, expected ${JSON.stringify(named)}${answer.out.includes("Checked against") ? ", and standard output names a manifest" : ""}`,
+    )
+    if (entry.expect === null) fellBack += 1
+    else found += 1
+  }
+  expect(
+    found >= 7 && fellBack >= 3,
+    `cli/manifest-lookup.json gave ${found} cases with a manifest and ${fellBack} without: the table has changed, or was not read`,
+  )
+
+  // One run, two files, two manifests: each file gets the one nearest to
+  // it. A fragment goes on top of both.
+  const project = join(root, "two")
+  const BUILT = "build/lotek/manifest.json"
+  const NEARER =
+    "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+  await write(join(project, BUILT), knowing("lt-m0"))
+  await write(join(project, NEARER), knowing("lt-m1"))
+  const classes = ["lt-m0", "lt-m1", "lt-fallback", "app-own"]
+  for (const file of ["page.html", "apps/web/src/page.html"])
+    await write(join(project, file), page(classes))
+  const two = await check(
+    project,
+    ["page.html", "apps/web/src/page.html"],
+    classes,
+  )
+  expect(
+    two.known("page.html").join() === "lt-m0,app-own" &&
+      two.known("apps/web/src/page.html").join() === "lt-m1,app-own",
+    `two files in one run did not each get the manifest nearest to them:\n${two.out.slice(0, 500)}`,
+  )
+  // `app-own` is nothing LO-TEK has an opinion about until a fragment
+  // describes it. Then its attributes are checked, in both files.
+  const fragment = join(project, "ui/lotek-manifest.json")
+  await write(
+    fragment,
+    JSON.stringify({
+      schemaVersion: 2,
+      version: "0",
+      classes: {
+        "app-own": {
+          title: "Own",
+          link: "",
+          attributes: { "data-size": { type: "values", values: ["small"] } },
+        },
+      },
+    }),
+  )
+  for (const file of ["page.html", "apps/web/src/page.html"])
+    await write(
+      join(project, file),
+      `${page(classes)}<p class="app-own" data-size="huge">x</p>\n`,
+    )
+  const without = await check(
+    project,
+    ["page.html", "apps/web/src/page.html"],
+    classes,
+  )
+  const withFragment = await check(
+    project,
+    [`--manifest=${fragment}`, "page.html", "apps/web/src/page.html"],
+    classes,
+  )
+  const aboutSize = (out: string) =>
+    out.split("\n").filter((line) => line.includes("data-size")).length
+  expect(
+    aboutSize(without.out) === 0 && aboutSize(withFragment.out) === 2,
+    `the fragment was not put on top of the manifest of each file: ${aboutSize(without.out)} findings about data-size without it, ${aboutSize(withFragment.out)} with it\n${withFragment.out.slice(0, 500)}`,
+  )
+  expect(
+    withFragment.known("page.html").join() === "lt-m0,app-own" &&
+      withFragment.known("apps/web/src/page.html").join() === "lt-m1,app-own",
+    `with a fragment, the files no longer each get the manifest nearest to them:\n${withFragment.out.slice(0, 500)}`,
+  )
+  // Each manifest is named once, however many files it applies to, in the
+  // order of the first file of each.
+  await write(join(project, "other.html"), page(classes))
+  const three = await check(
+    project,
+    ["page.html", "apps/web/src/page.html", "other.html"],
+    classes,
+  )
+  expect(
+    JSON.stringify(three.against) ===
+      JSON.stringify([
+        `Checked against ${BUILT}.`,
+        `Checked against ${NEARER}.`,
+      ]),
+    `three files with two manifests between them: standard error names ${JSON.stringify(three.against)}`,
+  )
+  expect(
+    three.known("other.html").join() === "lt-m0,app-own",
+    `the second file in a folder did not get the manifest the first one got:\n${three.out.slice(0, 400)}`,
+  )
+
+  // A manifest that was found and cannot be read is blamed by its own
+  // path, also when a fragment is given: the fragment is not what is wrong.
+  const blamed = (err: string) =>
+    [
+      ...err
+        .replaceAll("\\", "/")
+        .matchAll(/"([^"]*)" cannot be read as a manifest/g),
+    ].map(([, path]) => path)
+  for (const [what, text] of [
+    [
+      "of a schema version the command does not understand",
+      JSON.stringify({ ...base, schemaVersion: 3 }),
+    ],
+    ["that is not JSON", "{ not json"],
+  ] as const) {
+    const broken = join(root, `broken-${what.length}`)
+    await write(join(broken, BUILT), text)
+    await write(join(broken, "page.html"), page(classes))
+    for (const args of [[], [`--manifest=${fragment}`]]) {
+      const answer = await check(broken, [...args, "page.html"], classes)
+      expect(
+        answer.code !== 0 &&
+          answer.out === "" &&
+          blamed(answer.err).length === 1 &&
+          blamed(answer.err)[0].endsWith(BUILT),
+        `a built manifest ${what}${args.length > 0 ? ", with a fragment" : ""}: code ${answer.code}, blames ${JSON.stringify(blamed(answer.err))}, expected "${BUILT}"\n${answer.err.slice(0, 300)}`,
+      )
+    }
+  }
+  // A fragment that is itself broken is still the one blamed.
+  const brokenFragment = join(project, "ui/broken.json")
+  await write(brokenFragment, JSON.stringify({ schemaVersion: 3 }))
+  const ownFault = await check(
+    project,
+    [`--manifest=${brokenFragment}`, "page.html"],
+    classes,
+  )
+  expect(
+    ownFault.code !== 0 &&
+      blamed(ownFault.err).length === 1 &&
+      blamed(ownFault.err)[0].endsWith("ui/broken.json"),
+    `a broken fragment on a manifest that reads: code ${ownFault.code}, blames ${JSON.stringify(blamed(ownFault.err))}\n${ownFault.err.slice(0, 300)}`,
+  )
+
+  // The package the command reads from, when its own manifest cannot be
+  // read: that manifest is what is wrong, with a fragment and without.
+  for (const [what, text] of [
+    [
+      "of a schema version the command does not understand",
+      JSON.stringify({ ...base, schemaVersion: 3 }),
+    ],
+    ["that is not JSON", "{ not json"],
+  ] as const) {
+    const from = await runnable(join(root, `package-${what.length}`), text)
+    const bare = join(root, `bare-${what.length}`)
+    await write(join(bare, "page.html"), page(classes))
+    for (const args of [[], [`--manifest=${fragment}`]]) {
+      const answer = await check(bare, [...args, "page.html"], classes, {
+        from,
+      })
+      const said = answer.err.replaceAll("\\", "/")
+      expect(
+        answer.code !== 0 &&
+          answer.out === "" &&
+          said.includes("manifest/manifest.json") &&
+          !blamed(answer.err).some((path) =>
+            path.endsWith("lotek-manifest.json"),
+          ),
+        `the manifest of the package itself ${what}${args.length > 0 ? ", with a fragment" : ""}: code ${answer.code}, blames ${JSON.stringify(blamed(answer.err))}\n${answer.err.slice(0, 300)}`,
+      )
+    }
+  }
+
+  /*
+   * The package installed in the project is the one the command reads
+   * everything else from, as in any ordinary project: the search finds its
+   * manifest, and there is nothing to say, since it is the package's own.
+   * The same when the package is a link to a folder elsewhere, the way some
+   * package managers install it.
+   */
+  const INSTALLED = "node_modules/@lo-tek/interfaces"
+  const ordinary = join(root, "ordinary")
+  const installed = await runnable(
+    join(ordinary, INSTALLED),
+    knowing("lt-installed"),
+  )
+  const linked = join(root, "linked")
+  const store = await runnable(
+    join(root, "store/interfaces"),
+    knowing("lt-installed"),
+  )
+  await mkdir(dirname(join(linked, INSTALLED)), { recursive: true })
+  await symlink(store, join(linked, INSTALLED), "junction")
+  const mine = ["lt-installed", "lt-fallback"]
+  for (const [what, folder, from] of [
+    ["installed in the project", ordinary, installed],
+    ["linked into the project", linked, store],
+  ] as const) {
+    await write(join(folder, "pages/page.html"), page(mine))
+    const answers = [
+      [
+        "a file",
+        await check(folder, ["pages/page.html"], mine, { from }),
+        "pages/page.html",
+      ],
+      [
+        "standard input",
+        await check(folder, [], mine, { from, stdin: page(mine) }),
+        "stdin",
+      ],
+    ] as const
+    for (const [given, answer, shownAs] of answers)
+      expect(
+        answer.known(shownAs).join() === "lt-installed" &&
+          answer.against.length === 0,
+        `the package ${what}, which is the one the command reads from, and ${given}: knew ${answer.known(shownAs).join() || "nothing"}, and standard error names ${JSON.stringify(answer.against)}`,
+      )
+    // A manifest the project built is still named there.
+    await write(join(folder, BUILT), knowing("lt-m0"))
+    const withBuilt = await check(
+      folder,
+      ["pages/page.html"],
+      [...mine, "lt-m0"],
+      { from },
+    )
+    expect(
+      JSON.stringify(withBuilt.against) ===
+        JSON.stringify([`Checked against ${BUILT}.`]),
+      `the package ${what} and a built manifest: standard error names ${JSON.stringify(withBuilt.against)}`,
+    )
+  }
+
+  const missing = await check(
+    project,
+    [`--manifest=${join(project, "ui/none.json")}`, "page.html"],
+    classes,
+  )
+  expect(
+    missing.code !== 0 && !missing.out.includes("page.html:"),
+    `a fragment that does not exist did not stop the run: code ${missing.code}, ${missing.out.slice(0, 120)}`,
+  )
+
+  // Standard input has no folder: the working directory's own manifest,
+  // and nothing above or below it.
+  const piped = await check(project, [], classes, { stdin: page(classes) })
+  expect(
+    piped.known("stdin").join() === "lt-m0,app-own",
+    `standard input did not get the manifest of the working directory:\n${piped.out.slice(0, 300)}`,
+  )
+  const fromBelow = await check(join(project, "apps/web/src"), [], classes, {
+    stdin: page(classes),
+  })
+  expect(
+    fromBelow.known("stdin").join() === "lt-fallback,app-own",
+    `standard input in a folder without a manifest of its own did not get the package the command falls back to:\n${fromBelow.out.slice(0, 300)}`,
+  )
+  // A file given from a folder below the project's root: the search stops
+  // at the working directory, which has no manifest, so the package the
+  // command falls back to decides, as it did before the search.
+  const below = await check(
+    join(project, "apps/web/src"),
+    ["page.html"],
+    classes,
+  )
+  expect(
+    below.known("page.html").join() === "lt-fallback,app-own",
+    `a file in a working directory with no manifest at or below it did not get the package the command falls back to:\n${below.out.slice(0, 300)}`,
+  )
+
+  // An executable that is given no package finds the nearest installed
+  // one from the working directory upwards, as before: this is where
+  // `check` goes on working from a subfolder of a repository with
+  // `node_modules` at its root. The packaged command always has its own.
+  if (process.env.LOTEK_CLI) {
+    const above = join(root, "above")
+    await write(
+      join(above, "node_modules/@lo-tek/interfaces/manifest/manifest.json"),
+      knowing("lt-m0"),
+    )
+    await write(
+      join(above, "node_modules/@lo-tek/interfaces/package.json"),
+      await readFile(join(packageDir, "package.json"), "utf8"),
+    )
+    await write(join(above, "project/page.html"), page(classes))
+    const installed = await check(
+      join(above, "project"),
+      ["page.html"],
+      classes,
+      {
+        withoutPackage: true,
+      },
+    )
+    expect(
+      installed.known("page.html").join() === "lt-m0,app-own",
+      `without LOTEK_PACKAGE, the package installed above the working directory was not read:\n${(installed.out + installed.err).slice(0, 300)}`,
+    )
+  }
+
+  await rm(root, { recursive: true, force: true })
+})
+
+// `agent` reads which dependency and which other name points to which
+// rulebook from the manifest of the package it found, and has no list of
+// its own: a package whose manifest says otherwise is followed, and one
+// from before the manifest said it has no framework to find.
+block(async () => {
+  const root = await mkdtemp(join(tmpdir(), "lotek-agent-package-"))
+  const rulebook = (name: string) =>
+    readFile(join(packageDir, `agent/${name}.md`), "utf8")
+  const manifest = JSON.parse(
+    await readFile(join(packageDir, "manifest/manifest.json"), "utf8"),
+  )
+  /*
+   * A copy of the package as far as `agent` needs it, with the manifest
+   * changed: the rulebooks, the manifest, and the command itself. The
+   * packaged command reads the package it sits in, the way an installed one
+   * does, and takes no other from the environment, so the copy is run. An
+   * executable given in `LOTEK_CLI` has no package around it, and is told
+   * where the copy is.
+   */
+  const packageWith = async (name: string, changed: object) => {
+    const copy = join(root, name)
+    await mkdir(join(copy, "dist"), { recursive: true })
+    await mkdir(join(copy, "core"), { recursive: true })
+    for (const part of ["agent", "manifest"])
+      await cp(join(packageDir, part), join(copy, part), { recursive: true })
+    for (const file of [
+      "package.json",
+      "dist/cli.js",
+      "dist/wasi-host.js",
+      "core/lotek.wasm",
+    ])
+      await cp(join(packageDir, file), join(copy, file))
+    await writeFile(
+      join(copy, "manifest/manifest.json"),
+      JSON.stringify(changed),
+    )
+    return copy
+  }
+  /** `lotek agent` in a project with these dependencies and files, reading that package. */
+  const agent = async (
+    from: string,
+    args: string[],
+    dependencies: Record<string, string> | null,
+    file?: string,
+  ): Promise<Run> => {
+    const project = await mkdtemp(join(root, "project-"))
+    if (dependencies)
+      await writeFile(
+        join(project, "package.json"),
+        JSON.stringify({ dependencies }),
+      )
+    if (file) await writeFile(join(project, file), "")
+    const command = process.env.LOTEK_CLI
+      ? COMMAND
+      : ["node", join(from, "dist/cli.js")]
+    const child = Bun.spawn([...command, "agent", ...args], {
+      env: { ...ENVIRONMENT, LOTEK_PACKAGE: from },
+      cwd: project,
+      stdout: "pipe",
+      stderr: "pipe",
+    })
+    runCount += 1
+    const [out, err, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ])
+    return { code, out, err }
+  }
+  const gives = async (what: string, answer: Run, name: string) =>
+    expect(
+      answer.code === 0 && answer.out === (await rulebook(name)),
+      `${what} did not give the ${name} rulebook (code ${answer.code}): ${(answer.err || answer.out).slice(0, 160)}`,
+    )
+
+  // Another manifest: a made-up dependency first, which points to the
+  // datastar rulebook, `react` no longer a row, a made-up other name for
+  // the react rulebook, and `vue` no longer another name for anything.
+  const other = await packageWith("other", {
+    ...manifest,
+    schemaVersion: 2,
+    rulebooks: {
+      dependencies: [
+        { dependency: "made-up-framework", rulebook: "datastar" },
+        { dependency: "astro", rulebook: "astro" },
+      ],
+      aliases: { "made-up": "react" },
+    },
+  })
+  await gives(
+    "a dependency only the other manifest has",
+    await agent(other, [], { "made-up-framework": "1.0.0" }),
+    "datastar",
+  )
+  // The first row found decides, and the rows are the other manifest's.
+  await gives(
+    "a dependency the other manifest has first, beside astro",
+    await agent(other, [], { astro: "6.0.0", "made-up-framework": "1.0.0" }),
+    "datastar",
+  )
+  const noRow = await agent(other, [], { react: "19.0.0" })
+  await gives(
+    "react, which the other manifest has no row for,",
+    noRow,
+    "bundles",
+  )
+  expect(
+    noRow.err.includes("package.json names no known framework"),
+    `react without a row is not said to be no known framework: ${noRow.err.slice(0, 120)}`,
+  )
+  const alias = await agent(other, ["--framework=made-up"], null)
+  await gives("another name only the other manifest has", alias, "react")
+  expect(
+    alias.err.includes("react") && alias.err.includes("made-up"),
+    `the message does not show that made-up is another name for react: ${alias.err.slice(0, 120)}`,
+  )
+  const noAlias = await agent(other, ["--framework=vue"], null)
+  expect(
+    noAlias.code === 1 && noAlias.err.includes('Unknown framework "vue"'),
+    `vue, which the other manifest does not have as another name, gave code ${noAlias.code}: ${noAlias.err.slice(0, 120)}`,
+  )
+
+  // A package whose manifest cannot be read has no answer to give: the
+  // command stops and says which file, rather than guessing a rulebook.
+  const unreadable = await packageWith("unreadable", {})
+  await writeFile(join(unreadable, "manifest/manifest.json"), "{ not json")
+  for (const args of [[], ["--framework=react"]]) {
+    const answer = await agent(unreadable, args, { react: "19.0.0" })
+    expect(
+      answer.code === 1 &&
+        answer.out === "" &&
+        answer.err.replaceAll("\\", "/").includes("manifest/manifest.json"),
+      `agent ${args.join(" ")} with a manifest that is not JSON: code ${answer.code}, ${answer.out.length} characters on standard output, and standard error says: ${answer.err.slice(0, 200)}`,
+    )
+  }
+
+  // A manifest from before it said any of this: schema version 1, and no
+  // `rulebooks`.
+  const { rulebooks: _, ...without } = manifest
+  const older = await packageWith("older", { ...without, schemaVersion: 1 })
+  for (const dependency of ["react", "astro", "vue", "vite"]) {
+    const answer = await agent(older, [], { [dependency]: "1.0.0" })
+    await gives(
+      `${dependency} with a manifest without rulebooks`,
+      answer,
+      "bundles",
+    )
+    expect(
+      answer.err.includes("package.json names no known framework"),
+      `${dependency} with a manifest without rulebooks: ${answer.err.slice(0, 120)}`,
+    )
+  }
+  await gives(
+    "no package.json with a manifest without rulebooks",
+    await agent(older, [], null),
+    "templates",
+  )
+  for (const dependencies of [null, { react: "19.0.0" }])
+    await gives(
+      `a JVM build file${dependencies ? " beside react" : ""} with a manifest without rulebooks`,
+      await agent(older, [], dependencies, "build.gradle.kts"),
+      "kotlin",
+    )
+  const unknown = await agent(older, ["--framework=vue"], null)
+  expect(
+    unknown.code === 1 && unknown.err.includes('Unknown framework "vue"'),
+    `--framework=vue with a manifest without rulebooks gave code ${unknown.code}: ${unknown.err.slice(0, 120)}`,
+  )
+  await gives(
+    "--framework=bundles with a manifest without rulebooks",
+    await agent(older, ["--framework=bundles"], { react: "19.0.0" }),
+    "bundles",
+  )
+
+  await rm(root, { recursive: true, force: true })
 })
 
 // `agent`: the rulebook to standard output, the message to standard error,

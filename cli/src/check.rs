@@ -48,39 +48,134 @@ fn read_all_input() -> Vec<u8> {
     }
 }
 
-/// The fragments in the files, each checked against `base` on its own, so an
-/// error says which file it is in.
-pub fn read_fragments(base: &str, manifests: &[&str]) -> Vec<String> {
-    let mut texts = Vec::new();
-    for path in manifests {
-        let Ok(bytes) = std::fs::read(path) else {
-            fail(&format!(
+/// The texts of the fragments from `lotek takeover`. A fragment that is not
+/// there stops the run, before anything is checked.
+fn fragment_texts(manifests: &[&str]) -> Vec<String> {
+    manifests
+        .iter()
+        .map(|path| match std::fs::read(path) {
+            Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
+            Err(_) => fail(&format!(
                 "Manifest not found: \"{}\".\n\nThe fragment is written by lotek takeover, next to the copy.\n",
                 shown(path)
-            ));
-        };
-        let text = String::from_utf8_lossy(&bytes).into_owned();
-        if let Err(reason) = manifest::with_fragments(base, &[&text]) {
+            )),
+        })
+        .collect()
+}
+
+/// Checks each fragment against `base` on its own, so an error says which
+/// file it is in.
+fn check_fragments(base: &str, manifests: &[&str], texts: &[String]) {
+    for (path, text) in manifests.iter().zip(texts) {
+        if let Err(reason) = manifest::with_fragments(base, &[text]) {
             fail(&format!(
                 "\"{}\" cannot be read as a manifest: {reason}\n",
                 shown(path)
             ));
         }
-        texts.push(text);
     }
+}
+
+/// The fragments in the files, each checked against `base` on its own.
+pub fn read_fragments(base: &str, manifests: &[&str]) -> Vec<String> {
+    let texts = fragment_texts(manifests);
+    check_fragments(base, manifests, &texts);
     texts
 }
 
-/// The vocabulary: the manifest in the package, with the fragments added.
-fn vocabulary(manifests: &[&str]) -> std::rc::Rc<lotek_core::types::Vocabulary> {
-    let base = crate::package::manifest();
-    let texts = read_fragments(&base, manifests);
-    let all: Vec<&str> = texts.iter().map(String::as_str).collect();
-    match manifest::with_fragments(&base, &all) {
-        Ok(vocabulary) => std::rc::Rc::new(vocabulary),
-        Err(reason) => fail(&format!(
-            "The manifests cannot be read together: {reason}\n"
-        )),
+/// The vocabulary each file is checked against: the manifest that applies
+/// to it, with the fragments added.
+///
+/// The manifest is found as the editor finds it, with `lookup::candidates`:
+/// from the folder of the file upwards to the working directory, the one the
+/// project built before the package. When there is none, it is the package
+/// the command line reads everything else from, which may be above the
+/// working directory: `npx` from a folder in a monorepo finds the package at
+/// its root. Each manifest is read once, however many files it applies to.
+struct Vocabularies<'a> {
+    manifests: &'a [&'a str],
+    fragments: Vec<String>,
+    /// The working directory, which the search stops at.
+    root: Vec<String>,
+    /// By the path of the manifest, or `None` for the one in the package.
+    read: Vec<(Option<String>, std::rc::Rc<lotek_core::types::Vocabulary>)>,
+}
+
+impl<'a> Vocabularies<'a> {
+    fn new(manifests: &'a [&'a str]) -> Self {
+        let root = std::env::current_dir()
+            .ok()
+            .map(|here| here.to_string_lossy().replace('\\', "/"));
+        Vocabularies {
+            manifests,
+            fragments: fragment_texts(manifests),
+            root: root.into_iter().collect(),
+            read: Vec::new(),
+        }
+    }
+
+    /// The vocabulary for a file on disk, or for standard input and a page
+    /// that was fetched, which have no folder.
+    fn of(&mut self, file: Option<&str>) -> std::rc::Rc<lotek_core::types::Vocabulary> {
+        let document = file.zip(self.root.first()).map(|(file, root)| {
+            normalized(&std::path::Path::new(root).join(file))
+                .to_string_lossy()
+                .into_owned()
+        });
+        let found =
+            crate::lookup::first_file(crate::lookup::candidates(document.as_deref(), &self.root))
+                .map(|(path, _)| path);
+        if let Some((_, known)) = self.read.iter().find(|(path, _)| *path == found) {
+            return known.clone();
+        }
+        // The path from the working directory, as the user would write it.
+        let named = found.as_ref().map(|path| {
+            let relative = self
+                .root
+                .first()
+                .and_then(|root| path.strip_prefix(&format!("{}/", root.trim_end_matches('/'))));
+            shown(relative.unwrap_or(path))
+        });
+        let base = match (&found, &named) {
+            (Some(path), Some(named)) => match std::fs::read(path) {
+                Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
+                Err(_) => fail(&format!("Manifest not found: \"{named}\".\n")),
+            },
+            _ => crate::package::manifest(),
+        };
+        // The manifest on its own first, so one that cannot be read is blamed
+        // and not the fragment that was to go onto it.
+        if let Err(reason) = manifest::with_fragments(&base, &[]) {
+            fail(&match &named {
+                Some(named) => format!("\"{named}\" cannot be read as a manifest: {reason}\n"),
+                None => format!(
+                    "manifest/manifest.json in the package cannot be read as a manifest: {reason}\n"
+                ),
+            });
+        }
+        check_fragments(&base, self.manifests, &self.fragments);
+        let all: Vec<&str> = self.fragments.iter().map(String::as_str).collect();
+        let vocabulary = match manifest::with_fragments(&base, &all) {
+            Ok(vocabulary) => std::rc::Rc::new(vocabulary),
+            Err(reason) => fail(&format!(
+                "The manifests cannot be read together: {reason}\n"
+            )),
+        };
+        // A manifest the project has, built or installed nearer the file, is
+        // named: when it is stale, nothing else says why a class is unknown.
+        // Not when it is the manifest of the package the command reads from,
+        // which is what an ordinary project has in `node_modules`. The texts
+        // are compared, not the paths: pnpm installs the package through a
+        // link, and as a WASI module the command cannot resolve one.
+        if let Some(named) = &named {
+            let own = crate::package::dir()
+                .and_then(|package| std::fs::read(package.join("manifest/manifest.json")).ok());
+            if own.as_deref() != Some(base.as_bytes()) {
+                error(&format!("Checked against {named}."));
+            }
+        }
+        self.read.push((found, vocabulary.clone()));
+        vocabulary
     }
 }
 
@@ -247,6 +342,8 @@ struct Source {
     name: String,
     text: String,
     page: bool,
+    /// The path, for a file on disk. It decides which manifest applies.
+    file: Option<String>,
 }
 
 pub fn run(arguments: &[String]) {
@@ -265,7 +362,7 @@ pub fn run(arguments: &[String]) {
         .iter()
         .filter(|a| *a != "--rendered" && !a.starts_with("--manifest=") && !a.starts_with("--css="))
         .collect();
-    let vocabulary = vocabulary(&manifests);
+    let mut vocabularies = Vocabularies::new(&manifests);
     // The style sheets, so the check also sees what is not styled.
     let style_sheets: Vec<&str> = arguments
         .iter()
@@ -296,6 +393,7 @@ pub fn run(arguments: &[String]) {
             name: "stdin".into(),
             text,
             page: rendered,
+            file: None,
         });
     }
 
@@ -314,6 +412,7 @@ pub fn run(arguments: &[String]) {
                 name: address,
                 text,
                 page: true,
+                file: None,
             }),
             Some(Err(reason)) => unreachable.push(reason),
             None => match std::fs::read(input) {
@@ -321,6 +420,7 @@ pub fn run(arguments: &[String]) {
                     name: input.clone(),
                     text: without_bom(String::from_utf8_lossy(&bytes).into_owned()),
                     page: rendered,
+                    file: Some(input.clone()),
                 }),
                 Err(_) => missing.push(input.clone()),
             },
@@ -354,6 +454,7 @@ pub fn run(arguments: &[String]) {
     let mut found = 0;
     for source in &sources {
         let text = utf16(&source.text);
+        let vocabulary = vocabularies.of(source.file.as_deref());
         let findings = match &styles {
             Some(styles) => diagnose_styled(&text, &vocabulary, styles, source.page),
             None if source.page => diagnose_page(&text, &vocabulary),

@@ -26,7 +26,7 @@ class UnusedErrorTextInspection : LocalInspectionTool() {
         object : KtVisitorVoid() {
             override fun visitCallExpression(call: KtCallExpression) {
                 val builder = call.builderName() ?: return
-                if (builder != "field" && builder != "suggestion") return
+                if (builder !in withErrorText) return
                 val error = call.valueArguments.firstOrNull { it.getArgumentName()?.asName?.asString() == "error" } ?: return
                 if ((error.getArgumentExpression() as? KtConstantExpression)?.text != "true") return
                 val variable = call.assignedTo() ?: return

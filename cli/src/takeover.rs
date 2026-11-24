@@ -476,7 +476,10 @@ pub fn fragment(manifest: &Json, component: &str, names: &[String]) -> Json {
     };
     let version = manifest.get("version").cloned().unwrap_or(Json::Null);
     Json::Object(vec![
-        ("schemaVersion".into(), Json::Number(1.0)),
+        (
+            "schemaVersion".into(),
+            Json::Number(f64::from(lotek_core::manifest::SCHEMA_VERSION)),
+        ),
         ("version".into(), version),
         ("component".into(), Json::String(component.into())),
         ("elements".into(), section("elements")),
@@ -810,6 +813,12 @@ mod tests {
         let manifest = parse(&text).unwrap();
         let names = own_names(&manifest, "dialog");
         let fragment = fragment(&manifest, "dialog", &names).to_pretty();
+        // Written in the version this command line writes, not the oldest
+        // one it reads.
+        assert_eq!(
+            parse(&fragment).unwrap().get("schemaVersion"),
+            Some(&Json::Number(2.0))
+        );
         let vocabulary = lotek_core::manifest::with_fragments(&text, &[&fragment]).unwrap();
         assert!(vocabulary.elements.iter().any(|e| e.tag == "app-dialog"));
         assert!(vocabulary.classes.iter().any(|c| c.name == "app-dialog"));

@@ -39,8 +39,23 @@ const whole: Manifest = {
   textLanguage: "en",
 }
 
-// @ts-expect-error schemaVersion is 1, not any number
-const nextVersion: Manifest = { ...smallest, schemaVersion: 2 }
+// A consumer may hold a manifest of either version the readers understand.
+// Version 2 can say which rulebook a dependency or another name points to.
+const newest: Manifest = {
+  ...smallest,
+  schemaVersion: 2,
+  rulebooks: {
+    dependencies: [{ dependency: "astro", rulebook: "astro" }],
+    aliases: { vue: "bundles" },
+  },
+}
+const pointsNowhere: Manifest = {
+  ...smallest,
+  // @ts-expect-error a dependency points to a rulebook
+  rulebooks: { dependencies: [{ dependency: "astro" }], aliases: {} },
+}
+// @ts-expect-error schemaVersion is 1 or 2, not any number
+const nextVersion: Manifest = { ...smallest, schemaVersion: 3 }
 // @ts-expect-error tokens is required
 const withoutTokens: Manifest = {
   schemaVersion: 1,
@@ -103,6 +118,21 @@ const builder: Builder = {
     },
   },
 }
+// An option that is an id which must be the same on every render says so,
+// and one that is not says nothing.
+const withStableId: Builder = {
+  ...builder,
+  options: [
+    { name: "id", required: true, type: { kind: "text" }, stableId: true },
+  ],
+}
+const notStable: Builder = {
+  ...builder,
+  options: [
+    // @ts-expect-error a flag that is there is true, and off is left out
+    { name: "id", required: true, type: { kind: "text" }, stableId: false },
+  ],
+}
 const optionWithout: Builder = {
   ...builder,
   // @ts-expect-error an option says whether it is required
@@ -126,9 +156,13 @@ export const accepted = [
   node,
   builder,
   anatomy,
+  newest,
+  withStableId,
 ]
 export const rejected = [
   nextVersion,
+  pointsNowhere,
+  notStable,
   withoutTokens,
   unknownField,
   wrongContent,
