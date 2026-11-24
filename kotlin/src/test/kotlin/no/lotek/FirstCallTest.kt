@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource
  */
 class FirstCallTest {
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = ["checkRecipe", "recipeValues", "recipeBrands", "buildTheme", "inspectTheme", "diagnoseMarkup", "diagnosePage", "diagnoseRendered"])
+    @ValueSource(strings = ["checkRecipe", "recipeValues", "recipeBrands", "buildTheme", "inspectTheme", "diagnoseMarkup", "diagnosePage", "diagnoseRendered", "complete", "hover"])
     fun `answers as the first call in a JVM of its own`(operation: String) {
         val java = File(System.getProperty("java.home"), "bin/java").path
         val process =
@@ -54,6 +54,8 @@ object FirstCall {
                 "diagnoseMarkup" -> Lotek.diagnoseMarkup("""<button class="lt-buton">Send</button>""").size == 1
                 "diagnosePage" -> Lotek.diagnosePage(PAGE).isNotEmpty()
                 "diagnoseRendered" -> Lotek.diagnoseRendered(mapOf("html" to PAGE, "css" to emptyList<String>())).isNotEmpty()
+                "complete" -> Lotek.complete("""<hr class="lt-divider" data-variant="">""", 37, html = true).map { it.label } == listOf("subtle", "strong", "default")
+                "hover" -> Lotek.hover("""<hr class="lt-divider">""", 14)?.let { it.start to it.end } == (11 to 21)
                 else -> error("no such operation: ${args.single()}")
             }
         check(answered) { "${args.single()} answered something else than expected" }

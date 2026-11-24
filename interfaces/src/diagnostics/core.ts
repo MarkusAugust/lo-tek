@@ -196,6 +196,32 @@ export type CoreStyles = {
   imports: string[]
 }
 
+/** What a suggestion is, so an editor can show the kind. */
+export type SuggestionKind = "class" | "value" | "element" | "attribute"
+
+/**
+ * Something to write where the cursor is. `start` and `end` are the word it
+ * replaces, as UTF-16 indices, the ones a JavaScript string counts in. They
+ * are the same when there is no word.
+ */
+export type Suggestion = {
+  label: string
+  kind: SuggestionKind
+  /** A few words beside the label. */
+  detail?: string
+  /** More, as Markdown. */
+  documentation?: string
+  start: number
+  end: number
+}
+
+/** What an editor shows about the word under the pointer, as Markdown, and the word it is about. */
+export type Hover = {
+  text: string
+  start: number
+  end: number
+}
+
 export type Core = {
   /** Checks a template or a fragment. Throws without a manifest. */
   diagnoseMarkup(html: string): Finding[]
@@ -235,6 +261,19 @@ export type Core = {
    * `diagnoseMarkup`. Throws without a manifest.
    */
   diagnoseStyled(html: string, css: string[], page: boolean): Finding[]
+  /**
+   * What there is to write at `offset` in a template: the classes inside a
+   * class attribute, the values of an attribute, and the `<lt-…>` elements
+   * and their attributes. `html` says the editor has a service of its own
+   * for the elements and their attributes, and leaves them out. Throws
+   * without a manifest.
+   */
+  complete(text: string, offset: number, html: boolean): Suggestion[]
+  /**
+   * What there is to say about the word at `offset`: an `lt-` class in a
+   * class attribute, or `null`. Throws without a manifest.
+   */
+  hover(text: string, offset: number): Hover | null
 }
 
 type Exports = {
@@ -252,6 +291,8 @@ type Exports = {
   inspect_theme_raw(pointer: number, length: number): number
   inspect_styles_raw(pointer: number, length: number): void
   diagnose_styled_raw(pointer: number, length: number): number
+  complete_raw(pointer: number, length: number): number
+  hover_raw(pointer: number, length: number): number
   accessibility_tree_raw(pointer: number, length: number): number
   accessibility_facts_raw(): void
   accessibility_roles_raw(): void
@@ -333,5 +374,9 @@ export function loadCore(source: BufferSource | WebAssembly.Module): Core {
       answer(
         e.diagnose_styled_raw(...write(JSON.stringify({ html, css, page }))),
       ),
+    complete: (text, offset, html) =>
+      answer(e.complete_raw(...write(JSON.stringify({ text, offset, html })))),
+    hover: (text, offset) =>
+      answer(e.hover_raw(...write(JSON.stringify({ text, offset })))),
   }
 }

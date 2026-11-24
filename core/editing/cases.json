@@ -1,0 +1,452 @@
+{
+  "about": "What `complete` and `hover` answer, for the manifest in the package. The TypeScript core (core/scripts/check-core.ts) and Kotlin (EditingParityTest.kt) are both held to every case. `|` in `text` is the cursor and is not part of the text; positions are UTF-16 units. For `complete`, `expect` says: `count`, how many suggestions; `kinds`, the kinds among them; `range`, the `start` and `end` every one has; `labels`, every label in order; `first` and `last`, the labels at the ends; `has`, suggestions that are among them, compared on the fields written. For `hover`, `expect` is the answer, or null.",
+  "cases": [
+    {
+      "name": "every class inside a class attribute, and the word at the cursor is what is replaced",
+      "call": "complete",
+      "text": "<button class=\"lt-bu|t\"></button>",
+      "html": true,
+      "expect": {
+        "count": 80,
+        "kinds": ["class"],
+        "range": {
+          "start": 15,
+          "end": 21
+        },
+        "first": "lt-accordion",
+        "last": "lt-theme-control",
+        "has": [
+          {
+            "label": "lt-divider",
+            "kind": "class",
+            "detail": "Divider",
+            "documentation": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+            "start": 15,
+            "end": 21
+          },
+          {
+            "label": "lt-button",
+            "kind": "class",
+            "detail": "Button",
+            "start": 15,
+            "end": 21
+          },
+          {
+            "label": "lt-dialog__title",
+            "kind": "class",
+            "start": 15,
+            "end": 21
+          }
+        ]
+      }
+    },
+    {
+      "name": "the classes are the same outside HTML",
+      "call": "complete",
+      "text": "<button class=\"lt-bu|t\"></button>",
+      "html": false,
+      "expect": {
+        "count": 80,
+        "kinds": ["class"],
+        "range": {
+          "start": 15,
+          "end": 21
+        },
+        "first": "lt-accordion",
+        "last": "lt-theme-control",
+        "has": [
+          {
+            "label": "lt-divider",
+            "kind": "class",
+            "detail": "Divider",
+            "documentation": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+            "start": 15,
+            "end": 21
+          },
+          {
+            "label": "lt-button",
+            "kind": "class",
+            "detail": "Button",
+            "start": 15,
+            "end": 21
+          },
+          {
+            "label": "lt-dialog__title",
+            "kind": "class",
+            "start": 15,
+            "end": 21
+          }
+        ]
+      }
+    },
+    {
+      "name": "a second class, with nothing written yet",
+      "call": "complete",
+      "text": "<div class=\"lt-card |\"></div>",
+      "html": true,
+      "expect": {
+        "count": 80,
+        "kinds": ["class"],
+        "range": {
+          "start": 20,
+          "end": 20
+        },
+        "first": "lt-accordion",
+        "last": "lt-theme-control",
+        "has": [
+          {
+            "label": "lt-divider",
+            "kind": "class",
+            "detail": "Divider",
+            "documentation": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+            "start": 20,
+            "end": 20
+          },
+          {
+            "label": "lt-button",
+            "kind": "class",
+            "detail": "Button",
+            "start": 20,
+            "end": 20
+          },
+          {
+            "label": "lt-dialog__title",
+            "kind": "class",
+            "start": 20,
+            "end": 20
+          }
+        ]
+      }
+    },
+    {
+      "name": "text outside ASCII before the cursor: the positions are UTF-16 units",
+      "call": "complete",
+      "text": "<p>Blåbærsyltetøy 🫐 «æøå»</p>\n<hr class=\"lt-div|\">",
+      "html": true,
+      "expect": {
+        "count": 80,
+        "kinds": ["class"],
+        "range": {
+          "start": 42,
+          "end": 48
+        },
+        "first": "lt-accordion",
+        "last": "lt-theme-control",
+        "has": [
+          {
+            "label": "lt-divider",
+            "kind": "class",
+            "detail": "Divider",
+            "documentation": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+            "start": 42,
+            "end": 48
+          },
+          {
+            "label": "lt-button",
+            "kind": "class",
+            "detail": "Button",
+            "start": 42,
+            "end": 48
+          },
+          {
+            "label": "lt-dialog__title",
+            "kind": "class",
+            "start": 42,
+            "end": 48
+          }
+        ]
+      }
+    },
+    {
+      "name": "the values of an attribute a class on the tag takes, and its default last",
+      "call": "complete",
+      "text": "<hr class=\"lt-divider\" data-variant=\"|\">",
+      "html": true,
+      "expect": {
+        "count": 3,
+        "kinds": ["value"],
+        "range": {
+          "start": 37,
+          "end": 37
+        },
+        "labels": ["subtle", "strong", "default"],
+        "has": [
+          {
+            "label": "subtle",
+            "kind": "value",
+            "detail": "data-variant on Divider",
+            "start": 37,
+            "end": 37
+          },
+          {
+            "label": "strong",
+            "kind": "value",
+            "detail": "data-variant on Divider",
+            "start": 37,
+            "end": 37
+          },
+          {
+            "label": "default",
+            "kind": "value",
+            "detail": "default: the same as no data-variant",
+            "start": 37,
+            "end": 37
+          }
+        ]
+      }
+    },
+    {
+      "name": "the class may stand after the attribute, and the value half written is replaced",
+      "call": "complete",
+      "text": "<hr data-variant=\"st|r\" class=\"lt-divider\">",
+      "html": false,
+      "expect": {
+        "count": 3,
+        "kinds": ["value"],
+        "range": {
+          "start": 18,
+          "end": 21
+        },
+        "labels": ["subtle", "strong", "default"],
+        "has": [
+          {
+            "label": "strong",
+            "kind": "value",
+            "detail": "data-variant on Divider",
+            "start": 18,
+            "end": 21
+          }
+        ]
+      }
+    },
+    {
+      "name": "an attribute the class does not take has no values",
+      "call": "complete",
+      "text": "<hr class=\"lt-divider\" data-other=\"|\">",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "the values of an attribute of an element, outside HTML",
+      "call": "complete",
+      "text": "<lt-popover placement=\"to|p\"></lt-popover>",
+      "html": false,
+      "expect": {
+        "count": 4,
+        "kinds": ["value"],
+        "range": {
+          "start": 23,
+          "end": 26
+        },
+        "labels": ["bottom-start", "bottom-end", "top-start", "top-end"],
+        "has": [
+          {
+            "label": "bottom-start",
+            "kind": "value",
+            "detail": "placement on <lt-popover>",
+            "start": 23,
+            "end": 26
+          },
+          {
+            "label": "bottom-end",
+            "kind": "value",
+            "detail": "placement on <lt-popover>",
+            "start": 23,
+            "end": 26
+          },
+          {
+            "label": "top-start",
+            "kind": "value",
+            "detail": "placement on <lt-popover>",
+            "start": 23,
+            "end": 26
+          },
+          {
+            "label": "top-end",
+            "kind": "value",
+            "detail": "placement on <lt-popover>",
+            "start": 23,
+            "end": 26
+          }
+        ]
+      }
+    },
+    {
+      "name": "in HTML the editor's own service has the elements, and nothing is suggested for them",
+      "call": "complete",
+      "text": "<lt-popover placement=\"to|p\"></lt-popover>",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "the elements, outside HTML",
+      "call": "complete",
+      "text": "<main>\n  <lt-po|",
+      "html": false,
+      "expect": {
+        "count": 10,
+        "kinds": ["element"],
+        "range": {
+          "start": 10,
+          "end": 15
+        },
+        "labels": [
+          "lt-field",
+          "lt-tabs",
+          "lt-error-summary",
+          "lt-popover",
+          "lt-term",
+          "lt-suggestion",
+          "lt-dialog",
+          "lt-toast",
+          "lt-session-timeout",
+          "lt-connection-status"
+        ],
+        "has": [
+          {
+            "label": "lt-popover",
+            "kind": "element",
+            "documentation": "[Documentation](https://lo-tek.sobernetics.no/components/popover/)",
+            "start": 10,
+            "end": 15
+          }
+        ]
+      }
+    },
+    {
+      "name": "no elements in HTML",
+      "call": "complete",
+      "text": "<main>\n  <lt-po|",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "the attributes of an element, outside HTML, each with what it takes",
+      "call": "complete",
+      "text": "<lt-popover open |></lt-popover>",
+      "html": false,
+      "expect": {
+        "count": 3,
+        "kinds": ["attribute"],
+        "range": {
+          "start": 17,
+          "end": 17
+        },
+        "labels": ["open", "placement", "server-controlled"],
+        "has": [
+          {
+            "label": "open",
+            "kind": "attribute",
+            "detail": "flag",
+            "start": 17,
+            "end": 17
+          },
+          {
+            "label": "placement",
+            "kind": "attribute",
+            "detail": "bottom-start | bottom-end | top-start | top-end",
+            "start": 17,
+            "end": 17
+          },
+          {
+            "label": "server-controlled",
+            "kind": "attribute",
+            "detail": "flag",
+            "start": 17,
+            "end": 17
+          }
+        ]
+      }
+    },
+    {
+      "name": "no attributes of an element in HTML",
+      "call": "complete",
+      "text": "<lt-popover open |></lt-popover>",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "nothing in running text",
+      "call": "complete",
+      "text": "<p>Use lt-|</p>",
+      "html": false,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "nothing in running text, in HTML",
+      "call": "complete",
+      "text": "<p>Use lt-|</p>",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "nothing in an empty document",
+      "call": "complete",
+      "text": "|",
+      "html": false,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "a class in a class attribute",
+      "call": "hover",
+      "text": "<hr class=\"lt-div|ider\">",
+      "expect": {
+        "text": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+        "start": 11,
+        "end": 21
+      }
+    },
+    {
+      "name": "the cursor right after the class",
+      "call": "hover",
+      "text": "<hr class=\"lt-divider|\">",
+      "expect": {
+        "text": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+        "start": 11,
+        "end": 21
+      }
+    },
+    {
+      "name": "the same word in running text says nothing",
+      "call": "hover",
+      "text": "<p>Use lt-div|ider here</p>",
+      "expect": null
+    },
+    {
+      "name": "a class LO-TEK does not have says nothing",
+      "call": "hover",
+      "text": "<hr class=\"lt-div|idr\">",
+      "expect": null
+    },
+    {
+      "name": "an element is not a class",
+      "call": "hover",
+      "text": "<lt-pop|over></lt-popover>",
+      "expect": null
+    },
+    {
+      "name": "text outside ASCII before the class: the positions are UTF-16 units",
+      "call": "hover",
+      "text": "<p>Blåbærsyltetøy 🫐 «æøå»</p>\n<hr class=\"lt-div|ider\">",
+      "expect": {
+        "text": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+        "start": 42,
+        "end": 52
+      }
+    }
+  ]
+}

@@ -36,8 +36,11 @@ export {
   type CoreVersion,
   type Finding,
   type Fix,
+  type Hover,
   loadCore,
   type Severity,
+  type Suggestion,
+  type SuggestionKind,
   type Violation,
 } from "./core.js"
 

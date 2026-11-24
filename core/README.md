@@ -36,6 +36,13 @@ Each finding has `start`, `end`, `line`, `column`, `severity`, `rule`, `link`,
 JavaScript and Kotlin: the whole core works on UTF-16 units, so no
 position has to be converted. Line and column start at 1.
 
+`complete_raw(pointer, length)` takes `{"text": "…", "offset": 12, "html": true}`
+and answers with what there is to write at that position: classes, attribute
+values, and the elements and their attributes when `html` is false.
+`hover_raw(pointer, length)` takes `{"text": "…", "offset": 12}` and answers with
+what there is to say about the class there, or `null`. Both answer 1 with
+`{"error": …}` for input of another shape.
+
 The loader for JavaScript is in `interfaces/src/diagnostics/core.ts`, and
 the one for Kotlin in `../kotlin/src/main/kotlin/no/lotek/Lotek.kt`. Each is
 around 40 lines.

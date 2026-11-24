@@ -643,6 +643,97 @@ pub(crate) fn styles_json(styles: &styles::Styles) -> String {
     )
 }
 
+/// The text and the cursor an editor asks about: `{"text": "…", "offset": 12}`,
+/// where `offset` is a UTF-16 index.
+fn editing_input(input: &str, shape: &str) -> Result<(Vec<u16>, usize, json::Json), String> {
+    let wrong = || format!("The input must be {shape}, where offset is a UTF-16 index.");
+    let root = json::parse(input).map_err(|error| format!("{} {error}", wrong()))?;
+    let text = root
+        .get("text")
+        .and_then(json::Json::as_str)
+        .ok_or_else(wrong)?;
+    let offset = root
+        .get("offset")
+        .and_then(json::Json::as_f64)
+        .filter(|n| *n >= 0.0 && n.fract() == 0.0)
+        .ok_or_else(wrong)?;
+    Ok((utf16(text), offset as usize, root))
+}
+
+/// What there is to write where the cursor is:
+/// `{"text": "…", "offset": 12, "html": true}` in, see [`complete::complete`]
+/// for `html`, which is false when it is left out. Answers 0 with the
+/// suggestions, each with `label`, `kind`, `start` and `end`, and `detail`
+/// and `documentation` when it has them, or 1 with `{"error": "…"}` when the
+/// input does not have that shape or the core has not been given a manifest.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn complete_raw(ptr: *mut u8, length: usize) -> u32 {
+    let input = read_input(ptr, length);
+    let Some(vocabulary) = manifest::current() else {
+        return refuse(NO_MANIFEST);
+    };
+    let shape = "{\"text\": \"…\", \"offset\": 12, \"html\": true}";
+    let (text, offset, root) = match editing_input(&input, shape) {
+        Ok(read) => read,
+        Err(error) => return refuse(&error),
+    };
+    let html = matches!(root.get("html"), Some(json::Json::Bool(true)));
+    let suggestions: Vec<String> = complete::complete(&text, offset, html, &vocabulary)
+        .iter()
+        .map(|s| {
+            let optional = |name: &str, value: &Option<String>| {
+                value
+                    .as_ref()
+                    .map(|v| format!("\"{name}\":{},", json_string(v)))
+                    .unwrap_or_default()
+            };
+            format!(
+                "{{\"label\":{},\"kind\":{},{}{}\"start\":{},\"end\":{}}}",
+                json_string(&s.label),
+                json_string(s.kind.as_str()),
+                optional("detail", &s.detail),
+                optional("documentation", &s.documentation),
+                s.start,
+                s.end
+            )
+        })
+        .collect();
+    respond(format!("[{}]", suggestions.join(",")));
+    0
+}
+
+/// What there is to say about the word at the cursor:
+/// `{"text": "…", "offset": 12}` in. Answers 0 with `text`, as Markdown, and
+/// the `start` and `end` of the word, or with `null` when there is nothing to
+/// say, or 1 with `{"error": "…"}` like `complete_raw`.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn hover_raw(ptr: *mut u8, length: usize) -> u32 {
+    let input = read_input(ptr, length);
+    let Some(vocabulary) = manifest::current() else {
+        return refuse(NO_MANIFEST);
+    };
+    let (text, offset, _) = match editing_input(&input, "{\"text\": \"…\", \"offset\": 12}") {
+        Ok(read) => read,
+        Err(error) => return refuse(&error),
+    };
+    respond(match complete::hover(&text, offset, &vocabulary) {
+        Some(hover) => format!(
+            "{{\"text\":{},\"start\":{},\"end\":{}}}",
+            json_string(&hover.text),
+            hover.start,
+            hover.end
+        ),
+        None => "null".into(),
+    });
+    0
+}
+
 /// Puts the versions in the response, as JSON. The manifest's is `null` when
 /// the host has not given a manifest.
 #[no_mangle]

@@ -32,6 +32,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   Code that builds a row by hand must add them.
 - **`Core` has three new operations, `checkRecipe`, `recipeValues` and
   `recipeBrands`.** Code that implements `Core` itself must add them.
+- **`Core` has two more operations, `complete` and `hover`.** Code that
+  implements `Core` itself must add them.
 - **The report of `inspectTheme` has two more fields, `others` and
   `verdict`.** They are required in `ThemeReport` in TypeScript and Kotlin.
   Code that only reads a report is unaffected.
@@ -53,6 +55,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Added
 
+- **An editor can ask the core what to suggest.** `complete(text, offset,
+  html)` on the core from `loadCore()`, and `Lotek.complete` in Kotlin, give
+  the classes inside a class attribute, the values of an attribute, and the
+  `<lt-…>` elements with their attributes. `hover(text, offset)` gives what
+  there is to say about a class, as Markdown. They are what the language
+  server answers with, and the types `Suggestion`, `SuggestionKind` and
+  `Hover` are exported from `@lo-tek/interfaces/diagnostics`.
 - **The theme says in words what became of a brand colour.** `summary` is
   the first line `lotek theme` writes about the colour, and `reasons` the
   sentences under it. They are written by the core, so the command line, the
