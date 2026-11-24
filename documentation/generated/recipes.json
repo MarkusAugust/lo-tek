@@ -9839,12 +9839,7 @@
         "?raw",
         "lotek-core.wasm",
         "color-contract.json",
-        "@lo-tek/interfaces/color",
-        "parseHex",
-        "toHex",
-        "rgbToOklch",
-        "oklchToRgb",
-        "contrastRatio",
+        "inspectTheme",
         "@lo-tek/interfaces/contract",
         "@lo-tek/interfaces/matrix",
         "lotek check-theme theme.css"

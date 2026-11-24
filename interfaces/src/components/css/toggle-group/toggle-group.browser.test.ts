@@ -8,8 +8,7 @@ import {
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
-import { rgb } from "../../../testing/color"
-import { contrastRatio } from "../../../tokens/color"
+import { contrastRatio, rgb } from "../../../testing/color"
 import { toggleGroup } from "./toggle-group"
 
 import "../../../tokens/tokens.css"

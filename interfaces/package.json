@@ -130,10 +130,6 @@
       "types": "./dist/tokens/theme.d.ts",
       "import": "./dist/tokens/theme.js"
     },
-    "./color": {
-      "types": "./dist/tokens/color.d.ts",
-      "import": "./dist/tokens/color.js"
-    },
     "./contract": {
       "types": "./dist/tokens/contract.d.ts",
       "import": "./dist/tokens/contract.js"
@@ -384,7 +380,7 @@
     "check:anatomy": "bun scripts/check-anatomy.ts",
     "check:design-tool": "bun scripts/check-design-tool.ts",
     "core": "bun ../core/scripts/build.ts && mkdir -p core && cp ../core/dist/lotek-core.wasm ../core/dist/lotek.wasm core/",
-    "build": "bun run core && bun run generate && bun run test:scripts && rm -rf dist && tsc -b --force && bun run build:css && bun run check:exports && bun run check:server && bun run check:types && bun run check:writes && bun run check:layers && bun run check:test-files && bun run check:texts && bun run check:identifiers && bun run check:agent && bun run check:vocabulary && bun run check:manifest && bun run check:manifest-schema && bun run check:anatomy && bun run check:design-tool && bun run check:css-witness && bun run check:wording && bun run check:cli && bun run check:version && bun run check:package",
+    "build": "bun run core && bun run generate && bun run test:scripts && rm -rf dist && tsc -b --force && bun run build:css && bun run check:exports && bun run check:server && bun run check:types && bun run check:type-exports && bun run check:writes && bun run check:layers && bun run check:test-files && bun run check:texts && bun run check:identifiers && bun run check:agent && bun run check:vocabulary && bun run check:manifest && bun run check:manifest-schema && bun run check:anatomy && bun run check:design-tool && bun run check:css-witness && bun run check:wording && bun run check:cli && bun run check:version && bun run check:package",
     "typecheck": "tsc --noEmit",
     "typecheck:tests": "tsc --noEmit -p tsconfig.tests.json",
     "test:scripts": "bun test ./scripts/",
@@ -393,6 +389,7 @@
     "check:exports": "bun scripts/check-exports.ts",
     "check:server": "bun scripts/check-server-import.ts",
     "check:types": "bun scripts/check-types.ts",
+    "check:type-exports": "bun scripts/check-type-exports.ts",
     "check:tailwind": "bun scripts/check-tailwind.ts",
     "browsers": "playwright install chromium firefox webkit",
     "test:chromium": "vitest --config vitest.chromium.config.ts --run",

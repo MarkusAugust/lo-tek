@@ -328,7 +328,7 @@ const theme = core.buildTheme({ accent: "#7c3aed" })
 
 The core has no colours in it. You give it the colour contract, that is, the lightness per role and the promises, with `loadContract`, from the file in the package. `?url` and `?raw` are Vite's way of getting the address of a file and its text. Without a build step, put `lotek-core.wasm` and `color-contract.json` from the package next to the page, and fetch them from there.
 
-If you want to do the maths yourself, `@lo-tek/interfaces/color` has the functions: `parseHex`, `toHex`, `rgbToOklch`, `oklchToRgb` and `contrastRatio`. The lightness of each role and the contrast requirements are in `@lo-tek/interfaces/contract`, and LO-TEK's own colours in `@lo-tek/interfaces/matrix`.
+The core does the colour arithmetic, and `inspectTheme` under [The check](#the-check) says whether a set of colours keeps the contract. The lightness of each role and the contrast requirements are in `@lo-tek/interfaces/contract`, and LO-TEK's own colours in `@lo-tek/interfaces/matrix`.
 
 ## The check
 

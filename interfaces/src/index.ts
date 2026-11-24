@@ -2,12 +2,14 @@ export type {
   AccordionAttributes,
   AccordionOptions,
   AccordionVariant,
+  NonDefaultAccordionVariant,
 } from "./components/css/accordion/accordion.js"
 export { accordion } from "./components/css/accordion/accordion.js"
 export type {
   AlertAttributes,
   AlertColor,
   AlertOptions,
+  NonNeutralAlertColor,
 } from "./components/css/alert/alert.js"
 export { alert } from "./components/css/alert/alert.js"
 export type {
@@ -15,12 +17,15 @@ export type {
   AvatarOptions,
   AvatarSize,
   AvatarVariant,
+  NonDefaultAvatarSize,
+  NonDefaultAvatarVariant,
 } from "./components/css/avatar/avatar.js"
 export { avatar } from "./components/css/avatar/avatar.js"
 export type {
   BadgeAttributes,
   BadgeColor,
   BadgeOptions,
+  NonInfoBadgeColor,
 } from "./components/css/badge/badge.js"
 export { badge } from "./components/css/badge/badge.js"
 export type { BreadcrumbsAttributes } from "./components/css/breadcrumbs/breadcrumbs.js"
@@ -29,12 +34,14 @@ export type {
   ButtonAttributes,
   ButtonOptions,
   ButtonVariant,
+  NonPrimaryButtonVariant,
 } from "./components/css/button/button.js"
 export { button } from "./components/css/button/button.js"
 export type {
   CardAttributes,
   CardOptions,
   CardVariant,
+  NonDefaultCardVariant,
 } from "./components/css/card/card.js"
 export { card } from "./components/css/card/card.js"
 export type {
@@ -46,12 +53,14 @@ export type {
   DividerAttributes,
   DividerOptions,
   DividerVariant,
+  NonDefaultDividerVariant,
 } from "./components/css/divider/divider.js"
 export { divider } from "./components/css/divider/divider.js"
 export type {
   ErrorTextAttributes,
   ErrorTextOptions,
   ErrorTextVariant,
+  NonDefaultErrorTextVariant,
 } from "./components/css/error-text/error-text.js"
 export { errorText } from "./components/css/error-text/error-text.js"
 export type {
@@ -70,12 +79,14 @@ export type {
   HeadingAttributes,
   HeadingOptions,
   HeadingSize,
+  NonDefaultHeadingSize,
 } from "./components/css/heading/heading.js"
 export { heading } from "./components/css/heading/heading.js"
 export type {
   HelpTextAttributes,
   HelpTextOptions,
   HelpTextVariant,
+  NonDefaultHelpTextVariant,
 } from "./components/css/help-text/help-text.js"
 export { helpText } from "./components/css/help-text/help-text.js"
 export type {
@@ -100,11 +111,14 @@ export type {
   ListAttributes,
   ListOptions,
   ListVariant,
+  NonDefaultListVariant,
 } from "./components/css/list/list.js"
 export { list } from "./components/css/list/list.js"
 export type { PaginationAttributes } from "./components/css/pagination/pagination.js"
 export { pagination } from "./components/css/pagination/pagination.js"
 export type {
+  NonDefaultParagraphSize,
+  NonDefaultParagraphVariant,
   ParagraphAttributes,
   ParagraphOptions,
   ParagraphSize,
@@ -140,6 +154,7 @@ export {
 } from "./components/css/select/select.js"
 export * from "./components/css/shared.js"
 export type {
+  NonDefaultSkeletonVariant,
   SkeletonAttributes,
   SkeletonOptions,
   SkeletonVariant,
@@ -148,6 +163,7 @@ export { skeleton } from "./components/css/skeleton/skeleton.js"
 export type { SkipLinkAttributes } from "./components/css/skip-link/skip-link.js"
 export { skipLink } from "./components/css/skip-link/skip-link.js"
 export type {
+  NonDefaultSpinnerSize,
   SpinnerAttributes,
   SpinnerOptions,
   SpinnerSize,
@@ -163,6 +179,7 @@ export type {
 } from "./components/css/switch/switch.js"
 export { switchControl } from "./components/css/switch/switch.js"
 export type {
+  NonDefaultTableVariant,
   TableAttributes,
   TableOptions,
   TableSortAttributes,
@@ -176,6 +193,7 @@ export {
   tableSortDirections,
 } from "./components/css/table/table.js"
 export type {
+  NonDefaultTagVariant,
   TagAttributes,
   TagOptions,
   TagVariant,
@@ -193,6 +211,7 @@ export { tooltip } from "./components/css/tooltip/tooltip.js"
 export type { LtEventMap } from "./components/events.js"
 export type {
   DialogAttributes,
+  DialogColor,
   DialogOptions,
 } from "./components/frame/dialog/dialog.js"
 export { dialog } from "./components/frame/dialog/dialog.js"

@@ -7,9 +7,8 @@ import {
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
-import { color } from "../../../testing/color"
+import { color, contrastRatio, parseHex } from "../../../testing/color"
 import { findOverflow, mountIsolated } from "../../../testing/isolated"
-import { contrastRatio, parseHex } from "../../../tokens/color"
 import selectCss from "./select.css?inline"
 
 import "../../../tokens/tokens.css"

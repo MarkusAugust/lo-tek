@@ -487,6 +487,24 @@ const TYPESCRIPT_IN_SCRIPT: [string, string] = [
   'TypeScript syntax in a `<script type="module">` without a build step',
 ]
 
+/** The end of item 1: what a page without the styles looks like, and the only answer to it. */
+const unstyled = (what: "it" | "them", remedy: "link" | "import") =>
+  `Without ${what}, the components look unstyled. The answer is then to add the
+   ${remedy}, never to write your own CSS to make them look right.`
+
+/** What the components say when a patch from the server replaces what the user touches. */
+const PATCH_WARNINGS = `\`<lt-field>\` and \`<lt-suggestion>\` warn in the console when a patch
+replaces the field with one that has another id, the same \`name\` and another
+value, and \`<lt-popover>\` when a patch replaces the open panel with one that
+has another id. \`<lt-tabs>\` repairs the selection without a word.`
+
+const SERVER_CONTROLLED = `The attribute exists on \`<lt-tabs>\`, \`<lt-popover>\`, \`<lt-dialog>\` and
+\`<lt-suggestion>\`. Without it the server and the component would fight over
+the same state.`
+
+const SET_BEFORE_REGISTRATION = `A property set before the registration, such as \`open\`, is written
+through the setter once the element is upgraded.`
+
 const TOKENS_FIRST = `\`tokens.css\` defines all the variables, and all the other
 stylesheets build on it. It must be loaded, and comes first out of habit: the
 order between it and the others does not matter.`
@@ -519,8 +537,7 @@ hand-written HTML, where the browser loads the files directly. If you use a
 bundler, React, Astro or Datastar, or the server produces the markup, another
 file in this folder applies.`,
     stylesheetRule: `**One \`<link>\` to \`lotek.css\`, before everything else.**
-   Without it, the components look unstyled. The answer is then to add the
-   link, never to write your own CSS to make them look right.`,
+   ${unstyled("it", "link")}`,
     pointFour: `**Web components are registered once with \`defineLt*()\`** in a
    \`<script type="module">\`, and a boolean attribute is true as long as it is
    there: \`hidden="false"\` still hides the error text.`,
@@ -638,8 +655,7 @@ stops \`data-variant="outlined"\`.
 That is why item 5 applies more strictly here than anywhere else: the check is
 the only thing that reads your markup.`,
     stylesheetRule: `**One \`<link>\` to \`lotek.css\` in the page template,** once
-   for the whole app. Without it, the components look unstyled. The answer is
-   then to add the link, never to write your own CSS to make them look right.`,
+   for the whole app. ${unstyled("it", "link")}`,
     pointFour: `**Web components are registered once with \`defineLt*()\`** in
    the page template, and a boolean attribute is true as long as it is there.
    In a template that means a condition around the whole attribute,
@@ -732,10 +748,7 @@ to, the same on every render. The panel in \`<lt-popover>\` needs an id in the
 same way, for \`aria-controls\` on the button; the component creates none. The
 list and the options in \`<lt-suggestion>\` can be replaced; the component
 wires them again and finds the highlighted option again by its text.
-\`<lt-field>\` and \`<lt-suggestion>\` warn in the console when a patch
-replaces the field with one that has another id, the same \`name\` and another
-value, and \`<lt-popover>\` when a patch replaces the open panel with one that
-has another id. \`<lt-tabs>\` repairs the selection without a word.
+${PATCH_WARNINGS}
 
 If the server should be able to move the state, as in "go on to step 2", say
 so with \`server-controlled\`. Then every patch decides, and the component
@@ -752,9 +765,7 @@ stops putting the user's choice back:
 </lt-tabs>
 \`\`\`
 
-The attribute exists on \`<lt-tabs>\`, \`<lt-popover>\`, \`<lt-dialog>\` and
-\`<lt-suggestion>\`. Without it the server and the component would fight over
-the same state. Note that the state is always in the markup the server sent:
+${SERVER_CONTROLLED} Note that the state is always in the markup the server sent:
 \`aria-selected\` on the tab and \`hidden\` on the panel in \`<lt-tabs>\`,
 \`open\` on \`<lt-popover>\` and \`<lt-dialog>\`, and \`hidden\` on the list and
 \`aria-expanded\` on the field in \`<lt-suggestion>\`.
@@ -818,8 +829,7 @@ the attribute names differ and \`react.md\` applies instead. If you write
 Astro, the stylesheets are imported in the frontmatter and \`astro.md\`
 applies.`,
     stylesheetRule: `**Import the stylesheets in the entry module**, \`tokens.css\`
-   first. Without them, the components look unstyled. The answer is then to
-   add the import, never to write your own CSS to make them look right.`,
+   first. ${unstyled("them", "import")}`,
     pointFour: `**\`defineLt*()\` runs at the top of \`main.ts\`,** not in a
    lifecycle hook, and a boolean attribute is true as long as it is there.
    Check that what ends up in the DOM is not \`hidden="false"\`: the attribute
@@ -861,9 +871,7 @@ defineLtField()
 The call is in the module, not in \`mounted\`, \`onMount\` or an effect. A hook
 runs after the first paint, so the elements in the markup are plain
 \`HTMLElement\`s when the framework renders them, and a call to \`show()\` or
-\`reportFailure()\` before the hook fails with "is not a function". A property
-set before the registration, such as \`open\`, is written through the setter
-once the element is upgraded.
+\`reportFailure()\` before the hook fails with "is not a function". ${SET_BEFORE_REGISTRATION}
 
 The markup is ordinary HTML, in whatever template your framework uses:
 
@@ -953,8 +961,7 @@ enough to have its own file: React rewrites the attribute names. \`class\` is
 from the main entry, React prints "Invalid DOM property" in the console, once
 for each attribute name. That is why the package has a React entry of its own.`,
     stylesheetRule: `**Import the stylesheets in \`main.tsx\`**, \`tokens.css\`
-   first. Without them, the components look unstyled. The answer is then to
-   add the import, never to write your own CSS to make them look right.`,
+   first. ${unstyled("them", "import")}`,
     pointFour: `**\`defineLt*()\` runs at the top of \`main.tsx\`,** not in a
    \`useEffect\`, and a boolean attribute on a web component is set as
    \`open={isOpen || undefined}\`. The two other ways of writing it are each
@@ -1000,8 +1007,7 @@ defineLt()
 The call is at the top of the module, not in a \`useEffect\`. An effect runs
 after the first paint, so the elements are plain \`HTMLElement\`s when React
 renders them, and a call to \`show()\` or \`reportFailure()\` before the effect
-fails with "is not a function". A property set before the registration, such
-as \`open\`, is written through the setter once the element is upgraded. The
+fails with "is not a function". ${SET_BEFORE_REGISTRATION} The
 function does nothing on a server, so it
 can sit in a root module that runs in both places. If you use only one
 component, it has its own function, such as \`defineLtTabs()\` in
@@ -1132,8 +1138,7 @@ this runs at build time: out comes plain HTML, and \`lt\` is gone once the
 page is built. The only JavaScript the browser gets from the package is the
 registration of the web components you use, in a \`<script>\`.`,
     stylesheetRule: `**Import the stylesheets in the frontmatter**, \`tokens.css\`
-   first. Without them, the components look unstyled. The answer is then to
-   add the import, never to write your own CSS to make them look right.`,
+   first. ${unstyled("them", "import")}`,
     pointFour: `**\`defineLt*()\` belongs in a \`<script>\` in the template, never
    in the frontmatter:** the frontmatter runs at build time, or on the server
    when a page is rendered on demand, and \`customElements\` exists in
@@ -1260,8 +1265,7 @@ without a bundler does not resolve a package name, and the state is
 controlled with attributes, which is exactly what the \`frame\` components
 expect.`,
     stylesheetRule: `**One \`<link>\` to \`lotek.css\`, before everything else.**
-   Without it, the components look unstyled. The answer is then to add the
-   link, never to write your own CSS to make them look right.`,
+   ${unstyled("it", "link")}`,
     pointFour: `**\`defineLt*()\` runs once in a \`<script type="module">\` with
    the full URL,** and the state is set with \`data-attr:\`, which adds and
    removes the attribute. \`hidden="false"\` would hide the error text all
@@ -1364,11 +1368,7 @@ panel in \`<lt-popover>\` needs an id in the same way; the component creates
 none. The control in \`<lt-field>\` and the field in \`<lt-suggestion>\` never
 get an id from the component: the template writes \`for\` and \`id\`, which
 HTML requires for the field to have a name without JavaScript, or the label
-wraps the field and no id is needed. \`<lt-field>\` and \`<lt-suggestion>\`
-warn in the console when a patch replaces the field with one that has another
-id, the same \`name\` and another value, and \`<lt-popover>\` when a patch
-replaces the open panel with one that has another id. \`<lt-tabs>\` repairs
-the selection without a word. If the server
+wraps the field and no id is needed. ${PATCH_WARNINGS} If the server
 should be able to move the tab, say so with \`server-controlled\`:
 
 \`\`\`html
@@ -1382,9 +1382,7 @@ should be able to move the tab, say so with \`server-controlled\`:
 </lt-tabs>
 \`\`\`
 
-The attribute exists on \`<lt-tabs>\`, \`<lt-popover>\`, \`<lt-dialog>\` and
-\`<lt-suggestion>\`. Without it the server and the component would fight over
-the same state.
+${SERVER_CONTROLLED}
 
 \`lt\`, or \`Lt\` on a Kotlin or Java server, can be used on the server or in
 a build step. Datastar does not need it in the browser.`,
@@ -1420,8 +1418,7 @@ does not see markup written by hand next to them, or the wiring across a
 whole page. That is what \`assertLotek\` reads.`,
     stylesheetRule: `**One \`<link>\` to \`LotekWebJar.CSS\` in the page
    template,** once for the whole app, with the WebJar served under
-   \`/webjars\`. Without it, the components look unstyled. The answer is then
-   to add the link, never to write your own CSS to make them look right.`,
+   \`/webjars\`. ${unstyled("it", "link")}`,
     pointFour: `**Web components are registered once with \`defineLt()\` from
    \`LotekWebJar.REGISTER\`** in the page template, and a boolean attribute is
    true as long as it is there. In kotlinx.html a flag property set to

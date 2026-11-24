@@ -2,7 +2,7 @@
 
 import { afterEach, describe, expect, it } from "vitest"
 import { color, rgb } from "./testing/color"
-import { contrastRatio } from "./tokens/color"
+import { contrastRatio } from "./testing/color.js"
 
 import "./tokens/tokens.css"
 import "./components/css/button/button.css"
