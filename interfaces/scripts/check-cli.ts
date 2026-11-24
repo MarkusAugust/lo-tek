@@ -294,6 +294,95 @@ block(async () => {
   await rm(folder, { recursive: true, force: true })
 })
 
+// The verdict of `check-theme`, to the letter, for one file and for several:
+// the themes the core is held to, and what the command said of them while it
+// worded the verdict itself. The problems above the verdict are those of the
+// expected reports.
+block(async () => {
+  const themes = join(packageDir, "../core/theme")
+  const reports: Record<
+    string,
+    { problems: { selector: string; message: string }[] }
+  > = JSON.parse(await readFile(join(themes, "reports.json"), "utf8"))
+  const problems = (file: string) =>
+    reports[file.replace(/[.]css$/, "")].problems
+      .map(({ selector, message }) => `${file}  ${selector}\n  ${message}\n`)
+      .join("")
+  const KEPT = "The theme keeps every promise. Checked"
+  const CASES: [files: string[], code: number, verdict: string][] = [
+    [
+      ["own-theme-holds.css"],
+      0,
+      `${KEPT} 166 values in 2 blocks, against 306 promises, in 1 file.`,
+    ],
+    [
+      ["own-theme-holds.css", "dark-in-media.css"],
+      0,
+      `${KEPT} 249 values in 3 blocks, against 459 promises, in 2 files.`,
+    ],
+    [
+      ["text-too-light.css"],
+      1,
+      "8 problems. Checked 2 values in 1 block, against 306 promises, in 1 file.",
+    ],
+    [
+      ["own-theme-holds.css", "text-too-light.css"],
+      1,
+      "8 problems. Checked 168 values in 3 blocks, against 612 promises, in 2 files.",
+    ],
+    [
+      ["no-tokens.css"],
+      1,
+      "1 problem. Checked 0 values in 0 blocks, against 0 promises, in 1 file.",
+    ],
+    [
+      ["no-tokens.css", "own-theme-holds.css"],
+      1,
+      "1 problem. Checked 166 values in 2 blocks, against 306 promises, in 2 files.",
+    ],
+    [
+      ["without-colors.css"],
+      0,
+      "No contrast to check: 1 file sets only 4 tokens without a contrast promise, such as font, shape and the system colours.",
+    ],
+    [
+      ["without-colors.css", "without-colors.css"],
+      0,
+      "No contrast to check: 2 files sets only 8 tokens without a contrast promise, such as font, shape and the system colours.",
+    ],
+    // A theme without colours beside one with colours is nothing to remark
+    // on, and beside a file without a theme it is that file's problem.
+    [
+      ["without-colors.css", "own-theme-holds.css"],
+      0,
+      `${KEPT} 166 values in 2 blocks, against 306 promises, in 2 files.`,
+    ],
+    [
+      ["without-colors.css", "no-tokens.css"],
+      1,
+      "1 problem. Checked 0 values in 0 blocks, against 0 promises, in 2 files.",
+    ],
+  ]
+  for (const [files, code, verdict] of CASES) {
+    const found = await run(["check-theme", ...files], themes)
+    // What holds goes to the output. What is broken goes to the error
+    // output, under the problems and a blank line.
+    const wanted =
+      code === 0
+        ? { code, out: `${verdict}\n`, err: "" }
+        : {
+            code,
+            out: "",
+            err: `${files.map(problems).join("")}\n${verdict}\n`,
+          }
+    const said = { ...found, err: found.err.replaceAll("\r\n", "\n") }
+    expect(
+      JSON.stringify(said) === JSON.stringify(wanted),
+      `check-theme ${files.join(" ")}\n  Expected: ${JSON.stringify(wanted).slice(0, 600)}\n  Got:      ${JSON.stringify(said).slice(0, 600)}`,
+    )
+  }
+})
+
 // A family that is left out inherits LO-TEK's own, rather than failing the run
 block(async () => {
   const { code, out } = await run(["theme", "--accent=#7c3aed"])

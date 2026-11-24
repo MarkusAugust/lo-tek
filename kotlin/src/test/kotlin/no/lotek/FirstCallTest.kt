@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource
  */
 class FirstCallTest {
     @ParameterizedTest(name = "{0}")
-    @ValueSource(strings = ["checkRecipe", "recipeValues", "buildTheme", "inspectTheme", "diagnoseMarkup", "diagnosePage", "diagnoseRendered"])
+    @ValueSource(strings = ["checkRecipe", "recipeValues", "recipeBrands", "buildTheme", "inspectTheme", "diagnoseMarkup", "diagnosePage", "diagnoseRendered"])
     fun `answers as the first call in a JVM of its own`(operation: String) {
         val java = File(System.getProperty("java.home"), "bin/java").path
         val process =
@@ -48,8 +48,9 @@ object FirstCall {
             when (args.single()) {
                 "checkRecipe" -> Lotek.checkRecipe("""{"accent": "purple"}""").any { it.kind == "refused" }
                 "recipeValues" -> Lotek.recipeValues("""{"accent": "#7c3aed"}""").map { it.text } == listOf("#7c3aed")
+                "recipeBrands" -> Lotek.recipeBrands("""{"accent": "#7c3aed", "danger": "purple"}""").map { it.family } == listOf("accent")
                 "buildTheme" -> Lotek.buildTheme("""{"accent": "#7c3aed"}""").css.contains("lotek-theme")
-                "inspectTheme" -> Lotek.inspectTheme(":root { --lt-color-accent-text: #ffffff; }").blocks == 1
+                "inspectTheme" -> Lotek.inspectTheme(":root { --lt-color-accent-text: #ffffff; }").let { it.blocks == 1 && it.verdict.kind == "broken" }
                 "diagnoseMarkup" -> Lotek.diagnoseMarkup("""<button class="lt-buton">Send</button>""").size == 1
                 "diagnosePage" -> Lotek.diagnosePage(PAGE).isNotEmpty()
                 "diagnoseRendered" -> Lotek.diagnoseRendered(mapOf("html" to PAGE, "css" to emptyList<String>())).isNotEmpty()

@@ -30,8 +30,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   They are required in `Brand` in TypeScript and in `ThemeBrand` in Kotlin,
   where they come after `dark`. Code that only reads a theme is unaffected.
   Code that builds a row by hand must add them.
-- **`Core` has two new operations, `checkRecipe` and `recipeValues`.** Code
-  that implements `Core` itself must add them.
+- **`Core` has three new operations, `checkRecipe`, `recipeValues` and
+  `recipeBrands`.** Code that implements `Core` itself must add them.
+- **The report of `inspectTheme` has two more fields, `others` and
+  `verdict`.** They are required in `ThemeReport` in TypeScript and Kotlin.
+  Code that only reads a report is unaffected.
 
 ### Added
 
@@ -54,6 +57,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   generator about what counts as given. `recipeValues` from
   `@lo-tek/interfaces/theme`, `Lotek.recipeValues` in Kotlin, and on `Core`.
 
+- **`recipeBrands` says what became of each colour the core takes,**
+  whatever else in the recipe is wrong: the rows `buildTheme` gives as
+  `brands`, as they would be without the values the core refuses.
+  `recipeBrands` from `@lo-tek/interfaces/theme`, `Lotek.recipeBrands` in
+  Kotlin, and on `Core`.
+- **`inspectTheme` gives the verdict `lotek check-theme` gives.** `verdict`
+  has a `kind`, `kept`, `broken` or `withoutColours`, and the sentence the
+  command writes for one file. `others` counts the tokens the file sets that
+  have no contrast promise, which is what tells a theme of only font and
+  shape from a file with no theme in it.
 - **The schema of a theme recipe says what a key is when it is left out.**
   Each key with one value in LO-TEK has it as `default`, which an editor
   writes when the key is completed: the weights, the line heights, the

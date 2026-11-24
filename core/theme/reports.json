@@ -3,7 +3,12 @@
     "problems": [],
     "blocks": 2,
     "declarations": 166,
-    "promises": 306
+    "promises": 306,
+    "others": 0,
+    "verdict": {
+      "kind": "kept",
+      "message": "The theme keeps every promise. Checked 166 values in 2 blocks, against 306 promises, in 1 file."
+    }
   },
   "text-too-light": {
     "problems": [
@@ -42,13 +47,23 @@
     ],
     "blocks": 1,
     "declarations": 2,
-    "promises": 306
+    "promises": 306,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "8 problems. Checked 2 values in 1 block, against 306 promises, in 1 file."
+    }
   },
   "dark-in-media": {
     "problems": [],
     "blocks": 1,
     "declarations": 83,
-    "promises": 153
+    "promises": 153,
+    "others": 0,
+    "verdict": {
+      "kind": "kept",
+      "message": "The theme keeps every promise. Checked 83 values in 1 block, against 153 promises, in 1 file."
+    }
   },
   "values-that-cannot-be-computed": {
     "problems": [
@@ -71,7 +86,12 @@
     ],
     "blocks": 1,
     "declarations": 0,
-    "promises": 153
+    "promises": 153,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "4 problems. Checked 0 values in 1 block, against 153 promises, in 1 file."
+    }
   },
   "incomplete-family": {
     "problems": [
@@ -82,7 +102,12 @@
     ],
     "blocks": 1,
     "declarations": 1,
-    "promises": 153
+    "promises": 153,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "1 problem. Checked 1 value in 1 block, against 153 promises, in 1 file."
+    }
   },
   "hyphen-in-family": {
     "problems": [
@@ -93,13 +118,23 @@
     ],
     "blocks": 1,
     "declarations": 2,
-    "promises": 306
+    "promises": 306,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "1 problem. Checked 2 values in 1 block, against 306 promises, in 1 file."
+    }
   },
   "color-scheme-variants": {
     "problems": [],
     "blocks": 4,
     "declarations": 4,
-    "promises": 612
+    "promises": 612,
+    "others": 0,
+    "verdict": {
+      "kind": "kept",
+      "message": "The theme keeps every promise. Checked 4 values in 4 blocks, against 612 promises, in 1 file."
+    }
   },
   "nested": {
     "problems": [
@@ -126,7 +161,12 @@
     ],
     "blocks": 2,
     "declarations": 2,
-    "promises": 459
+    "promises": 459,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "5 problems. Checked 2 values in 2 blocks, against 459 promises, in 1 file."
+    }
   },
   "truncated": {
     "problems": [
@@ -157,29 +197,49 @@
     ],
     "blocks": 1,
     "declarations": 1,
-    "promises": 306
+    "promises": 306,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "6 problems. Checked 1 value in 1 block, against 306 promises, in 1 file."
+    }
   },
   "no-tokens": {
-    "blocks": 0,
-    "declarations": 0,
-    "promises": 0,
     "problems": [
       {
         "selector": "(whole file)",
         "message": "Found no --lt-color-* values. Is this a LO-TEK theme, and are the values inside a block?"
       }
-    ]
+    ],
+    "blocks": 0,
+    "declarations": 0,
+    "promises": 0,
+    "others": 0,
+    "verdict": {
+      "kind": "broken",
+      "message": "1 problem. Checked 0 values in 0 blocks, against 0 promises, in 1 file."
+    }
   },
   "system-colors": {
     "problems": [],
     "blocks": 1,
     "declarations": 1,
-    "promises": 153
+    "promises": 153,
+    "others": 6,
+    "verdict": {
+      "kind": "kept",
+      "message": "The theme keeps every promise. Checked 1 value in 1 block, against 153 promises, in 1 file."
+    }
   },
   "without-colors": {
     "problems": [],
     "blocks": 0,
     "declarations": 0,
-    "promises": 0
+    "promises": 0,
+    "others": 4,
+    "verdict": {
+      "kind": "withoutColours",
+      "message": "No contrast to check: 1 file sets only 4 tokens without a contrast promise, such as font, shape and the system colours."
+    }
   }
 }

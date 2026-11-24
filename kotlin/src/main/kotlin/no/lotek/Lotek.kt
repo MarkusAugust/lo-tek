@@ -109,8 +109,7 @@ object Lotek {
      * contract is missing from the jar, it throws [IllegalStateException].
      */
     fun checkRecipe(recipe: String): List<RecipeProblem> {
-        val (status, answer) = withCore { it.useContract(); it.callWithStatus(CHECK_RECIPE, recipe) }
-        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        val answer = askTheme(CHECK_RECIPE, recipe)
         return (Json.parse(answer) as List<*>).map { p ->
             val m = p as Map<*, *>
             RecipeProblem(
@@ -133,8 +132,7 @@ object Lotek {
      * contract is missing from the jar, it throws [IllegalStateException].
      */
     fun recipeValues(recipe: String): List<RecipeValue> {
-        val (status, answer) = withCore { it.useContract(); it.callWithStatus(RECIPE_VALUES, recipe) }
-        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        val answer = askTheme(RECIPE_VALUES, recipe)
         return (Json.parse(answer) as List<*>).map { v ->
             val m = v as Map<*, *>
             RecipeValue(path = (m["path"] as List<*>).map { it as String }, text = m["text"] as String)
@@ -156,25 +154,13 @@ object Lotek {
      * [IllegalStateException].
      */
     fun buildTheme(recipe: String): Theme {
-        val (status, answer) = withCore { it.useContract(); it.callWithStatus(BUILD_THEME, recipe) }
-        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        val answer = askTheme(BUILD_THEME, recipe)
         val theme = Json.parse(answer) as Map<*, *>
         return Theme(
             light = theme["light"].texts(),
             dark = theme["dark"].texts(),
             violations = theme["violations"].violations(),
-            brands =
-                (theme["brands"] as List<*>).map { b ->
-                    val m = b as Map<*, *>
-                    ThemeBrand(
-                        family = m["family"] as String,
-                        given = m["given"] as String,
-                        light = m["light"].brandFill(),
-                        dark = m["dark"].brandFill(),
-                        summary = m["summary"] as String,
-                        reasons = (m["reasons"] as List<*>).map { it as String },
-                    )
-                },
+            brands = theme["brands"].brands(),
             css = theme["css"] as String,
         )
     }
@@ -187,6 +173,46 @@ object Lotek {
                 promise = m["promise"] as String,
                 ratio = m["ratio"] as Double,
                 required = m["required"] as Double,
+            )
+        }
+
+    /**
+     * Says what became of each colour the core takes in a recipe, whatever
+     * else in it is wrong: the rows [buildTheme] gives as [Theme.brands], for
+     * every family whose own value is a colour, as they would be without the
+     * values the core refuses. For a recipe [buildTheme] takes, it is its
+     * [Theme.brands].
+     *
+     * [recipe] is the JSON text of a recipe, handed to the core as it is.
+     * Text that is not JSON throws [IllegalArgumentException]. If the colour
+     * contract is missing from the jar, it throws [IllegalStateException].
+     */
+    fun recipeBrands(recipe: String): List<ThemeBrand> {
+        val answer = askTheme(RECIPE_BRANDS, recipe)
+        return Json.parse(answer).brands()
+    }
+
+    /**
+     * One call to an operation of the theme: the core is given the colour
+     * contract first, and what it refuses is thrown as
+     * [IllegalArgumentException] with the core's own explanation.
+     */
+    private fun askTheme(operation: String, text: String): String {
+        val (status, answer) = withCore { it.useContract(); it.callWithStatus(operation, text) }
+        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        return answer
+    }
+
+    private fun Any?.brands(): List<ThemeBrand> =
+        (this as List<*>).map { b ->
+            val m = b as Map<*, *>
+            ThemeBrand(
+                family = m["family"] as String,
+                given = m["given"] as String,
+                light = m["light"].brandFill(),
+                dark = m["dark"].brandFill(),
+                summary = m["summary"] as String,
+                reasons = (m["reasons"] as List<*>).map { it as String },
             )
         }
 
@@ -206,8 +232,7 @@ object Lotek {
      * for a theme without tokens.
      */
     fun inspectTheme(css: String): ThemeReport {
-        val (status, answer) = withCore { it.useContract(); it.callWithStatus(INSPECT_THEME, css) }
-        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        val answer = askTheme(INSPECT_THEME, css)
         val report = Json.parse(answer) as Map<*, *>
         return ThemeReport(
             problems =
@@ -218,6 +243,11 @@ object Lotek {
             blocks = (report["blocks"] as Double).toInt(),
             declarations = (report["declarations"] as Double).toInt(),
             promises = (report["promises"] as Double).toInt(),
+            others = (report["others"] as Double).toInt(),
+            verdict =
+                (report["verdict"] as Map<*, *>).let {
+                    ThemeVerdict(kind = it["kind"] as String, message = it["message"] as String)
+                },
         )
     }
 
@@ -299,6 +329,7 @@ object Lotek {
     private const val BUILD_THEME = "build_theme_raw"
     private const val CHECK_RECIPE = "check_recipe_raw"
     private const val RECIPE_VALUES = "recipe_values_raw"
+    private const val RECIPE_BRANDS = "recipe_brands_raw"
     private const val INSPECT_THEME = "inspect_theme_raw"
 
     private fun finding(f: Map<*, *>): Finding =
@@ -478,6 +509,22 @@ data class ThemeReport(
     val declarations: Int,
     /** Promises that were actually checked. */
     val promises: Int,
+    /** Other `--lt-*` tokens the file sets, without a contrast promise: the font, the shape and the system colours. */
+    val others: Int,
+    /** What the check came to, as `lotek check-theme` says it. */
+    val verdict: ThemeVerdict,
+)
+
+/**
+ * What a check of a theme came to. [kind] is what code decides on: `kept`
+ * when every promise holds, `broken` with a problem, and `withoutColours`
+ * for a theme of only font and shape. A file with no value in it is `broken`:
+ * that nothing was found is one of the problems. [message] is the sentence
+ * `lotek check-theme` writes for one file, and ends "… in 1 file."
+ */
+data class ThemeVerdict(
+    val kind: String,
+    val message: String,
 )
 
 /** A promise that does not hold in a handwritten theme, with the selector it is in. */

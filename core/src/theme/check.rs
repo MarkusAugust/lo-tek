@@ -272,7 +272,11 @@ fn flatten(node: Node, path: &mut Vec<String>, out: &mut Vec<ParsedBlock>, other
 /// block, and nested rules and `@media` inside a block become their own. A
 /// block that is not closed is read as if it ends where the file ends, as the
 /// browser does.
-pub fn parse_blocks(css: &str) -> Vec<ParsedBlock> {
+///
+/// Only the tests ask for the blocks alone: `inspect_theme` reads them
+/// together with the count of the other tokens.
+#[cfg(test)]
+pub(crate) fn parse_blocks(css: &str) -> Vec<ParsedBlock> {
     read_blocks(css).0
 }
 
@@ -563,6 +567,95 @@ pub struct Report {
     /// font, the shape and the system colours. With them and no colours, the
     /// file is a theme without colours, not a file without a theme.
     pub others: usize,
+}
+
+/// What a check of one or more themes came to.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum VerdictKind {
+    /// Every promise holds.
+    Kept,
+    /// At least one problem.
+    Broken,
+    /// Only tokens without a contrast promise: a theme of font and shape.
+    WithoutColours,
+}
+
+impl VerdictKind {
+    /// The kind as the hosts are given it.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            VerdictKind::Kept => "kept",
+            VerdictKind::Broken => "broken",
+            VerdictKind::WithoutColours => "withoutColours",
+        }
+    }
+}
+
+/// The verdict: what kind it is, for code to decide on, and the sentence
+/// for a person.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Verdict {
+    pub kind: VerdictKind,
+    pub message: String,
+}
+
+/// "1 file" or "3 files".
+fn count(n: usize, one: &str, many: &str) -> String {
+    format!("{n} {}", if n == 1 { one } else { many })
+}
+
+/// The verdict on the themes that were checked together, one report per
+/// file. The counts are summed: a problem in one file breaks the whole, and
+/// a file without colours beside one with them is nothing to remark on.
+///
+/// The count comes last in the sentence and counts the consumer's own
+/// values: the defaults fill the gaps, so one line gives as many promises as
+/// a whole theme. A theme of only font and shape is not a file without a
+/// theme, and says so.
+///
+/// A file with no value in it never reads as a theme that holds:
+/// `inspect_theme` reports that as a problem, so it is broken. Reports with
+/// nothing in them at all, no value, no other token and no problem, do not
+/// come from `inspect_theme`. A caller that hands them in, or no report, is
+/// told that nothing was checked, as a broken theme and not as one that
+/// keeps its promises.
+pub fn verdict(reports: &[Report]) -> Verdict {
+    let sum = |of: fn(&Report) -> usize| reports.iter().map(of).sum::<usize>();
+    let problems = sum(|r| r.problems.len());
+    let declarations = sum(|r| r.declarations);
+    let others = sum(|r| r.others);
+    let files = count(reports.len(), "file", "files");
+    let checked = format!(
+        "Checked {} in {}, against {}, in {files}.",
+        count(declarations, "value", "values"),
+        count(sum(|r| r.blocks), "block", "blocks"),
+        count(sum(|r| r.promises), "promise", "promises"),
+    );
+    let (kind, message) = if declarations == 0 && problems == 0 && others > 0 {
+        (
+            VerdictKind::WithoutColours,
+            format!(
+                "No contrast to check: {files} sets only {} without a contrast promise, such as font, shape and the system colours.",
+                count(others, "token", "tokens")
+            ),
+        )
+    } else if declarations == 0 && problems == 0 {
+        (
+            VerdictKind::Broken,
+            format!("Nothing was checked: found no --lt-color-* values in {files}."),
+        )
+    } else if problems > 0 {
+        (
+            VerdictKind::Broken,
+            format!("{}. {checked}", count(problems, "problem", "problems")),
+        )
+    } else {
+        (
+            VerdictKind::Kept,
+            format!("The theme keeps every promise. {checked}"),
+        )
+    };
+    Verdict { kind, message }
 }
 
 /// Reads a theme and checks every promise in every block.

@@ -1197,22 +1197,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			]),
 		)
 
-	/** A recipe made of values the core has read: each text at its path. */
-	const rebuilt = (values: Value[]) => {
-		const recipe: Fields = {}
-		for (const { path, text } of values) {
-			let at = recipe
-			path.forEach((segment, depth) => {
-				if (depth === path.length - 1) at[segment] = text
-				else {
-					at[segment] ??= {}
-					at = at[segment] as Fields
-				}
-			})
-		}
-		return recipe
-	}
-
 	type Says = { family: string; given: string; light: { fill: string }; dark: { fill: string }; reasons: string[] }
 
 	/** The rows of the report: what became of each colour, and the core's sentences in their places. */
@@ -1246,24 +1230,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			// here it is no mistake.
 			if (problems.some((p) => p.kind === "empty"))
 				return { ok: false, css: "", error: "", wrong, report: empty }
-			if (problems.length === 0) {
-				const { css, brands } = core.buildTheme(chosen)
-				return { ok: true, css, error: "", wrong, report: { ...empty, ...rows(brands) } }
-			}
-			// Something is refused, so there is no theme. What became of a
-			// colour depends on that colour alone, so the rows are those of
-			// the values the core does take, built without the others: a
-			// colour that is put right says what it becomes at once, also
-			// while another field is still wrong.
-			const taken = (core.recipeValues(chosen) as Value[]).filter(
-				(v) => !refusedAt(problems, v.path),
-			)
-			const others = rebuilt(taken)
-			const report =
-				core.checkRecipe(others).length === 0
-					? { ...empty, ...rows(core.buildTheme(others).brands) }
-					: empty
-			return { ok: false, css: "", error: problems[0].message, wrong, report }
+			// What became of each colour is the core's to say, also while
+			// something else in the recipe is refused: a colour that is put
+			// right says what it becomes at once.
+			const report = { ...empty, ...rows(core.recipeBrands(chosen)) }
+			if (problems.length > 0)
+				return { ok: false, css: "", error: problems[0].message, wrong, report }
+			return { ok: true, css: core.buildTheme(chosen).css, error: "", wrong, report }
 		},
 	})
 

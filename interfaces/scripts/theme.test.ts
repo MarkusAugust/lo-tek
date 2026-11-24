@@ -18,9 +18,11 @@ import {
   checkRecipe,
   type RecipeProblem,
   type RecipeValue,
+  recipeBrands,
   recipeValues,
   type ThemeInput,
 } from "../src/tokens/theme.js"
+import { inspectTheme, type ThemeReport } from "../src/tokens/theme-check.js"
 
 test("a light brand colour comes back with what became of it", () => {
   const brands: Brand[] = buildTheme({ brand1: "#F7DF1E" }).brands
@@ -204,4 +206,56 @@ test("recipeValues is what the recipe gives, as the core reads it", () => {
     { path: ["shape", "fieldRadius"], text: "0" },
   ])
   expect(recipeValues([1])).toEqual([])
+})
+
+/**
+ * What became of each colour the core takes, while something else in the
+ * recipe is refused: a host that shows a row per colour asks for the rows,
+ * and does not have to put a recipe of its own together to get them.
+ */
+test("recipeBrands is the rows of the colours the core takes, whatever else is wrong", () => {
+  const rows: Brand[] = recipeBrands({
+    acent: "#000",
+    shape: { buttonRadius: true },
+    danger: "purple",
+    brand1: "#F7DF1E",
+  })
+  expect(rows).toEqual(buildTheme({ brand1: "#F7DF1E" }).brands)
+  expect(rows.map((row) => row.summary)).toEqual([
+    "brand1: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dark theme.",
+  ])
+  // For a recipe that builds, they are the rows of the theme.
+  const whole = { accent: "#39ff14", neutral: "#00e676", visited: "#ff8800" }
+  expect(recipeBrands(whole)).toEqual(buildTheme(whole).brands)
+  // The page a fill is measured against is the neutral family's, so the
+  // neutral colour is in the reasons of the others, also beside a refused one.
+  expect(recipeBrands({ ...whole, visited: "purple" })).toEqual(
+    buildTheme({ accent: "#39ff14", neutral: "#00e676" }).brands,
+  )
+  expect(recipeBrands({ danger: "purple" })).toEqual([])
+  expect(recipeBrands({})).toEqual([])
+  expect(recipeBrands([1])).toEqual([])
+})
+
+/**
+ * The verdict on a theme is the core's: which of the four it is, and the
+ * sentence. A host shows the sentence and acts on the kind.
+ */
+test("inspectTheme gives the verdict, and the tokens without a contrast promise", () => {
+  const weak: ThemeReport = inspectTheme(
+    ":root { color-scheme: light; --lt-color-danger-text: #ff9999; }",
+  )
+  const kind: "kept" | "broken" | "withoutColours" = weak.verdict.kind
+  expect(kind).toBe("broken")
+  expect(weak.verdict.message).toBe(
+    "5 problems. Checked 1 value in 1 block, against 153 promises, in 1 file.",
+  )
+  const colourless = inspectTheme(":root { --lt-radius-button: 2.75rem; }")
+  const others: number = colourless.others
+  expect(others).toBe(1)
+  expect(colourless.verdict).toEqual({
+    kind: "withoutColours",
+    message:
+      "No contrast to check: 1 file sets only 1 token without a contrast promise, such as font, shape and the system colours.",
+  })
 })

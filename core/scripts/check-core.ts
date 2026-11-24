@@ -301,6 +301,7 @@ const recipeChecks: Record<
     problems: unknown
     refusal: string | null
     values: unknown
+    brands: string[]
   }
 > = JSON.parse(readFileSync(join(THEME, "recipe-checks.json"), "utf8"))
 /** What `buildTheme` refuses a recipe with, or `null` when it takes it. */
@@ -312,9 +313,10 @@ const refusalOf = (recipe: unknown): string | null => {
     return e instanceof Error ? e.message : String(e)
   }
 }
-for (const [name, { recipe, problems, refusal, values }] of Object.entries(
-  recipeChecks,
-)) {
+for (const [
+  name,
+  { recipe, problems, refusal, values, brands },
+] of Object.entries(recipeChecks)) {
   count += 1
   let answer: unknown
   try {
@@ -341,6 +343,28 @@ for (const [name, { recipe, problems, refusal, values }] of Object.entries(
   if (sorted(gives) !== sorted(values))
     failures.push(
       `theme/recipe-checks.json, ${name}, recipeValues\n  Expected: ${sorted(values).slice(0, 400)}\n  Core:     ${sorted(gives).slice(0, 400)}`,
+    )
+  // What became of each colour the core takes, whatever else is wrong with
+  // the recipe: a row for those families, and for a recipe that builds, the
+  // rows of the theme.
+  let rows: string
+  let ofTheTheme: string | null = null
+  try {
+    const answer = core.recipeBrands(recipe)
+    rows = answer.map((brand) => brand.family).join(", ")
+    if (refusal === null) {
+      ofTheTheme = sorted(core.buildTheme(recipe).brands)
+      if (sorted(answer) !== ofTheTheme)
+        failures.push(
+          `theme/recipe-checks.json, ${name}: recipeBrands is not the brands of the theme\n  Theme: ${ofTheTheme.slice(0, 400)}\n  Core:  ${sorted(answer).slice(0, 400)}`,
+        )
+    }
+  } catch (e) {
+    rows = `threw: ${e instanceof Error ? e.message : e}`
+  }
+  if (rows !== brands.join(", "))
+    failures.push(
+      `theme/recipe-checks.json, ${name}: recipeBrands has rows for "${rows}", expected "${brands.join(", ")}"`,
     )
 }
 for (const [file, cases] of [

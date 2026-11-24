@@ -235,9 +235,18 @@ const CORE_SAYS = [
   // added the second to refusals it was not about.
   "The recipe is not an object",
   "Colours are written as hexadecimal values",
+  // The verdict on a theme: the command summed the reports and worded each
+  // of the four itself.
+  "The theme keeps every promise",
+  "No contrast to check",
 ]
 /** Sentences the hosts had for what the core now says. They are gone, and stay gone. */
-const NO_LONGER_SAID = ["but not a recipe"]
+const NO_LONGER_SAID = [
+  "but not a recipe",
+  // The command's verdict on a file without a value. It was never said: such
+  // a file has a problem, and the verdict is that the theme is broken.
+  "The check has not looked at anything",
+]
 /** Where a host's own code is. A test in it is not the host. */
 const isHost = (rel: string) =>
   (/^(cli\/src|interfaces\/src|vscode\/src|documentation\/src\/pages|documentation\/src\/components)\//.test(
@@ -286,7 +295,7 @@ for (const rel of new Set(listed.stdout.toString().split("\0"))) {
             .slice(0, source.indexOf(phrase))
             .split("\n").length
           findings.push(
-            `${rel}:${line} writes "${phrase}". The core says what is wrong with a recipe; the host had a sentence of its own for it, and it is to be gone.`,
+            `${rel}:${line} writes "${phrase}". The core says what there is to say here; the host had a sentence of its own for it, and it is to be gone.`,
           )
         }
     for (const host of hostFiles.keys())
