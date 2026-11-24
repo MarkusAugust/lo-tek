@@ -2140,6 +2140,67 @@ mod recipe_tests {
     }
 
     #[test]
+    fn a_theme_of_an_accent_and_a_palette_keeps_every_promise() {
+        // What the suggestions are for: someone with only an accent takes a
+        // palette and has a theme. Built from the accent and the rows of
+        // any of the four, it breaks no promise.
+        let mut recipes: Vec<Vec<(String, String)>> = accents()
+            .into_iter()
+            .chain(["#808080", "#000000", "#ffffff"].map(str::to_string))
+            .map(|accent| vec![("accent".to_string(), accent)])
+            .collect();
+        recipes.push(Vec::new());
+        let mut broken: Vec<String> = Vec::new();
+        let mut built = 0;
+        for entries in &recipes {
+            let recipe = recipe_of(
+                &entries
+                    .iter()
+                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                    .collect::<Vec<_>>(),
+            );
+            let found =
+                suggest_palettes(&recipe).unwrap_or_else(|| panic!("{}", recipe.to_compact()));
+            for palette in &found.palettes {
+                let mut whole = entries.clone();
+                whole.extend(
+                    palette
+                        .colors
+                        .iter()
+                        .map(|color| (color.family.clone(), color.color.clone())),
+                );
+                let whole = recipe_of(
+                    &whole
+                        .iter()
+                        .map(|(k, v)| (k.as_str(), v.as_str()))
+                        .collect::<Vec<_>>(),
+                );
+                let theme =
+                    build_theme(&whole).unwrap_or_else(|e| panic!("{}: {e}", whole.to_compact()));
+                built += 1;
+                for violation in &theme.violations {
+                    broken.push(format!(
+                        "{} of {}: {} {} is {:.2}, and {} is required",
+                        palette.name,
+                        recipe.to_compact(),
+                        violation.family,
+                        violation.promise,
+                        violation.ratio,
+                        violation.required
+                    ));
+                }
+            }
+        }
+        assert!(built > 150, "only {built} themes were built");
+        assert!(
+            broken.is_empty(),
+            "{} promises broken:\n{}",
+            broken.len(),
+            broken.join("\n")
+        );
+    }
+
+    #[test]
     fn a_grey_accent_gives_greys() {
         for accent in ["#808080", "#000000", "#ffffff", "#2b2b2b"] {
             let found = suggest_palettes(&recipe_of(&[("accent", accent)])).expect("an answer");

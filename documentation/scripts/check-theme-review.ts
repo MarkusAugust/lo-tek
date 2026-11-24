@@ -123,12 +123,24 @@ function read(families: string[]) {
         `${control(`own.${family}`)?.checked ? "on" : "off"} ${control(family)?.value ?? "(no field)"}`,
       ]),
     ),
-    rows: [...document.querySelectorAll<HTMLElement>("[data-family]")]
+    rows: [
+      ...document.querySelectorAll<HTMLElement>(
+        // The rows of the report: the suggestions under the accent have a
+        // place for each family too, and are another matter.
+        "[data-family]:not(details[data-palettes] *)",
+      ),
+    ]
       .filter((row) => row.getClientRects().length > 0)
       .map((row) => row.dataset.family ?? ""),
     /** What each row that can be seen says, and what each picker shows. */
     said: Object.fromEntries(
-      [...document.querySelectorAll<HTMLElement>("[data-family]")]
+      [
+        ...document.querySelectorAll<HTMLElement>(
+          // The rows of the report: the suggestions under the accent have a
+          // place for each family too, and are another matter.
+          "[data-family]:not(details[data-palettes] *)",
+        ),
+      ]
         .filter((row) => row.getClientRects().length > 0)
         .map((row) => [
           row.dataset.family ?? "",
@@ -175,14 +187,18 @@ function read(families: string[]) {
             controls: [
               ...(group?.querySelectorAll("input, select, textarea, button") ??
                 []),
-            ].map((c) =>
-              // A button is told by what it is called, and of that the
-              // first word: the rest names the family.
-              c.tagName === "BUTTON"
-                ? `button "${collapsed(c.getAttribute("aria-label") ?? c.textContent ?? "").split(" ")[0]}"`
-                : (c.getAttribute("name") ??
-                  `${c.tagName.toLowerCase()}[type=${c.getAttribute("type")}]`),
-            ),
+            ]
+              // The suggestions stand in the accent's group and have
+              // buttons of their own, held by `check-theme-palettes.ts`.
+              .filter((c) => c.closest("details[data-palettes]") === null)
+              .map((c) =>
+                // A button is told by what it is called, and of that the
+                // first word: the rest names the family.
+                c.tagName === "BUTTON"
+                  ? `button "${collapsed(c.getAttribute("aria-label") ?? c.textContent ?? "").split(" ")[0]}"`
+                  : (c.getAttribute("name") ??
+                    `${c.tagName.toLowerCase()}[type=${c.getAttribute("type")}]`),
+              ),
           },
         ]
       }),

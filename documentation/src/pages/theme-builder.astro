@@ -206,6 +206,13 @@ const blocks = (at: "rest" | "nothing") => ({
  */
 const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
 
+/**
+ * The places the page has for palettes. The core suggests four, and a
+ * signal cannot hold a list, so each has a place in the markup that the
+ * answer fills in.
+ */
+const PLACES = ["p1", "p2", "p3", "p4"] as const
+
 /*
  * The signals. `own` says which families have a colour of the consumer's,
  * `fields` holds what is written in every field, in the shape of the recipe:
@@ -217,6 +224,10 @@ const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
  * `view` which page they frame. `copied` is the recipe the clipboard last
  * took and `notCopied` the one it last refused. `pasted` is the text in the
  * field a recipe can be pasted into, and `pasteError` why it was not taken.
+ * `suggested` says which families hold a colour a palette filled in, and
+ * not one the visitor wrote or picked, and `palettes` is the core's answer
+ * to the recipe without those: the colour the palettes are built on, and
+ * each palette in its place.
  * `failed` says the core never came.
  *
  * A signal an action answers into always has the same keys, and only text,
@@ -230,6 +241,22 @@ const signals = {
   ready: false,
   failed: false,
   own: Object.fromEntries(families.map(([name]) => [name, false])),
+  suggested: Object.fromEntries(families.map(([name]) => [name, false])),
+  palettes: {
+    from: "",
+    ...Object.fromEntries(
+      PLACES.map((place) => [
+        place,
+        {
+          name: "",
+          description: "",
+          colors: Object.fromEntries(
+            families.map(([name]) => [name, { color: "", kept: false }]),
+          ),
+        },
+      ]),
+    ),
+  },
   fields: {
     ...Object.fromEntries(families.map(([name]) => [name, ""])),
     ...blocks("rest"),
@@ -348,6 +375,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				     theme. The core is asked only when it has been loaded. -->
 				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
 				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own))"></div>
+				<div hidden data-effect="$ready && ($palettes = @suggestPalettes($recipe, $suggested))"></div>
 				<div hidden data-effect="$ready && ($built.ok ? ($shown = $built.css) : $built.error === '' && ($shown = ''))"></div>
 
 				<section class="builder__recipe" aria-labelledby="recipe-title">
@@ -370,7 +398,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											id={`own-${name}`}
 											name={`own.${name}`}
 											data-bind={`own.${name}`}
-											data-on:change={`!el.checked && ($fields.${name} = '')`}
+											data-on:change={`!el.checked && ($fields.${name} = '', $suggested.${name} = false)`}
 />
 <label class="lt-label" id={`own-${name}-label`} for={`own-${name}`}>
 											{name}
@@ -388,7 +416,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											aria-label={`Reset ${name}`}
 											style="display: none"
 											data-show={`$own.${name} || $fields.${name} !== ''`}
-											data-on:click={`$fields.${name} = ''; $own.${name} = false; document.getElementById('own-${name}').focus()`}
+											data-on:click={`$fields.${name} = ''; $own.${name} = false; $suggested.${name} = false; document.getElementById('own-${name}').focus()`}
 >
 											Reset
 </button>
@@ -406,7 +434,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											type="color"
 											aria-label={`Pick the colour of ${name}`}
 											value={OWN[name]}
-											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
+											data-on:input={`$fields.${name} = el.value; $own.${name} = true; $suggested.${name} = false`}
 											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name} === '' && (el.value = '${OWN[name]}')`}
 										/>
 										<input
@@ -421,6 +449,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											spellcheck="false"
 											disabled
 											data-bind={`fields.${name}`}
+											data-on:input={`$suggested.${name} = false`}
 											data-attr:disabled={`!$own.${name}`}
 											data-attr:aria-invalid={`$built.wrong.${name} !== '' && 'true'`}
 											data-attr:data-state={`$built.wrong.${name} !== '' && 'invalid'`}
@@ -480,6 +509,67 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 										))}
 									</details>
 								</div>
+								{
+									name === "accent" && (
+										<details class="builder__reason builder__palettes" data-palettes style="display: none" data-show="$palettes.from !== ''">
+											<summary>Suggest colours to go with the accent</summary>
+											<p class="builder__why">
+												Palettes built on <code data-text="$palettes.from" />.
+												"Use" fills the families you have not set yourself,
+												and another "Use" swaps them.
+											</p>
+											{PLACES.map((place) => (
+												<div
+													class="builder__palette"
+													role="group"
+													data-palette
+													style="display: none"
+													data-show={`$palettes.${place}.name !== ''`}
+													data-attr:aria-label={`$palettes.${place}.name`}
+												>
+													<p class="builder__palette-head">
+														<strong data-text={`$palettes.${place}.name`} />
+														<span data-text={`$palettes.${place}.description`} />
+													</p>
+													<p class="builder__swatches">
+														{families.map(([family]) => (
+															<span
+																class="builder__colour-of"
+																data-family={family}
+																style="display: none"
+																data-show={`$palettes.${place}.colors.${family}.color !== ''`}
+																data-attr:data-kept={`$palettes.${place}.colors.${family}.kept ? 'true' : 'false'`}
+															>
+																<span class="profile-label">{family}</span>
+																<span
+																	class="builder__swatch"
+																	data-attr:style={`'background-color: ' + $palettes.${place}.colors.${family}.color`}
+																/>
+																<code data-text={`$palettes.${place}.colors.${family}.color`} />
+																<span
+																	class="profile-label"
+																	style="display: none"
+																	data-show={`$palettes.${place}.colors.${family}.kept`}
+																>
+																	yours
+																</span>
+															</span>
+														))}
+													</p>
+													<button
+														class="lt-button"
+														data-variant="secondary"
+														type="button"
+														data-attr:aria-label={`'Use ' + $palettes.${place}.name`}
+														data-on:click={`@usePalette($palettes.${place})`}
+													>
+														Use
+													</button>
+												</div>
+											))}
+										</details>
+									)
+								}
 								</div>
 							))
 						}
@@ -610,7 +700,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					<!-- What was chosen is remembered in this browser. "Copied" is said
 					     of the recipe the clipboard took, once it has taken it, and
 					     only while that recipe is the one shown. -->
-					<div hidden data-effect="$ready && @remember($own, $fields)"></div>
+					<div hidden data-effect="$ready && @remember($own, $fields, $suggested)"></div>
 					<p class="builder__actions">
 						<button
 							class="lt-button"
@@ -988,6 +1078,37 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		text-wrap: pretty;
 	}
 
+	/* The palettes the core suggests, folded under the accent. */
+	.builder__palettes {
+		padding-block-start: var(--lt-spacing-2);
+	}
+
+	.builder__palette {
+		display: flex;
+		flex-direction: column;
+		align-items: start;
+		gap: var(--lt-spacing-2);
+		margin-block-start: var(--lt-spacing-4);
+		padding-block-start: var(--lt-spacing-3);
+		border-block-start: var(--profile-rule);
+		font-size: var(--lt-font-size-xs);
+	}
+
+	.builder__palette > p {
+		margin: 0;
+	}
+
+	.builder__palette-head {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--lt-spacing-1) var(--lt-spacing-3);
+		color: var(--lt-color-neutral-text);
+	}
+
+	.builder__palette-head > strong {
+		color: var(--lt-color-neutral-text-strong);
+	}
+
 	.builder__preview-head {
 		display: flex;
 		flex-wrap: wrap;
@@ -1107,6 +1228,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 
 	type Fields = { [key: string]: string | Fields }
 
+	/** A palette in its place: a colour for every family, or none. */
+	type Place = {
+		name: string
+		description: string
+		colors: Record<string, { color: string; kept: boolean }>
+	}
+
 	/*
 	 * The page as on a first visit: what the markup itself says the signals
 	 * are. It is the shape of `own` and `fields`, and what every field holds
@@ -1115,6 +1243,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	 */
 	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
 		own: Record<string, boolean>
+		suggested: Record<string, boolean>
+		palettes: { p1: Place } & Record<string, unknown>
 		fields: Fields
 	}
 
@@ -1240,6 +1370,52 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
+	// The core's palettes for what the visitor chose: the recipe without the
+	// families a palette filled in, so the palettes stay what they were after
+	// one is taken. Each is laid in its place, with a colour at every family
+	// the core has a row for. No answer empties every place.
+	action({
+		name: "suggestPalettes",
+		apply(_: unknown, recipe: string, suggested: Record<string, boolean>) {
+			const chosen = JSON.parse(recipe)
+			for (const [family, is] of Object.entries(suggested)) if (is) delete chosen[family]
+			const answer: { from: string; palettes: { name: string; description: string; colors: { family: string; color: string; kept: boolean }[] }[] } | null =
+				core.suggestPalettes(chosen)
+			const blank = first.palettes.p1
+			const places = Object.keys(first.palettes).filter((key) => key !== "from")
+			return {
+				from: answer?.from ?? "",
+				...Object.fromEntries(
+					places.map((place, at) => {
+						const palette = answer?.palettes[at]
+						if (!palette) return [place, blank]
+						const colors = { ...blank.colors }
+						for (const { family, color, kept } of palette.colors)
+							if (family in colors) colors[family] = { color, kept }
+						return [place, { name: palette.name, description: palette.description, colors }]
+					}),
+				),
+			}
+		},
+	})
+
+	// A palette into the fields: every colour the core suggests, and none it
+	// says is the recipe's own. The families are remembered as suggested, so
+	// the next palette can take their place.
+	action({
+		name: "usePalette",
+		apply(_: unknown, palette: Place) {
+			const filled = Object.entries(palette.colors).filter(
+				([, { color, kept }]) => color !== "" && !kept,
+			)
+			mergePatch({
+				own: Object.fromEntries(filled.map(([family]) => [family, true])),
+				suggested: Object.fromEntries(filled.map(([family]) => [family, true])),
+				fields: Object.fromEntries(filled.map(([family, { color }]) => [family, color])),
+			})
+		},
+	})
+
 	/*
 	 * The theme of a frame: the appearance on `<html>`, and the CSS in one
 	 * `<style>` in `<head>`, the file as the generator writes it. An empty
@@ -1315,9 +1491,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	// switched off, and then the page works without remembering.
 	action({
 		name: "remember",
-		apply(_: unknown, own: Record<string, boolean>, fields: Fields) {
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields, suggested: Record<string, boolean>) {
 			try {
-				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields }))
+				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields, suggested }))
 			} catch {
 				// Nothing to do: the page is as useful, only not next time.
 			}
@@ -1329,7 +1505,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		apply() {
 			// The empty page is what is then remembered: the effect that
 			// remembers runs on this as on any change.
-			mergePatch({ own: first.own, fields: first.fields, pasted: "", pasteError: "" })
+			mergePatch({ own: first.own, suggested: first.suggested, fields: first.fields, pasted: "", pasteError: "" })
 		},
 	})
 
@@ -1360,6 +1536,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				own: Object.fromEntries(
 					Object.keys(first.own).map((name) => [name, given([name])]),
 				),
+				// A pasted recipe is the visitor's own, every colour of it.
+				suggested: first.suggested,
 				fields: placed(first.fields, values),
 				pasteError: "",
 			})
@@ -1373,6 +1551,9 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 			mergePatch({
 				own: Object.fromEntries(
 					Object.keys(first.own).map((name) => [name, kept.own?.[name] === true]),
+				),
+				suggested: Object.fromEntries(
+					Object.keys(first.suggested).map((name) => [name, kept.suggested?.[name] === true]),
 				),
 				fields: laid(first.fields, kept.fields),
 			})
