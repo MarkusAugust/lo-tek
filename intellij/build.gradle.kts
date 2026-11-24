@@ -87,7 +87,8 @@ intellijPlatform {
             completed, as <code>data-variant</code> on a class and <code>placement</code>
             on <code>&lt;lt-popover&gt;</code>, and Quick Documentation on a class says
             what the component is, with a link to its page. Both also in HTML in a
-            string. Classes are now suggested in <code>:class</code> as well.
+            string. In <code>:class</code> the classes are suggested once a name is
+            begun, as <code>lt-b</code>.
             <br><br>
             <b>0.11.0</b>: The checker and the vocabulary from <code>@lo-tek/interfaces</code>
             0.47.0. A file named <code>lotek.theme.json</code> is held to the schema of a

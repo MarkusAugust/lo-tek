@@ -133,6 +133,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   is another manifest than the package's own, the command names it on
   standard error,
   `Checked against build/lotek/manifest.json.`
+- **In `:class` the classes come once a name is begun.** A bound class
+  attribute holds an expression, so the language server suggests only the
+  classes that begin with what is written, as `:class="['lt-b` gives
+  `lt-button`, and nothing before that. In `class="…"` every class is
+  suggested as before.
 - **`lotekCheck` in the Gradle plugin runs `lotekManifest` first,** so the
   manifest the check reads is the one the project has now, and not one an
   earlier build left.

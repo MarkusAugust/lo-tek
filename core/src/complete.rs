@@ -125,20 +125,20 @@ fn class_names(text: &[char], bound: Option<bool>) -> impl Iterator<Item = usize
     })
 }
 
-/// Whether the cursor is inside the value of `class`.
-fn in_class_value(tag: &Tag) -> bool {
+/// Whether the cursor is inside the value of `class`, and then whether it
+/// is the bound one, `:class`.
+fn class_value(tag: &Tag) -> Option<bool> {
     let text = &tag.before;
-    class_names(text, None).any(|end| {
-        let Some(at) = after_equals(text, end) else {
-            return false;
-        };
+    class_names(text, None).find_map(|end| {
+        let at = after_equals(text, end)?;
         let rest = &text[at..];
-        match rest.first() {
-            Some(&q @ ('"' | '\'')) if !rest[1..].contains(&q) => true,
+        let open = match rest.first() {
+            Some(&q @ ('"' | '\'')) => !rest[1..].contains(&q),
             _ => !rest
                 .iter()
                 .any(|c| c.is_whitespace() || matches!(c, '"' | '\'' | '>')),
-        }
+        };
+        open.then(|| end > 5 && text[end - 6] == ':')
     })
 }
 
@@ -282,10 +282,15 @@ pub fn complete(
         return Vec::new();
     };
     let (start, end) = word_at(text, offset);
-    if in_class_value(&tag) {
+    if let Some(bound) = class_value(&tag) {
+        // `:class` holds an expression, not a list of classes: there only
+        // the classes the word before the cursor begins, and none before a
+        // name is begun.
+        let begun = String::from_utf16_lossy(&text[start..offset.clamp(start, end)]);
         return vocabulary
             .classes
             .iter()
+            .filter(|class| !bound || (!begun.is_empty() && class.name.starts_with(&begun)))
             .map(|class| Suggestion {
                 label: class.name.clone(),
                 kind: SuggestionKind::Class,
@@ -409,7 +414,7 @@ pub fn hover(text: &[u16], offset: usize, vocabulary: &Vocabulary) -> Option<Hov
     let word = lossy(&text[start..end]);
     let class = vocabulary.classes.iter().find(|c| c.name == word)?;
     // Only in a class attribute: "use lt-button here" in running text is text.
-    in_class_value(&tag_at(text, start)?).then(|| Hover {
+    class_value(&tag_at(text, start)?).map(|_| Hover {
         text: class_documentation(class),
         start,
         end,
@@ -477,6 +482,62 @@ mod tests {
         ] {
             assert_eq!(labels(&at(markup, true)), ["lt-box", "lt-line"], "{markup}");
         }
+    }
+
+    #[test]
+    fn a_bound_class_attribute_gives_the_classes_a_begun_name_begins() {
+        // `:class` takes an expression, where a variable, an operator or a
+        // key of an object stands as often as a class. A list of every
+        // class at each of them is in the way, so a name has to be begun.
+        for (markup, classes) in [
+            (r#"<div :class="lt-b|">"#, &["lt-box"][..]),
+            (r#"<div :class="['lt-l|"#, &["lt-line"]),
+            (
+                r#"<div :class="{ 'lt-box': on, 'lt-li|': off }">"#,
+                &["lt-line"],
+            ),
+            // Only the prefix is a begun name, of every class.
+            (r#"<div :class="lt-|">"#, &["lt-box", "lt-line"]),
+            (r#"<div :class="l|">"#, &["lt-box", "lt-line"]),
+            // What stands before the cursor decides, not the whole word.
+            (r#"<div :class="lt-b|ine">"#, &["lt-box"]),
+            (r#"<div :class="lt-box|">"#, &["lt-box"]),
+            // Nothing begun, and a word that begins no class.
+            (r#"<div :class="|">"#, &[]),
+            (r#"<div :class="active ? |"#, &[]),
+            (r#"<div :class="['|lt-box']">"#, &[]),
+            (r#"<div :class="isAc|"#, &[]),
+            (r#"<div :class="lt-boxes|">"#, &[]),
+            (r#"<div :class="LT-B|">"#, &[]),
+        ] {
+            for html in [true, false] {
+                assert_eq!(labels(&at(markup, html)), classes, "{markup}");
+            }
+        }
+        // The whole word is what a suggestion replaces, as in `class`.
+        let found = at(r#"<div :class="['lt-b|ine']">"#, true);
+        assert_eq!((found[0].start, found[0].end), (15, 22));
+        assert_eq!(found[0].kind, SuggestionKind::Class);
+        assert_eq!(found[0].detail.as_deref(), Some("Box"));
+    }
+
+    #[test]
+    fn the_attribute_the_cursor_is_in_decides_which_rule_holds() {
+        // A tag may have both. In `class` every class is suggested, begun
+        // or not, and in `:class` beside it only what the word begins.
+        assert_eq!(
+            labels(&at(r#"<div :class="on" class="lt-b|">"#, true)),
+            ["lt-box", "lt-line"]
+        );
+        assert_eq!(
+            labels(&at(r#"<div :class="on" class="|">"#, true)),
+            ["lt-box", "lt-line"]
+        );
+        assert_eq!(
+            labels(&at(r#"<div class="lt-line" :class="lt-b|">"#, true)),
+            ["lt-box"]
+        );
+        assert!(at(r#"<div class="lt-line" :class="|">"#, true).is_empty());
     }
 
     #[test]

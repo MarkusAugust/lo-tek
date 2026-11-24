@@ -158,6 +158,196 @@
       }
     },
     {
+      "name": "in a bound class attribute, the classes that begin with what is written",
+      "call": "complete",
+      "text": "<button :class=\"['lt-b|",
+      "html": true,
+      "expect": {
+        "count": 3,
+        "kinds": ["class"],
+        "range": {
+          "start": 18,
+          "end": 22
+        },
+        "labels": ["lt-badge", "lt-breadcrumbs", "lt-button"],
+        "has": [
+          {
+            "label": "lt-button",
+            "detail": "Button",
+            "kind": "class",
+            "start": 18,
+            "end": 22
+          }
+        ]
+      }
+    },
+    {
+      "name": "the same outside HTML",
+      "call": "complete",
+      "text": "<button :class=\"['lt-b|",
+      "html": false,
+      "expect": {
+        "count": 3,
+        "kinds": ["class"],
+        "range": {
+          "start": 18,
+          "end": 22
+        },
+        "labels": ["lt-badge", "lt-breadcrumbs", "lt-button"],
+        "has": [
+          {
+            "label": "lt-badge",
+            "detail": "Badge",
+            "kind": "class",
+            "start": 18,
+            "end": 22
+          }
+        ]
+      }
+    },
+    {
+      "name": "what stands before the cursor decides, and the whole word is replaced",
+      "call": "complete",
+      "text": "<hr :class=\"{ 'lt-div|ider': on }\">",
+      "html": true,
+      "expect": {
+        "count": 1,
+        "kinds": ["class"],
+        "range": {
+          "start": 15,
+          "end": 25
+        },
+        "labels": ["lt-divider"],
+        "has": [
+          {
+            "label": "lt-divider",
+            "detail": "Divider",
+            "documentation": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+            "kind": "class",
+            "start": 15,
+            "end": 25
+          }
+        ]
+      }
+    },
+    {
+      "name": "only the prefix written in a bound class attribute begins every class",
+      "call": "complete",
+      "text": "<button :class=\"lt-|\">",
+      "html": true,
+      "expect": {
+        "count": 80,
+        "kinds": ["class"],
+        "range": {
+          "start": 16,
+          "end": 19
+        },
+        "first": "lt-accordion",
+        "last": "lt-theme-control",
+        "has": [
+          {
+            "label": "lt-divider",
+            "kind": "class",
+            "detail": "Divider",
+            "documentation": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+            "start": 16,
+            "end": 19
+          },
+          {
+            "label": "lt-button",
+            "kind": "class",
+            "detail": "Button",
+            "start": 16,
+            "end": 19
+          },
+          {
+            "label": "lt-dialog__title",
+            "kind": "class",
+            "start": 16,
+            "end": 19
+          }
+        ]
+      }
+    },
+    {
+      "name": "nothing in a bound class attribute before a name is begun",
+      "call": "complete",
+      "text": "<button :class=\"|\">",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "nothing after an operator in a bound class attribute",
+      "call": "complete",
+      "text": "<button :class=\"active ? |",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "nothing right before a name in a bound class attribute",
+      "call": "complete",
+      "text": "<button :class=\"['|lt-button']\">",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "a word that begins no class, in a bound class attribute",
+      "call": "complete",
+      "text": "<button :class=\"isAc|",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "a word that begins no class, outside HTML",
+      "call": "complete",
+      "text": "<button :class=\"isAc|tive ? on : off\">",
+      "html": false,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "the long forms of a bound class attribute are not class attributes",
+      "call": "complete",
+      "text": "<button x-bind:class=\"lt-b|\">",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "nor the other long form",
+      "call": "complete",
+      "text": "<button v-bind:class=\"lt-b|\">",
+      "html": true,
+      "expect": {
+        "count": 0
+      }
+    },
+    {
+      "name": "a class in a bound class attribute still gives the values of its attributes",
+      "call": "complete",
+      "text": "<hr :class=\"lt-divider\" data-variant=\"|\">",
+      "html": true,
+      "expect": {
+        "count": 3,
+        "kinds": ["value"],
+        "range": {
+          "start": 38,
+          "end": 38
+        },
+        "labels": ["subtle", "strong", "default"]
+      }
+    },
+    {
       "name": "the values of an attribute a class on the tag takes, and its default last",
       "call": "complete",
       "text": "<hr class=\"lt-divider\" data-variant=\"|\">",
@@ -437,6 +627,16 @@
       "call": "hover",
       "text": "<lt-pop|over></lt-popover>",
       "expect": null
+    },
+    {
+      "name": "a class in a bound class attribute",
+      "call": "hover",
+      "text": "<hr :class=\"['lt-div|ider']\">",
+      "expect": {
+        "text": "**Divider** · A line between parts of the content. A CSS component with one class and no JavaScript.\n\n`data-variant`: subtle, strong (default without the attribute)\n\n[Documentation](https://lo-tek.sobernetics.no/components/divider/)",
+        "start": 14,
+        "end": 24
+      }
     },
     {
       "name": "text outside ASCII before the class: the positions are UTF-16 units",
