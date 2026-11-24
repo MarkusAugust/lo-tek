@@ -27,10 +27,17 @@
  * Requires `documentation/dist` to be built.
  */
 
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { framesHold, framesHoldNow } from "./theme-page"
+import {
+  fieldOn,
+  framesHold,
+  framesHoldNow,
+  ownOn,
+  untilOn,
+} from "./theme-page"
+import { FAMILIES } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -49,10 +56,6 @@ const { buildTheme } = (await import(
     brands: { given: string; light: { fill: string }; dark: { fill: string } }[]
   }
 }
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[] }
-const FAMILIES = contract.families
 
 /** What the core answers for a recipe, or nothing when it takes it. */
 function refusal(recipe: unknown): string | null {
@@ -92,9 +95,8 @@ const expect = (claim: boolean, description: string) => {
 }
 await page.context().grantPermissions(["clipboard-read", "clipboard-write"])
 
-const own = (family: string) =>
-  page.locator(`input[role="switch"][name="own.${family}"]`)
-const field = (name: string) => page.locator(`[name="${name}"]`)
+const own = ownOn(page)
+const field = fieldOn(page)
 const button = (name: string) => page.getByRole("button", { name, exact: true })
 const area = page
   .getByRole("textbox", { name: /recipe/i })
@@ -189,14 +191,8 @@ function read(families: string[]) {
 }
 const now = () => page.evaluate(read, FAMILIES)
 type State = Awaited<ReturnType<typeof now>>
-async function until(done: (state: State) => boolean): Promise<State> {
-  let state = await now()
-  for (let attempt = 0; attempt < 50 && !done(state); attempt++) {
-    await page.waitForTimeout(100)
-    state = await now()
-  }
-  return state
-}
+const until = (done: (state: State) => boolean): Promise<State> =>
+  untilOn(page, now, done)
 const paste = async (recipe: unknown) => {
   await area.fill(JSON.stringify(recipe))
   await button("Use this recipe").click()

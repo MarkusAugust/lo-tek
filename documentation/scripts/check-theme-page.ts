@@ -34,6 +34,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { Glob } from "bun"
 import { site } from "./site"
+import { CONTRACT as contract } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const BUILT = `${ROOT}documentation/dist/theme-builder/page/index.html`
@@ -46,13 +47,6 @@ const manifest = JSON.parse(
     string,
     { attributes?: Record<string, { values?: string[]; default?: string }> }
   >
-}
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as {
-  families: string[]
-  roles: Record<string, unknown>
-  layers: Record<string, unknown>
 }
 
 const problems: string[] = []

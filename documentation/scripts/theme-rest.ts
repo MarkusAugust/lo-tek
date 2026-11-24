@@ -30,7 +30,14 @@ const schema = JSON.parse(
 ) as Schema
 const contract = JSON.parse(
   readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[]; brands: Record<string, string> }
+) as {
+  families: string[]
+  brands: Record<string, string>
+  roles: Record<string, unknown>
+  layers: Record<string, unknown>
+}
+/** The colour contract, for the checks that read more of it than the families. */
+export const CONTRACT = contract
 /** What could not be read. A check that imports this stops when it is not empty. */
 export const unread: string[] = [...unreadDefaults]
 

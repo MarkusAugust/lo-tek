@@ -32,6 +32,8 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { comparable, fieldOn, flat, ownOn } from "./theme-page"
+import { FAMILIES, KEYS } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const DIST = `${ROOT}documentation/dist/`
@@ -43,28 +45,8 @@ const { buildTheme } = (await import(
   `${ROOT}interfaces/dist/tokens/theme.js`
 )) as { buildTheme(recipe: unknown): { css: string } }
 
-type Schema = { properties?: Record<string, Schema> }
-const schema = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/theme.schema.json`, "utf8"),
-) as Schema
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[] }
-
-/** Every key of the recipe that takes a value, as a path with dots. */
-function leaves(at: Schema, path = ""): string[] {
-  return Object.entries(at.properties ?? {}).flatMap(([name, property]) =>
-    path === "" && name === "$schema"
-      ? []
-      : property.properties
-        ? leaves(property, `${path}${name}.`)
-        : [`${path}${name}`],
-  )
-}
-const KEYS = leaves(schema)
 /** The first part of every key: a control named so claims to be a key of the recipe. */
 const TOPS = new Set(KEYS.map((key) => key.split(".")[0]))
-const FAMILIES = contract.families
 
 const problems: string[] = []
 if (KEYS.length < 20 || !FAMILIES.every((family) => KEYS.includes(family)))
@@ -113,15 +95,6 @@ const RECIPES: [string, Recipe][] = [
   ["a light colour", { brand1: "#f7df1e" }],
 ]
 
-/** A recipe as paths and values, the way it is typed in. */
-function flat(recipe: unknown, path = ""): [string, string][] {
-  return Object.entries(recipe as Record<string, unknown>).flatMap(
-    ([name, value]) =>
-      value !== null && typeof value === "object"
-        ? flat(value, `${path}${name}.`)
-        : [[`${path}${name}`, String(value)] as [string, string]],
-  )
-}
 {
   const typed = flat(EVERY_KEY).map(([key]) => key)
   if (JSON.stringify([...typed].sort()) !== JSON.stringify([...KEYS].sort()))
@@ -204,9 +177,8 @@ const page = s.page
 const asked: string[] = []
 page.on("request", (request) => asked.push(request.url()))
 
-const field = (name: string) => page.locator(`[name="${name}"]`)
-const own = (family: string) =>
-  page.locator(`input[role="switch"][name="own.${family}"]`)
+const field = fieldOn(page)
+const own = ownOn(page)
 
 /** The recipe the page shows, or why it could not be read. */
 async function shown(): Promise<unknown> {
@@ -217,14 +189,6 @@ async function shown(): Promise<unknown> {
     return `not JSON: ${text.slice(0, 80)}`
   }
 }
-
-/**
- * The same recipe whether a weight is the number or the text: the form
- * gives text, the theme is the same for both, and which the page writes is
- * its own business.
- */
-const comparable = (recipe: unknown) =>
-  JSON.stringify(flat(recipe).sort(([a], [b]) => (a < b ? -1 : 1)))
 
 /** Waits until the page shows the recipe, and says whether it came to. */
 async function shows(recipe: unknown): Promise<boolean> {

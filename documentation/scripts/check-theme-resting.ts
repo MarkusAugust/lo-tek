@@ -21,7 +21,13 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { framesHold as holds, nested } from "./theme-page"
+import {
+  fieldOn,
+  flat,
+  framesHold as holds,
+  nested,
+  untilOn,
+} from "./theme-page"
 import {
   BLOCK_KEYS,
   BRANDS,
@@ -90,7 +96,7 @@ const page = s.page
 const expect = (claim: boolean, description: string) => {
   if (!claim) s.fail(description)
 }
-const field = (name: string) => page.locator(`[name="${name}"]`)
+const field = fieldOn(page)
 const button = (name: string) => page.getByRole("button", { name, exact: true })
 
 /** Runs in the builder. Every control, and what it stands at. */
@@ -260,24 +266,9 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
 }
 const now = () => page.evaluate(read, { families: FAMILIES, keys: KEYS })
 type State = Awaited<ReturnType<typeof now>>
-async function until(done: (state: State) => boolean): Promise<State> {
-  let state = await now()
-  for (let attempt = 0; attempt < 40 && !done(state); attempt++) {
-    await page.waitForTimeout(100)
-    state = await now()
-  }
-  return state
-}
+const until = (done: (state: State) => boolean): Promise<State> =>
+  untilOn(page, now, done)
 
-/** A recipe as paths and values as text. */
-function flat(recipe: unknown, path = ""): [string, string][] {
-  return Object.entries(recipe as Record<string, unknown>).flatMap(
-    ([name, value]) =>
-      value !== null && typeof value === "object"
-        ? flat(value, `${path}${name}.`)
-        : [[`${path}${name}`, String(value)] as [string, string]],
-  )
-}
 /** The recipe a state shows, as paths and values, or why it could not be read. */
 const shown = (state: State) => {
   try {

@@ -32,7 +32,8 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { themesInFrames } from "./theme-page"
+import { comparable, flat, ownOn, themesInFrames } from "./theme-page"
+import { FAMILIES } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -43,27 +44,11 @@ if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
   process.exit(1)
 }
 
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[] }
-const FAMILIES = contract.families
-
 /** The package as the command names it, and the same command from this repository. */
 const PACKAGED = /^npx @lo-tek\/interfaces@\S+ /
 const LOCAL = ["node", `${ROOT}interfaces/dist/cli.js`]
 
 type Recipe = Record<string, string | Record<string, unknown>>
-/** A recipe as paths and values, the way it is typed in. */
-function flat(recipe: unknown, path = ""): [string, string][] {
-  return Object.entries(recipe as Record<string, unknown>).flatMap(
-    ([name, value]) =>
-      value !== null && typeof value === "object"
-        ? flat(value, `${path}${name}.`)
-        : [[`${path}${name}`, String(value)] as [string, string]],
-  )
-}
-const comparable = (recipe: unknown) =>
-  JSON.stringify(flat(recipe).sort(([a], [b]) => (a < b ? -1 : 1)))
 
 /*
  * The recipes, and how each gets onto the page: typed into the controls, or
@@ -132,8 +117,7 @@ const page = s.page
 const expect = (claim: boolean, description: string) => {
   if (!claim) s.fail(description)
 }
-const own = (family: string) =>
-  page.locator(`input[role="switch"][name="own.${family}"]`)
+const own = ownOn(page)
 
 /** Runs in the builder. What the reader takes from the page. */
 function taken(command: string) {

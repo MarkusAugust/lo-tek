@@ -22,10 +22,11 @@
  * Requires `documentation/dist` to be built.
  */
 
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import type { Frame } from "playwright"
 import { site } from "./site"
+import { BRANDS, FAMILIES } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -46,9 +47,6 @@ const { buildTheme } = (await import(
     brands: { family: string; light: Fill; dark: Fill }[]
   }
 }
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[]; brands: Record<string, string> }
 
 const APPEARANCES = ["light", "dark"] as const
 type Appearance = (typeof APPEARANCES)[number]
@@ -69,7 +67,7 @@ function fill(recipe: unknown, appearance: Appearance): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 /** LO-TEK's own, which a frame without a theme shows. */
-const OWN = { accent: contract.brands.accent }
+const OWN = { accent: BRANDS.accent }
 
 const s = await site({ pages: 1 })
 const page = s.page
@@ -214,7 +212,7 @@ const code = await s.run(async () => {
   }
 
   // From nothing, whatever the page remembers: every family LO-TEK's own.
-  for (const family of contract.families)
+  for (const family of FAMILIES)
     await page.locator(`input[role="switch"][name="own.${family}"]`).uncheck()
   const accent = page.locator('[name="accent"]')
   const scrolled = () => page.evaluate(() => window.scrollY)

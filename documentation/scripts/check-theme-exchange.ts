@@ -24,8 +24,15 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { framesHold as holds } from "./theme-page"
-import { RESTING } from "./theme-rest"
+import {
+  comparable,
+  fieldOn,
+  flat,
+  framesHold as holds,
+  ownOn,
+  untilOn,
+} from "./theme-page"
+import { FAMILIES, KEYS, RESTING } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -48,38 +55,6 @@ const { buildTheme, checkRecipe, recipeValues } = (await import(
 const { version } = JSON.parse(
   readFileSync(`${ROOT}interfaces/package.json`, "utf8"),
 ) as { version: string }
-type Schema = { properties?: Record<string, Schema> }
-const schema = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/theme.schema.json`, "utf8"),
-) as Schema
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[] }
-const FAMILIES = contract.families
-
-/** Every key of the recipe that takes a value, as a path with dots. */
-function leaves(at: Schema, path = ""): string[] {
-  return Object.entries(at.properties ?? {}).flatMap(([name, property]) =>
-    path === "" && name === "$schema"
-      ? []
-      : property.properties
-        ? leaves(property, `${path}${name}.`)
-        : [`${path}${name}`],
-  )
-}
-const KEYS = leaves(schema)
-
-/** A recipe as paths and values as text, the way a form holds it. */
-function flat(recipe: unknown, path = ""): [string, string][] {
-  return Object.entries(recipe as Record<string, unknown>).flatMap(
-    ([name, value]) =>
-      value !== null && typeof value === "object"
-        ? flat(value, `${path}${name}.`)
-        : [[`${path}${name}`, String(value)] as [string, string]],
-  )
-}
-const comparable = (recipe: unknown) =>
-  JSON.stringify(flat(recipe).sort(([a], [b]) => (a < b ? -1 : 1)))
 
 /** The whole form: every switch and every field. */
 type Form = { own: Record<string, boolean>; fields: Record<string, string> }
@@ -219,9 +194,8 @@ await page.context().grantPermissions(["clipboard-read", "clipboard-write"])
 const asked: { url: string; method: string }[] = []
 page.on("request", (r) => asked.push({ url: r.url(), method: r.method() }))
 
-const own = (family: string) =>
-  page.locator(`input[role="switch"][name="own.${family}"]`)
-const field = (name: string) => page.locator(`[name="${name}"]`)
+const own = ownOn(page)
+const field = fieldOn(page)
 const button = (name: string) => page.getByRole("button", { name, exact: true })
 const area = page
   .getByRole("textbox", { name: /recipe/i })
@@ -284,15 +258,8 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
 const now = () => page.evaluate(read, { families: FAMILIES, keys: KEYS })
 type State = Awaited<ReturnType<typeof now>>
 
-/** Waits for a state of the page, and gives the state it came to. */
-async function until(done: (state: State) => boolean): Promise<State> {
-  let state = await now()
-  for (let attempt = 0; attempt < 50 && !done(state); attempt++) {
-    await page.waitForTimeout(100)
-    state = await now()
-  }
-  return state
-}
+const until = (done: (state: State) => boolean): Promise<State> =>
+  untilOn(page, now, done)
 const same = (a: Form, b: Form) => JSON.stringify(a) === JSON.stringify(b)
 const collapse = (text: string) => text.replace(/\s+/g, " ").trim()
 /** Where two forms part, for the message. */

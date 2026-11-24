@@ -22,10 +22,11 @@
  * Requires `documentation/dist` to be built.
  */
 
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { nested, themesInFrames } from "./theme-page"
+import { fieldOn, nested, ownOn, themesInFrames, untilOn } from "./theme-page"
+import { FAMILIES } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -50,10 +51,6 @@ if (typeof checkRecipe !== "function") {
   )
   process.exit(1)
 }
-
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[] }
 
 /** The recipe with one key in it, nested as the recipe nests it. */
 function only(key: string, value: string): Record<string, unknown> {
@@ -104,9 +101,8 @@ const expect = (claim: boolean, description: string) => {
   if (!claim) s.fail(description)
 }
 
-const field = (name: string) => page.locator(`[name="${name}"]`)
-const own = (family: string) =>
-  page.locator(`input[role="switch"][name="own.${family}"]`)
+const field = fieldOn(page)
+const own = ownOn(page)
 
 /** Runs in the builder. The fields that are marked, and what each is told. */
 function marks() {
@@ -141,15 +137,8 @@ function marks() {
 
 const themes = () => themesInFrames(page)
 
-/** Waits for a state of the page, and gives the state it came to. */
-async function until<T>(read: () => Promise<T>, done: (state: T) => boolean) {
-  let state = await read()
-  for (let attempt = 0; attempt < 50 && !done(state); attempt++) {
-    await page.waitForTimeout(100)
-    state = await read()
-  }
-  return state
-}
+const until = <T>(read: () => Promise<T>, done: (state: T) => boolean) =>
+  untilOn(page, read, done)
 
 const both = (css: string | null) => (held: string[][]) =>
   held.every((frame) =>
@@ -162,9 +151,9 @@ const code = await s.run(async () => {
   await s.open("/theme-builder/")
 
   // From nothing, whatever the page remembers.
-  for (const family of contract.families) await own(family).uncheck()
+  for (const family of FAMILIES) await own(family).uncheck()
   for (const [, key] of REFUSED)
-    if (!contract.families.includes(key)) await field(key).fill("")
+    if (!FAMILIES.includes(key)) await field(key).fill("")
 
   // An empty recipe is not a mistake.
   const atStart = await until(
@@ -188,7 +177,7 @@ const code = await s.run(async () => {
 
   for (const [name, key, value] of REFUSED) {
     const message = refusal(key, value) ?? ""
-    if (contract.families.includes(key)) await own(key).check()
+    if (FAMILIES.includes(key)) await own(key).check()
     await field(key).fill(value)
 
     const now = await until(
@@ -217,7 +206,7 @@ const code = await s.run(async () => {
     )
 
     // Corrected by taking the value out again: the field is as it was.
-    if (contract.families.includes(key)) {
+    if (FAMILIES.includes(key)) {
       // A family that is switched off is never marked, whatever its field holds.
       await own(key).uncheck()
     } else await field(key).fill("")
@@ -275,7 +264,7 @@ const code = await s.run(async () => {
     "typography.weights.bold": "a;b",
   }
   for (const [key, value] of Object.entries(several)) {
-    if (contract.families.includes(key)) await own(key).check()
+    if (FAMILIES.includes(key)) await own(key).check()
     await field(key).fill(value)
   }
   const recipe = { ...built, ...nested(several) }

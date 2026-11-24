@@ -66,6 +66,7 @@ import {
 } from "../src/anatomy/walk.js"
 import { DEFAULT_LANGUAGE } from "../src/components/default-texts.js"
 import { lt } from "../src/lt.js"
+import { roleToCss } from "../src/tokens/matrix.js"
 import { FAMILIES, NEUTRAL_LAYERS, ROLES } from "../src/tokens/matrix-cells.js"
 import {
   Breakpoints,
@@ -164,9 +165,6 @@ export type Input = {
   /** The rulebooks in `agent/`, without `.md`, sorted. */
   agent: string[]
 }
-
-const roleToCss = (role: string) =>
-  role.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
 
 /** The input as the package has it. */
 export function fromPackage(): Input {
