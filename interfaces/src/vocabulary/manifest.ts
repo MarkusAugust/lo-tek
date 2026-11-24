@@ -602,9 +602,11 @@ export type Manifest = {
   "$schema"?: string
   /**
    * The shape of the file. Raised only when a reader has to change to
-   * understand it.
+   * understand it. Version 2 added `rulebooks` and `stableId` on the options
+   * of a builder function and took nothing away, so a reader of version 2
+   * reads version 1 too.
    */
-  schemaVersion: 1
+  schemaVersion: 1 | 2
   /** The version of @lo-tek/interfaces the manifest was written from. */
   version: string
   /**

@@ -64,6 +64,10 @@ const input = (more: Partial<Input> = {}): Input => ({
 const manifestOf = (given: Input) =>
   JSON.parse(files(given)["manifest/manifest.json"])
 
+test("the manifest is written with schemaVersion 2", () => {
+  expect(manifestOf(input()).schemaVersion).toBe(2)
+})
+
 /** A `box` whose anatomy is one tag around a hole that takes other elements. */
 const boxIn = (tag: string): Input => {
   const anatomy: Anatomy = {

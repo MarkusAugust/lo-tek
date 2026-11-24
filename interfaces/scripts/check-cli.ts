@@ -1229,6 +1229,13 @@ block(async () => {
     files.includes("lotek-manifest.json"),
     "the fragment of the manifest was not written",
   )
+  const ownFragment = JSON.parse(
+    await readFile(join(folder, "ui/button/lotek-manifest.json"), "utf8"),
+  )
+  expect(
+    ownFragment.schemaVersion === 2,
+    `the fragment of the manifest has schemaVersion ${ownFragment.schemaVersion}, and the command writes 2`,
+  )
   const fragment = `--manifest=${join(folder, "ui/button/lotek-manifest.json")}`
   const page = join(folder, "page.html")
   await writeFile(
@@ -1240,6 +1247,29 @@ block(async () => {
     withFragment.code !== 0 && withFragment.out.includes("data-variant"),
     "the check with the fragment did not see the mistake in the markup for the copy",
   )
+  // A fragment written by an older command line has schemaVersion 1, and is
+  // read as before. One from a newer command line is refused, with the
+  // version it has and the ones this command line understands.
+  for (const [schemaVersion, taken] of [
+    [1, true],
+    [2, true],
+    [3, false],
+  ] as const) {
+    const other = join(folder, `version-${schemaVersion}.json`)
+    await writeFile(other, JSON.stringify({ ...ownFragment, schemaVersion }))
+    const answer = await run(["check", `--manifest=${other}`, page])
+    // Without the path, which has digits of its own.
+    const said = (answer.out + answer.err).replaceAll(other, "")
+    expect(
+      taken
+        ? answer.out.includes("data-variant")
+        : answer.code !== 0 &&
+            said.includes("schemaVersion 3") &&
+            /\b1\b/.test(said.replace("schemaVersion 3", "")) &&
+            /\b2\b/.test(said.replace("schemaVersion 3", "")),
+      `check with a fragment of schemaVersion ${schemaVersion}: ${said.slice(0, 300)}`,
+    )
+  }
   const withoutFragment = await run(["check", page])
   expect(
     withoutFragment.code === 0,

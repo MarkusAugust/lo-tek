@@ -39,8 +39,10 @@ const whole: Manifest = {
   textLanguage: "en",
 }
 
-// @ts-expect-error schemaVersion is 1, not any number
-const nextVersion: Manifest = { ...smallest, schemaVersion: 2 }
+// A consumer may hold a manifest of either version the readers understand.
+const newest: Manifest = { ...smallest, schemaVersion: 2 }
+// @ts-expect-error schemaVersion is 1 or 2, not any number
+const nextVersion: Manifest = { ...smallest, schemaVersion: 3 }
 // @ts-expect-error tokens is required
 const withoutTokens: Manifest = {
   schemaVersion: 1,
@@ -126,6 +128,7 @@ export const accepted = [
   node,
   builder,
   anatomy,
+  newest,
 ]
 export const rejected = [
   nextVersion,

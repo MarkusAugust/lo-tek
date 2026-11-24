@@ -485,11 +485,39 @@ class ManifestReaderTest {
         assertTrue("lt-kort" in takenOver.classes && "lt-card" !in takenOver.classes)
     }
 
+    /** The package's manifest, saying it has another schemaVersion. */
+    private fun ofVersion(version: Int): String {
+        val written = Regex("\"schemaVersion\": \\d+")
+        assertEquals(1, written.findAll(text).count(), "schemaVersion is written once in the manifest")
+        return text.replace(written, "\"schemaVersion\": $version")
+    }
+
+    @Test
+    fun `the package's manifest has schemaVersion 2`() {
+        assertEquals(2.0, raw["schemaVersion"])
+    }
+
+    @Test
+    fun `a manifest of schemaVersion 1 and one of 2 are read alike`() {
+        // An application may hold a manifest an older LO-TEK wrote.
+        val one = Manifest.parse(ofVersion(1))
+        val two = Manifest.parse(ofVersion(2))
+        assertEquals(one.classes.keys, two.classes.keys)
+        assertEquals(one.elements.keys, two.elements.keys)
+        assertTrue("lt-button" in two.classes)
+    }
+
     @Test
     fun `a manifest it cannot read says where`() {
         fun error(json: String) = assertFailsWith<IllegalArgumentException> { Manifest.parse(json) }.message!!
 
-        assertContains(error(text.replace("\"schemaVersion\": 1", "\"schemaVersion\": 2")), "schemaVersion 2,")
+        // The version it got, and both this reader understands.
+        for (version in listOf(0, 3)) {
+            val refused = error(ofVersion(version))
+            assertContains(refused, "schemaVersion $version")
+            val rest = refused.replace("schemaVersion $version", "")
+            assertTrue(Regex("\\b1\\b").containsMatchIn(rest) && Regex("\\b2\\b").containsMatchIn(rest), refused)
+        }
         assertContains(
             error(text.replaceFirst("\"link\": \"https://lo-tek.sobernetics.no/components/tabs/\"", "\"link\": 3")),
             "elements.lt-tabs.link",

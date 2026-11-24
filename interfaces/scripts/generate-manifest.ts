@@ -108,7 +108,7 @@ import {
 
 /** The package folder, which the paths from `files()` are relative to. */
 export const ROOT = fileURLToPath(new URL("..", import.meta.url))
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 
 /**
  * A component folder: its files without the tests, sorted, and the text of

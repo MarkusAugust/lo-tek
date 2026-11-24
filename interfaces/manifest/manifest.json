@@ -1,6 +1,6 @@
 {
   "$schema": "./manifest.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "version": "0.48.0",
   "textLanguage": "en",
   "elements": {

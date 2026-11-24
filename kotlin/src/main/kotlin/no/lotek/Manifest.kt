@@ -38,20 +38,24 @@ data class Manifest(
     val textLanguage: String? = null,
 ) {
     companion object {
-        /** The schema version this reader understands. */
-        const val SCHEMA_VERSION = 1
+        /** The schema version the package is written in. */
+        const val SCHEMA_VERSION = 2
+
+        /** The schema versions this reader understands. Version 2 added fields and took none away. */
+        val UNDERSTOOD = setOf(1, 2)
 
         /**
-         * Reads [json], the text of a `manifest.json`. A manifest with another
-         * schema version, or without the shape the schema requires, throws
+         * Reads [json], the text of a `manifest.json`. A manifest with a
+         * schema version this reader does not understand, or without the shape
+         * the schema requires, throws
          * [IllegalArgumentException] with the path to what is wrong.
          */
         fun parse(json: String): Manifest {
             val root = Json.parse(json).obj("the manifest")
             val schema = root["schemaVersion"].num("schemaVersion")
-            require(schema == SCHEMA_VERSION.toDouble()) {
+            require(UNDERSTOOD.any { it.toDouble() == schema }) {
                 val shown = if (schema % 1.0 == 0.0) schema.toLong().toString() else schema.toString()
-                "The manifest has schemaVersion $shown, and this version of LO-TEK reads only $SCHEMA_VERSION."
+                "The manifest has schemaVersion $shown, and this version of LO-TEK reads 1 and 2."
             }
             return Manifest(
                 version = root["version"].str("version"),
