@@ -142,6 +142,91 @@ class LotekPluginTest {
         assertFalse(File(project, "build/lotek/manifest.json").exists())
     }
 
+    /** Takes over the button, so the project has a fragment that knows `app-button` and its variants. */
+    private fun takeOverButton() {
+        val output = ByteArrayOutputStream()
+        val code =
+            CommandLine.run(
+                listOf("takeover", "button", "--out=src/ui"),
+                project,
+                ByteArrayInputStream(ByteArray(0)),
+                output,
+                output,
+            )
+        assertEquals(0, code, output.toString(Charsets.UTF_8))
+    }
+
+    private val built get() = File(project, "build/lotek/manifest.json")
+
+    @Test
+    fun `the check alone builds the manifest it reads`() {
+        // `lotek check` reads `build/lotek/manifest.json` when it is there, so
+        // the task that writes it runs first, also when nothing else asks.
+        takeOverButton()
+        setUp("manifests.from(\"src/ui/button/lotek-manifest.json\")")
+        file("templates/page.html", "<button class=\"app-button\" data-variant=\"wrong\">Send</button>\n")
+
+        val failed = gradle("lotekCheck").buildAndFail()
+        assertEquals(TaskOutcome.SUCCESS, failed.task(":lotekManifest")?.outcome, failed.output)
+        assertContains(built.readText(), "\"app-button\"")
+        // And the fragment's class is still known to the check.
+        val finding = failed.output.lines().first { it.startsWith("templates/page.html:1:") }
+        assertContains(finding, "data-variant")
+    }
+
+    @Test
+    fun `a manifest left by an earlier build does not decide the check`() {
+        // The project had a fragment for `app-button`, and the build wrote
+        // the manifest with it. The fragment is no longer in `manifests`:
+        // the class is the project's own business again, and the check has
+        // nothing to say about its attributes.
+        takeOverButton()
+        setUp("manifests.from(\"src/ui/button/lotek-manifest.json\")")
+        file("templates/page.html", "<button class=\"app-button\" data-variant=\"wrong\">Send</button>\n")
+        gradle("lotekManifest").build()
+        assertContains(built.readText(), "\"app-button\"")
+
+        setUp()
+        val passed = gradle("lotekCheck").build()
+        assertEquals(TaskOutcome.SUCCESS, passed.task(":lotekCheck")?.outcome, passed.output)
+        assertFalse(built.exists(), "the manifest of the earlier build is still there")
+    }
+
+    @Test
+    fun `a manifest changed by hand is written again before the check`() {
+        takeOverButton()
+        setUp("manifests.from(\"src/ui/button/lotek-manifest.json\")")
+        file("templates/page.html", "<button class=\"app-button\">Send</button>\n")
+        assertEquals(TaskOutcome.SUCCESS, gradle("lotekCheck").build().task(":lotekCheck")?.outcome)
+        val written = built.readText()
+
+        // What an upgrade of LO-TEK or a stray tool leaves: another manifest
+        // where the build's own was.
+        built.writeText(written.replace("\"app-button\"", "\"app-knapp\""))
+        gradle("lotekCheck").build()
+        assertEquals(written, built.readText())
+    }
+
+    @Test
+    fun `a changed fragment makes the check run again`() {
+        takeOverButton()
+        setUp("manifests.from(\"src/ui/button/lotek-manifest.json\")")
+        file("templates/page.html", "<button class=\"app-button\" data-variant=\"wrong\">Send</button>\n")
+        gradle("lotekCheck").buildAndFail()
+
+        // The fragment no longer describes the class the page uses, so the
+        // check has nothing to say about it.
+        val fragment = File(project, "src/ui/button/lotek-manifest.json")
+        fragment.writeText(fragment.readText().replace("\"app-button\"", "\"app-knapp\""))
+        assertEquals(TaskOutcome.SUCCESS, gradle("lotekCheck").build().task(":lotekCheck")?.outcome)
+        assertEquals(TaskOutcome.UP_TO_DATE, gradle("lotekCheck").build().task(":lotekCheck")?.outcome)
+
+        // And back: the same templates, another vocabulary, so not up to date.
+        fragment.writeText(fragment.readText().replace("\"app-knapp\"", "\"app-button\""))
+        val again = gradle("lotekCheck").buildAndFail()
+        assertEquals(TaskOutcome.FAILED, again.task(":lotekCheck")?.outcome, again.output)
+    }
+
     @Test
     fun `without fragments no manifest is written`() {
         setUp()

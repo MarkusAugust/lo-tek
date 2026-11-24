@@ -42,7 +42,12 @@ struct Choice {
 }
 
 fn choice() -> Choice {
-    let manifest = parse(&crate::package::manifest()).unwrap_or(Json::Null);
+    let manifest = match parse(&crate::package::manifest()) {
+        Ok(manifest) => manifest,
+        Err(reason) => fail(&format!(
+            "manifest/manifest.json in the package cannot be read, and it says which rulebook a project gets: {reason}\n"
+        )),
+    };
     let rulebooks = manifest.get("rulebooks");
     let text = |row: &Json, key: &str| row.get(key).and_then(Json::as_str).map(str::to_string);
     let dependencies = rulebooks

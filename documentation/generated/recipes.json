@@ -395,6 +395,7 @@
         "build/lotek/manifest.json",
         "node_modules",
         "--manifest",
+        "Checked against build/lotek/manifest.json.",
         "{{ }}",
         "{% %}",
         "<?= ?>",

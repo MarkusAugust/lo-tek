@@ -69,12 +69,24 @@ class LotekPlugin : Plugin<Project> {
         extension.rendered.convention(false)
         extension.themeOutput.convention(project.layout.buildDirectory.file("lotek/theme.css"))
 
+        val manifest = project.tasks.register("lotekManifest", LotekManifest::class.java) { task ->
+            task.group = "build"
+            task.description = "Writes the manifest the project is checked against, with the fragments from lotek takeover."
+            task.manifests.from(extension.manifests)
+            task.workingDirectory.set(project.layout.projectDirectory)
+            task.output.set(project.layout.buildDirectory.file("lotek/manifest.json"))
+        }
+
         val check = project.tasks.register("lotekCheck", LotekCheck::class.java) { task ->
             task.group = "verification"
             task.description = "Checks the templates against LO-TEK, like lotek check."
             task.templates.from(extension.templates)
             task.rendered.set(extension.rendered)
             task.manifests.from(extension.manifests)
+            // The check reads the manifest the project built when there is
+            // one, so it is written first, and deleted when the project has
+            // no fragments any more. Without this an earlier build decided.
+            task.builtManifest.from(manifest)
             task.workingDirectory.set(project.layout.projectDirectory)
             task.report.set(project.layout.buildDirectory.file("lotek/check.txt"))
         }
@@ -86,14 +98,6 @@ class LotekPlugin : Plugin<Project> {
             task.workingDirectory.set(project.layout.projectDirectory)
             task.onlyIf("lotek.themeRecipe is set") { task.recipe.isPresent }
         }
-        val manifest = project.tasks.register("lotekManifest", LotekManifest::class.java) { task ->
-            task.group = "build"
-            task.description = "Writes the manifest the project is checked against, with the fragments from lotek takeover."
-            task.manifests.from(extension.manifests)
-            task.workingDirectory.set(project.layout.projectDirectory)
-            task.output.set(project.layout.buildDirectory.file("lotek/manifest.json"))
-        }
-
         project.pluginManager.withPlugin("base") {
             project.tasks.named("check") { it.dependsOn(check) }
             project.tasks.named("assemble") { it.dependsOn(manifest) }
@@ -135,6 +139,11 @@ abstract class LotekCheck : DefaultTask() {
     @get:InputFiles
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val manifests: ConfigurableFileCollection
+
+    /** `build/lotek/manifest.json` from `lotekManifest`, which the check reads when it is there. */
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val builtManifest: ConfigurableFileCollection
 
     @get:Internal
     abstract val workingDirectory: DirectoryProperty

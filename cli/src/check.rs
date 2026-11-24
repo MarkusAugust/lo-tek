@@ -128,25 +128,41 @@ impl<'a> Vocabularies<'a> {
         if let Some((_, known)) = self.read.iter().find(|(path, _)| *path == found) {
             return known.clone();
         }
-        let base = match &found {
-            Some(path) => match std::fs::read(path) {
+        // The path from the working directory, as the user would write it.
+        let named = found.as_ref().map(|path| {
+            let relative = self
+                .root
+                .first()
+                .and_then(|root| path.strip_prefix(&format!("{}/", root.trim_end_matches('/'))));
+            shown(relative.unwrap_or(path))
+        });
+        let base = match (&found, &named) {
+            (Some(path), Some(named)) => match std::fs::read(path) {
                 Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
-                Err(_) => fail(&format!("Manifest not found: \"{}\".\n", shown(path))),
+                Err(_) => fail(&format!("Manifest not found: \"{named}\".\n")),
             },
-            None => crate::package::manifest(),
+            _ => crate::package::manifest(),
         };
+        // The manifest on its own first, so one that cannot be read is blamed
+        // and not the fragment that was to go onto it.
+        if let (Some(named), Err(reason)) = (&named, manifest::with_fragments(&base, &[])) {
+            fail(&format!(
+                "\"{named}\" cannot be read as a manifest: {reason}\n"
+            ));
+        }
         check_fragments(&base, self.manifests, &self.fragments);
         let all: Vec<&str> = self.fragments.iter().map(String::as_str).collect();
         let vocabulary = match manifest::with_fragments(&base, &all) {
             Ok(vocabulary) => std::rc::Rc::new(vocabulary),
-            Err(reason) => fail(&match &found {
-                Some(path) => format!(
-                    "\"{}\" cannot be read as a manifest: {reason}\n",
-                    shown(path)
-                ),
-                None => format!("The manifests cannot be read together: {reason}\n"),
-            }),
+            Err(reason) => fail(&format!(
+                "The manifests cannot be read together: {reason}\n"
+            )),
         };
+        // A manifest the project has, built or installed nearer the file, is
+        // named: when it is stale, nothing else says why a class is unknown.
+        if let Some(named) = &named {
+            error(&format!("Checked against {named}."));
+        }
         self.read.push((found, vocabulary.clone()));
         vocabulary
     }

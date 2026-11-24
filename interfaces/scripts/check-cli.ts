@@ -2045,7 +2045,12 @@ block(async () => {
         (name) => !about.some((line) => line.includes(`"${name}"`)),
       )
     }
-    return { code, out, err, known }
+    /** The manifests the run says it read, in the order it says so. */
+    const against = err
+      .split("\n")
+      .map((line) => line.trim().replaceAll("\\", "/"))
+      .filter((line) => line.startsWith("Checked against "))
+    return { code, out, err, known, against }
   }
   const page = (classes: string[]) =>
     classes.map((name) => `<p class="${name}">x</p>\n`).join("")
@@ -2080,6 +2085,17 @@ block(async () => {
     expect(
       knew.length === 1 && knew[0] === wanted,
       `check, ${entry.name}: read the manifest that knows ${knew.join(" and ") || "none of the classes"}, and ${wanted} is the one of ${entry.expect ?? "the package the command falls back to"}\n${(answer.out + answer.err).slice(0, 400)}`,
+    )
+    // A manifest that is not the package's own is named, on standard error,
+    // so a stale or a foreign one can be acted on. The package the command
+    // falls back to is not, and every run without a manifest of the
+    // project's own says what it always said.
+    const named =
+      entry.expect === null ? [] : [`Checked against ${entry.expect}.`]
+    expect(
+      JSON.stringify(answer.against) === JSON.stringify(named) &&
+        !answer.out.includes("Checked against"),
+      `check, ${entry.name}: standard error names ${JSON.stringify(answer.against)}, expected ${JSON.stringify(named)}${answer.out.includes("Checked against") ? ", and standard output names a manifest" : ""}`,
     )
     if (entry.expect === null) fellBack += 1
     else found += 1
@@ -2153,6 +2169,71 @@ block(async () => {
       withFragment.known("apps/web/src/page.html").join() === "lt-m1,app-own",
     `with a fragment, the files no longer each get the manifest nearest to them:\n${withFragment.out.slice(0, 500)}`,
   )
+  // Each manifest is named once, however many files it applies to, in the
+  // order of the first file of each.
+  await write(join(project, "other.html"), page(classes))
+  const three = await check(
+    project,
+    ["page.html", "apps/web/src/page.html", "other.html"],
+    classes,
+  )
+  expect(
+    JSON.stringify(three.against) ===
+      JSON.stringify([
+        `Checked against ${BUILT}.`,
+        `Checked against ${NEARER}.`,
+      ]),
+    `three files with two manifests between them: standard error names ${JSON.stringify(three.against)}`,
+  )
+  expect(
+    three.known("other.html").join() === "lt-m0,app-own",
+    `the second file in a folder did not get the manifest the first one got:\n${three.out.slice(0, 400)}`,
+  )
+
+  // A manifest that was found and cannot be read is blamed by its own
+  // path, also when a fragment is given: the fragment is not what is wrong.
+  const blamed = (err: string) =>
+    [
+      ...err
+        .replaceAll("\\", "/")
+        .matchAll(/"([^"]*)" cannot be read as a manifest/g),
+    ].map(([, path]) => path)
+  for (const [what, text] of [
+    [
+      "of a schema version the command does not understand",
+      JSON.stringify({ ...base, schemaVersion: 3 }),
+    ],
+    ["that is not JSON", "{ not json"],
+  ] as const) {
+    const broken = join(root, `broken-${what.length}`)
+    await write(join(broken, BUILT), text)
+    await write(join(broken, "page.html"), page(classes))
+    for (const args of [[], [`--manifest=${fragment}`]]) {
+      const answer = await check(broken, [...args, "page.html"], classes)
+      expect(
+        answer.code !== 0 &&
+          answer.out === "" &&
+          blamed(answer.err).length === 1 &&
+          blamed(answer.err)[0].endsWith(BUILT),
+        `a built manifest ${what}${args.length > 0 ? ", with a fragment" : ""}: code ${answer.code}, blames ${JSON.stringify(blamed(answer.err))}, expected "${BUILT}"\n${answer.err.slice(0, 300)}`,
+      )
+    }
+  }
+  // A fragment that is itself broken is still the one blamed.
+  const brokenFragment = join(project, "ui/broken.json")
+  await write(brokenFragment, JSON.stringify({ schemaVersion: 3 }))
+  const ownFault = await check(
+    project,
+    [`--manifest=${brokenFragment}`, "page.html"],
+    classes,
+  )
+  expect(
+    ownFault.code !== 0 &&
+      blamed(ownFault.err).length === 1 &&
+      blamed(ownFault.err)[0].endsWith("ui/broken.json"),
+    `a broken fragment on a manifest that reads: code ${ownFault.code}, blames ${JSON.stringify(blamed(ownFault.err))}\n${ownFault.err.slice(0, 300)}`,
+  )
+
   const missing = await check(
     project,
     [`--manifest=${join(project, "ui/none.json")}`, "page.html"],
@@ -2343,6 +2424,20 @@ block(async () => {
     noAlias.code === 1 && noAlias.err.includes('Unknown framework "vue"'),
     `vue, which the other manifest does not have as another name, gave code ${noAlias.code}: ${noAlias.err.slice(0, 120)}`,
   )
+
+  // A package whose manifest cannot be read has no answer to give: the
+  // command stops and says which file, rather than guessing a rulebook.
+  const unreadable = await packageWith("unreadable", {})
+  await writeFile(join(unreadable, "manifest/manifest.json"), "{ not json")
+  for (const args of [[], ["--framework=react"]]) {
+    const answer = await agent(unreadable, args, { react: "19.0.0" })
+    expect(
+      answer.code === 1 &&
+        answer.out === "" &&
+        answer.err.replaceAll("\\", "/").includes("manifest/manifest.json"),
+      `agent ${args.join(" ")} with a manifest that is not JSON: code ${answer.code}, ${answer.out.length} characters on standard output, and standard error says: ${answer.err.slice(0, 200)}`,
+    )
+  }
 
   // A manifest from before it said any of this: schema version 1, and no
   // `rulebooks`.

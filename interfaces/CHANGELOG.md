@@ -120,7 +120,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `apps/web` has, and a manifest the Gradle plugin built is read without a
   flag. Before, one run read one manifest, the package of the command
   itself, which is still what applies when the search finds nothing.
-  `--manifest` fragments are added to whichever one was found.
+  `--manifest` fragments are added to whichever one was found. When the
+  manifest is one the project has, the command names it on standard error,
+  `Checked against build/lotek/manifest.json.`
+- **`lotekCheck` in the Gradle plugin runs `lotekManifest` first,** so the
+  manifest the check reads is the one the project has now, and not one an
+  earlier build left.
 - **`lotek agent` lists the other names from the manifest** when it refuses
   a framework: `Or vue, svelte, solid, solid-js, lit, vite for "bundles".`
 
