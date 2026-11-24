@@ -35,6 +35,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **The report of `inspectTheme` has two more fields, `others` and
   `verdict`.** They are required in `ThemeReport` in TypeScript and Kotlin.
   Code that only reads a report is unaffected.
+- **The manifest is `schemaVersion` 2.** It has two things version 1 did
+  not: `rulebooks`, and `stableId` on the options of a builder function.
+  Nothing was taken away, and the core, `lotek check`, the language server
+  and the Kotlin reader of this version read both 1 and 2, so a fragment
+  `lotek takeover` wrote earlier still works. A reader from 0.48.0 or
+  earlier refuses version 2: update LO-TEK for VS Code and LO-TEK for
+  IntelliJ together with the package, or the editor stops checking with
+  "The manifest has schemaVersion 2". `schemaVersion` in the type
+  `Manifest` is `1 | 2`, and `Manifest.SCHEMA_VERSION` in Kotlin is 2.
 - **`@lo-tek/interfaces/color` is gone.** It was a second implementation of
   the colour arithmetic the core does, and the two could drift apart.
   `parseHex`, `toHex`, `rgbToOklch`, `oklchToRgb` and `contrastRatio` have
@@ -82,6 +91,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   The schema is now generated from one description of the keys, which the
   theme builder reads too.
 
+- **The manifest says which rulebook a project gets.** `rulebooks` has the
+  dependencies in `package.json` that decide the environment, in the order
+  they are read, and the other names `--framework` takes. `lotek agent`
+  reads them from the manifest of the package it found and has no list of
+  its own. `Manifest.rulebooks` in Kotlin.
+- **The manifest says which options are ids.** An option of a builder
+  function that names an element, such as `id`, `titleId` and `keys`, has
+  `stableId: true`: its value must be the same on every render.
+  `BuilderOption.stableId` in Kotlin. LO-TEK for IntelliJ warns about a
+  random id from it rather than from a list of its own.
 - **Every type the builder functions are written with can be imported.**
   `DialogColor` was the type of `color` in `DialogOptions`, and the package
   did not export it. It does now, and so does every other named type that
@@ -93,6 +112,17 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the types from the two entry points and holds the rule from here on.
 
 ### Changed
+
+- **`lotek check` finds the manifest the way the editor does.** Each file
+  is checked against the nearest manifest from its folder upwards to the
+  working directory, `build/lotek/manifest.json` before the installed
+  package, so a page in `apps/web` of a monorepo is checked against what
+  `apps/web` has, and a manifest the Gradle plugin built is read without a
+  flag. Before, one run read one manifest, the package of the command
+  itself, which is still what applies when the search finds nothing.
+  `--manifest` fragments are added to whichever one was found.
+- **`lotek agent` lists the other names from the manifest** when it refuses
+  a framework: `Or vue, svelte, solid, solid-js, lit, vite for "bundles".`
 
 - **A colour that is not valid says what a colour is.** The refusal ends
   with `Colours are written as hexadecimal values, for example #7c3aed.`

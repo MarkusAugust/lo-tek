@@ -13,6 +13,7 @@ mod agent;
 mod check;
 mod check_theme;
 mod fetch;
+mod lookup;
 mod lsp;
 mod manifest;
 mod output;

@@ -1953,6 +1953,275 @@ block(async () => {
   await rm(folder, { recursive: true, force: true })
 })
 
+/*
+ * `check` finds the manifest for each file the way the editor does: from the
+ * file's folder up to the working directory, the manifest the project built
+ * before the package beside it, then the working directory's own, and only
+ * then the package the command line was given or finds installed. The cases
+ * are the table the language server and the IntelliJ plugin are held to,
+ * `cli/manifest-lookup.json`, built here with the project as the working
+ * directory.
+ *
+ * Every manifest knows one class of its own, the page uses them all, and an
+ * unknown class is reported: the class nothing is said about is the manifest
+ * that was read. The package the command falls back to has one too, so
+ * "fell back to the package" and "read the wrong manifest" are told apart.
+ */
+block(async () => {
+  const root = await mkdtemp(join(tmpdir(), "lotek-lookup-"))
+  const table: {
+    cases: {
+      name: string
+      manifests: string[]
+      folders?: string[]
+      document: string
+      expect: string | null
+    }[]
+  } = JSON.parse(
+    await readFile(join(packageDir, "../cli/manifest-lookup.json"), "utf8"),
+  )
+  const base = JSON.parse(
+    await readFile(join(packageDir, "manifest/manifest.json"), "utf8"),
+  )
+  /** The package's manifest, knowing one more class. */
+  const knowing = (name: string) =>
+    JSON.stringify({
+      ...base,
+      classes: {
+        ...base.classes,
+        [name]: { title: "M", link: "", attributes: {} },
+      },
+    })
+  const write = async (file: string, text: string) => {
+    await mkdir(dirname(file), { recursive: true })
+    await writeFile(file, text)
+  }
+
+  // The package the command falls back to: a copy that runs, as in the
+  // block about `agent` below, whose manifest knows `lt-fallback`.
+  const fallback = join(root, "package")
+  for (const file of [
+    "package.json",
+    "dist/cli.js",
+    "dist/wasi-host.js",
+    "core/lotek.wasm",
+  ]) {
+    await mkdir(dirname(join(fallback, file)), { recursive: true })
+    await cp(join(packageDir, file), join(fallback, file))
+  }
+  await write(join(fallback, "manifest/manifest.json"), knowing("lt-fallback"))
+  const command = process.env.LOTEK_CLI
+    ? COMMAND
+    : ["node", join(fallback, "dist/cli.js")]
+
+  /** `lotek check` in a folder, and the classes it knew in each file it names. */
+  const check = async (
+    cwd: string,
+    args: string[],
+    classes: string[],
+    more: { stdin?: string; withoutPackage?: boolean } = {},
+  ) => {
+    const { LOTEK_PACKAGE: _, ...bare } = ENVIRONMENT
+    const child = Bun.spawn([...command, "check", ...args], {
+      env: more.withoutPackage
+        ? bare
+        : { ...ENVIRONMENT, LOTEK_PACKAGE: fallback },
+      cwd,
+      stdin: more.stdin === undefined ? "ignore" : new Blob([more.stdin]),
+      stdout: "pipe",
+      stderr: "pipe",
+    })
+    runCount += 1
+    const [out, err, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ])
+    const lines = out.split("\n").map((line) => line.replaceAll("\\", "/"))
+    /** The classes nothing was said about in the file shown by this name. */
+    const known = (shownAs: string) => {
+      const about = lines.filter((line) => line.startsWith(`${shownAs}:`))
+      return classes.filter(
+        (name) => !about.some((line) => line.includes(`"${name}"`)),
+      )
+    }
+    return { code, out, err, known }
+  }
+  const page = (classes: string[]) =>
+    classes.map((name) => `<p class="${name}">x</p>\n`).join("")
+
+  let found = 0
+  let fellBack = 0
+  for (const [number, entry] of table.cases.entries()) {
+    const here = join(root, `case-${number}`)
+    const project = join(here, "project")
+    // `../` is beside the project.
+    const placed = (path: string) =>
+      path.startsWith("../")
+        ? join(here, path.slice("../".length))
+        : join(project, path)
+    await mkdir(project, { recursive: true })
+    const own = entry.manifests.map((_, index) => `lt-m${index}`)
+    for (const [index, path] of entry.manifests.entries())
+      await write(placed(path), knowing(own[index]))
+    for (const path of entry.folders ?? [])
+      await mkdir(placed(path), { recursive: true })
+    const classes = [...own, "lt-fallback"]
+    await write(placed(entry.document), page(classes))
+
+    const answer = await check(project, [entry.document], classes)
+    // Exactly one vocabulary is read: the manifest the table names, or the
+    // package the command was given when the table names none.
+    const wanted =
+      entry.expect === null
+        ? "lt-fallback"
+        : own[entry.manifests.indexOf(entry.expect)]
+    const knew = answer.known(entry.document)
+    expect(
+      knew.length === 1 && knew[0] === wanted,
+      `check, ${entry.name}: read the manifest that knows ${knew.join(" and ") || "none of the classes"}, and ${wanted} is the one of ${entry.expect ?? "the package the command falls back to"}\n${(answer.out + answer.err).slice(0, 400)}`,
+    )
+    if (entry.expect === null) fellBack += 1
+    else found += 1
+  }
+  expect(
+    found >= 7 && fellBack >= 3,
+    `cli/manifest-lookup.json gave ${found} cases with a manifest and ${fellBack} without: the table has changed, or was not read`,
+  )
+
+  // One run, two files, two manifests: each file gets the one nearest to
+  // it. A fragment goes on top of both.
+  const project = join(root, "two")
+  const BUILT = "build/lotek/manifest.json"
+  const NEARER =
+    "apps/web/node_modules/@lo-tek/interfaces/manifest/manifest.json"
+  await write(join(project, BUILT), knowing("lt-m0"))
+  await write(join(project, NEARER), knowing("lt-m1"))
+  const classes = ["lt-m0", "lt-m1", "lt-fallback", "app-own"]
+  for (const file of ["page.html", "apps/web/src/page.html"])
+    await write(join(project, file), page(classes))
+  const two = await check(
+    project,
+    ["page.html", "apps/web/src/page.html"],
+    classes,
+  )
+  expect(
+    two.known("page.html").join() === "lt-m0,app-own" &&
+      two.known("apps/web/src/page.html").join() === "lt-m1,app-own",
+    `two files in one run did not each get the manifest nearest to them:\n${two.out.slice(0, 500)}`,
+  )
+  // `app-own` is nothing LO-TEK has an opinion about until a fragment
+  // describes it. Then its attributes are checked, in both files.
+  const fragment = join(project, "ui/lotek-manifest.json")
+  await write(
+    fragment,
+    JSON.stringify({
+      schemaVersion: 2,
+      version: "0",
+      classes: {
+        "app-own": {
+          title: "Own",
+          link: "",
+          attributes: { "data-size": { type: "values", values: ["small"] } },
+        },
+      },
+    }),
+  )
+  for (const file of ["page.html", "apps/web/src/page.html"])
+    await write(
+      join(project, file),
+      `${page(classes)}<p class="app-own" data-size="huge">x</p>\n`,
+    )
+  const without = await check(
+    project,
+    ["page.html", "apps/web/src/page.html"],
+    classes,
+  )
+  const withFragment = await check(
+    project,
+    [`--manifest=${fragment}`, "page.html", "apps/web/src/page.html"],
+    classes,
+  )
+  const aboutSize = (out: string) =>
+    out.split("\n").filter((line) => line.includes("data-size")).length
+  expect(
+    aboutSize(without.out) === 0 && aboutSize(withFragment.out) === 2,
+    `the fragment was not put on top of the manifest of each file: ${aboutSize(without.out)} findings about data-size without it, ${aboutSize(withFragment.out)} with it\n${withFragment.out.slice(0, 500)}`,
+  )
+  expect(
+    withFragment.known("page.html").join() === "lt-m0,app-own" &&
+      withFragment.known("apps/web/src/page.html").join() === "lt-m1,app-own",
+    `with a fragment, the files no longer each get the manifest nearest to them:\n${withFragment.out.slice(0, 500)}`,
+  )
+  const missing = await check(
+    project,
+    [`--manifest=${join(project, "ui/none.json")}`, "page.html"],
+    classes,
+  )
+  expect(
+    missing.code !== 0 && !missing.out.includes("page.html:"),
+    `a fragment that does not exist did not stop the run: code ${missing.code}, ${missing.out.slice(0, 120)}`,
+  )
+
+  // Standard input has no folder: the working directory's own manifest,
+  // and nothing above or below it.
+  const piped = await check(project, [], classes, { stdin: page(classes) })
+  expect(
+    piped.known("stdin").join() === "lt-m0,app-own",
+    `standard input did not get the manifest of the working directory:\n${piped.out.slice(0, 300)}`,
+  )
+  const fromBelow = await check(join(project, "apps/web/src"), [], classes, {
+    stdin: page(classes),
+  })
+  expect(
+    fromBelow.known("stdin").join() === "lt-fallback,app-own",
+    `standard input in a folder without a manifest of its own did not get the package the command falls back to:\n${fromBelow.out.slice(0, 300)}`,
+  )
+  // A file given from a folder below the project's root: the search stops
+  // at the working directory, which has no manifest, so the package the
+  // command falls back to decides, as it did before the search.
+  const below = await check(
+    join(project, "apps/web/src"),
+    ["page.html"],
+    classes,
+  )
+  expect(
+    below.known("page.html").join() === "lt-fallback,app-own",
+    `a file in a working directory with no manifest at or below it did not get the package the command falls back to:\n${below.out.slice(0, 300)}`,
+  )
+
+  // An executable that is given no package finds the nearest installed
+  // one from the working directory upwards, as before: this is where
+  // `check` goes on working from a subfolder of a repository with
+  // `node_modules` at its root. The packaged command always has its own.
+  if (process.env.LOTEK_CLI) {
+    const above = join(root, "above")
+    await write(
+      join(above, "node_modules/@lo-tek/interfaces/manifest/manifest.json"),
+      knowing("lt-m0"),
+    )
+    await write(
+      join(above, "node_modules/@lo-tek/interfaces/package.json"),
+      await readFile(join(packageDir, "package.json"), "utf8"),
+    )
+    await write(join(above, "project/page.html"), page(classes))
+    const installed = await check(
+      join(above, "project"),
+      ["page.html"],
+      classes,
+      {
+        withoutPackage: true,
+      },
+    )
+    expect(
+      installed.known("page.html").join() === "lt-m0,app-own",
+      `without LOTEK_PACKAGE, the package installed above the working directory was not read:\n${(installed.out + installed.err).slice(0, 300)}`,
+    )
+  }
+
+  await rm(root, { recursive: true, force: true })
+})
+
 // `agent` reads which dependency and which other name points to which
 // rulebook from the manifest of the package it found, and has no list of
 // its own: a package whose manifest says otherwise is followed, and one

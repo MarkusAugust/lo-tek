@@ -39,21 +39,13 @@ use lotek_core::text::utf16;
 use lotek_core::types::{Finding, Severity, SuggestionKind, Vocabulary};
 use lotek_core::{diagnose_markup, diagnose_page, manifest, Lines};
 
-/// Where the manifest is looked for: in the file's folder and every folder
-/// above it up to and including the root of the workspace the file is in,
-/// and then at the root of every workspace.
-const CANDIDATES: [&str; 2] = [
-    "build/lotek/manifest.json",
-    "node_modules/@lo-tek/interfaces/manifest/manifest.json",
-];
-
 /// What the editor is asked to watch: the manifests, and every folder on the
 /// way to them. When a whole folder goes or comes at once, as `build` on
 /// `gradle clean` and `node_modules` on a fresh install, the editor says so
 /// for the folder and not for the file in it.
 fn watched() -> Vec<String> {
     let mut globs = Vec::new();
-    for candidate in CANDIDATES {
+    for candidate in crate::lookup::CANDIDATES {
         let parts: Vec<&str> = candidate.split('/').collect();
         for length in 1..=parts.len() {
             let glob = format!("**/{}", parts[..length].join("/"));
@@ -336,59 +328,16 @@ impl Server {
     /// The manifest that applies to a document: the first one that exists,
     /// read again when the file has changed.
     ///
-    /// The search goes from the document's folder upwards, as Node finds a
-    /// package, and then at the roots of the workspaces. Before, only the
-    /// root was looked at, so a page in `apps/web/` in a monorepo was checked
-    /// against another manifest, even though `apps/web/node_modules` had the
-    /// package.
+    /// The search is `lookup::candidates`, which `lotek check` shares. What
+    /// the editor gave in `initializationOptions` goes before it, and the
+    /// package the host points to comes last.
     fn vocabulary(&mut self, uri: Option<&str>) -> Option<Rc<Vocabulary>> {
         let mut candidates: Vec<String> = self.preferred.iter().cloned().collect();
-        if let Some(file) = uri.and_then(path_of) {
-            // Not above the root of the workspace the file is in: a package in
-            // the home folder is not the project's, and the editor does not
-            // watch files there. The path is written with `/` as for the root
-            // below, so the same file has the same key in `sources` on
-            // Windows too.
-            let file = file.replace('\\', "/");
-            let root = self
-                .roots
-                .iter()
-                .map(|r| r.replace('\\', "/").trim_end_matches('/').to_string())
-                .filter(|r| file.starts_with(&format!("{r}/")))
-                .max_by_key(String::len);
-            // If the file is under no root, like a scratch file outside the
-            // workspace, or when the editor gave no workspace, there is no
-            // root to stop at. Then nothing is searched from the file at all,
-            // as in the IntelliJ plugin; the root of every workspace is still
-            // tried, below. Before, the search went all the way to the root of
-            // the file system, and took the package in the home folder.
-            let mut dir = root
-                .as_ref()
-                .and_then(|_| std::path::Path::new(&file).parent());
-            while let Some(here) = dir {
-                let here_text = here.to_string_lossy().replace('\\', "/");
-                for candidate in CANDIDATES {
-                    candidates.push(format!("{}/{candidate}", here_text.trim_end_matches('/')));
-                }
-                if root.as_deref() == Some(here_text.trim_end_matches('/')) {
-                    break;
-                }
-                dir = here.parent();
-            }
-        }
-        for root in &self.roots {
-            for candidate in CANDIDATES {
-                candidates.push(format!("{}/{candidate}", root.trim_end_matches('/')));
-            }
-        }
+        let file = uri.and_then(path_of);
+        candidates.extend(crate::lookup::candidates(file.as_deref(), &self.roots));
         // Last, the package the host has given, which the extension points to.
         candidates.extend(self.package_manifest.clone());
-        let found = candidates.into_iter().find_map(|path| {
-            // A folder with the name is not a manifest, and the next
-            // candidate is tried, as in the IntelliJ plugin.
-            let metadata = std::fs::metadata(&path).ok().filter(|m| m.is_file())?;
-            Some((path, metadata.modified().ok()))
-        });
+        let found = crate::lookup::first_file(candidates);
         let (path, modified) = match found {
             Some((path, modified)) => (Some(path), modified),
             None => (None, None),

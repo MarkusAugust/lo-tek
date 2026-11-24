@@ -58,7 +58,9 @@ The manifest is `interfaces/manifest/manifest.json`, which the package writes fr
 the code. The host gives it to the core, or another one, such as the one the project
 has installed. Where each host finds it is in that host's loader. The manifest has a
 `schemaVersion`, and the core rejects a manifest with a shape it does not understand,
-with an explanation.
+with an explanation. It reads versions 1 and 2: version 2 added fields and took none
+away, so a manifest or a fragment of either version is read, and one can be merged
+onto the other.
 
 ## Suppression
 
