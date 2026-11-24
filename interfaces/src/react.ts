@@ -12,6 +12,11 @@ import { lt as html, type Lt } from "./lt.js"
 // who only imports this entry point. Without the line the import disappeared
 // from the `.d.ts` file, and `HTMLElementEventMap` was never extended.
 export type { LtEventMap } from "./components/events.js"
+export type {
+  TabsOptions,
+  TabsWithStateOptions,
+} from "./components/frame/tabs/tabs.js"
+export type { Lt } from "./lt.js"
 
 /**
  * The same API as `lt`, but with `className` and `htmlFor`.
@@ -200,7 +205,7 @@ function forReact<F extends (...args: never[]) => unknown>(
  * takes the same options, named `options` as in the editor, and gives the
  * React result.
  */
-type ForReactFn<F> = F extends (...args: never[]) => boolean
+export type ForReactFn<F> = F extends (...args: never[]) => boolean
   ? F
   : F extends (...args: never[]) => infer R
     ? Parameters<F> extends []
@@ -208,7 +213,7 @@ type ForReactFn<F> = F extends (...args: never[]) => boolean
       : ForReactOptions<F>
     : F
 
-type ForReactOptions<F> = F extends (options?: infer O) => infer R
+export type ForReactOptions<F> = F extends (options?: infer O) => infer R
   ? ((options?: O) => ReactResult<R>) & { [K in keyof F]: F[K] }
   : F extends (options: infer O) => infer R
     ? ((options: O) => ReactResult<R>) & { [K in keyof F]: F[K] }
@@ -226,7 +231,7 @@ const isGuard = (name: string) => /^is[A-Z]/.test(name)
  * `setAttributes`, which takes an element and builds nothing.
  */
 const BY_HAND = ["tabs", "term", "setAttributes"] as const
-type ByHand = (typeof BY_HAND)[number]
+export type ByHand = (typeof BY_HAND)[number]
 
 /**
  * Every member of `lt` but those by hand, with the React names. Mapped over
@@ -234,7 +239,7 @@ type ByHand = (typeof BY_HAND)[number]
  * and the documentation on each member in `lt.ts` comes along to the
  * consumer's editor.
  */
-type ForReact = {
+export type ForReact = {
   [K in keyof Lt as K extends ByHand ? never : K]: ForReactFn<Lt[K]>
 }
 

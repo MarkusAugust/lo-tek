@@ -17,7 +17,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import inputSource from "./components/css/input/input.css?inline"
 import searchSource from "./components/css/search/search.css?inline"
 import { mount, waitForPaint } from "./testing/a11y"
-import { contrastRatio } from "./tokens/color.js"
+import { contrastRatio } from "./testing/color.js"
 import tokenSource from "./tokens/tokens.css?inline"
 
 import "./tokens/tokens.css"

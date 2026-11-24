@@ -17,7 +17,7 @@
 
 import { beforeEach, describe, expect, it } from "vitest"
 import { userEvent } from "vitest/browser"
-import { contrastRatio } from "./tokens/color.js"
+import { contrastRatio } from "./testing/color.js"
 
 import "./tokens/tokens.css"
 import "./components/css/accordion/accordion.css"

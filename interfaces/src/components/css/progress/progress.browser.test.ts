@@ -7,8 +7,7 @@ import {
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
-import { color, rgb } from "../../../testing/color"
-import { contrastRatio } from "../../../tokens/color"
+import { color, contrastRatio, rgb } from "../../../testing/color"
 
 import "../../../tokens/tokens.css"
 import "./progress.css"
