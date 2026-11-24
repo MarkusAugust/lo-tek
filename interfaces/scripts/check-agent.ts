@@ -401,7 +401,13 @@ for (const [path, content] of Object.entries(expected)) {
   const paragraph = content
     .split("\n")
     .find((line) => line.includes(FOREIGN_TEXT_PARAGRAPH))
-  if (paragraph === undefined) continue
+  if (paragraph === undefined) {
+    demand(
+      false,
+      `${path} has no paragraph "${FOREIGN_TEXT_PARAGRAPH}": every rulebook says what replaces the package's default texts.`,
+    )
+    continue
+  }
   withForeignText += 1
   for (const name of replacements) {
     demand(

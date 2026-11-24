@@ -37,7 +37,7 @@ import {
   ownOn,
   untilOn,
 } from "./theme-page"
-import { FAMILIES } from "./theme-rest"
+import { FAMILIES } from "./theme-recipe"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 

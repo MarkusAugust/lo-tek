@@ -33,7 +33,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
 import { comparable, fieldOn, flat, ownOn } from "./theme-page"
-import { FAMILIES, KEYS } from "./theme-rest"
+import { FAMILIES, KEYS } from "./theme-recipe"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const DIST = `${ROOT}documentation/dist/`

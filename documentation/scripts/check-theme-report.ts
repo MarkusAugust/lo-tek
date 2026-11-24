@@ -27,7 +27,7 @@ import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
 import { ownOn } from "./theme-page"
-import { FAMILIES } from "./theme-rest"
+import { FAMILIES } from "./theme-recipe"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 

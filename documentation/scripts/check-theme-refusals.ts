@@ -26,7 +26,7 @@ import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
 import { fieldOn, nested, ownOn, themesInFrames, untilOn } from "./theme-page"
-import { FAMILIES } from "./theme-rest"
+import { FAMILIES } from "./theme-recipe"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 

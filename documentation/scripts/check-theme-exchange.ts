@@ -32,13 +32,20 @@ import {
   ownOn,
   untilOn,
 } from "./theme-page"
-import { FAMILIES, KEYS, RESTING } from "./theme-rest"
+import { FAMILIES, KEYS } from "./theme-recipe"
+import { RESTING, unread } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
 if (!existsSync(`${ROOT}documentation/dist/theme-builder/index.html`)) {
   console.error(
     "✗ dist/theme-builder/index.html is not built. The site is built with bun run build.",
+  )
+  process.exit(1)
+}
+if (unread.length > 0) {
+  console.error(
+    `✗ The check cannot read where LO-TEK rests:\n\n${unread.map((p) => `  ${p}`).join("\n")}\n`,
   )
   process.exit(1)
 }

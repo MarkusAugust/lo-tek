@@ -34,7 +34,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { Glob } from "bun"
 import { site } from "./site"
-import { CONTRACT as contract } from "./theme-rest"
+import { CONTRACT as contract } from "./theme-recipe"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const BUILT = `${ROOT}documentation/dist/theme-builder/page/index.html`

@@ -28,12 +28,10 @@ import {
   nested,
   untilOn,
 } from "./theme-page"
+import { BRANDS, FAMILIES, KEYS } from "./theme-recipe"
 import {
   BLOCK_KEYS,
-  BRANDS,
-  FAMILIES,
   HELP,
-  KEYS,
   PAGE_CHOOSES,
   RESTING,
   SLIDERS,

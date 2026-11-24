@@ -14,48 +14,19 @@
  * The last two still have a slider, which rests where most of LO-TEK is.
  */
 
-import { readFileSync } from "node:fs"
-import { fileURLToPath } from "node:url"
 import {
   LEFT_OUT,
   unread as unreadDefaults,
 } from "../../interfaces/scripts/theme-left-out"
 import { leaves as themeKeys } from "../../interfaces/src/tokens/theme-keys"
+import { FAMILIES, KEYS } from "./theme-recipe"
 
-const ROOT = fileURLToPath(new URL("../..", import.meta.url))
-
-type Schema = { properties?: Record<string, Schema> }
-const schema = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/theme.schema.json`, "utf8"),
-) as Schema
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as {
-  families: string[]
-  brands: Record<string, string>
-  roles: Record<string, unknown>
-  layers: Record<string, unknown>
-}
-/** The colour contract, for the checks that read more of it than the families. */
-export const CONTRACT = contract
-/** What could not be read. A check that imports this stops when it is not empty. */
+/**
+ * What could not be read. The checks that import this file,
+ * `check-theme-resting.ts` and `check-theme-exchange.ts`, stop when it is
+ * not empty.
+ */
 export const unread: string[] = [...unreadDefaults]
-
-/** The colour families, and LO-TEK's own colour for each. */
-export const FAMILIES = contract.families
-export const BRANDS = contract.brands
-
-/** Every key of the recipe that takes a value, as a path with dots. */
-function leaves(at: Schema, path = ""): string[] {
-  return Object.entries(at.properties ?? {}).flatMap(([name, property]) =>
-    path === "" && name === "$schema"
-      ? []
-      : property.properties
-        ? leaves(property, `${path}${name}.`)
-        : [`${path}${name}`],
-  )
-}
-export const KEYS = leaves(schema)
 
 /**
  * What the page shows under the field of each key, from the source the
