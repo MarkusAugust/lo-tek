@@ -16,6 +16,7 @@ import {
   readdir,
   readFile,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises"
 import { tmpdir } from "node:os"
@@ -1999,33 +2000,38 @@ block(async () => {
 
   // The package the command falls back to: a copy that runs, as in the
   // block about `agent` below, whose manifest knows `lt-fallback`.
-  const fallback = join(root, "package")
-  for (const file of [
-    "package.json",
-    "dist/cli.js",
-    "dist/wasi-host.js",
-    "core/lotek.wasm",
-  ]) {
-    await mkdir(dirname(join(fallback, file)), { recursive: true })
-    await cp(join(packageDir, file), join(fallback, file))
+  /** A package that runs, in this folder, with this text as its manifest. */
+  const runnable = async (folder: string, manifest: string) => {
+    for (const file of [
+      "package.json",
+      "dist/cli.js",
+      "dist/wasi-host.js",
+      "core/lotek.wasm",
+    ]) {
+      await mkdir(dirname(join(folder, file)), { recursive: true })
+      await cp(join(packageDir, file), join(folder, file))
+    }
+    await write(join(folder, "manifest/manifest.json"), manifest)
+    return folder
   }
-  await write(join(fallback, "manifest/manifest.json"), knowing("lt-fallback"))
-  const command = process.env.LOTEK_CLI
-    ? COMMAND
-    : ["node", join(fallback, "dist/cli.js")]
+  const fallback = await runnable(join(root, "package"), knowing("lt-fallback"))
 
   /** `lotek check` in a folder, and the classes it knew in each file it names. */
   const check = async (
     cwd: string,
     args: string[],
     classes: string[],
-    more: { stdin?: string; withoutPackage?: boolean } = {},
+    more: { stdin?: string; withoutPackage?: boolean; from?: string } = {},
   ) => {
+    // The package the command reads from: the packaged command is the one
+    // in that package, and an executable is told where it is.
+    const from = more.from ?? fallback
+    const command = process.env.LOTEK_CLI
+      ? COMMAND
+      : ["node", join(from, "dist/cli.js")]
     const { LOTEK_PACKAGE: _, ...bare } = ENVIRONMENT
     const child = Bun.spawn([...command, "check", ...args], {
-      env: more.withoutPackage
-        ? bare
-        : { ...ENVIRONMENT, LOTEK_PACKAGE: fallback },
+      env: more.withoutPackage ? bare : { ...ENVIRONMENT, LOTEK_PACKAGE: from },
       cwd,
       stdin: more.stdin === undefined ? "ignore" : new Blob([more.stdin]),
       stdout: "pipe",
@@ -2233,6 +2239,94 @@ block(async () => {
       blamed(ownFault.err)[0].endsWith("ui/broken.json"),
     `a broken fragment on a manifest that reads: code ${ownFault.code}, blames ${JSON.stringify(blamed(ownFault.err))}\n${ownFault.err.slice(0, 300)}`,
   )
+
+  // The package the command reads from, when its own manifest cannot be
+  // read: that manifest is what is wrong, with a fragment and without.
+  for (const [what, text] of [
+    [
+      "of a schema version the command does not understand",
+      JSON.stringify({ ...base, schemaVersion: 3 }),
+    ],
+    ["that is not JSON", "{ not json"],
+  ] as const) {
+    const from = await runnable(join(root, `package-${what.length}`), text)
+    const bare = join(root, `bare-${what.length}`)
+    await write(join(bare, "page.html"), page(classes))
+    for (const args of [[], [`--manifest=${fragment}`]]) {
+      const answer = await check(bare, [...args, "page.html"], classes, {
+        from,
+      })
+      const said = answer.err.replaceAll("\\", "/")
+      expect(
+        answer.code !== 0 &&
+          answer.out === "" &&
+          said.includes("manifest/manifest.json") &&
+          !blamed(answer.err).some((path) =>
+            path.endsWith("lotek-manifest.json"),
+          ),
+        `the manifest of the package itself ${what}${args.length > 0 ? ", with a fragment" : ""}: code ${answer.code}, blames ${JSON.stringify(blamed(answer.err))}\n${answer.err.slice(0, 300)}`,
+      )
+    }
+  }
+
+  /*
+   * The package installed in the project is the one the command reads
+   * everything else from, as in any ordinary project: the search finds its
+   * manifest, and there is nothing to say, since it is the package's own.
+   * The same when the package is a link to a folder elsewhere, the way some
+   * package managers install it.
+   */
+  const INSTALLED = "node_modules/@lo-tek/interfaces"
+  const ordinary = join(root, "ordinary")
+  const installed = await runnable(
+    join(ordinary, INSTALLED),
+    knowing("lt-installed"),
+  )
+  const linked = join(root, "linked")
+  const store = await runnable(
+    join(root, "store/interfaces"),
+    knowing("lt-installed"),
+  )
+  await mkdir(dirname(join(linked, INSTALLED)), { recursive: true })
+  await symlink(store, join(linked, INSTALLED), "junction")
+  const mine = ["lt-installed", "lt-fallback"]
+  for (const [what, folder, from] of [
+    ["installed in the project", ordinary, installed],
+    ["linked into the project", linked, store],
+  ] as const) {
+    await write(join(folder, "pages/page.html"), page(mine))
+    const answers = [
+      [
+        "a file",
+        await check(folder, ["pages/page.html"], mine, { from }),
+        "pages/page.html",
+      ],
+      [
+        "standard input",
+        await check(folder, [], mine, { from, stdin: page(mine) }),
+        "stdin",
+      ],
+    ] as const
+    for (const [given, answer, shownAs] of answers)
+      expect(
+        answer.known(shownAs).join() === "lt-installed" &&
+          answer.against.length === 0,
+        `the package ${what}, which is the one the command reads from, and ${given}: knew ${answer.known(shownAs).join() || "nothing"}, and standard error names ${JSON.stringify(answer.against)}`,
+      )
+    // A manifest the project built is still named there.
+    await write(join(folder, BUILT), knowing("lt-m0"))
+    const withBuilt = await check(
+      folder,
+      ["pages/page.html"],
+      [...mine, "lt-m0"],
+      { from },
+    )
+    expect(
+      JSON.stringify(withBuilt.against) ===
+        JSON.stringify([`Checked against ${BUILT}.`]),
+      `the package ${what} and a built manifest: standard error names ${JSON.stringify(withBuilt.against)}`,
+    )
+  }
 
   const missing = await check(
     project,

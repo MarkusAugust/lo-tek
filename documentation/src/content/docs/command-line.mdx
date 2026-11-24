@@ -127,7 +127,7 @@ form.html:5:13: warning: The class "lt-modal" does not exist in LO-TEK.
 | `--css=<file>` | also check that the stylesheets style the markup. See [With the stylesheets](#with-the-stylesheets) |
 | `--manifest=<file>` | also check a component you have taken over. See [takeover](#takeover) |
 
-Each file is checked against the manifest the project has for it, found the way [the editor](../the-editor/) finds it: from the file's folder upwards to the folder you run the command in, `build/lotek/manifest.json` first and then the installed package in `node_modules`. When there is neither, it is the manifest of the package the command reads everything else from. A fragment given with `--manifest` is added to whichever one was found. When the manifest is one the project has, the command says so on standard error, `Checked against build/lotek/manifest.json.`, so a manifest left by an earlier build can be seen.
+Each file is checked against the manifest the project has for it, found the way [the editor](../the-editor/) finds it: from the file's folder upwards to the folder you run the command in, `build/lotek/manifest.json` first and then the installed package in `node_modules`. When there is neither, it is the manifest of the package the command reads everything else from. A fragment given with `--manifest` is added to whichever one was found. When that is another manifest than the package's own, the command says so on standard error, `Checked against build/lotek/manifest.json.`, so a manifest left by an earlier build can be seen.
 
 The exit code is 0 when there are no findings, and 1 otherwise, also when all the findings are
 warnings. A warning in a template is an error no compiler sees. Empty standard

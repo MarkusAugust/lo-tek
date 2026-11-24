@@ -145,10 +145,13 @@ impl<'a> Vocabularies<'a> {
         };
         // The manifest on its own first, so one that cannot be read is blamed
         // and not the fragment that was to go onto it.
-        if let (Some(named), Err(reason)) = (&named, manifest::with_fragments(&base, &[])) {
-            fail(&format!(
-                "\"{named}\" cannot be read as a manifest: {reason}\n"
-            ));
+        if let Err(reason) = manifest::with_fragments(&base, &[]) {
+            fail(&match &named {
+                Some(named) => format!("\"{named}\" cannot be read as a manifest: {reason}\n"),
+                None => format!(
+                    "manifest/manifest.json in the package cannot be read as a manifest: {reason}\n"
+                ),
+            });
         }
         check_fragments(&base, self.manifests, &self.fragments);
         let all: Vec<&str> = self.fragments.iter().map(String::as_str).collect();
@@ -160,8 +163,16 @@ impl<'a> Vocabularies<'a> {
         };
         // A manifest the project has, built or installed nearer the file, is
         // named: when it is stale, nothing else says why a class is unknown.
+        // Not when it is the manifest of the package the command reads from,
+        // which is what an ordinary project has in `node_modules`. The texts
+        // are compared, not the paths: pnpm installs the package through a
+        // link, and as a WASI module the command cannot resolve one.
         if let Some(named) = &named {
-            error(&format!("Checked against {named}."));
+            let own = crate::package::dir()
+                .and_then(|package| std::fs::read(package.join("manifest/manifest.json")).ok());
+            if own.as_deref() != Some(base.as_bytes()) {
+                error(&format!("Checked against {named}."));
+            }
         }
         self.read.push((found, vocabulary.clone()));
         vocabulary

@@ -30,15 +30,15 @@ pub const HELP: &str = r#"lotek <command>
                        Without files, standard input is read. One finding
                        gives an error code. An address is fetched and
                        checked as a whole page: every id referred to must
-                       exist, and every field must be wired
+                       exist, and every field must be wired. Each file is
+                       checked against the manifest nearest to it, in
+                       build/lotek/ or in node_modules, as lsp finds it,
+                       with the package's own as a fallback
     --rendered         Check files and standard input as whole pages too
     --manifest=<file>  Also check a taken-over component, with the fragment
                        lotek takeover wrote next to the copy
     --css=<file>       Also check that the style sheets style the markup: a
                        class without a style sheet, and a value without a rule
-                       Each file is checked against the manifest nearest to
-                       it, in build/lotek/ or in node_modules, as lsp finds
-                       it, with the package's own as a fallback
 
   check-theme <file…>  Checks that a colour theme keeps the contrast promises.
                        Reads the --lt-color-* values in each block and says
