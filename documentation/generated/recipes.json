@@ -9341,6 +9341,8 @@
         "class=\"…\"",
         "lt-",
         "data-variant",
+        ":class=\"…\"",
+        "lt-b",
         "<lt-…>",
         "lt-",
         "web-types.json",
