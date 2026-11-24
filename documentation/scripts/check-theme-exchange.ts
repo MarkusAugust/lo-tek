@@ -24,6 +24,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { framesHold as holds } from "./theme-page"
 import { RESTING } from "./theme-rest"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
@@ -113,12 +114,8 @@ const FILE = JSON.stringify(
   2,
 )
 const UNKNOWN = { acent: "#7c3aed", shape: { radius: "0" } }
-/*
- * A key with a dot in its name, at the top of the recipe. It is not the
- * corner of the button, which is `buttonRadius` inside `shape`: it is a key
- * the recipe does not have. Told apart only by its dots, it was taken, and
- * the value vanished without a word.
- */
+// A key with a dot in its name, at the top of the recipe, is not the corner
+// of the button inside `shape`: it is a key the recipe does not have.
 const DOTTED = { "shape.buttonRadius": "4px", accent: "#7c3aed" }
 
 /**
@@ -317,35 +314,7 @@ const parses = (text: string, recipe: unknown) => {
   }
 }
 
-/** The theme each frame holds. */
-async function themes(): Promise<string[][]> {
-  return Promise.all(
-    ["light", "dark"].map(async (appearance) => {
-      const handle = await page
-        .locator(`iframe[data-appearance="${appearance}"]`)
-        .elementHandle()
-      const frame = await handle?.contentFrame()
-      if (!frame) return ["(no document)"]
-      return frame.evaluate(() =>
-        [...document.querySelectorAll("style")]
-          .map((style) => style.textContent ?? "")
-          .filter((text) => text.includes("lotek-theme")),
-      )
-    }),
-  )
-}
-async function framesHold(css: string | null): Promise<boolean> {
-  const holds = (held: string[][]) =>
-    held.every((f) =>
-      css === null ? f.length === 0 : f.length === 1 && f[0] === css,
-    )
-  let held = await themes()
-  for (let attempt = 0; attempt < 50 && !holds(held); attempt++) {
-    await page.waitForTimeout(100)
-    held = await themes()
-  }
-  return holds(held)
-}
+const framesHold = (css: string | null) => holds(page, css)
 
 /** A button that cannot be used: disabled, or said to be. */
 async function unusable(name: string): Promise<boolean> {
@@ -506,7 +475,7 @@ const code = await s.run(async () => {
         !after.told.includes(collapse(other)),
         `${name}: the text area also says "${other}", which did not stop the paste`,
       )
-    // The page had a sentence of its own for what is JSON and no recipe.
+    // What is JSON and no recipe is told in the core's words only.
     expect(
       !/but not a recipe/i.test(after.told),
       `${name}: the text area is still told in the page's own words: ${JSON.stringify(after.told)}`,

@@ -187,19 +187,8 @@ class ThemeParityTest {
     }
 
     @Test
-    fun `a recipe that is not an object is refused by the core, in its words`() {
-        // This package had a sentence of its own for it. The core says what
-        // is wrong with what it is given, and the package passes it on.
-        for (recipe in listOf("[]", "12", "\"#7c3aed\"", "null", "true")) {
-            val error = assertFailsWith<IllegalArgumentException> { Lotek.buildTheme(recipe) }
-            assertEquals(
-                """The recipe is not an object. Write it as an object with the colours in it, for example {"accent": "#7c3aed"}.""",
-                error.message,
-                recipe,
-            )
-            assertEquals(listOf("notARecipe"), Lotek.checkRecipe(recipe).map { it.kind }, recipe)
-        }
-        // Only a text that is not JSON at all cannot be asked about.
+    fun `only a text that is not JSON cannot be asked about`() {
+        // What is JSON and no recipe is answered by the core, and held by the expected results.
         assertFailsWith<Exception> { Lotek.checkRecipe("{") }
     }
 

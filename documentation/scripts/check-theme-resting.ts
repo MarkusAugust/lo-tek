@@ -21,6 +21,7 @@
 import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { framesHold as holds, nested } from "./theme-page"
 import {
   BLOCK_KEYS,
   BRANDS,
@@ -255,49 +256,7 @@ const shown = (state: State) => {
 }
 const recipeOf = (values: Record<string, string>) =>
   JSON.stringify(Object.entries(values).sort())
-/** The nested recipe of paths and values, for the package. */
-function nested(values: Record<string, string>) {
-  const recipe: Record<string, unknown> = {}
-  for (const [key, value] of Object.entries(values)) {
-    const parts = key.split(".")
-    let at = recipe
-    for (const part of parts.slice(0, -1)) {
-      at[part] ??= {}
-      at = at[part] as Record<string, unknown>
-    }
-    at[parts[parts.length - 1]] = value
-  }
-  return recipe
-}
-
-/** Whether both frames hold this theme, or none when it is `null`. */
-async function framesHold(theme: string | null): Promise<boolean> {
-  const held = () =>
-    Promise.all(
-      ["light", "dark"].map(async (appearance) => {
-        const handle = await page
-          .locator(`iframe[data-appearance="${appearance}"]`)
-          .elementHandle()
-        const frame = await handle?.contentFrame()
-        if (!frame) return ["(no document)"]
-        return frame.evaluate(() =>
-          [...document.querySelectorAll("style")]
-            .map((style) => style.textContent ?? "")
-            .filter((text) => text.includes("lotek-theme")),
-        )
-      }),
-    )
-  const holds = (frames: string[][]) =>
-    frames.every((f) =>
-      theme === null ? f.length === 0 : f.length === 1 && f[0] === theme,
-    )
-  let frames = await held()
-  for (let attempt = 0; attempt < 40 && !holds(frames); attempt++) {
-    await page.waitForTimeout(100)
-    frames = await held()
-  }
-  return holds(frames)
-}
+const framesHold = (css: string | null) => holds(page, css)
 
 /** The text a field rests at: LO-TEK's own, and nothing for a colour. */
 const rest = (key: string) => RESTING[key] ?? ""

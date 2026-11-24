@@ -30,6 +30,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { framesHold } from "./theme-page"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -72,8 +73,7 @@ const NOT_TEXT: unknown[] = [
   { accent: true },
   { brand1: ["#fff"] },
   { danger: { fill: "#b91c1c" } },
-  // These two the core used to take, and write `true` and nothing for: the
-  // page had the recipe and left the field at rest without a word.
+  // Also where the value is in a block.
   { typography: { weights: { bold: true } } },
   { typography: { fontFamily: ["x"] } },
 ]
@@ -450,26 +450,7 @@ const code = await s.run(async () => {
   await own("danger").check()
   await field("danger").fill("#b3261e")
   const whole = buildTheme({ accent: "#7c3aed", danger: "#b3261e" }).css
-  const framed = async () =>
-    Promise.all(
-      ["light", "dark"].map(async (appearance) => {
-        const handle = await page
-          .locator(`iframe[data-appearance="${appearance}"]`)
-          .elementHandle()
-        const frame = await handle?.contentFrame()
-        return (
-          (await frame?.evaluate(() =>
-            [...document.querySelectorAll("style")]
-              .map((style) => style.textContent ?? "")
-              .filter((text) => text.includes("lotek-theme")),
-          )) ?? []
-        )
-      }),
-    )
-  const holdsWhole = (held: string[][]) =>
-    held.every((frame) => frame.length === 1 && frame[0] === whole)
-  for (let attempt = 0; attempt < 40 && !holdsWhole(await framed()); attempt++)
-    await page.waitForTimeout(100)
+  await framesHold(page, whole)
   await field("accent").fill("purple")
   await field("danger").fill("#b3261")
   await until((state) => state.rows.length === 0)
@@ -498,7 +479,7 @@ const code = await s.run(async () => {
     "a family whose own value is refused has a row",
   )
   expect(
-    holdsWhole(await framed()),
+    await framesHold(page, whole),
     "while a value is refused, the frames do not hold the last theme that built as a whole",
   )
   points += 1

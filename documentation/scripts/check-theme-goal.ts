@@ -32,6 +32,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { themesInFrames } from "./theme-page"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -165,23 +166,7 @@ function taken(command: string) {
 }
 const now = () => page.evaluate(taken, `${PACKAGED.source}theme `)
 
-/** The theme each frame holds. */
-async function themes(): Promise<string[][]> {
-  return Promise.all(
-    ["light", "dark"].map(async (appearance) => {
-      const handle = await page
-        .locator(`iframe[data-appearance="${appearance}"]`)
-        .elementHandle()
-      const frame = await handle?.contentFrame()
-      if (!frame) return ["(no document)"]
-      return frame.evaluate(() =>
-        [...document.querySelectorAll("style")]
-          .map((style) => style.textContent ?? "")
-          .filter((text) => text.includes("lotek-theme")),
-      )
-    }),
-  )
-}
+const themes = () => themesInFrames(page)
 
 /** Where two texts part, for the message. */
 function parting(got: string, wanted: string): string {

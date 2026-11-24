@@ -323,6 +323,16 @@ block(async () => {
  */
 const { buildTheme } = await import("../src/tokens/theme.js")
 
+/** What the core refuses a recipe with, through the package. */
+const refusal = (recipe: unknown) => {
+  try {
+    buildTheme(recipe as never)
+  } catch (error) {
+    return (error as Error).message
+  }
+  return "(the core takes it)"
+}
+
 /** The lines the command writes about the colours of a recipe: what the core says of each. */
 function explained(recipe: Record<string, string>): string[] {
   return buildTheme(recipe).brands.flatMap((brand) => [
@@ -626,15 +636,6 @@ block(async () => {
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
-  const { buildTheme } = await import("../src/tokens/theme.js")
-  const refusal = (recipe: unknown) => {
-    try {
-      buildTheme(recipe as never)
-    } catch (error) {
-      return (error as Error).message
-    }
-    return "(the core takes it)"
-  }
   /** The file with this for `shape`, or without it when it is left out. */
   const file = (shape: unknown[], more: object = {}) =>
     writeFile(
@@ -725,13 +726,8 @@ block(async () => {
   await rm(folder, { recursive: true, force: true })
 })
 
-/*
- * A colour in the file that is not text is not dropped without a word.
- *
- * `"danger": 12` used to give a theme with LO-TEK's own red, as if the key
- * had not been there. A colour that is empty, `0`, `false` or `null` is
- * still a colour that is not given.
- */
+// A colour in the file that is not text is refused, not dropped. One that
+// is empty, `0`, `false` or `null` is a colour that is not given.
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
@@ -751,8 +747,7 @@ block(async () => {
   await writeFile(path, JSON.stringify({ accent: true }))
   const boolean = await run(["theme", path])
   expect(boolean.code === 1, `a colour that is true gave ${boolean.code}`)
-  // `true` is not text, and the core says so, where it used to try to read
-  // the word as a colour.
+  // `true` is not text, and the core says so.
   expect(
     boolean.err.includes(
       "The value of accent must be text or a number. Got: true",
@@ -865,7 +860,7 @@ block(async () => {
       `text for ${block} was not refused as a block that is not an object: ${JSON.stringify(err.slice(0, 200))}`,
     )
   }
-  // And a number, which used to be passed over without a word.
+  // And a number.
   await writeFile(path, JSON.stringify({ accent: "#7c3aed", typography: 12 }))
   const number = await run(["theme", path])
   expect(
@@ -880,25 +875,12 @@ block(async () => {
   await rm(folder, { recursive: true, force: true })
 })
 
-/*
- * What the command says of a recipe it will not build is what the core says,
- * and nothing after it. It used to add how a colour is written to every
- * refusal that did not begin with certain words, so the empty theme was told
- * about colours; and for a file that was a list it had a sentence of its
- * own. Exactly, for the three the hint was right or wrong for:
- */
+// What the command says of a recipe it will not build is what the core
+// says, and nothing after it: the hint about colours belongs to the one
+// sentence about a colour, and a file that is no recipe gets the core's.
 block(async () => {
   const folder = await mkdtemp(join(tmpdir(), "lotek-theme-"))
   const path = join(folder, "lotek.theme.json")
-  const { buildTheme } = await import("../src/tokens/theme.js")
-  const refusal = (recipe: unknown) => {
-    try {
-      buildTheme(recipe as never)
-    } catch (error) {
-      return (error as Error).message
-    }
-    return "(the core takes it)"
-  }
 
   const colour = await run(["theme", "--accent=purple"])
   expect(
@@ -1518,13 +1500,9 @@ block(async () => {
 
 /*
  * The help says what each corner flag sets, and that is what the core sets.
- *
- * The core has the lists: which components a recipe's `buttonRadius`,
- * `fieldRadius` and `surfaceRadius` reach. The panel of a term was added to
- * the surfaces, and the help went on listing eleven. The lists are read
- * from the core's source, and every name in one must be in the lines of its
- * flag, as words: `skip-link` is "skip link" there, and `textarea` "text
- * area", so both are compared without spaces and hyphens.
+ * The lists are read from the core's source, and every name in one must be
+ * in the lines of its flag, as words: `skip-link` is "skip link" there, and
+ * `textarea` "text area", so both are compared without spaces and hyphens.
  */
 block(async () => {
   const core = await readFile(

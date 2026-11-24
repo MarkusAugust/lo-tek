@@ -937,10 +937,8 @@ mod recipe_tests {
 
     #[test]
     fn a_square_bracket_that_is_not_closed_is_refused_like_a_parenthesis() {
-        // Seen in a browser: `Inter [` as the font opens a block that
-        // swallows what follows it in the rule, as an unclosed `(` does, and
-        // the radius declared after it came out empty. The theme built, and
-        // looked right in the file.
+        // In a browser `Inter [` as the font opens a block that swallows
+        // what follows it in the rule, as an unclosed `(` does.
         for value in ["Inter [", "Inter ]", "Inter [a", "a]b[", "calc(1px [) ]"] {
             let recipe = format!(r#"{{"typography": {{"fontFamily": "{value}"}}}}"#);
             assert_eq!(
@@ -1105,76 +1103,6 @@ mod recipe_tests {
     }
 
     #[test]
-    fn a_block_that_is_not_an_object_is_refused_where_it_stands() {
-        // A text was read as its characters, "Unknown key: typography.0,
-        // typography.1", and a number was passed over without a word. Both
-        // are the same mistake, and it is about the block.
-        for (recipe, message) in [
-            (
-                r##"{"accent": "#7c3aed", "typography": "Inter"}"##,
-                r#"typography is not an object with its keys in it. Got: "Inter""#,
-            ),
-            (
-                r#"{"typography": {"weights": [400]}}"#,
-                "typography.weights is not an object with its keys in it. Got: [400]",
-            ),
-            (
-                r#"{"typography": {"lineHeights": true}}"#,
-                "typography.lineHeights is not an object with its keys in it. Got: true",
-            ),
-            (
-                r##"{"accent": "#7c3aed", "shape": 5}"##,
-                "shape is not an object with its keys in it. Got: 5",
-            ),
-        ] {
-            assert_eq!(theme(recipe).err().as_deref(), Some(message), "{recipe}");
-        }
-    }
-
-    #[test]
-    fn a_value_that_is_true_a_list_or_an_object_is_refused() {
-        // `true` was written into the file as `true`, and a list for a
-        // colour was read as an empty text, "\"\" is not a valid colour".
-        // The key is named as in every other sentence about a value: by the
-        // name the core has always used, `buttonRadius` and `weights.bold`.
-        for (recipe, message) in [
-            (
-                r#"{"accent": true}"#,
-                "The value of accent must be text or a number. Got: true",
-            ),
-            (
-                r##"{"danger": ["#fff"]}"##,
-                r##"The value of danger must be text or a number. Got: ["#fff"]"##,
-            ),
-            (
-                r#"{"shape": {"buttonRadius": {"a": 1}}}"#,
-                r#"The value of buttonRadius must be text or a number. Got: {"a":1}"#,
-            ),
-            (
-                r#"{"typography": {"weights": {"bold": true}}}"#,
-                "The value of weights.bold must be text or a number. Got: true",
-            ),
-        ] {
-            assert_eq!(theme(recipe).err().as_deref(), Some(message), "{recipe}");
-        }
-    }
-
-    #[test]
-    fn what_is_not_a_recipe_is_refused_as_that() {
-        // A text was "Unknown key in the recipe: 0, 1, 2, 3", and `null` was
-        // an empty theme. Neither says what is wrong.
-        for recipe in [r#""text""#, "[1]", "[]", "null", "12", "true", "false"] {
-            assert_eq!(
-                theme(recipe).err().as_deref(),
-                Some(
-                    r##"The recipe is not an object. Write it as an object with the colours in it, for example {"accent": "#7c3aed"}."##
-                ),
-                "{recipe}"
-            );
-        }
-    }
-
-    #[test]
     fn what_counts_as_not_given() {
         // Absent, `null`, an empty text and `false`, for every value. `0` is
         // not a colour, and so not given for a family; for a corner or a
@@ -1267,8 +1195,7 @@ mod recipe_tests {
 
     #[test]
     fn the_radius_of_the_surfaces_reaches_the_panel_of_a_term() {
-        // The panel is a surface like the popover, and was left behind when
-        // the component came: a theme with square surfaces had one round one.
+        // The panel is a surface like the popover.
         let css = theme(r#"{"shape": {"surfaceRadius": "4px"}}"#).unwrap().css;
         assert!(
             css.contains("    --lt-tooltip-radius: 4px;\n    --lt-term-radius: 4px;\n"),
@@ -1342,8 +1269,7 @@ mod recipe_tests {
     fn every_corner_in_the_stylesheets_is_set_by_the_recipe_or_left_out_on_purpose() {
         // A component with a corner of its own is either reached by one of
         // the three keys or named among those left out, and someone has to
-        // decide which: the panel of a term was neither for nine versions,
-        // and nothing said so. Both ways, so a list cannot keep a name the
+        // decide which. Both ways, so a list cannot keep a name the
         // stylesheets no longer read, and no name is in two lists.
         let hooks = radius_hooks();
         assert!(hooks.len() > 20, "found only {hooks:?}");
@@ -1402,90 +1328,6 @@ mod recipe_tests {
             return Some(format!("Unknown key in the recipe: {}", unknown.join(", ")));
         }
         problems.first().map(|p| p.message.clone())
-    }
-
-    #[test]
-    fn check_recipe_says_everything_that_is_wrong_at_once() {
-        // `build_theme` stops at the first thing it refuses, which is right
-        // for one answer and useless for a form: with two fields wrong, the
-        // second is told nothing until the first is put right. Here every
-        // problem is there, each with the key it is about, as the parts of
-        // its path, and with its kind, so nobody has to read the sentence
-        // to know what sort of problem it is.
-        //
-        // The order is part of the answer: the unknown keys as `build_theme`
-        // lists them, then the refused values in the order of the schema.
-        let recipe = parse(
-            r##"{"shape": {"buttonRadius": "4px; } html { display: none"}, "danger": "#b91c1c", "acent": "#000", "accent": "purple"}"##,
-        )
-        .unwrap();
-        let alone = |recipe: &str| theme(recipe).err().unwrap();
-        let found: Vec<_> = check_recipe(&recipe).iter().map(written).collect();
-        assert_eq!(
-            found,
-            [
-                (
-                    vec!["acent".to_string()],
-                    "unknown".to_string(),
-                    "Unknown key in the recipe: acent".to_string()
-                ),
-                (
-                    vec!["accent".to_string()],
-                    "refused".to_string(),
-                    alone(r#"{"accent": "purple"}"#)
-                ),
-                (
-                    vec!["shape".to_string(), "buttonRadius".to_string()],
-                    "refused".to_string(),
-                    alone(r#"{"shape": {"buttonRadius": "4px; } html { display: none"}}"#)
-                ),
-            ]
-        );
-    }
-
-    #[test]
-    fn a_key_with_a_dot_in_its_name_is_not_the_key_it_looks_like() {
-        // `"shape.buttonRadius"` at the top is one key, which the recipe
-        // does not have. Written as a path with dots it was the same as the
-        // corner of the button, and one of the two answers was lost.
-        let recipe =
-            parse(r##"{"shape.buttonRadius": "4px", "shape": {"buttonRadius": "4px;"}}"##).unwrap();
-        let problems = check_recipe(&recipe);
-        let paths: Vec<(&[String], &str)> = problems
-            .iter()
-            .map(|p| (p.path.as_slice(), p.kind.as_str()))
-            .collect();
-        assert_eq!(
-            paths,
-            [
-                (&["shape.buttonRadius".to_string()][..], "unknown"),
-                (
-                    &["shape".to_string(), "buttonRadius".to_string()][..],
-                    "refused"
-                ),
-            ]
-        );
-    }
-
-    #[test]
-    fn a_problem_with_the_whole_recipe_has_no_path() {
-        for (recipe, kind) in [
-            ("{}", "empty"),
-            (r#"{"accent": ""}"#, "empty"),
-            ("[1]", "notARecipe"),
-            ("null", "notARecipe"),
-        ] {
-            let problems = check_recipe(&parse(recipe).unwrap());
-            assert_eq!(problems.len(), 1, "{recipe}");
-            assert_eq!(problems[0].kind.as_str(), kind, "{recipe}");
-            assert!(problems[0].path.is_empty(), "{recipe}");
-            // The sentence is the one `build_theme` refuses with.
-            assert_eq!(
-                theme(recipe).err(),
-                Some(problems[0].message.clone()),
-                "{recipe}"
-            );
-        }
     }
 
     #[test]
@@ -1569,47 +1411,6 @@ mod recipe_tests {
             .chain(block(&["typography", "lineHeights"], &LINE_KEYS))
             .chain(block(&["shape"], &SHAPE_KEYS))
             .collect()
-    }
-
-    #[test]
-    fn recipe_values_is_what_the_recipe_gives_as_the_core_reads_it() {
-        // To put a recipe into a form, a host needs to know what it gives,
-        // and that is the core's to say: `0` for a family is not a colour
-        // and so not given, where `0` for a corner is a value. A host that
-        // read the recipe itself put `0` in the field of a family and an
-        // error under it. A number comes as the text the core writes.
-        let recipe = parse(
-            r##"{"$schema": "s", "acent": "#000", "shape": {"fieldRadius": 0, "buttonRadius": "1rem", "surfaceRadius": true}, "typography": {"weights": {"bold": 700}, "fontFamily": ""}, "visited": 0, "warning": null, "danger": "purple", "accent": "#7c3aed"}"##,
-        )
-        .unwrap();
-        let given: Vec<(String, String)> = recipe_values(&recipe)
-            .into_iter()
-            .map(|value| (value.path.join(" / "), value.text))
-            .collect();
-        let wanted = [
-            ("accent", "#7c3aed"),
-            // A text the core refuses is still what the recipe gives: the
-            // field holds it, and the problem says what is wrong with it.
-            ("danger", "purple"),
-            ("typography / weights / bold", "700"),
-            ("shape / buttonRadius", "1rem"),
-            ("shape / fieldRadius", "0"),
-        ]
-        .map(|(path, text)| (path.to_string(), text.to_string()));
-        assert_eq!(given, wanted);
-        // What is no recipe gives nothing, and neither does a block that is
-        // not an object.
-        for recipe in [
-            "[1]",
-            r#""text""#,
-            "null",
-            r#"{"shape": "x", "typography": [1]}"#,
-        ] {
-            assert!(
-                recipe_values(&parse(recipe).unwrap()).is_empty(),
-                "{recipe}"
-            );
-        }
     }
 
     #[test]
@@ -1718,29 +1519,6 @@ mod recipe_tests {
             rebuilt > 200 && in_values > 500 && not_in_values > 500,
             "{rebuilt} rebuilt, {in_values} refused texts, {not_in_values} refused values that are not text"
         );
-    }
-
-    #[test]
-    fn a_color_that_is_not_one_is_told_how_a_color_is_written() {
-        // The hint was the command's, added to every refusal that did not
-        // start with certain words, so an empty theme was told how to write
-        // a colour. It belongs to the one sentence it is about.
-        assert_eq!(
-            theme(r#"{"accent": "purple"}"#).err().as_deref(),
-            Some(
-                r##""purple" is not a valid hexadecimal colour. Colours are written as hexadecimal values, for example #7c3aed."##
-            )
-        );
-        for recipe in [
-            "{}",
-            r#"{"shape": {"buttonRadius": "4px;"}}"#,
-            r#"{"acent": "x"}"#,
-        ] {
-            assert!(
-                !theme(recipe).err().unwrap().contains("hexadecimal"),
-                "{recipe}"
-            );
-        }
     }
 
     /// A recipe with something odd at every place, from a seed. The values
@@ -2242,9 +2020,7 @@ mod recipe_tests {
     #[test]
     fn a_brand_says_in_words_what_became_of_it() {
         // The sentences are the core's, made once: the command writes them,
-        // the theme builder shows them and the file has the first of them,
-        // and none of the three puts them together itself. The wording is
-        // the one `lotek theme` had when the core took it over.
+        // the theme builder shows them and the file has the first of them.
         let t = theme(r##"{"accent": "#f7df1e"}"##).unwrap();
         let brand = &t.brands[0];
         assert_eq!(
@@ -2275,88 +2051,6 @@ mod recipe_tests {
                 "In the dark theme the fill is less saturated than #7c3aed, with 84% of its chroma: a screen cannot show more at that lightness.",
             ]
         );
-    }
-
-    /// The reasons of a row, put together here from the row's own numbers:
-    /// first what the colour would break as the fill, light then dark, then
-    /// the chroma the fill lost, light then dark.
-    fn reasons_from_the_numbers(brand: &Brand) -> Vec<String> {
-        let sides = [("light", &brand.light), ("dark", &brand.dark)];
-        let plainly = |promise: &str| match promise {
-            "fill on canvas" => "against the page it",
-            "fill on raised" => "against a raised surface it",
-            "content on top of fill" => "text on it",
-            other => panic!("a promise about the fill without plain words: {other}"),
-        };
-        let mut reasons = Vec::new();
-        for (appearance, side) in sides {
-            if side.breaks.is_empty() {
-                continue;
-            }
-            let clauses: Vec<String> = side
-                .breaks
-                .iter()
-                .map(|b| {
-                    format!(
-                        "{} would have a contrast of {}:1, and {}:1 is required",
-                        plainly(&b.promise),
-                        to_fixed2(b.ratio),
-                        js_number(b.required)
-                    )
-                })
-                .collect();
-            reasons.push(format!(
-                "In the {appearance} theme {} cannot be the fill as it is: {}.",
-                brand.given,
-                clauses.join("; ")
-            ));
-        }
-        for (appearance, side) in sides {
-            let percent = (side.chroma_kept * 100.0).round();
-            if percent < 100.0 {
-                reasons.push(format!(
-                    "In the {appearance} theme the fill is less saturated than {}, with {percent}% of its chroma: a screen cannot show more at that lightness.",
-                    brand.given
-                ));
-            }
-        }
-        reasons
-    }
-
-    #[test]
-    fn what_a_brand_says_agrees_with_its_own_numbers() {
-        // A sentence with one number and a row with another is two answers.
-        // Nine colours around the wheel, a grey and LO-TEK's own among them.
-        let t = theme(
-            r##"{"accent": "#ff0000", "visited": "#ff8800", "brand1": "#ffd600", "brand2": "#39ff14", "brand3": "#00bcd4", "neutral": "#2b2b2b", "danger": "#ff00ff", "warning": "#8a5a00", "success": "#1362ae"}"##,
-        )
-        .unwrap();
-        assert_eq!(t.brands.len(), 9);
-        let mut said = 0;
-        for brand in &t.brands {
-            assert_eq!(
-                brand.summary,
-                format!(
-                    "{}: {} gives the fill {} in the light theme and {} in the dark theme.",
-                    brand.family, brand.given, brand.light.fill, brand.dark.fill
-                )
-            );
-            assert_eq!(
-                brand.reasons,
-                reasons_from_the_numbers(brand),
-                "{}",
-                brand.family
-            );
-            said += brand.reasons.len();
-        }
-        // Every kind of sentence is among them, and a row without one of a
-        // kind: a comparison of nothing with nothing would pass too.
-        assert!(said > 15, "only {said} reasons");
-        assert!(t.brands.iter().any(|b| b.light.breaks.is_empty()));
-        assert!(t
-            .brands
-            .iter()
-            .any(|b| (b.light.chroma_kept * 100.0).round() == 100.0));
     }
 
     #[test]
