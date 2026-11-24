@@ -9839,7 +9839,9 @@
         "?raw",
         "lotek-core.wasm",
         "color-contract.json",
-        "inspectTheme",
+        "checkTheme",
+        "@lo-tek/interfaces/theme-check",
+        "lotek check-theme",
         "@lo-tek/interfaces/contract",
         "@lo-tek/interfaces/matrix",
         "lotek check-theme theme.css"
