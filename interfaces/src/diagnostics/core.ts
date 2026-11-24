@@ -99,10 +99,6 @@ export type BrandFill = {
 }
 
 /**
- * What became of one brand colour. The lightness is the role's, so a light
- * brand colour comes out much darker as a fill.
- */
-/**
  * The colour of one family in a palette. `kept` is true when the colour is
  * the recipe's own, and not a suggestion.
  */
@@ -128,6 +124,10 @@ export type Palettes = {
   palettes: Palette[]
 }
 
+/**
+ * What became of one brand colour. The lightness is the role's, so a light
+ * brand colour comes out much darker as a fill.
+ */
 export type Brand = {
   family: string
   /** The colour the recipe gave, as `#rrggbb`. */

@@ -141,6 +141,13 @@ function read(families: string[]) {
             color: collapsed(row.querySelector("code")?.textContent ?? ""),
           })),
         buttons: [...palette.querySelectorAll("button")].map((b) => named(b)),
+        /** Whether the palette says it is the one in use, where a visitor sees it. */
+        inUse: [...palette.querySelectorAll<HTMLElement>("*")].some(
+          (element) =>
+            element.children.length === 0 &&
+            /^in use$/i.test(collapsed(element.textContent ?? "")) &&
+            shown(element),
+        ),
       })),
     },
     own: Object.fromEntries(
@@ -298,6 +305,18 @@ async function holds(what: string, wanted: Record<string, string>) {
     `${what}: ${differs(state, wanted).join("; ")}`,
   )
   return state
+}
+
+/** The palettes that say they are in use. */
+const inUse = (state: State) =>
+  state.suggestions.palettes.filter((p) => p.inUse).map((p) => p.name)
+/** Waits for exactly these palettes to say they are in use. */
+async function marks(what: string, names: string[]) {
+  const state = await until((state) => same(inUse(state), names))
+  expect(
+    same(inUse(state), names),
+    `${what}: ${inUse(state).join(", ") || "no palette"} says "In use", expected ${names.join(", ") || "none"}`,
+  )
 }
 
 const ACCENT = "#7c3aed"
@@ -518,6 +537,153 @@ const code = await s.run(async () => {
   )
 
   /*
+   * The suggested colours follow the palette. The page remembers which
+   * palette is in use and marks it, and when the accent or a status changes
+   * it fills the families that are still its suggestions again, for the new
+   * recipe. A colour written or picked by hand, and a family reset or
+   * switched off, is the visitor's and is not touched.
+   */
+  await startAgain()
+  await unfold()
+  await marks("before a palette is used", [])
+  await write("accent", ACCENT)
+  await showsPalettes("with an accent, before a palette is used", {
+    accent: ACCENT,
+  })
+  await use("Near").click()
+  await holds('after "Use Near"', {
+    accent: ACCENT,
+    ...fills(forAccent, "Near"),
+  })
+  await marks('after "Use Near"', ["Near"])
+  await use("Three ways").click()
+  await marks('after "Use Three ways"', ["Three ways"])
+  await use("Near").click()
+  await marks('after "Use Near" again', ["Near"])
+
+  /** What the families hold when the still-suggested ones follow a palette for this recipe. */
+  const following = (
+    asked: Record<string, string>,
+    palette: string,
+    notFilled: string[] = [],
+  ) => {
+    const filled = fills(suggestPalettes(asked) as Palettes, palette)
+    for (const family of notFilled) delete filled[family]
+    return { ...asked, ...filled }
+  }
+  // Another accent: every suggested colour is the palette's for it.
+  const TEAL = "#0f766e"
+  await field("accent").fill(TEAL)
+  const forTeal = following({ accent: TEAL }, "Near")
+  expect(
+    !same(forTeal, { ...fills(forAccent, "Near"), accent: TEAL }),
+    "the check's two accents give the same palette, so following one shows nothing",
+  )
+  await holds("after the accent was changed with Near in use", forTeal)
+  await marks("after the accent was changed with Near in use", ["Near"])
+  await showsPalettes("after the accent was changed", { accent: TEAL })
+
+  // A status where a suggestion stood: the core moves the suggestion, and
+  // the page follows.
+  const danger = forTeal.brand1
+  await write("danger", danger)
+  const withDanger = following({ accent: TEAL, danger }, "Near")
+  expect(
+    withDanger.brand1 !== forTeal.brand1,
+    "the check's danger does not move a suggested colour, so following it shows nothing",
+  )
+  await holds(
+    "after danger was set where brand1 stood, with Near in use",
+    withDanger,
+  )
+
+  // A colour written by hand is the visitor's, and one reset or switched
+  // off is empty by their choice: neither follows.
+  await field("brand2").fill("#123456")
+  await groupOf("brand1")
+    .getByRole("button", { name: /^reset/i })
+    .click()
+  await own("neutral").uncheck()
+  const ORANGE = "#b45309"
+  await field("accent").fill(ORANGE)
+  const mineNow = { accent: ORANGE, danger, brand2: "#123456" }
+  await holds(
+    "after the accent was changed beside a colour written by hand, a family reset and one switched off",
+    following(mineNow, "Near", ["brand1", "neutral"]),
+  )
+  await marks("with two families still suggestions of Near", ["Near"])
+
+  // While the core has no answer, the suggested colours stand as they were.
+  const standing = recipeOf(await now())
+  await field("accent").fill("#b453")
+  await page.waitForTimeout(500)
+  await holds("while the accent is half a colour", {
+    ...standing,
+    accent: "#b453",
+  })
+  await field("accent").fill(ORANGE)
+  await holds("with the accent written out again", standing)
+
+  // A reload remembers the palette in use, and it is still followed.
+  await s.open("/theme-builder/")
+  await holds("the page loaded again with Near in use", standing)
+  await unfold()
+  await marks("the page loaded again", ["Near"])
+  const BLUE = "#1d4ed8"
+  await field("accent").fill(BLUE)
+  await holds(
+    "after the accent was changed on the page loaded again",
+    following({ ...mineNow, accent: BLUE }, "Near", ["brand1", "neutral"]),
+  )
+
+  // No family is a suggestion any more: nothing is in use.
+  await field("visited").fill("#334455")
+  await field("brand3").fill("#554433")
+  await marks("when every suggested colour has been changed by hand", [])
+  const allMine = recipeOf(await now())
+  await field("accent").fill(TEAL)
+  await page.waitForTimeout(500)
+  await holds("after the accent was changed with nothing suggested", {
+    ...allMine,
+    accent: TEAL,
+  })
+
+  // A palette that fills nothing is not in use, and one that fills a
+  // single family is.
+  await write("brand1", "#445566")
+  await write("neutral", "#333333")
+  await use("Opposite").click()
+  await marks('after "Use Opposite" with every family the visitor\'s own', [])
+  await own("brand3").uncheck()
+  await use("Opposite").click()
+  await marks('after "Use Opposite" with one family to fill', ["Opposite"])
+
+  // A pasted recipe and "Start again" forget the palette in use.
+  const toPaste = { accent: ACCENT, brand1: "#0d7a5f" }
+  await page
+    .getByRole("textbox", { name: /recipe/i })
+    .and(page.locator("textarea"))
+    .fill(JSON.stringify(toPaste))
+  await button("Use this recipe").click()
+  await holds("after a recipe was pasted with Opposite in use", toPaste)
+  await unfold()
+  await marks("after a recipe was pasted", [])
+  await field("accent").fill(BLUE)
+  await page.waitForTimeout(500)
+  await holds("after the accent of a pasted recipe was changed", {
+    ...toPaste,
+    accent: BLUE,
+  })
+  await use("One hue").click()
+  await marks('after "Use One hue"', ["One hue"])
+  await startAgain()
+  await unfold()
+  await marks('after "Start again"', [])
+  await write("accent", ACCENT)
+  await page.waitForTimeout(500)
+  await holds('after "Start again" and an accent', { accent: ACCENT })
+
+  /*
    * The goal, from outside: only an accent, one palette, and then what a
    * reader does with the page. The recipe the page shows, in the file the
    * command names, and the command the page shows give the theme the page
@@ -606,7 +772,7 @@ const code = await s.run(async () => {
 })
 
 if (code !== 0) process.exit(code)
-if (goals !== 4 || points < 60) {
+if (goals !== 4 || points < 100) {
   console.error(
     `✗ The check reached the goal for ${goals} of 4 palettes and held ${points} points. It has not looked at what it should.`,
   )

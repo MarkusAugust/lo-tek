@@ -1727,7 +1727,13 @@ mod recipe_tests {
                             "{} of {accent} beside {brand} {value}",
                             with.name
                         );
-                        assert_eq!(with.description, without.description);
+                        // What a palette says of itself is about the
+                        // brands it suggests, so only visited and neutral,
+                        // which are never moved, leave it as it was. The
+                        // rest is held where the sentence is.
+                        if !brand.starts_with("brand") {
+                            assert_eq!(with.description, without.description);
+                        }
                     }
                 }
             }
@@ -1975,47 +1981,227 @@ mod recipe_tests {
     }
 
     /// The hues brand1, brand2 and brand3 were meant to have, and the hues
-    /// they get once those too near a status are moved: the nearest hue at
-    /// least 25 degrees from each status, a degree at a time and upwards
-    /// first, and for a moved one also at least 15 degrees from an earlier
-    /// brand that was meant for another hue.
-    fn placed(intended: [f64; 3], statuses: &[f64]) -> [f64; 3] {
-        let clear = |hue: f64| statuses.iter().all(|status| apart(hue, *status) >= 25.0);
+    /// they get. They are placed in order. A hue is free when it is at
+    /// least 25 degrees from each status, at least 15 from where every
+    /// earlier brand meant for another hue ended, and at least 15 from the
+    /// accent unless the brand was meant for the accent's own hue. A brand
+    /// stands where it was meant to when that is free, and otherwise at the
+    /// nearest free hue, a degree at a time and upwards first.
+    fn placed(intended: [f64; 3], accent: f64, statuses: &[f64]) -> [f64; 3] {
         let mut out = intended;
         for i in 0..3 {
-            if clear(intended[i]) {
+            let free = |hue: f64, placed: &[f64; 3]| {
+                statuses.iter().all(|status| apart(hue, *status) >= 25.0)
+                    && (0..i).all(|j| {
+                        apart(intended[j], intended[i]) < 0.001 || apart(hue, placed[j]) >= 15.0
+                    })
+                    && (apart(intended[i], accent) < 0.001 || apart(hue, accent) >= 15.0)
+            };
+            if free(intended[i], &out) {
                 continue;
             }
             out[i] = (1..=180)
                 .flat_map(|d| [intended[i] + f64::from(d), intended[i] - f64::from(d)])
-                .find(|hue| {
-                    clear(*hue)
-                        && (0..i).all(|j| {
-                            apart(intended[j], intended[i]) < 0.001 || apart(*hue, out[j]) >= 15.0
-                        })
-                })
-                .expect("a hue clear of the three statuses");
+                .find(|hue| free(*hue, &out))
+                .expect("a free hue");
         }
         out
+    }
+
+    /// How each palette turns from the accent, and how much of its chroma
+    /// each brand has.
+    const TURNS: [[f64; 3]; 4] = [
+        [30.0, -30.0, 60.0],
+        [180.0, 150.0, 210.0],
+        [90.0, 180.0, 270.0],
+        [0.0, 0.0, 0.0],
+    ];
+
+    #[test]
+    fn no_two_brands_of_a_palette_meant_to_differ_end_up_alike() {
+        // From outside, in the colours as they are given: two brands meant
+        // for different hues are not side by side on the wheel, and none
+        // meant for another hue than the accent's is beside the accent. A
+        // brand moved clear of a status must not land on its neighbour.
+        // Fifteen degrees is the rule; hex costs a little, and a faint
+        // colour has no hue to speak of.
+        let mut accents = accents();
+        accents.extend(["#0000ff", "#005544", "#ff0000", "#00aa00", "#ffaa00"].map(str::to_string));
+        let (mut pairs, mut beside_accent) = (0, 0);
+        let mut alike: Vec<String> = Vec::new();
+        for accent in &accents {
+            let found = suggest_palettes(&recipe_of(&[("accent", accent)])).expect("an answer");
+            let from = lch(&found.from);
+            if from.c < 0.08 {
+                continue;
+            }
+            for (index, palette) in found.palettes.iter().enumerate() {
+                let brands: Vec<(usize, &PaletteColor)> = ["brand1", "brand2", "brand3"]
+                    .iter()
+                    .map(|family| palette.colors.iter().find(|c| c.family == *family).unwrap())
+                    .enumerate()
+                    .filter(|(_, color)| lch(&color.color).c >= 0.08)
+                    .collect();
+                for (i, color) in &brands {
+                    if TURNS[index][*i] != 0.0 {
+                        beside_accent += 1;
+                        let between = apart(lch(&color.color).h, from.h);
+                        if between < 12.0 {
+                            alike.push(format!(
+                                "{} of {accent}: {} is {} and {between:.1} degrees from the accent",
+                                palette.name, color.family, color.color
+                            ));
+                        }
+                    }
+                    for (j, other) in &brands {
+                        if j <= i || TURNS[index][*i] == TURNS[index][*j] {
+                            continue;
+                        }
+                        pairs += 1;
+                        let between = apart(lch(&color.color).h, lch(&other.color).h);
+                        if between < 12.0 {
+                            alike.push(format!(
+                                "{} of {accent}: {} is {} and {} is {}, {between:.1} degrees apart",
+                                palette.name, color.family, color.color, other.family, other.color
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+        assert!(
+            pairs > 200 && beside_accent > 200,
+            "only {pairs} pairs and {beside_accent} brands beside an accent were looked at"
+        );
+        assert!(
+            alike.is_empty(),
+            "{} alike:\n{}",
+            alike.len(),
+            alike.join("\n")
+        );
+    }
+
+    #[test]
+    fn a_palette_says_so_when_a_hue_was_moved() {
+        // What a palette says it is, and a second sentence when a brand
+        // could not stand where the first one says: "the hue of the accent"
+        // is untrue of a red accent, where all three are moved clear of
+        // danger.
+        const SAYS: [&str; 4] = [
+            "The hues beside the accent on the colour wheel.",
+            "The hues across the colour wheel from the accent.",
+            "Three hues that share the colour wheel evenly with the accent.",
+            "The hue of the accent, in three saturations.",
+        ];
+        const MOVED: &str =
+            "Some hues are moved clear of danger, warning and success, or of each other.";
+        let statuses: Vec<f64> = ["danger", "warning", "success"]
+            .iter()
+            .map(|s| lch(&own(s)).h)
+            .collect();
+        let mut accents = accents();
+        accents.extend(["#0000ff", "#005544", "#808080", "#000000"].map(str::to_string));
+        // Beside the accent alone: a brand the recipe has set, one the core
+        // refuses, and all of them set. A hue moved behind a row that is
+        // the recipe's own, or behind no row, is nothing the palette
+        // suggests, and nothing to tell of.
+        let beside: [&[(&str, &str)]; 9] = [
+            &[],
+            &[("brand1", "#0d7a5f")],
+            &[("brand2", "#0d7a5f")],
+            &[("brand3", "#0d7a5f")],
+            &[("brand1", "purple")],
+            &[("brand2", "purple"), ("brand3", "purple")],
+            &[
+                ("brand1", "#0d7a5f"),
+                ("brand2", "#5b3fa0"),
+                ("brand3", "#b04c5c"),
+            ],
+            &[("visited", "#5a77a8"), ("neutral", "#24272b")],
+            &[
+                ("visited", "#5a77a8"),
+                ("brand1", "#0d7a5f"),
+                ("brand2", "#5b3fa0"),
+                ("brand3", "#b04c5c"),
+                ("neutral", "#24272b"),
+            ],
+        ];
+        let (mut with, mut without, mut behind) = (0, 0, 0);
+        for accent in accents.iter().map(String::as_str).chain([""]) {
+            for others in beside {
+                let mut entries: Vec<(&str, &str)> = others.to_vec();
+                if !accent.is_empty() {
+                    entries.insert(0, ("accent", accent));
+                }
+                let recipe = recipe_of(&entries);
+                let found = suggest_palettes(&recipe).expect("an answer");
+                let from = lch(&found.from);
+                for (index, palette) in found.palettes.iter().enumerate() {
+                    let intended = TURNS[index].map(|turn| from.h + turn);
+                    // A grey accent is placed nowhere, so nothing is moved.
+                    let hues = if from.c >= 0.02 {
+                        placed(intended, from.h, &statuses)
+                    } else {
+                        intended
+                    };
+                    let is_moved = |i: usize| apart(hues[i], intended[i]) > 0.001;
+                    let suggested = |i: usize| {
+                        let family = ["brand1", "brand2", "brand3"][i];
+                        palette.colors.iter().any(|c| c.family == family && !c.kept)
+                    };
+                    let moved = (0..3).any(|i| is_moved(i) && suggested(i));
+                    if !moved && (0..3).any(is_moved) {
+                        behind += 1;
+                    }
+                    let wanted = if moved {
+                        format!("{} {MOVED}", SAYS[index])
+                    } else {
+                        SAYS[index].to_string()
+                    };
+                    assert_eq!(
+                        palette.description,
+                        wanted,
+                        "{} of {}",
+                        palette.name,
+                        recipe.to_compact()
+                    );
+                    if moved {
+                        with += 1;
+                    } else {
+                        without += 1;
+                    }
+                }
+            }
+        }
+        assert!(
+            with > 20 && without > 20 && behind > 20,
+            "{with} palettes with a suggested hue moved, {without} without, {behind} of those with a hue moved behind a row that suggests nothing"
+        );
+        // The two the decision names.
+        let one_hue = |recipe: &Json| {
+            suggest_palettes(recipe).unwrap().palettes[3]
+                .description
+                .clone()
+        };
+        assert_eq!(
+            one_hue(&recipe_of(&[("accent", "#d32f2f")])),
+            format!("{} {MOVED}", SAYS[3])
+        );
+        assert_eq!(one_hue(&recipe_of(&[])), SAYS[3]);
     }
 
     #[test]
     fn the_palettes_are_the_hues_and_the_chroma_the_decision_gives_them() {
         // In OKLCH, with the lightness of the accent left out: brand1 to 3
         // at the accent's chroma and these hues from it, or at its hue with
-        // less chroma, moved clear of danger, warning and success; visited
+        // less chroma, moved clear of danger, warning and success, of each
+        // other and of the accent; visited
         // and neutral as LO-TEK's own stand to LO-TEK's accent. The colours
         // are fitted to what a screen shows and rounded to hex, so the hue
         // is held within a couple of degrees, more for a faint colour.
         // The chroma has more room: where a screen can only just show the
         // colour, the fill of a fill is not the fill, and the colour that is
         // its own fill lies a little off.
-        const TURNS: [[f64; 3]; 4] = [
-            [30.0, -30.0, 60.0],
-            [180.0, 150.0, 210.0],
-            [90.0, 180.0, 270.0],
-            [0.0, 0.0, 0.0],
-        ];
         const SHARES: [[f64; 3]; 4] = [[1.0; 3], [1.0; 3], [1.0; 3], [0.75, 0.5, 0.25]];
         let statuses = ["danger", "warning", "success"];
         let mut recipes: Vec<Vec<(String, String)>> = accents()
@@ -2089,7 +2275,7 @@ mod recipe_tests {
                 let hues = if accent.c < 0.02 {
                     intended
                 } else {
-                    placed(intended, &status_hues)
+                    placed(intended, accent.h, &status_hues)
                 };
                 for (i, family) in ["brand1", "brand2", "brand3"].into_iter().enumerate() {
                     let what = format!("{family} in {}", palette.name);
@@ -2135,7 +2321,7 @@ mod recipe_tests {
         }
         assert!(
             moved > 20 && unmoved > 100 && past_an_earlier > 0,
-            "{moved} suggestions moved clear of a status, {unmoved} not, {past_an_earlier} moved on past an earlier brand"
+            "{moved} suggestions moved, {unmoved} not, {past_an_earlier} moved further than the nearest hue clear of a status"
         );
     }
 

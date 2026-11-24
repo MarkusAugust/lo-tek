@@ -37,7 +37,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -68,7 +68,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -171,7 +171,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -202,7 +202,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -305,7 +305,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -336,7 +336,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -408,7 +408,7 @@
       "palettes": [
         {
           "name": "Near",
-          "description": "The hues beside the accent on the colour wheel.",
+          "description": "The hues beside the accent on the colour wheel. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -417,7 +417,7 @@
             },
             {
               "family": "brand1",
-              "color": "#c10073",
+              "color": "#af4800",
               "kept": false
             },
             {
@@ -427,7 +427,7 @@
             },
             {
               "family": "brand3",
-              "color": "#aa4d00",
+              "color": "#727000",
               "kept": false
             },
             {
@@ -439,7 +439,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -470,7 +470,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -576,7 +576,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -607,7 +607,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -679,7 +679,7 @@
       "palettes": [
         {
           "name": "Near",
-          "description": "The hues beside the accent on the colour wheel.",
+          "description": "The hues beside the accent on the colour wheel. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -772,7 +772,7 @@
         },
         {
           "name": "One hue",
-          "description": "The hue of the accent, in three saturations.",
+          "description": "The hue of the accent, in three saturations. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -813,7 +813,7 @@
       "palettes": [
         {
           "name": "Near",
-          "description": "The hues beside the accent on the colour wheel.",
+          "description": "The hues beside the accent on the colour wheel. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -906,7 +906,7 @@
         },
         {
           "name": "One hue",
-          "description": "The hue of the accent, in three saturations.",
+          "description": "The hue of the accent, in three saturations. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -947,7 +947,7 @@
       "palettes": [
         {
           "name": "Near",
-          "description": "The hues beside the accent on the colour wheel.",
+          "description": "The hues beside the accent on the colour wheel. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1009,7 +1009,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1040,7 +1040,7 @@
         },
         {
           "name": "One hue",
-          "description": "The hue of the accent, in three saturations.",
+          "description": "The hue of the accent, in three saturations. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1174,7 +1174,7 @@
         },
         {
           "name": "One hue",
-          "description": "The hue of the accent, in three saturations.",
+          "description": "The hue of the accent, in three saturations. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1515,7 +1515,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1650,7 +1650,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1681,7 +1681,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1895,7 +1895,7 @@
       "palettes": [
         {
           "name": "Near",
-          "description": "The hues beside the accent on the colour wheel.",
+          "description": "The hues beside the accent on the colour wheel. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1926,7 +1926,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -1957,7 +1957,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2052,7 +2052,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2073,7 +2073,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2157,7 +2157,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2188,7 +2188,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2299,7 +2299,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2330,7 +2330,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2441,7 +2441,7 @@
         },
         {
           "name": "Opposite",
-          "description": "The hues across the colour wheel from the accent.",
+          "description": "The hues across the colour wheel from the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",
@@ -2472,7 +2472,7 @@
         },
         {
           "name": "Three ways",
-          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "description": "Three hues that share the colour wheel evenly with the accent. Some hues are moved clear of danger, warning and success, or of each other.",
           "colors": [
             {
               "family": "visited",

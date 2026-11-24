@@ -52,6 +52,10 @@ const CLEAR_OF_EARLIER: f64 = 15.0;
 /// Below this chroma a colour is a grey, and its hue says nothing.
 const GREY: f64 = 0.02;
 
+/// What a palette says after what it is, when a colour of it is not where
+/// the palette would have it.
+const MOVED: &str = "Some hues are moved clear of danger, warning and success, or of each other.";
+
 /// A palette as it is made: for each of the three, the hue from the accent
 /// in degrees and the share of its chroma.
 struct Make {
@@ -94,33 +98,39 @@ fn apart(a: f64, b: f64) -> f64 {
     d.min(360.0 - d)
 }
 
-/// The hues the three get: the ones meant, with each that is too near a
-/// status moved to the nearest hue that is clear, a degree at a time and
-/// upwards first. One that is moved also stays clear of an earlier colour
-/// meant for another hue, so that two do not end up as one.
-fn placed(intended: [f64; 3], statuses: &[f64]) -> [f64; 3] {
-    let clear = |hue: f64| statuses.iter().all(|s| apart(hue, *s) >= CLEAR_OF_STATUS);
+/// The hues the three get, and which of them are another than they were
+/// meant to be. They are placed in order. A hue is free when it is clear of every
+/// status, of every earlier colour meant for another hue, and of the accent
+/// unless the colour was meant for the accent's own hue: a brand colour is
+/// not to be taken for a status, and two colours are not to end up as one.
+/// A colour stands where it was meant when that is free, and otherwise goes
+/// to the nearest free hue, a degree at a time and upwards first.
+fn placed(intended: [f64; 3], statuses: &[f64], accent: f64) -> ([f64; 3], [bool; 3]) {
     let mut out = intended;
+    let mut moved = [false; 3];
     for i in 0..3 {
-        if clear(intended[i]) {
+        let free = |hue: f64| {
+            statuses.iter().all(|s| apart(hue, *s) >= CLEAR_OF_STATUS)
+                && (0..i).all(|j| {
+                    apart(intended[j], intended[i]) < 0.001
+                        || apart(hue, out[j]) >= CLEAR_OF_EARLIER
+                })
+                && (apart(intended[i], accent) < 0.001 || apart(hue, accent) >= CLEAR_OF_EARLIER)
+        };
+        if free(intended[i]) {
             continue;
         }
-        let found = (1..=180)
+        // The statuses of a recipe may have any hues, and close the wheel
+        // between them: then the colour stands where it was meant.
+        if let Some(hue) = (1..=180)
             .flat_map(|d| [intended[i] + f64::from(d), intended[i] - f64::from(d)])
-            .find(|hue| {
-                clear(*hue)
-                    && (0..i).all(|j| {
-                        apart(intended[j], intended[i]) < 0.001
-                            || apart(*hue, out[j]) >= CLEAR_OF_EARLIER
-                    })
-            });
-        // Three statuses cannot close the whole wheel, but a recipe may
-        // give them any hues: then the colour stands where it was meant.
-        if let Some(hue) = found {
+            .find(|hue| free(*hue))
+        {
             out[i] = hue;
+            moved[i] = true;
         }
     }
-    out
+    (out, moved)
 }
 
 /// The fill a brand colour gets in the light appearance.
@@ -156,7 +166,8 @@ fn own_fill(hue: f64, chroma: f64, lightness: f64) -> String {
             }
             hex = next;
         }
-        if chroma < 0.001 {
+        // A chroma that is not a number would never get below anything.
+        if chroma.is_nan() || chroma < 0.001 {
             return hex;
         }
         chroma *= 0.97;
@@ -209,11 +220,8 @@ pub fn suggest_palettes(input: &Json) -> Option<Palettes> {
         .find(|(role, _)| role == "fill")
         .map(|(_, spec)| spec.light)?;
 
-    // A grey has no hue to keep clear of anything, and a status that is a
-    // grey none to keep clear of.
-    let statuses: Vec<f64> = if accent.c < GREY {
-        Vec::new()
-    } else {
+    // A status that is a grey has no hue to keep clear of.
+    let statuses: Vec<f64> = {
         STATUSES
             .iter()
             .filter_map(|status| {
@@ -249,7 +257,16 @@ pub fn suggest_palettes(input: &Json) -> Option<Palettes> {
     let palettes = MAKES
         .iter()
         .map(|make| {
-            let hues = placed(make.turns.map(|turn| accent.h + turn), &statuses);
+            let intended = make.turns.map(|turn| accent.h + turn);
+            // A grey has no hue to place anywhere.
+            let (hues, moved) = if accent.c < GREY {
+                (intended, [false; 3])
+            } else {
+                placed(intended, &statuses, accent.h)
+            };
+            // What the palette says is about the colours it suggests: a hue
+            // moved behind a colour of the recipe's own is not said.
+            let mut says_moved = false;
             let colors = ROWS
                 .iter()
                 .filter(|family| !refused(family))
@@ -262,7 +279,10 @@ pub fn suggest_palettes(input: &Json) -> Option<Palettes> {
                         });
                     }
                     let color = match BRANDS.iter().position(|brand| brand == family) {
-                        Some(i) => own_fill(hues[i], accent.c * make.shares[i], lightness),
+                        Some(i) => {
+                            says_moved |= moved[i];
+                            own_fill(hues[i], accent.c * make.shares[i], lightness)
+                        }
                         None => shared.iter().find(|(name, _)| name == family)?.1.clone(),
                     };
                     Some(PaletteColor {
@@ -274,7 +294,11 @@ pub fn suggest_palettes(input: &Json) -> Option<Palettes> {
                 .collect();
             Palette {
                 name: make.name.to_string(),
-                description: make.description.to_string(),
+                description: if says_moved {
+                    format!("{} {MOVED}", make.description)
+                } else {
+                    make.description.to_string()
+                },
                 colors,
             }
         })
