@@ -1,0 +1,2589 @@
+{
+  "loteks-own-accent": {
+    "recipe": {},
+    "expect": {
+      "from": "#1362ae",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#625db9",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007895",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#874fa5",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a74370",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a04581",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#3b6ea7",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#4e6e94",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "only-the-schema": {
+    "recipe": {
+      "$schema": "./theme.schema.json"
+    },
+    "expect": {
+      "from": "#1362ae",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#625db9",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007895",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#874fa5",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a74370",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a04581",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#3b6ea7",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#4e6e94",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "an-accent": {
+    "recipe": {
+      "accent": "#7c3aed"
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a909bb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#1057f7",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#c00077",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a0550e",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#ae4800",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007b83",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#734dcb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6f5cac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6d658d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "an-accent-written-short-and-in-capitals": {
+    "recipe": {
+      "accent": "#F0A"
+    },
+    "expect": {
+      "from": "#ff00aa",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#b1376c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#c10073",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a700c4",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#aa4d00",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#74686d",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#b1376c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#007f62",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#69730d",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007b80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#74686d",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#b1376c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007f62",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#0061e4",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#74686d",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#b1376c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#ba1b7d",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a44577",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#8a5b72",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#74686d",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "accent-not-given": {
+    "recipe": {
+      "accent": false,
+      "visited": null,
+      "brand1": 0,
+      "brand2": ""
+    },
+    "expect": {
+      "from": "#1362ae",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#625db9",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007895",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#874fa5",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a74370",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a04581",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#3b6ea7",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#4e6e94",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-red-accent-beside-danger": {
+    "recipe": {
+      "accent": "#d32f2f"
+    },
+    "expect": {
+      "from": "#d32f2f",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#a54f3b",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a25400",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#bb1e73",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#736968",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#a54f3b",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#007a86",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007e6a",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#0274a5",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#736968",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#a54f3b",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#687400",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007a86",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#7a46cf",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#736968",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#a54f3b",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#af4800",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#9b5737",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#856354",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#736968",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "the-accent-is-loteks-danger": {
+    "recipe": {
+      "accent": "#a82e39"
+    },
+    "expect": {
+      "from": "#a82e39",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#9b554d",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a94e00",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#ab3c78",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#716a69",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#9b554d",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#007b81",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007f63",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#00769d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#716a69",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#9b554d",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#707100",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007b81",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6e56bf",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#716a69",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#9b554d",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a2522b",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#925d44",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#806559",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#716a69",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-yellow-accent-beside-warning": {
+    "recipe": {
+      "accent": "#f7df1e"
+    },
+    "expect": {
+      "from": "#f7df1e",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#717013",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#697400",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a05600",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007f5f",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6d6c65",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#717013",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#5e56d0",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#006dc1",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#8d43b7",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6d6c65",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#717013",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#007c79",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#5e56d0",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b62d71",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6d6c65",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#717013",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#71700f",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#70702b",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6d6e50",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6d6c65",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-green-accent-beside-success": {
+    "recipe": {
+      "accent": "#2e7d32"
+    },
+    "expect": {
+      "from": "#2e7d32",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#467955",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#047e67",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6b7300",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007b84",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696d69",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#467955",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#914d97",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#7259b1",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#a54571",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696d69",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#467955",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#0075a2",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#914d97",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#a45200",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696d69",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#467955",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#197e5f",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#427864",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#597268",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696d69",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-grey-accent": {
+    "recipe": {
+      "accent": "#808080"
+    },
+    "expect": {
+      "from": "#808080",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-black-accent": {
+    "recipe": {
+      "accent": "#000000"
+    },
+    "expect": {
+      "from": "#000000",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6c6c6c",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6c6c",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "one-family-kept": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "brand1": "#F7DF1E"
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#f7df1e",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#1057f7",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#c00077",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#f7df1e",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#a0550e",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#f7df1e",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007b83",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#f7df1e",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#6f5cac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6d658d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "kept-without-an-accent": {
+    "recipe": {
+      "brand2": "#0d7a5f",
+      "neutral": "#24272b"
+    },
+    "expect": {
+      "from": "#1362ae",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#625db9",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#874fa5",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a04581",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#3b6ea7",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "every-family-kept": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "visited": "#5a77a8",
+      "brand1": "#0d7a5f",
+      "brand2": "#5b3fa0",
+      "brand3": "#b04c5c",
+      "neutral": "#24272b"
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#5a77a8",
+              "kept": true
+            },
+            {
+              "family": "brand1",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#5b3fa0",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#5a77a8",
+              "kept": true
+            },
+            {
+              "family": "brand1",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#5b3fa0",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#5a77a8",
+              "kept": true
+            },
+            {
+              "family": "brand1",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#5b3fa0",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#5a77a8",
+              "kept": true
+            },
+            {
+              "family": "brand1",
+              "color": "#0d7a5f",
+              "kept": true
+            },
+            {
+              "family": "brand2",
+              "color": "#5b3fa0",
+              "kept": true
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#24272b",
+              "kept": true
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "the-statuses-are-given-and-never-suggested": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "danger": "#c2185b",
+      "warning": "#a15c00",
+      "success": "#00796b"
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a909bb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#1057f7",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b90094",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#866700",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#06830d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#c81800",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007a86",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#734dcb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6f5cac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6d658d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-refused-family-has-no-row": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "brand2": "purple",
+      "neutral": 12
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a909bb",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#c00077",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#ae4800",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007b83",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#734dcb",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6d658d",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-refused-status-does-not-stop-the-answer": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "danger": "red"
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a909bb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#1057f7",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#c00077",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a0550e",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#ae4800",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#007b83",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#734dcb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6f5cac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#6d658d",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "other-things-wrong-do-not-stop-the-answer": {
+    "recipe": {
+      "accent": "#7c3aed",
+      "acent": "#000",
+      "typography": {
+        "fontFamily": "Arial ("
+      },
+      "shape": {
+        "buttonRadius": true
+      },
+      "brand3": "#b04c5c"
+    },
+    "expect": {
+      "from": "#7c3aed",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a909bb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#1057f7",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a0550e",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#ae4800",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6d7200",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#7b53b2",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#734dcb",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#6f5cac",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#b04c5c",
+              "kept": true
+            },
+            {
+              "family": "neutral",
+              "color": "#6c6a74",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "typography-and-shape-say-nothing-of-colours": {
+    "recipe": {
+      "typography": {
+        "fontFamily": "Inter, sans-serif",
+        "weights": {
+          "bold": 700
+        }
+      },
+      "shape": {
+        "buttonRadius": "1rem"
+      }
+    },
+    "expect": {
+      "from": "#1362ae",
+      "palettes": [
+        {
+          "name": "Near",
+          "description": "The hues beside the accent on the colour wheel.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#625db9",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#007895",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#874fa5",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Opposite",
+          "description": "The hues across the colour wheel from the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a74370",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#727000",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "Three ways",
+          "description": "Three hues that share the colour wheel evenly with the accent.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#a04581",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#a15500",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#027f5e",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        },
+        {
+          "name": "One hue",
+          "description": "The hue of the accent, in three saturations.",
+          "colors": [
+            {
+              "family": "visited",
+              "color": "#4f6c9c",
+              "kept": false
+            },
+            {
+              "family": "brand1",
+              "color": "#3b6ea7",
+              "kept": false
+            },
+            {
+              "family": "brand2",
+              "color": "#4e6e94",
+              "kept": false
+            },
+            {
+              "family": "brand3",
+              "color": "#5e6d80",
+              "kept": false
+            },
+            {
+              "family": "neutral",
+              "color": "#696c71",
+              "kept": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "a-refused-accent": {
+    "recipe": {
+      "accent": "purple",
+      "brand1": "#0d7a5f"
+    },
+    "expect": null
+  },
+  "half-an-accent": {
+    "recipe": {
+      "accent": "#7c3a"
+    },
+    "expect": null
+  },
+  "an-accent-that-is-a-number": {
+    "recipe": {
+      "accent": 12
+    },
+    "expect": null
+  },
+  "an-accent-that-is-true": {
+    "recipe": {
+      "accent": true
+    },
+    "expect": null
+  },
+  "an-accent-that-is-a-list": {
+    "recipe": {
+      "accent": [
+        "#7c3aed"
+      ]
+    },
+    "expect": null
+  },
+  "a-list": {
+    "recipe": [
+      "#7c3aed"
+    ],
+    "expect": null
+  },
+  "a-text": {
+    "recipe": "#7c3aed",
+    "expect": null
+  },
+  "null": {
+    "recipe": null,
+    "expect": null
+  },
+  "a-number": {
+    "recipe": 7,
+    "expect": null
+  }
+}

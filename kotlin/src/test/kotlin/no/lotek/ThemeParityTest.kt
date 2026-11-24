@@ -97,6 +97,39 @@ class ThemeParityTest {
      * on as it is. And `buildTheme` refuses the same recipe with the one
      * sentence the expected results give, or takes it.
      */
+    /**
+     * The palettes a recipe is suggested, to the letter: what they are built
+     * on, the four names and what each says it is, and every row with its
+     * colour. The arithmetic behind a suggested colour is held in the core.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("palettes")
+    fun `suggestPalettes answers the same as TypeScript`(name: String) {
+        val case = PALETTES.getValue(name) as Map<*, *>
+        assertEquals(setOf("recipe", "expect"), case.keys, "the expected results have a field the reader does not compare")
+        val answer =
+            Lotek.suggestPalettes(Json.write(case["recipe"]))?.let { found ->
+                mapOf(
+                    "from" to found.from,
+                    "palettes" to
+                        found.palettes.map { palette ->
+                            mapOf(
+                                "name" to palette.name,
+                                "description" to palette.description,
+                                "colors" to palette.colors.map { mapOf("family" to it.family, "color" to it.color, "kept" to it.kept) },
+                            )
+                        },
+                )
+            }
+        assertEquals(case["expect"], answer, name)
+    }
+
+    @Test
+    fun `only a text that is not JSON cannot be asked about palettes`() {
+        assertFailsWith<Exception> { Lotek.suggestPalettes("{ not json") }
+        assertEquals(null, Lotek.suggestPalettes("[]"))
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("recipeChecks")
     fun `checkRecipe answers the same as TypeScript`(name: String) {
@@ -219,6 +252,15 @@ class ThemeParityTest {
         fun recipes(): List<String> {
             assertTrue(RECIPES.isNotEmpty() && RECIPES.values.any { (it as Map<*, *>).containsKey("error") }, "The expected results must have recipes, and at least one that is rejected")
             return RECIPES.keys.sorted()
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        private val PALETTES = Json.parse(File(DIR, "palettes.json").readText()) as Map<String, Any?>
+
+        @JvmStatic
+        fun palettes(): List<String> {
+            assertTrue(PALETTES.size > 20 && PALETTES.values.any { (it as Map<*, *>)["expect"] == null }, "The expected results for suggestPalettes must have cases, and at least one without an answer")
+            return PALETTES.keys.sorted()
         }
 
         @JvmStatic

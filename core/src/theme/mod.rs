@@ -10,8 +10,11 @@
 pub mod check;
 mod color;
 pub mod contract;
+mod palettes;
 #[cfg(test)]
 mod tests;
+
+pub use palettes::{suggest_palettes, Palette, PaletteColor, Palettes};
 
 use crate::json::Json;
 use color::{parse_hex, to_hex};
@@ -1583,6 +1586,604 @@ mod recipe_tests {
             "true",
         ] {
             assert!(recipe_brands(&parse(text).unwrap()).is_empty(), "{text}");
+        }
+    }
+
+    /// The families a palette has a colour for, in the order of its rows.
+    const SUGGESTED: [&str; 5] = ["visited", "brand1", "brand2", "brand3", "neutral"];
+    const PALETTES: [&str; 4] = ["Near", "Opposite", "Three ways", "One hue"];
+
+    /// The recipe with these keys, each a text.
+    fn recipe_of(entries: &[(&str, &str)]) -> Json {
+        Json::Object(
+            entries
+                .iter()
+                .map(|(key, value)| (key.to_string(), Json::String(value.to_string())))
+                .collect(),
+        )
+    }
+
+    fn lch(hex: &str) -> color::Oklch {
+        color::rgb_to_oklch(parse_hex(hex).unwrap_or_else(|e| panic!("{hex}: {e}")))
+    }
+
+    /// How far apart two hues are, in degrees.
+    fn apart(a: f64, b: f64) -> f64 {
+        let d = (a - b).rem_euclid(360.0);
+        d.min(360.0 - d)
+    }
+
+    /// LO-TEK's own colour for a family, from the contract.
+    fn own(family: &str) -> String {
+        let brands = &contract().brands;
+        brands.iter().find(|(f, _)| f == family).unwrap().1.clone()
+    }
+
+    /// Accents all the way round, with a red, a yellow and a green one
+    /// beside LO-TEK's danger, warning and success, and those three
+    /// themselves.
+    fn accents() -> Vec<String> {
+        let mut accents: Vec<String> = [
+            "#d32f2f", "#a82e39", "#f7df1e", "#896508", "#2e7d32", "#316f2a", "#7c3aed", "#1362ae",
+            "#0000ff", "#00ffff", "#ff00aa",
+        ]
+        .iter()
+        .map(|a| a.to_string())
+        .collect();
+        for step in 0..24 {
+            accents.push(to_hex(color::oklch_to_rgb(color::Oklch {
+                l: 0.6,
+                c: 0.11,
+                h: f64::from(step) * 15.0 + 7.0,
+            })));
+        }
+        accents
+    }
+
+    /// An answer as the port writes it, for comparing with the expected results.
+    fn palettes_json(found: Option<&Palettes>) -> Json {
+        let text = |text: &str| Json::String(text.to_string());
+        let Some(found) = found else {
+            return Json::Null;
+        };
+        let palettes = found.palettes.iter().map(|palette| {
+            let colors = palette.colors.iter().map(|color| {
+                Json::Object(vec![
+                    ("family".to_string(), text(&color.family)),
+                    ("color".to_string(), text(&color.color)),
+                    ("kept".to_string(), Json::Bool(color.kept)),
+                ])
+            });
+            Json::Object(vec![
+                ("name".to_string(), text(&palette.name)),
+                ("description".to_string(), text(&palette.description)),
+                ("colors".to_string(), Json::Array(colors.collect())),
+            ])
+        });
+        Json::Object(vec![
+            ("from".to_string(), text(&found.from)),
+            ("palettes".to_string(), Json::Array(palettes.collect())),
+        ])
+    }
+
+    #[test]
+    fn suggest_palettes_answers_as_the_expected_results_say() {
+        // The same file the package and Kotlin are held to, to the letter:
+        // what the palettes are built on, their names and what they say
+        // they are, and every row with its colour. The suggested colours in
+        // the file are the core's own, recorded once the properties below
+        // held them; what they must be is said there, and here that they
+        // stay as they are and are the same in every host.
+        let cases = expected("palettes.json");
+        assert!(cases.len() > 20, "only {} cases", cases.len());
+        let (mut answered, mut nothing) = (0, 0);
+        for (name, case) in &cases {
+            let found = suggest_palettes(case.get("recipe").unwrap());
+            let wanted = case.get("expect").unwrap();
+            assert_eq!(
+                palettes_json(found.as_ref()).to_compact(),
+                wanted.to_compact(),
+                "{name}"
+            );
+            if found.is_some() {
+                answered += 1;
+            } else {
+                nothing += 1;
+            }
+        }
+        assert!(
+            answered > 10 && nothing > 5,
+            "{answered} answers and {nothing} without one"
+        );
+    }
+
+    #[test]
+    fn a_palette_is_the_same_whatever_the_recipe_keeps_or_gets_refused() {
+        // The hues are placed before the rows are made: a brand the recipe
+        // has set, or one the core refuses, takes its row and moves nothing
+        // else. So the suggested rows of a recipe are those of the same
+        // recipe without that brand.
+        for accent in ["#d32f2f", "#f7df1e", "#2e7d32", "#7c3aed", "#1362ae"] {
+            let alone = suggest_palettes(&recipe_of(&[("accent", accent)])).expect("an answer");
+            for brand in ["brand1", "brand2", "brand3", "visited", "neutral"] {
+                for value in ["#0d7a5f", "purple"] {
+                    let beside =
+                        suggest_palettes(&recipe_of(&[("accent", accent), (brand, value)]))
+                            .expect("an answer");
+                    for (with, without) in beside.palettes.iter().zip(&alone.palettes) {
+                        let suggested = |palette: &Palette| {
+                            palette
+                                .colors
+                                .iter()
+                                .filter(|color| color.family != brand)
+                                .map(|color| {
+                                    (color.family.clone(), color.color.clone(), color.kept)
+                                })
+                                .collect::<Vec<_>>()
+                        };
+                        assert_eq!(
+                            suggested(with),
+                            suggested(without),
+                            "{} of {accent} beside {brand} {value}",
+                            with.name
+                        );
+                        assert_eq!(with.description, without.description);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn suggest_palettes_has_four_palettes_of_the_same_rows_whatever_else_the_recipe_has() {
+        // Over the expected results and six thousand recipes with something
+        // odd at every place:
+        // - there is an answer exactly when the recipe is an object and
+        //   the core does not refuse its accent;
+        // - it is built on the accent the recipe gives, or LO-TEK's own;
+        // - the four palettes are named, in order, and say what they are;
+        // - each has a row for the five families, in order, less those the
+        //   core refuses, and never one for danger, warning or success;
+        // - a family the recipe gives is kept, as the colour `recipe_brands`
+        //   says was given, and one it does not give is suggested;
+        // - visited and neutral are the same in all four;
+        // - every colour is written as `#rrggbb`.
+        let mut recipes: Vec<Json> = ["recipes.json", "recipe-checks.json", "palettes.json"]
+            .iter()
+            .flat_map(|file| expected(file))
+            .map(|(_, case)| case.get("recipe").unwrap().clone())
+            .collect();
+        let mut seed = 20261123;
+        for _ in 0..6000 {
+            recipes.push(odd_recipe(&mut seed));
+        }
+        let (mut answered, mut nothing, mut kept_rows, mut suggested_rows, mut without_a_row) =
+            (0, 0, 0, 0, 0);
+        for recipe in &recipes {
+            let at = recipe.to_compact();
+            let problems = check_recipe(recipe);
+            let refused = |family: &str| problems.iter().any(|p| p.path == [family.to_string()]);
+            let found = suggest_palettes(recipe);
+            let answers = matches!(recipe, Json::Object(_)) && !refused("accent");
+            assert_eq!(found.is_some(), answers, "{at}");
+            let Some(found) = found else {
+                nothing += 1;
+                continue;
+            };
+            answered += 1;
+            let given = recipe_brands(recipe);
+            let given = |family: &str| {
+                given
+                    .iter()
+                    .find(|b| b.family == family)
+                    .map(|b| b.given.clone())
+            };
+            assert_eq!(
+                found.from,
+                given("accent").unwrap_or_else(|| own("accent")),
+                "{at}"
+            );
+            assert_eq!(
+                found
+                    .palettes
+                    .iter()
+                    .map(|p| p.name.as_str())
+                    .collect::<Vec<_>>(),
+                PALETTES,
+                "{at}"
+            );
+            let rows: Vec<&str> = SUGGESTED
+                .into_iter()
+                .filter(|family| !refused(family))
+                .collect();
+            without_a_row += SUGGESTED.len() - rows.len();
+            for palette in &found.palettes {
+                assert!(
+                    !palette.description.trim().is_empty(),
+                    "{}: {at}",
+                    palette.name
+                );
+                assert_eq!(
+                    palette
+                        .colors
+                        .iter()
+                        .map(|c| c.family.as_str())
+                        .collect::<Vec<_>>(),
+                    rows,
+                    "{}: {at}",
+                    palette.name
+                );
+                for color in &palette.colors {
+                    assert_eq!(
+                        color.kept,
+                        given(&color.family).is_some(),
+                        "{} {}: {at}",
+                        palette.name,
+                        color.family
+                    );
+                    if color.kept {
+                        assert_eq!(
+                            Some(color.color.clone()),
+                            given(&color.family),
+                            "{} {}: {at}",
+                            palette.name,
+                            color.family
+                        );
+                        kept_rows += 1;
+                    } else {
+                        suggested_rows += 1;
+                    }
+                    let digits = color.color.strip_prefix('#').unwrap_or("");
+                    assert!(
+                        digits.len() == 6
+                            && digits
+                                .bytes()
+                                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+                        "{} {} is {:?}: {at}",
+                        palette.name,
+                        color.family,
+                        color.color
+                    );
+                }
+                for family in ["visited", "neutral"] {
+                    let of = |p: &Palette| {
+                        p.colors
+                            .iter()
+                            .find(|c| c.family == family)
+                            .map(|c| c.color.clone())
+                    };
+                    assert_eq!(
+                        of(palette),
+                        of(&found.palettes[0]),
+                        "{family} in {}: {at}",
+                        palette.name
+                    );
+                }
+            }
+        }
+        assert!(
+            answered > 0 && nothing > 0 && kept_rows > 0 && suggested_rows > 0 && without_a_row > 0,
+            "{answered} answers, {nothing} without, {kept_rows} kept rows, {suggested_rows} suggested, {without_a_row} families without a row"
+        );
+    }
+
+    #[test]
+    fn only_the_colours_of_the_recipe_decide_the_palettes() {
+        // Typography, shape, a key the core does not know and `$schema` say
+        // nothing of colours: the answer is the one the colours give alone.
+        let colours = [
+            ("accent", "#7c3aed"),
+            ("brand2", "#0d7a5f"),
+            ("danger", "#c2185b"),
+        ];
+        let alone = suggest_palettes(&recipe_of(&colours)).expect("an answer");
+        let Json::Object(mut entries) = recipe_of(&colours) else {
+            unreachable!()
+        };
+        entries.insert(
+            0,
+            (
+                "$schema".to_string(),
+                Json::String("./theme.schema.json".to_string()),
+            ),
+        );
+        entries.push((
+            "typography".to_string(),
+            parse(r#"{"fontFamily": "Arial (", "weights": {"bold": 700}}"#).unwrap(),
+        ));
+        entries.push((
+            "shape".to_string(),
+            parse(r#"{"buttonRadius": true}"#).unwrap(),
+        ));
+        entries.push(("acent".to_string(), Json::String("#000".to_string())));
+        entries.reverse();
+        let beside =
+            suggest_palettes(&Json::Object(entries)).expect("an answer beside what is wrong");
+        let written = |palettes: &Palettes| {
+            palettes
+                .palettes
+                .iter()
+                .map(|p| {
+                    format!(
+                        "{} {} {:?}",
+                        p.name,
+                        p.description,
+                        p.colors
+                            .iter()
+                            .map(|c| (&c.family, &c.color, c.kept))
+                            .collect::<Vec<_>>()
+                    )
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(beside.from, alone.from);
+        assert_eq!(written(&beside), written(&alone));
+        // A status the core refuses is as one that is not given.
+        let refused = suggest_palettes(&recipe_of(&[("accent", "#7c3aed"), ("warning", "yellow")]))
+            .expect("an answer");
+        let not_given = suggest_palettes(&recipe_of(&[("accent", "#7c3aed")])).expect("an answer");
+        assert_eq!(written(&refused), written(&not_given));
+    }
+
+    #[test]
+    fn a_suggested_colour_is_the_fill_the_theme_gives_it() {
+        // The colour shown is the colour got: a theme built from a
+        // suggestion has it as the fill in the light theme, and has nothing
+        // to say about why it could not be.
+        let mut recipes: Vec<Json> = accents()
+            .iter()
+            .map(|accent| recipe_of(&[("accent", accent)]))
+            .collect();
+        recipes.push(recipe_of(&[]));
+        recipes.push(recipe_of(&[("accent", "#808080")]));
+        recipes.push(recipe_of(&[("accent", "#000000")]));
+        recipes.push(recipe_of(&[("accent", "#ffffff")]));
+        let mut held = 0;
+        for recipe in &recipes {
+            let found =
+                suggest_palettes(recipe).unwrap_or_else(|| panic!("{}", recipe.to_compact()));
+            let mut seen: Vec<(String, String)> = Vec::new();
+            for palette in &found.palettes {
+                for color in palette.colors.iter().filter(|c| !c.kept) {
+                    let pair = (color.family.clone(), color.color.clone());
+                    if seen.contains(&pair) {
+                        continue;
+                    }
+                    let theme = build_theme(&recipe_of(&[(&color.family, &color.color)])).unwrap();
+                    let brand = &theme.brands[0];
+                    let at = format!(
+                        "{} in {} of {}",
+                        color.family,
+                        palette.name,
+                        recipe.to_compact()
+                    );
+                    assert_eq!(brand.light.fill, color.color, "{at}");
+                    assert!(
+                        brand
+                            .reasons
+                            .iter()
+                            .all(|reason| !reason.starts_with("In the light theme")),
+                        "{at}: {:?}",
+                        brand.reasons
+                    );
+                    seen.push(pair);
+                    held += 1;
+                }
+            }
+        }
+        assert!(held > 300, "only {held} suggestions were built");
+    }
+
+    /// The hues brand1, brand2 and brand3 were meant to have, and the hues
+    /// they get once those too near a status are moved: the nearest hue at
+    /// least 25 degrees from each status, a degree at a time and upwards
+    /// first, and for a moved one also at least 15 degrees from an earlier
+    /// brand that was meant for another hue.
+    fn placed(intended: [f64; 3], statuses: &[f64]) -> [f64; 3] {
+        let clear = |hue: f64| statuses.iter().all(|status| apart(hue, *status) >= 25.0);
+        let mut out = intended;
+        for i in 0..3 {
+            if clear(intended[i]) {
+                continue;
+            }
+            out[i] = (1..=180)
+                .flat_map(|d| [intended[i] + f64::from(d), intended[i] - f64::from(d)])
+                .find(|hue| {
+                    clear(*hue)
+                        && (0..i).all(|j| {
+                            apart(intended[j], intended[i]) < 0.001 || apart(*hue, out[j]) >= 15.0
+                        })
+                })
+                .expect("a hue clear of the three statuses");
+        }
+        out
+    }
+
+    #[test]
+    fn the_palettes_are_the_hues_and_the_chroma_the_decision_gives_them() {
+        // In OKLCH, with the lightness of the accent left out: brand1 to 3
+        // at the accent's chroma and these hues from it, or at its hue with
+        // less chroma, moved clear of danger, warning and success; visited
+        // and neutral as LO-TEK's own stand to LO-TEK's accent. The colours
+        // are fitted to what a screen shows and rounded to hex, so the hue
+        // is held within a couple of degrees, more for a faint colour.
+        // The chroma has more room: where a screen can only just show the
+        // colour, the fill of a fill is not the fill, and the colour that is
+        // its own fill lies a little off.
+        const TURNS: [[f64; 3]; 4] = [
+            [30.0, -30.0, 60.0],
+            [180.0, 150.0, 210.0],
+            [90.0, 180.0, 270.0],
+            [0.0, 0.0, 0.0],
+        ];
+        const SHARES: [[f64; 3]; 4] = [[1.0; 3], [1.0; 3], [1.0; 3], [0.75, 0.5, 0.25]];
+        let statuses = ["danger", "warning", "success"];
+        let mut recipes: Vec<Vec<(String, String)>> = accents()
+            .into_iter()
+            .map(|accent| vec![("accent".to_string(), accent)])
+            .collect();
+        recipes.push(Vec::new());
+        // Statuses of the recipe's own, elsewhere on the wheel.
+        for accent in ["#7c3aed", "#d32f2f", "#00796b"] {
+            recipes.push(
+                [
+                    ("accent", accent),
+                    ("danger", "#c2185b"),
+                    ("warning", "#a15c00"),
+                    ("success", "#00796b"),
+                ]
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            );
+        }
+        let (mut moved, mut unmoved, mut past_an_earlier) = (0, 0, 0);
+        for entries in &recipes {
+            let recipe = recipe_of(
+                &entries
+                    .iter()
+                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                    .collect::<Vec<_>>(),
+            );
+            let at = recipe.to_compact();
+            let found = suggest_palettes(&recipe).unwrap_or_else(|| panic!("{at}"));
+            let given = |family: &str| {
+                entries
+                    .iter()
+                    .find(|(f, _)| f == family)
+                    .map_or_else(|| own(family), |(_, v)| v.clone())
+            };
+            let accent = lch(&found.from);
+            assert_eq!(found.from, given("accent"), "{at}");
+            let status_hues: Vec<f64> = statuses.iter().map(|s| lch(&given(s)).h).collect();
+            // What a colour meant for this hue and chroma must be, once
+            // fitted: the hue, and the chroma a screen can show there.
+            let check = |color: &PaletteColor, hue: f64, chroma: f64, what: &str| {
+                let got = lch(&color.color);
+                let shown = chroma
+                    * color::chroma_kept(color::Oklch {
+                        l: got.l,
+                        c: chroma,
+                        h: hue.rem_euclid(360.0),
+                    });
+                assert!(
+                    (got.c - shown).abs() < 0.012,
+                    "{what}: chroma {:.4}, expected {shown:.4}: {at}",
+                    got.c
+                );
+                if shown > 0.02 {
+                    let within = 2.0 + (0.004 / shown).to_degrees();
+                    assert!(
+                        apart(got.h, hue) < within,
+                        "{what}: hue {:.1}, expected {:.1} within {within:.1}: {at}",
+                        got.h,
+                        hue.rem_euclid(360.0)
+                    );
+                }
+            };
+            for (index, palette) in found.palettes.iter().enumerate() {
+                let color =
+                    |family: &str| palette.colors.iter().find(|c| c.family == family).unwrap();
+                let intended = TURNS[index].map(|turn| accent.h + turn);
+                // A grey has no hue to keep clear of anything.
+                let hues = if accent.c < 0.02 {
+                    intended
+                } else {
+                    placed(intended, &status_hues)
+                };
+                for (i, family) in ["brand1", "brand2", "brand3"].into_iter().enumerate() {
+                    let what = format!("{family} in {}", palette.name);
+                    check(color(family), hues[i], accent.c * SHARES[index][i], &what);
+                    if accent.c < 0.02 {
+                        continue;
+                    }
+                    if apart(hues[i], intended[i]) < 0.001 {
+                        unmoved += 1;
+                    } else {
+                        moved += 1;
+                        let nearest = (1..=180)
+                            .flat_map(|d| [intended[i] + f64::from(d), intended[i] - f64::from(d)])
+                            .find(|hue| status_hues.iter().all(|s| apart(*hue, *s) >= 25.0))
+                            .unwrap();
+                        if apart(nearest, hues[i]) > 0.001 {
+                            past_an_earlier += 1;
+                        }
+                    }
+                    // Whatever the search, a suggestion with colour in it
+                    // is not beside a status.
+                    let got = lch(&color(family).color);
+                    if got.c > 0.04 {
+                        for (status, hue) in statuses.iter().zip(&status_hues) {
+                            assert!(
+                                apart(got.h, *hue) > 21.0,
+                                "{what} is {:.1} degrees from {status}: {at}",
+                                apart(got.h, *hue)
+                            );
+                        }
+                    }
+                }
+                for family in ["visited", "neutral"] {
+                    let (ours, our_accent) = (lch(&own(family)), lch(&own("accent")));
+                    check(
+                        color(family),
+                        accent.h + (ours.h - our_accent.h),
+                        accent.c * ours.c / our_accent.c,
+                        &format!("{family} in {}", palette.name),
+                    );
+                }
+            }
+        }
+        assert!(
+            moved > 20 && unmoved > 100 && past_an_earlier > 0,
+            "{moved} suggestions moved clear of a status, {unmoved} not, {past_an_earlier} moved on past an earlier brand"
+        );
+    }
+
+    #[test]
+    fn a_grey_accent_gives_greys() {
+        for accent in ["#808080", "#000000", "#ffffff", "#2b2b2b"] {
+            let found = suggest_palettes(&recipe_of(&[("accent", accent)])).expect("an answer");
+            for palette in &found.palettes {
+                for color in &palette.colors {
+                    assert!(
+                        lch(&color.color).c < 0.02,
+                        "{} in {} of {accent} is {}",
+                        color.family,
+                        palette.name,
+                        color.color
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn without_an_accent_visited_and_neutral_are_near_loteks_own() {
+        // As the relation is between LO-TEK's own: built on LO-TEK's
+        // accent, the two come out as the fills LO-TEK's own give.
+        let found = suggest_palettes(&recipe_of(&[])).expect("an answer");
+        assert_eq!(found.from, own("accent"));
+        for family in ["visited", "neutral"] {
+            let ours = build_theme(&recipe_of(&[(family, &own(family))]))
+                .unwrap()
+                .brands[0]
+                .light
+                .fill
+                .clone();
+            let suggested = &found.palettes[0]
+                .colors
+                .iter()
+                .find(|c| c.family == family)
+                .unwrap()
+                .color;
+            let (a, b) = (parse_hex(suggested).unwrap(), parse_hex(&ours).unwrap());
+            let far = [(a.r - b.r).abs(), (a.g - b.g).abs(), (a.b - b.b).abs()]
+                .into_iter()
+                .fold(0.0, f64::max);
+            assert!(
+                far < 0.03,
+                "{family}: suggested {suggested}, and LO-TEK's own gives {ours}"
+            );
         }
     }
 

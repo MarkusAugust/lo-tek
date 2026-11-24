@@ -16,10 +16,14 @@ import {
   type BrandFill,
   buildTheme,
   checkRecipe,
+  type Palette,
+  type PaletteColor,
+  type Palettes,
   type RecipeProblem,
   type RecipeValue,
   recipeBrands,
   recipeValues,
+  suggestPalettes,
   type ThemeInput,
 } from "../src/tokens/theme.js"
 import { inspectTheme, type ThemeReport } from "../src/tokens/theme-check.js"
@@ -258,4 +262,59 @@ test("inspectTheme gives the verdict, and the tokens without a contrast promise"
     message:
       "No contrast to check: 1 file sets only 1 token without a contrast promise, such as font, shape and the system colours.",
   })
+})
+
+/**
+ * The palettes a recipe is suggested, to the one who calls
+ * `suggestPalettes` from `@lo-tek/interfaces/theme`: four, each with a
+ * colour for the families the recipe has not set, and the recipe's own
+ * where it has. A colour the core suggests is the fill the theme gives it.
+ */
+test("suggestPalettes gives four palettes around the accent, and keeps what the recipe has set", () => {
+  const found: Palettes | null = suggestPalettes({
+    accent: "#7C3AED",
+    brand1: "#F7DF1E",
+    brand3: "purple",
+    typography: { fontFamily: "Arial (" },
+  })
+  if (found === null) throw new Error("no palettes")
+  expect(found.from).toBe("#7c3aed")
+  const palettes: Palette[] = found.palettes
+  expect(palettes.map((palette) => palette.name)).toEqual([
+    "Near",
+    "Opposite",
+    "Three ways",
+    "One hue",
+  ])
+  for (const palette of palettes) {
+    const description: string = palette.description
+    expect(description.trim()).not.toBe("")
+    const colors: PaletteColor[] = palette.colors
+    // The refused brand3 has no row, and the given brand1 is kept.
+    expect(
+      colors.map((color) => [color.family, color.kept] as [string, boolean]),
+    ).toEqual([
+      ["visited", false],
+      ["brand1", true],
+      ["brand2", false],
+      ["neutral", false],
+    ])
+    expect(colors[1].color).toBe("#f7df1e")
+    for (const { family, color, kept } of colors) {
+      expect(color).toMatch(/^#[0-9a-f]{6}$/)
+      if (kept) continue
+      const [brand] = buildTheme({ [family]: color }).brands
+      expect(brand.light.fill).toBe(color)
+    }
+  }
+})
+
+test("suggestPalettes builds on LO-TEK's accent without one, and answers nothing to half a colour", () => {
+  expect(suggestPalettes({})?.from).toBe("#1362ae")
+  expect(suggestPalettes({ accent: false })?.palettes.length).toBe(4)
+  expect(suggestPalettes({ accent: "#7c3a" })).toBeNull()
+  expect(suggestPalettes({ accent: "purple" })).toBeNull()
+  expect(suggestPalettes(["#7c3aed"])).toBeNull()
+  expect(suggestPalettes(null)).toBeNull()
+  expect(() => suggestPalettes(undefined)).toThrow(/JSON/)
 })

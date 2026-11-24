@@ -1,6 +1,9 @@
 import type {
   Brand,
   BrandFill,
+  Palette,
+  PaletteColor,
+  Palettes,
   RecipeProblem,
   RecipeValue,
   Violation,
@@ -8,7 +11,16 @@ import type {
 import { defaultCore } from "../diagnostics/default-core.js"
 import type { Family } from "./matrix.js"
 
-export type { Brand, BrandFill, RecipeProblem, RecipeValue, Violation }
+export type {
+  Brand,
+  BrandFill,
+  Palette,
+  PaletteColor,
+  Palettes,
+  RecipeProblem,
+  RecipeValue,
+  Violation,
+}
 
 /**
  * Builds a complete colour theme from a few brand colours.
@@ -166,4 +178,22 @@ export function recipeValues(input: unknown): RecipeValue[] {
  */
 export function recipeBrands(input: unknown): Brand[] {
   return defaultCore().recipeBrands(input)
+}
+
+/**
+ * Suggests four palettes to go with the accent of a recipe: Near, Opposite,
+ * Three ways and One hue.
+ *
+ * Each has a colour for visited, brand1, brand2, brand3 and neutral, made
+ * at the lightness of the fill, so the colour is the fill the theme gets in
+ * the light theme. danger, warning and success are never suggested, and a
+ * suggestion is kept clear of their hues. A family the recipe gives a colour
+ * stands as it is, with `kept: true`, and one whose value the core refuses
+ * has no row. Without an accent the palettes are built on LO-TEK's own.
+ *
+ * `null` when the recipe is not an object, and when its accent is not a
+ * colour.
+ */
+export function suggestPalettes(input: unknown): Palettes | null {
+  return defaultCore().suggestPalettes(input)
 }
