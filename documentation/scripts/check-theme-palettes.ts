@@ -684,6 +684,68 @@ const code = await s.run(async () => {
   await holds('after "Start again" and an accent', { accent: ACCENT })
 
   /*
+   * What the browser remembers is not to be believed beyond what the core
+   * suggests colours for. A remembered "this was a suggestion" for the
+   * accent or a status, which no palette has a row for, would leave that
+   * colour out of what the core is asked, and the palettes would be built
+   * on another accent than the one in the field. Such a family is the
+   * visitor's own.
+   */
+  await startAgain()
+  await write("accent", ACCENT)
+  await unfold()
+  await use("Opposite").click()
+  await holds('after "Use Opposite", before what is remembered is changed', {
+    accent: ACCENT,
+    ...fills(forAccent, "Opposite"),
+  })
+  const REMEMBERED = "lotek-theme-builder"
+  const changed = await page.evaluate((key) => {
+    const kept = JSON.parse(localStorage.getItem(key) ?? "null")
+    if (!kept?.own || !kept.fields || !kept.suggested) return false
+    for (const [family, colour] of [
+      ["accent", "#ff0000"],
+      ["danger", "#00ff00"],
+    ]) {
+      kept.own[family] = true
+      kept.fields[family] = colour
+      kept.suggested[family] = true
+    }
+    localStorage.setItem(key, JSON.stringify(kept))
+    return true
+  }, REMEMBERED)
+  expect(
+    changed,
+    `the page remembers nothing under "${REMEMBERED}" with own, fields and suggested, so the check cannot change it`,
+  )
+  await s.open("/theme-builder/")
+  const theirs = { accent: "#ff0000", danger: "#00ff00" }
+  const remembered = await until(
+    (state) =>
+      state.fields.accent === "#ff0000" && state.fields.danger === "#00ff00",
+  )
+  expect(
+    remembered.fields.accent === "#ff0000" &&
+      remembered.fields.danger === "#00ff00",
+    `the page loaded again does not hold the remembered accent and danger: ${remembered.fields.accent}, ${remembered.fields.danger}`,
+  )
+  await unfold()
+  await showsPalettes(
+    "with an accent and a status remembered as suggestions",
+    theirs,
+  )
+  await use("Near").click()
+  await holds(
+    'after "Use Near" with an accent and a status remembered as suggestions',
+    { ...theirs, ...fills(suggestPalettes(theirs) as Palettes, "Near") },
+  )
+  await use("Three ways").click()
+  await holds(
+    'after "Use Three ways" with an accent and a status remembered as suggestions',
+    { ...theirs, ...fills(suggestPalettes(theirs) as Palettes, "Three ways") },
+  )
+
+  /*
    * The goal, from outside: only an accent, one palette, and then what a
    * reader does with the page. The recipe the page shows, in the file the
    * command names, and the command the page shows give the theme the page

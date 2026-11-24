@@ -1581,6 +1581,14 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
+	// The families the core suggests colours for: those with a row in the
+	// palettes of a recipe that gives nothing.
+	const suggestable = new Set<string>(
+		(loaded?.suggestPalettes({})?.palettes ?? []).flatMap((palette: { colors: { family: string }[] }) =>
+			palette.colors.map((color) => color.family),
+		),
+	)
+
 	// What was left the last time, before Datastar is told the core is here.
 	try {
 		const kept = JSON.parse(localStorage.getItem(REMEMBERED) ?? "null")
@@ -1589,11 +1597,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				own: Object.fromEntries(
 					Object.keys(first.own).map((name) => [name, kept.own?.[name] === true]),
 				),
-				// Only a family that is switched on can hold a suggestion.
+				// Only a family that is switched on can hold a suggestion, and
+				// only one the core suggests colours for: what is remembered
+				// may be from another version, or not the page's own writing.
 				suggested: Object.fromEntries(
 					Object.keys(first.suggested).map((name) => [
 						name,
-						kept.suggested?.[name] === true && kept.own?.[name] === true,
+						kept.suggested?.[name] === true && kept.own?.[name] === true && suggestable.has(name),
 					]),
 				),
 				used: typeof kept.used === "string" ? kept.used : "",
