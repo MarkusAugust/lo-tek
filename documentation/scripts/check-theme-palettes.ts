@@ -63,7 +63,7 @@ const { buildTheme, suggestPalettes } = (await import(
 }
 
 const NAMES = ["Near", "Opposite", "Three ways", "One hue", "Quiet"]
-const DEFAULT = "LO-TEK default"
+const DEFAULT = "LO-TEK"
 const SUGGESTED = ["visited", "brand1", "brand2", "brand3", "neutral"]
 const STATUSES = ["danger", "warning", "success"]
 /** The package as the command names it, and the same command from this repository. */
