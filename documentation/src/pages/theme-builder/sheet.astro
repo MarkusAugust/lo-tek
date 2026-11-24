@@ -435,6 +435,14 @@ const components = [...pages]
 		border-end-end-radius: var(--lt-card-radius, var(--lt-spacing-1));
 	}
 
+	/* The bubble is centred over its part, and the last parts lie at the
+	   edge of the frame, where half a bubble would be cut off. Theirs ends
+	   where the part ends. */
+	.glance__bar > .lt-tooltip:nth-last-child(-n + 3) > .lt-tooltip__bubble {
+		inset-inline: auto 0;
+		transform: none;
+	}
+
 	.glance__bar > .lt-tooltip:hover > .glance__part {
 		outline: 2px solid var(--lt-color-neutral-text-strong);
 		outline-offset: -2px;
