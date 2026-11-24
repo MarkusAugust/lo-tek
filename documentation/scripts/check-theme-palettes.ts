@@ -121,6 +121,24 @@ function read(families: string[]) {
     palettes: {
       count: all.length,
       folded: document.querySelectorAll("details[data-palettes]").length,
+      /** What the palettes can be folded away with: the `<details>` around them. */
+      fold: (() => {
+        const details = first?.closest("details") ?? null
+        return {
+          accordion: details?.matches("details.lt-accordion") === true,
+          open: details?.open ?? false,
+          summary: collapsed(
+            details?.querySelector(":scope > summary")?.textContent ?? "",
+          ),
+          inContent: first?.closest(".lt-accordion__content") !== null,
+          saysInside:
+            details !== null &&
+            says[0] !== undefined &&
+            says[0].closest(".lt-accordion__content") !== null &&
+            details.contains(says[0]),
+          saysShown: shown(says[0] ?? null),
+        }
+      })(),
       role: first?.getAttribute("role") ?? "",
       name: first
         ? collapsed(
@@ -414,7 +432,22 @@ const code = await s.run(async () => {
   // accent, shown without being asked for.
   expect(
     first.palettes.count === 1 && first.palettes.folded === 0,
-    `the page has ${first.palettes.count} [data-palettes], ${first.palettes.folded} of them a <details>, expected one that is not folded away`,
+    `the page has ${first.palettes.count} [data-palettes], ${first.palettes.folded} of them itself a <details>, expected one group`,
+  )
+  // Open until the visitor folds it: LO-TEK's accordion around the group
+  // and the sentence, with the heading to press.
+  const { fold } = first.palettes
+  expect(
+    fold.accordion && fold.inContent && fold.saysInside,
+    `the palettes and their sentence do not stand in the content of a details.lt-accordion: ${JSON.stringify(fold)}`,
+  )
+  expect(
+    fold.summary === "Palette",
+    `the summary of the palettes says "${fold.summary}", expected "Palette"`,
+  )
+  expect(
+    fold.open && first.palettes.shown,
+    "on a first visit the palettes are not shown in an accordion that is open",
   )
   if (first.palettes.count !== 1) return
   expect(
@@ -493,6 +526,46 @@ const code = await s.run(async () => {
     !(await now()).palettes.hex,
     "with a palette in use a colour is written out as text among the palettes",
   )
+
+  // The heading folds the palettes away and brings them back. That is all
+  // it does: the palette in use and the colours stand.
+  const heading = page
+    .locator("details.lt-accordion")
+    .filter({ has: palettes })
+    .locator("summary")
+  expect(
+    (await heading.count()) === 1,
+    `the palettes have ${await heading.count()} summaries to fold them with, expected one`,
+  )
+  if ((await heading.count()) === 1) {
+    await heading.click()
+    const folded = await until((state) => !state.palettes.fold.open)
+    expect(
+      !folded.palettes.fold.open &&
+        folded.palettes.buttons.length === NAMES.length + 1 &&
+        folded.palettes.buttons.every((b) => !b.shown) &&
+        !folded.palettes.fold.saysShown,
+      `after the heading was pressed the six buttons and the sentence are not hidden: ${JSON.stringify({ open: folded.palettes.fold.open, shown: folded.palettes.buttons.filter((b) => b.shown).map((b) => b.name), sentence: folded.palettes.fold.saysShown })}`,
+    )
+    expect(
+      same(marked(folded).pressed, ["Near"]),
+      `folded away, the palette in use is ${marked(folded).pressed.join(", ") || "none"}, expected Near still`,
+    )
+    await holds("with the palettes folded away", near)
+    await heading.click()
+    const unfolded = await until((state) => state.palettes.fold.open)
+    expect(
+      unfolded.palettes.fold.open &&
+        unfolded.palettes.buttons.every((b) => b.shown),
+      "after the heading was pressed again the six buttons are not shown",
+    )
+    await marks(
+      "with the palettes unfolded again",
+      "Near",
+      describes(forAccent, "Near"),
+    )
+    await holds("with the palettes unfolded again", near)
+  }
 
   // Another palette takes the place of the first.
   await press("Opposite").click()

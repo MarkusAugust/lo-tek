@@ -534,14 +534,16 @@ const dot = (color: string) =>
 								</div>
 								{
 									name === "accent" && (
-										<div class="builder__palettes" style="display: none" data-show="$palettes.from !== ''">
+										<details class="lt-accordion builder__palettes" data-variant="plain" open style="display: none" data-show="$palettes.from !== ''">
 											<!-- The palettes the core suggests, each a strip to press:
 											     its name and its colours as paint. The one in use is
 											     pressed and says so, and LO-TEK's own, last, takes
 											     the suggestions away. While the accent is no colour
-											     the strips stand as they were and cannot be pressed. -->
-											<p class="lt-label" id="palettes-label">Palette</p>
-											<div class="builder__strips" role="group" aria-labelledby="palettes-label" data-palettes>
+											     the strips stand as they were and cannot be pressed.
+											     They can be folded away, and are open until they are. -->
+											<summary>Palette</summary>
+											<div class="lt-accordion__content builder__palettes-content">
+											<div class="builder__strips" role="group" aria-label="Palette" data-palettes>
 												{PLACES.map((place) => (
 													<button
 														class="builder__strip"
@@ -593,7 +595,8 @@ const dot = (color: string) =>
 												</button>
 											</div>
 											<p class="builder__why" data-palette-says style="display: none" data-show={`(${says}) !== ''`} data-text={says} />
-										</div>
+											</div>
+										</details>
 									)
 								}
 								</div>
@@ -1111,14 +1114,21 @@ const dot = (color: string) =>
 	}
 
 	/* The palettes the core suggests, under the accent: a strip each. */
+	/* An accordion of LO-TEK, in line with the fields around it: no
+	   indent, and the page behind it. */
 	.builder__palettes {
+		--lt-accordion-padding-inline: 0;
+		margin-block-start: var(--lt-spacing-3);
+		background: none;
+	}
+
+	.builder__palettes-content {
 		display: flex;
 		flex-direction: column;
 		gap: var(--lt-spacing-2);
-		padding-block-start: var(--lt-spacing-3);
 	}
 
-	.builder__palettes > p {
+	.builder__palettes-content > p {
 		margin: 0;
 	}
 
