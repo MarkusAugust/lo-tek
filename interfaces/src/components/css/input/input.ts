@@ -28,7 +28,7 @@ export type InputType = (typeof inputTypes)[number]
 
 /** The types that get an icon in the field, and that open the browser's own picker. */
 const TYPES_WITH_ICON = ["date", "time", "datetime-local"] as const
-type TypeWithIcon = (typeof TYPES_WITH_ICON)[number]
+export type TypeWithIcon = (typeof TYPES_WITH_ICON)[number]
 
 export type InputOptions = {
   /** The HTML type. Set as `type`, and decides the icon. Default: `text`. */

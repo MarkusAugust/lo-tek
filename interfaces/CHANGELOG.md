@@ -36,9 +36,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   `verdict`.** They are required in `ThemeReport` in TypeScript and Kotlin.
   Code that only reads a report is unaffected.
 - **`@lo-tek/interfaces/color` is gone.** It was a second implementation of
-  the colour arithmetic the core does, and the two could drift apart. Ask
-  the core instead: `buildTheme` computes the colours, and `inspectTheme`
-  says whether a set of colours keeps the contract.
+  the colour arithmetic the core does, and the two could drift apart.
+  `parseHex`, `toHex`, `rgbToOklch`, `oklchToRgb` and `contrastRatio` have
+  no replacement in the package. The core computes the colours in
+  `buildTheme`, and `checkTheme` from `@lo-tek/interfaces/theme-check`
+  takes a style sheet and says where it breaks the contract.
 
 ### Added
 
@@ -80,11 +82,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   The schema is now generated from one description of the keys, which the
   theme builder reads too.
 
-- **Every type a builder function is written with can be imported.**
+- **Every type the builder functions are written with can be imported.**
   `DialogColor` was the type of `color` in `DialogOptions`, and the package
-  did not export it. It does now, together with the eighteen types of the
-  values a `data-*` attribute can carry, such as `NonDefaultCardVariant` and
-  `NonNeutralAlertColor`. A check in the build holds the rule from here on.
+  did not export it. It does now, and so does every other named type that
+  an export of the main entry point or of `@lo-tek/interfaces/react` is
+  written with: the types of the values a `data-*` attribute can carry,
+  such as `NonDefaultCardVariant` and `TypeWithIcon`, `Family`, `Role` and
+  `MatrixToken` behind the token names, and `Lt`, `TabsOptions` and the
+  types `ReactLt` is built from in `/react`. A check in the build follows
+  the types from the two entry points and holds the rule from here on.
 
 ### Changed
 

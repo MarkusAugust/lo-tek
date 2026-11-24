@@ -198,7 +198,7 @@ const SYSTEM_COLORS = {
  * drift out of step with the promises.
  */
 /** The colour names that are not a cell: disabled state, ring, backdrop, shadow. */
-type SystemColorToken =
+export type SystemColorToken =
   | keyof typeof SYSTEM_COLORS
   | "--lt-color-overlay"
   | "--lt-shadow-overlay"

@@ -98,6 +98,7 @@ export type {
   InputAttributes,
   InputOptions,
   InputType,
+  TypeWithIcon,
 } from "./components/css/input/input.js"
 export { input } from "./components/css/input/input.js"
 export type {
@@ -230,6 +231,7 @@ export * from "./components/frame/tabs/lt-tabs.js"
 export * from "./components/frame/tabs/tabs.js"
 export * from "./components/frame/term/lt-term.js"
 export * from "./components/frame/term/term.js"
+export type { Ownership } from "./components/host-element.js"
 export * from "./components/standalone/connection-status/connection-status.js"
 export * from "./components/standalone/connection-status/lt-connection-status.js"
 export * from "./components/standalone/toast/lt-toast.js"
@@ -238,4 +240,5 @@ export type { Attributes } from "./dom.js"
 export { setAttributes } from "./dom.js"
 export type { Lt } from "./lt.js"
 export { lt } from "./lt.js"
+export type { Family, MatrixToken, Role } from "./tokens/matrix-cells.js"
 export * from "./tokens/tokens.js"
