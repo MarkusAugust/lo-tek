@@ -751,16 +751,6 @@ fn check_session_timeout(
     }]
 }
 
-/// The name of the block a class belongs to: `app-button` for `app-button--primary`.
-fn block(name: &str) -> &str {
-    let end = [name.find("__"), name.find("--")]
-        .into_iter()
-        .flatten()
-        .min()
-        .unwrap_or(name.len());
-    &name[..end]
-}
-
 /// Whether a class should be checked against the vocabulary.
 ///
 /// Everything that starts with `lt-` is LO-TEK's. A taken-over component has
@@ -781,7 +771,7 @@ fn checked_class(vocabulary: &Vocabulary, token: &[u16]) -> bool {
         .iter()
         .filter(|c| !c.name.starts_with("lt-"))
         .any(|c| {
-            let block = block(&c.name);
+            let block = crate::takeover::block(&c.name);
             starts_at(token, 0, block)
                 && (token.len() == block.encode_utf16().count()
                     || starts_at(token, block.encode_utf16().count(), "--")

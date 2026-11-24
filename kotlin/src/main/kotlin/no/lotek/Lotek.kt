@@ -251,6 +251,54 @@ object Lotek {
         )
     }
 
+    /**
+     * What there is to write at [offset] in a template: the classes inside a
+     * class attribute, the values of an attribute, and the `<lt-…>` elements
+     * and their attributes. [offset] counts as a Kotlin string does, in
+     * UTF-16 units, and so do [Suggestion.start] and [Suggestion.end].
+     *
+     * [html] says the editor has a service of its own for the elements and
+     * their attributes, and leaves them out. [manifest] is the JSON text of
+     * the project's own manifest; without it, the manifest in the package
+     * applies. A manifest the core cannot read throws
+     * [IllegalArgumentException].
+     */
+    fun complete(text: String, offset: Int, html: Boolean = false, manifest: String? = null): List<Suggestion> {
+        val input = "{\"text\":${Json.string(text)},\"offset\":$offset,\"html\":$html}"
+        return (Json.parse(edit(COMPLETE, input, manifest)) as List<*>).map { s ->
+            val m = s as Map<*, *>
+            Suggestion(
+                label = m["label"] as String,
+                kind = SuggestionKind.valueOf((m["kind"] as String).uppercase()),
+                detail = m["detail"] as String?,
+                documentation = m["documentation"] as String?,
+                start = (m["start"] as Double).toInt(),
+                end = (m["end"] as Double).toInt(),
+            )
+        }
+    }
+
+    /**
+     * What there is to say about the word at [offset]: an `lt-` class in a
+     * class attribute, or `null`. [offset] and [manifest] are as in
+     * [complete].
+     */
+    fun hover(text: String, offset: Int, manifest: String? = null): Hover? {
+        val input = "{\"text\":${Json.string(text)},\"offset\":$offset}"
+        val m = Json.parse(edit(HOVER, input, manifest)) as Map<*, *>? ?: return null
+        return Hover(text = m["text"] as String, start = (m["start"] as Double).toInt(), end = (m["end"] as Double).toInt())
+    }
+
+    private fun edit(entry: String, input: String, manifest: String?): String {
+        val (status, answer) =
+            withCore {
+                it.use(manifest)
+                it.callWithStatus(entry, input)
+            }
+        if (status != 0L) throw IllegalArgumentException((Json.parse(answer) as Map<*, *>)["error"] as String)
+        return answer
+    }
+
     private fun Any?.texts(): Map<String, String> = (this as Map<*, *>).entries.associate { (k, v) -> k as String to v as String }
 
     private fun diagnoseStyled(html: String, css: List<String>, page: Boolean, manifest: String? = null): List<Finding> {
@@ -331,6 +379,8 @@ object Lotek {
     private const val RECIPE_VALUES = "recipe_values_raw"
     private const val RECIPE_BRANDS = "recipe_brands_raw"
     private const val INSPECT_THEME = "inspect_theme_raw"
+    private const val COMPLETE = "complete_raw"
+    private const val HOVER = "hover_raw"
 
     private fun finding(f: Map<*, *>): Finding =
         Finding(
@@ -414,6 +464,32 @@ internal class Core {
         return status to instance.memory().readString(resultPtr.apply()[0].toInt(), resultLen.apply()[0].toInt())
     }
 }
+
+/** What a suggestion is, so an editor can show the kind. The names are the ones TypeScript has, in capitals. */
+enum class SuggestionKind { CLASS, VALUE, ELEMENT, ATTRIBUTE }
+
+/**
+ * Something to write where the cursor is, with the same fields as
+ * `Suggestion` in TypeScript. [start] and [end] are the word it replaces, in
+ * UTF-16 units, and the same when there is no word.
+ */
+data class Suggestion(
+    val label: String,
+    val kind: SuggestionKind,
+    /** A few words beside the label. */
+    val detail: String?,
+    /** More, as Markdown. */
+    val documentation: String?,
+    val start: Int,
+    val end: Int,
+)
+
+/** What an editor shows about the word under the pointer, as Markdown, and the word it is about. */
+data class Hover(
+    val text: String,
+    val start: Int,
+    val end: Int,
+)
 
 /** One finding, with the same fields as `Finding` in TypeScript, plus rule, line and column. */
 data class Finding(

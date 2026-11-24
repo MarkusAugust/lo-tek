@@ -175,6 +175,7 @@ tasks.test {
     // does not see them without this, and a new fixture would leave the test
     // counted as up to date.
     inputs.dir(core.resolve("parity")).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(core.resolve("editing")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.dir(core.resolve("theme")).withPathSensitivity(PathSensitivity.RELATIVE)
     inputs.file(interfaces.resolve("manifest/build-cases.json")).withPathSensitivity(PathSensitivity.NONE)
     inputs.file(interfaces.resolve("manifest/anatomy-cases.json")).withPathSensitivity(PathSensitivity.NONE)

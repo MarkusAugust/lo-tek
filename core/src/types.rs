@@ -237,6 +237,18 @@ pub enum SuggestionKind {
     Attribute,
 }
 
+impl SuggestionKind {
+    /// The name on the port.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            SuggestionKind::Class => "class",
+            SuggestionKind::Value => "value",
+            SuggestionKind::Element => "element",
+            SuggestionKind::Attribute => "attribute",
+        }
+    }
+}
+
 /// Something to write where the cursor is. `start` and `end` are the word
 /// it replaces, as UTF-16 indices; they are the same when there is none.
 #[derive(Clone, Debug, PartialEq)]

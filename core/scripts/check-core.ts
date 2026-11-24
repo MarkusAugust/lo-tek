@@ -384,6 +384,132 @@ for (const [file, cases] of [
       )
   }
 
+/*
+ * What an editor is told while a template is written: `complete` and
+ * `hover`, against `core/editing/cases.json`, which Kotlin is held to as
+ * well. The file says how each `expect` is read.
+ */
+type Suggested = {
+  label: string
+  kind: string
+  detail?: string
+  documentation?: string
+  start: number
+  end: number
+}
+type EditingCase = {
+  name: string
+  text: string
+} & (
+  | {
+      call: "complete"
+      html: boolean
+      expect: {
+        count: number
+        kinds?: string[]
+        range?: { start: number; end: number }
+        labels?: string[]
+        first?: string
+        last?: string
+        has?: Partial<Suggested>[]
+      }
+    }
+  | {
+      call: "hover"
+      expect: { text: string; start: number; end: number } | null
+    }
+)
+const editing: { cases: EditingCase[] } = JSON.parse(
+  readFileSync(join(ROOT, "core/editing/cases.json"), "utf8"),
+)
+/** Which of `detail` and `documentation` a suggestion of each kind has. */
+const SAYS: Record<string, string[]> = {
+  class: ["detail", "documentation"],
+  value: ["detail"],
+  element: ["documentation"],
+  attribute: ["detail"],
+}
+let editingCases = 0
+for (const entry of editing.cases) {
+  count += 1
+  editingCases += 1
+  const at = `editing/cases.json, ${entry.name}`
+  const offset = entry.text.indexOf("|")
+  const text = entry.text.replace("|", "")
+  if (offset < 0 || text.includes("|")) {
+    failures.push(`${at}: the text has not exactly one cursor`)
+    continue
+  }
+  try {
+    if (entry.call === "hover") {
+      const answer = core.hover(text, offset)
+      if (sorted(answer) !== sorted(entry.expect))
+        failures.push(
+          `${at}\n  Expected: ${sorted(entry.expect).slice(0, 400)}\n  Core:     ${sorted(answer).slice(0, 400)}`,
+        )
+      continue
+    }
+    const found: Suggested[] = core.complete(text, offset, entry.html)
+    const { expect: wanted } = entry
+    const wrong: string[] = []
+    if (found.length !== wanted.count)
+      wrong.push(`${found.length} suggestions, expected ${wanted.count}`)
+    const kinds = [...new Set(found.map((s) => s.kind))].sort()
+    if (wanted.kinds && sorted(kinds) !== sorted([...wanted.kinds].sort()))
+      wrong.push(`the kinds are ${kinds.join(", ")}`)
+    const { range } = wanted
+    if (range) {
+      const elsewhere = found.find(
+        (s) => s.start !== range.start || s.end !== range.end,
+      )
+      if (elsewhere)
+        wrong.push(
+          `${elsewhere.label} replaces ${elsewhere.start} to ${elsewhere.end}, expected ${range.start} to ${range.end}`,
+        )
+    }
+    const labels = found.map((s) => s.label)
+    if (wanted.labels && sorted(labels) !== sorted(wanted.labels))
+      wrong.push(`the labels are ${labels.join(", ")}`)
+    if (wanted.first !== undefined && labels[0] !== wanted.first)
+      wrong.push(`the first is ${labels[0]}, expected ${wanted.first}`)
+    const last = labels[labels.length - 1]
+    if (wanted.last !== undefined && last !== wanted.last)
+      wrong.push(`the last is ${last}, expected ${wanted.last}`)
+    for (const one of wanted.has ?? []) {
+      const same = found.find((s) => s.label === one.label)
+      const differs = Object.entries(one).filter(
+        ([key, value]) => same?.[key as keyof Suggested] !== value,
+      )
+      if (!same || differs.length > 0)
+        wrong.push(
+          same
+            ? `${one.label} has ${differs.map(([key]) => `${key} ${JSON.stringify(same[key as keyof Suggested])}`).join(", ")}, expected ${differs.map(([key, value]) => `${key} ${JSON.stringify(value)}`).join(", ")}`
+            : `${one.label} is not suggested`,
+        )
+    }
+    // A field with nothing in it is left out, never `null` or empty.
+    for (const s of found) {
+      const says = Object.keys(s)
+        .filter((key) => key === "detail" || key === "documentation")
+        .sort()
+      if (
+        sorted(says) !== sorted(SAYS[s.kind] ?? ["an unknown kind"]) ||
+        says.some((key) => typeof s[key as keyof Suggested] !== "string")
+      ) {
+        wrong.push(
+          `${s.label}, a ${s.kind}, has ${says.join(" and ") || "neither detail nor documentation"}`,
+        )
+        break
+      }
+    }
+    if (wrong.length > 0) failures.push(`${at}: ${wrong.join("; ")}`)
+  } catch (e) {
+    failures.push(`${at}: threw ${e instanceof Error ? e.message : e}`)
+  }
+}
+if (editingCases < 20)
+  failures.push(`editing/cases.json has ${editingCases} cases: it was not read`)
+
 const reports: Record<string, unknown> = JSON.parse(
   readFileSync(join(THEME, "reports.json"), "utf8"),
 )
