@@ -49,7 +49,7 @@ class ManifestReaderTest {
 
     @Test
     fun `the package manifest is the one in the jar`() {
-        known(raw, "\$schema", "schemaVersion", "version", "textLanguage", "elements", "classes", "builders", "tokens", of = schema, at = "the manifest")
+        known(raw, "\$schema", "schemaVersion", "version", "textLanguage", "rulebooks", "elements", "classes", "builders", "tokens", of = schema, at = "the manifest")
         assertEquals(Manifest.parse(text), Lotek.manifest)
         assertEquals(raw["version"], Lotek.manifest.version)
         assertEquals(raw["textLanguage"], Lotek.manifest.textLanguage)
@@ -338,6 +338,7 @@ class ManifestReaderTest {
         var described = 0
         var defaults = 0
         var anatomies = 0
+        val stable = mutableListOf<String>()
         for ((i, b) in builders.withIndex()) {
             val expected = b.map()
             val read = Lotek.manifest.builders[i]
@@ -359,9 +360,12 @@ class ManifestReaderTest {
             for ((j, o) in rawOptions.withIndex()) {
                 val e = o.map()
                 val r = read.options[j]
-                known(o, "name", "required", "type", "description", "default", of = definition("builder").field("options")["items"].map(), at = "${read.name} ${e["name"]}")
+                known(o, "name", "required", "type", "description", "default", "stableId", of = definition("builder").field("options")["items"].map(), at = "${read.name} ${e["name"]}")
                 known(e["type"], "kind", "values", of = definition("builderOptionType"), at = "${read.name} ${e["name"]} type")
                 assertEquals(listOf(e["name"], e["required"], e["type"], e["description"], e["default"]), listOf(r.name, r.required, typeJson(r.type), r.description, r.default), "${read.name} ${e["name"]}")
+                // Only `true` is written, and an option that does not say it is not an id.
+                assertEquals(e["stableId"] ?: false, r.stableId, "${read.name} ${e["name"]} stableId")
+                if (r.stableId) stable += "${read.name}.${r.name}"
                 if (r.default != null) defaults += 1
                 kinds += e["type"].map()["kind"] as String
                 options += 1
@@ -378,6 +382,14 @@ class ManifestReaderTest {
         assertTrue(withParts > 0, "No builder function had parts, so that branch of the reader is untested.")
         assertEquals(builders.size, described, "every builder function has a description in the manifest")
         assertTrue(defaults > 0, "No option had a default, so that branch of the reader is untested.")
+        assertEquals(
+            listOf(
+                "dialog.titleId", "errorSummary.id", "errorSummary.titleId", "field.errorId", "field.helpId", "field.id", "popover.id",
+                "sessionTimeout.titleId", "suggestion.errorId", "suggestion.helpId", "suggestion.id", "suggestion.keys", "tabs.id", "tabs.keys", "term.id",
+            ),
+            stable.sorted(),
+            "the options that are an id which must be the same on every render",
+        )
         assertEquals(setOf("values", "flag", "text", "number", "textList"), kinds, "every option type must be in the manifest, otherwise a branch in the reader is untested")
         // No builder function returns plain text today, so that branch is tested below, with a rewritten manifest.
         assertTrue(shapes.containsAll(setOf("attributes", "values", "list", "group")), "the shapes in the manifest were $shapes, so a branch in the reader is untested")
@@ -459,6 +471,35 @@ class ManifestReaderTest {
         assertTrue(table.parts.getValue("caption").optional)
         assertEquals("lt-table", Lotek.manifest.classes.getValue("lt-table__sort").partOf)
         assertEquals(PartContent.TEXT, Lotek.manifest.classes.getValue("lt-button").content)
+    }
+
+    @Test
+    fun `which dependency and which other name points to which rulebook, in the manifest's order`() {
+        val expected = raw["rulebooks"].map()
+        val read = Lotek.manifest.rulebooks
+        assertEquals(
+            expected["dependencies"],
+            read.dependencies.map { mapOf("dependency" to it.dependency, "rulebook" to it.rulebook) },
+        )
+        assertEquals("astro", read.dependencies.first().dependency)
+        assertEquals(expected["aliases"], read.aliases)
+        assertEquals(expected["aliases"].map().keys.toList(), read.aliases.keys.toList(), "the order of the other names")
+        assertEquals("bundles", read.aliases["vue"])
+    }
+
+    @Test
+    fun `a manifest of schemaVersion 1 points to no rulebook and has no option that is a stable id`() {
+        @Suppress("UNCHECKED_CAST")
+        val old = (Json.parse(ofVersion(1)) as Map<String, Any?>).toMutableMap()
+        old.remove("rulebooks")
+        old["builders"] = (old["builders"] as List<Map<String, Any?>>).map { b ->
+            b + ("options" to (b["options"] as List<Map<String, Any?>>).map { it - "stableId" })
+        }
+        val read = Manifest.parse(Json.write(old))
+        assertEquals(emptyList(), read.rulebooks.dependencies)
+        assertEquals(emptyMap(), read.rulebooks.aliases)
+        assertTrue(read.builders.flatMap { it.options }.none { it.stableId })
+        assertEquals(Lotek.manifest.builders.map { it.name }, read.builders.map { it.name })
     }
 
     @Test

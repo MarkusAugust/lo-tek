@@ -49,11 +49,14 @@ class UnstableIdInspection : LocalInspectionTool() {
             override fun visitCallExpression(call: KtCallExpression) {
                 val builder = call.builderName() ?: return
                 val options = builders[builder]?.options ?: return
+                // The manifest says which options are ids: the plugin holds no list of its own.
+                val ids = options.filter { it.stableId }.map { it.name }.toSet()
+                if (ids.isEmpty()) return
                 // The members of `Lt` take the required options first.
                 val order = options.sortedBy { !it.required }.map { it.name }
                 for ((i, argument) in call.valueArguments.withIndex()) {
                     val name = argument.getArgumentName()?.asName?.asString() ?: order.getOrNull(i) ?: continue
-                    if (name !in IDS) continue
+                    if (name !in ids) continue
                     val value = argument.getArgumentExpression() ?: continue
                     val why = unstable(value) ?: fixedInLoop(name, value, call) ?: continue
                     holder.registerProblem(value, "$name: $why. Make it from a key in the data, so it is unique on the page and the same on every render.", ProblemHighlightType.WEAK_WARNING)
@@ -184,7 +187,6 @@ class UnstableIdInspection : LocalInspectionTool() {
     }
 
     private companion object {
-        val IDS = setOf("id", "titleId", "helpId", "errorId", "keys")
         val RANDOM = setOf("java.util.UUID.randomUUID", "kotlin.uuid.Uuid.Companion.random")
         val CLOCK = setOf("java.lang.System.nanoTime", "java.lang.System.currentTimeMillis")
         val COUNTING = setOf("incrementAndGet", "getAndIncrement", "decrementAndGet", "getAndDecrement", "addAndGet", "getAndAdd")

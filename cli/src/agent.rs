@@ -28,30 +28,42 @@ fn rulebooks() -> Vec<String> {
     books
 }
 
-/// Frameworks that share a rulebook: Vue, Svelte, Solid and Lit do the same
-/// with the style sheets, the attribute names and the registration.
-const ALIASES: [(&str, &str); 6] = [
-    ("vue", "bundles"),
-    ("svelte", "bundles"),
-    ("solid", "bundles"),
-    ("solid-js", "bundles"),
-    ("lit", "bundles"),
-    ("vite", "bundles"),
-];
+/// Which rulebook a project gets, as the manifest of the package says it.
+///
+/// The command line has no list of its own: a rulebook that is added or
+/// renamed is pointed to from the manifest it comes with. A manifest of
+/// schema version 1 has no `rulebooks`, and then no dependency and no other
+/// name points anywhere.
+struct Choice {
+    /// The dependency that decides the environment, in the order it is read.
+    dependencies: Vec<(String, String)>,
+    /// Other names `--framework` takes, each with the rulebook it gives.
+    aliases: Vec<(String, String)>,
+}
 
-/// The dependency that decides the environment, in the order it is read.
-/// Astro comes first, since an Astro app with React islands has both, and
-/// `vite` last.
-const DEPENDENCY_HINTS: [(&str, &str); 8] = [
-    ("astro", "astro"),
-    ("react", "react"),
-    ("vue", "bundles"),
-    ("svelte", "bundles"),
-    ("solid-js", "bundles"),
-    ("lit", "bundles"),
-    ("@starfederation/datastar-sdk", "datastar"),
-    ("vite", "bundles"),
-];
+fn choice() -> Choice {
+    let manifest = parse(&crate::package::manifest()).unwrap_or(Json::Null);
+    let rulebooks = manifest.get("rulebooks");
+    let text = |row: &Json, key: &str| row.get(key).and_then(Json::as_str).map(str::to_string);
+    let dependencies = rulebooks
+        .and_then(|r| r.get("dependencies"))
+        .and_then(Json::as_array)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|row| Some((text(row, "dependency")?, text(row, "rulebook")?)))
+        .collect();
+    let aliases = match rulebooks.and_then(|r| r.get("aliases")) {
+        Some(Json::Object(entries)) => entries
+            .iter()
+            .filter_map(|(name, book)| Some((name.clone(), book.as_str()?.to_string())))
+            .collect(),
+        _ => Vec::new(),
+    };
+    Choice {
+        dependencies,
+        aliases,
+    }
+}
 
 /// The names in an object, as `{ ...value }` sees them.
 fn keys(value: Option<&Json>) -> Vec<String> {
@@ -91,7 +103,7 @@ fn jvm_build_file() -> Option<&'static str> {
 /// Then a JVM build file: a Kotlin server often has a package.json for its
 /// assets, with `vite` or nothing known in it, and its markup still comes
 /// from Kotlin.
-fn detect_framework() -> (String, String) {
+fn detect_framework(choice: &Choice) -> (String, String) {
     let jvm = jvm_build_file();
     let without_package = |reason: &str| match jvm {
         Some(file) => ("kotlin".into(), format!("{file} is in this folder")),
@@ -112,14 +124,17 @@ fn detect_framework() -> (String, String) {
     };
     let mut dependencies = keys(manifest.get("dependencies"));
     dependencies.extend(keys(manifest.get("devDependencies")));
-    for (dependency, framework) in DEPENDENCY_HINTS {
+    for (dependency, framework) in &choice.dependencies {
         // `vite` builds the assets, and says nothing about who writes the
         // markup when there is a JVM build file next to it.
         if dependency == "vite" && jvm.is_some() {
             continue;
         }
         if dependencies.iter().any(|d| d == dependency) {
-            return (framework.into(), format!("{dependency} is in package.json"));
+            return (
+                framework.clone(),
+                format!("{dependency} is in package.json"),
+            );
         }
     }
     if let Some(file) = jvm {
@@ -142,20 +157,37 @@ pub fn run(arguments: &[String]) {
     refuse_without_value(&arguments);
     refuse_unknown_flags(&arguments, &["framework"]);
 
+    let choice = choice();
     let (chosen, reason) = match arguments.flag("framework") {
         Some(requested) => (requested.to_string(), "given with --framework".to_string()),
-        None => detect_framework(),
+        None => detect_framework(&choice),
     };
     let books = rulebooks();
     let name = if books.contains(&chosen) {
         Some(chosen.as_str())
     } else {
-        ALIASES.iter().find(|(a, _)| *a == chosen).map(|(_, n)| *n)
+        choice
+            .aliases
+            .iter()
+            .find(|(alias, _)| *alias == chosen)
+            .map(|(_, book)| book.as_str())
     };
     let Some(name) = name.and_then(|n| books.iter().find(|r| *r == n)) else {
         let names: Vec<&str> = books.iter().map(String::as_str).collect();
+        // The other names, by the rulebook each gives, in the manifest's order.
+        let mut shared: Vec<(&str, Vec<&str>)> = Vec::new();
+        for (alias, book) in &choice.aliases {
+            match shared.iter_mut().find(|(b, _)| *b == book.as_str()) {
+                Some((_, aliases)) => aliases.push(alias),
+                None => shared.push((book, vec![alias])),
+            }
+        }
+        let also: String = shared
+            .iter()
+            .map(|(book, aliases)| format!("\nOr {} for \"{book}\".\n", aliases.join(", ")))
+            .collect();
         fail(&format!(
-            "Unknown framework \"{chosen}\".\n\nChoose from: {}\n\nVue, Svelte, Solid and Lit share \"bundles\", since they do the same with\nthe style sheets, the attribute names and the registration.\n",
+            "Unknown framework \"{chosen}\".\n\nChoose from: {}\n{also}",
             names.join(", ")
         ));
     };

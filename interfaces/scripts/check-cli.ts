@@ -1953,6 +1953,169 @@ block(async () => {
   await rm(folder, { recursive: true, force: true })
 })
 
+// `agent` reads which dependency and which other name points to which
+// rulebook from the manifest of the package it found, and has no list of
+// its own: a package whose manifest says otherwise is followed, and one
+// from before the manifest said it has no framework to find.
+block(async () => {
+  const root = await mkdtemp(join(tmpdir(), "lotek-agent-package-"))
+  const rulebook = (name: string) =>
+    readFile(join(packageDir, `agent/${name}.md`), "utf8")
+  const manifest = JSON.parse(
+    await readFile(join(packageDir, "manifest/manifest.json"), "utf8"),
+  )
+  /*
+   * A copy of the package as far as `agent` needs it, with the manifest
+   * changed: the rulebooks, the manifest, and the command itself. The
+   * packaged command reads the package it sits in, the way an installed one
+   * does, and takes no other from the environment, so the copy is run. An
+   * executable given in `LOTEK_CLI` has no package around it, and is told
+   * where the copy is.
+   */
+  const packageWith = async (name: string, changed: object) => {
+    const copy = join(root, name)
+    await mkdir(join(copy, "dist"), { recursive: true })
+    await mkdir(join(copy, "core"), { recursive: true })
+    for (const part of ["agent", "manifest"])
+      await cp(join(packageDir, part), join(copy, part), { recursive: true })
+    for (const file of [
+      "package.json",
+      "dist/cli.js",
+      "dist/wasi-host.js",
+      "core/lotek.wasm",
+    ])
+      await cp(join(packageDir, file), join(copy, file))
+    await writeFile(
+      join(copy, "manifest/manifest.json"),
+      JSON.stringify(changed),
+    )
+    return copy
+  }
+  /** `lotek agent` in a project with these dependencies and files, reading that package. */
+  const agent = async (
+    from: string,
+    args: string[],
+    dependencies: Record<string, string> | null,
+    file?: string,
+  ): Promise<Run> => {
+    const project = await mkdtemp(join(root, "project-"))
+    if (dependencies)
+      await writeFile(
+        join(project, "package.json"),
+        JSON.stringify({ dependencies }),
+      )
+    if (file) await writeFile(join(project, file), "")
+    const command = process.env.LOTEK_CLI
+      ? COMMAND
+      : ["node", join(from, "dist/cli.js")]
+    const child = Bun.spawn([...command, "agent", ...args], {
+      env: { ...ENVIRONMENT, LOTEK_PACKAGE: from },
+      cwd: project,
+      stdout: "pipe",
+      stderr: "pipe",
+    })
+    runCount += 1
+    const [out, err, code] = await Promise.all([
+      new Response(child.stdout).text(),
+      new Response(child.stderr).text(),
+      child.exited,
+    ])
+    return { code, out, err }
+  }
+  const gives = async (what: string, answer: Run, name: string) =>
+    expect(
+      answer.code === 0 && answer.out === (await rulebook(name)),
+      `${what} did not give the ${name} rulebook (code ${answer.code}): ${(answer.err || answer.out).slice(0, 160)}`,
+    )
+
+  // Another manifest: a made-up dependency first, which points to the
+  // datastar rulebook, `react` no longer a row, a made-up other name for
+  // the react rulebook, and `vue` no longer another name for anything.
+  const other = await packageWith("other", {
+    ...manifest,
+    schemaVersion: 2,
+    rulebooks: {
+      dependencies: [
+        { dependency: "made-up-framework", rulebook: "datastar" },
+        { dependency: "astro", rulebook: "astro" },
+      ],
+      aliases: { "made-up": "react" },
+    },
+  })
+  await gives(
+    "a dependency only the other manifest has",
+    await agent(other, [], { "made-up-framework": "1.0.0" }),
+    "datastar",
+  )
+  // The first row found decides, and the rows are the other manifest's.
+  await gives(
+    "a dependency the other manifest has first, beside astro",
+    await agent(other, [], { astro: "6.0.0", "made-up-framework": "1.0.0" }),
+    "datastar",
+  )
+  const noRow = await agent(other, [], { react: "19.0.0" })
+  await gives(
+    "react, which the other manifest has no row for,",
+    noRow,
+    "bundles",
+  )
+  expect(
+    noRow.err.includes("package.json names no known framework"),
+    `react without a row is not said to be no known framework: ${noRow.err.slice(0, 120)}`,
+  )
+  const alias = await agent(other, ["--framework=made-up"], null)
+  await gives("another name only the other manifest has", alias, "react")
+  expect(
+    alias.err.includes("react") && alias.err.includes("made-up"),
+    `the message does not show that made-up is another name for react: ${alias.err.slice(0, 120)}`,
+  )
+  const noAlias = await agent(other, ["--framework=vue"], null)
+  expect(
+    noAlias.code === 1 && noAlias.err.includes('Unknown framework "vue"'),
+    `vue, which the other manifest does not have as another name, gave code ${noAlias.code}: ${noAlias.err.slice(0, 120)}`,
+  )
+
+  // A manifest from before it said any of this: schema version 1, and no
+  // `rulebooks`.
+  const { rulebooks: _, ...without } = manifest
+  const older = await packageWith("older", { ...without, schemaVersion: 1 })
+  for (const dependency of ["react", "astro", "vue", "vite"]) {
+    const answer = await agent(older, [], { [dependency]: "1.0.0" })
+    await gives(
+      `${dependency} with a manifest without rulebooks`,
+      answer,
+      "bundles",
+    )
+    expect(
+      answer.err.includes("package.json names no known framework"),
+      `${dependency} with a manifest without rulebooks: ${answer.err.slice(0, 120)}`,
+    )
+  }
+  await gives(
+    "no package.json with a manifest without rulebooks",
+    await agent(older, [], null),
+    "templates",
+  )
+  for (const dependencies of [null, { react: "19.0.0" }])
+    await gives(
+      `a JVM build file${dependencies ? " beside react" : ""} with a manifest without rulebooks`,
+      await agent(older, [], dependencies, "build.gradle.kts"),
+      "kotlin",
+    )
+  const unknown = await agent(older, ["--framework=vue"], null)
+  expect(
+    unknown.code === 1 && unknown.err.includes('Unknown framework "vue"'),
+    `--framework=vue with a manifest without rulebooks gave code ${unknown.code}: ${unknown.err.slice(0, 120)}`,
+  )
+  await gives(
+    "--framework=bundles with a manifest without rulebooks",
+    await agent(older, ["--framework=bundles"], { react: "19.0.0" }),
+    "bundles",
+  )
+
+  await rm(root, { recursive: true, force: true })
+})
+
 // `agent`: the rulebook to standard output, the message to standard error,
 // and no file written
 block(async () => {

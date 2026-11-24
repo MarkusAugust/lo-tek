@@ -372,6 +372,11 @@ export type Builder = {
      * the same.
      */
     default?: string
+    /**
+     * The option is an id, or a list of keys ids are made from, that must be
+     * the same on every render. From schemaVersion 2.
+     */
+    stableId?: true
   })[]
   returns: BuilderReturns
   /**
@@ -615,6 +620,24 @@ export type Manifest = {
    * language.
    */
   textLanguage?: string
+  /**
+   * Which rulebook for coding agents a project gets, as lotek agent reads it.
+   * From schemaVersion 2.
+   */
+  rulebooks?: {
+    /**
+     * The dependency in package.json that decides the environment. The rows
+     * are read in order, and the first dependency the project has decides.
+     */
+    dependencies: readonly ({
+      /** The name of a package in dependencies or devDependencies. */
+      dependency: string
+      /** The name of a rulebook in agent/, without the file ending. */
+      rulebook: string
+    })[]
+    /** Other names --framework takes, each with the rulebook it gives. */
+    aliases: Record<string, string>
+  }
   /** Every <lt-…> element, with the attributes the component reads. */
   elements: Record<string, Element>
   /**

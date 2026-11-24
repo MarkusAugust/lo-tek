@@ -36,6 +36,8 @@ data class Manifest(
     val builders: List<Builder>,
     /** The language of the texts the components and stylesheets write themselves, like `en`. `null` in a manifest from before it was there. */
     val textLanguage: String? = null,
+    /** Which rulebook for coding agents a project gets. Empty in a manifest of schema version 1, which has none. */
+    val rulebooks: Rulebooks = Rulebooks(),
 ) {
     companion object {
         /** The schema version the package is written in. */
@@ -67,8 +69,20 @@ data class Manifest(
                         builder(b.obj("builders[$i]"), "builders[$i]")
                     },
                 textLanguage = root["textLanguage"]?.str("textLanguage"),
+                rulebooks = root["rulebooks"]?.let { rulebooks(it.obj("rulebooks")) } ?: Rulebooks(),
             )
         }
+
+        private fun rulebooks(r: Map<String, Any?>) =
+            Rulebooks(
+                dependencies =
+                    (r["dependencies"] as? List<*> ?: wrong("rulebooks.dependencies", "a list")).mapIndexed { i, d ->
+                        val path = "rulebooks.dependencies[$i]"
+                        val row = d.obj(path)
+                        RulebookDependency(row["dependency"].str("$path.dependency"), row["rulebook"].str("$path.rulebook"))
+                    },
+                aliases = r["aliases"].texts("rulebooks.aliases"),
+            )
 
         private fun nameOf(value: Any?, at: String): Name? =
             value?.obj(at)?.let { n ->
@@ -92,6 +106,7 @@ data class Manifest(
                             type = optionType(option["type"].obj("$path.type"), "$path.type"),
                             description = option["description"]?.str("$path.description"),
                             default = option["default"]?.str("$path.default"),
+                            stableId = option["stableId"] == true,
                         )
                     },
                 returns = returns(b["returns"].obj("$at.returns"), "$at.returns"),
@@ -523,7 +538,22 @@ data class BuilderOption(
     val description: String?,
     /** The value that gives the same answer as leaving the option out, for an option with a closed list. */
     val default: String? = null,
+    /** The option is an id, or a list of keys ids are made from, that must be the same on every render. */
+    val stableId: Boolean = false,
 )
+
+/**
+ * Which rulebook a project gets, as `lotek agent` reads it. [dependencies]
+ * are read in order, and the first one the project has decides. [aliases]
+ * are the other names `--framework` takes.
+ */
+data class Rulebooks(
+    val dependencies: List<RulebookDependency> = emptyList(),
+    val aliases: Map<String, String> = emptyMap(),
+)
+
+/** A dependency in `package.json`, and the rulebook in `agent/` a project with it gets. */
+data class RulebookDependency(val dependency: String, val rulebook: String)
 
 /** What an option takes: a closed list, a flag, text, a number or a list of texts. */
 sealed interface OptionType {

@@ -28,6 +28,40 @@
       "type": "string",
       "description": "The language of the texts the components and stylesheets write themselves. lotek check warns about one of them on a page in another language."
     },
+    "rulebooks": {
+      "type": "object",
+      "description": "Which rulebook for coding agents a project gets, as lotek agent reads it. From schemaVersion 2.",
+      "required": ["dependencies", "aliases"],
+      "properties": {
+        "dependencies": {
+          "type": "array",
+          "description": "The dependency in package.json that decides the environment. The rows are read in order, and the first dependency the project has decides.",
+          "items": {
+            "type": "object",
+            "required": ["dependency", "rulebook"],
+            "properties": {
+              "dependency": {
+                "type": "string",
+                "description": "The name of a package in dependencies or devDependencies."
+              },
+              "rulebook": {
+                "type": "string",
+                "description": "The name of a rulebook in agent/, without the file ending."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "aliases": {
+          "type": "object",
+          "description": "Other names --framework takes, each with the rulebook it gives.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "elements": {
       "type": "object",
       "description": "Every <lt-…> element, with the attributes the component reads.",
@@ -720,6 +754,10 @@
               "default": {
                 "type": "string",
                 "description": "For an option with a closed list: the value that gives the same answer as leaving the option out, read from the answers. The description says the same."
+              },
+              "stableId": {
+                "const": true,
+                "description": "The option is an id, or a list of keys ids are made from, that must be the same on every render. From schemaVersion 2."
               }
             },
             "additionalProperties": false
