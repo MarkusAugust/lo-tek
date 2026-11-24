@@ -1114,12 +1114,19 @@ const dot = (color: string) =>
 	}
 
 	/* The palettes the core suggests, under the accent: a strip each. */
-	/* An accordion of LO-TEK, in line with the fields around it: no
-	   indent, and the page behind it. */
+	/* An accordion of LO-TEK, with the page behind it. Its summary keeps
+	   room at the sides, less than LO-TEK's own: the hover and the focus
+	   ring are drawn to its edge, and with none they lie on the text and
+	   the chevron. The content has none, so the strips are as wide as the
+	   fields around them. */
 	.builder__palettes {
-		--lt-accordion-padding-inline: 0;
+		--lt-accordion-padding-inline: var(--lt-spacing-2);
 		margin-block-start: var(--lt-spacing-3);
 		background: none;
+	}
+
+	.builder__palettes > .lt-accordion__content {
+		padding-inline: 0;
 	}
 
 	.builder__palettes-content {
