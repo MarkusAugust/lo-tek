@@ -599,7 +599,8 @@ In IntelliJ the plugin "LO-TEK Interfaces" from JetBrains Marketplace runs the
 same check while you type, also in HTML in a Kotlin string marked with
 `@Language("HTML")` or `// language=HTML`. In Kotlin it warns about a set on
 an element its part cannot be, such as `label { lt(field.control) }`, about
-`of(…)!!`, and about an id from the loop index.
+`of(…)!!`, about an id from the loop index, and about `Lt.field(error = true)`
+without `field.error`.
 
 ## Known pitfalls
 
@@ -607,7 +608,7 @@ an element its part cannot be, such as `label { lt(field.control) }`, about
 | --- | --- |
 | The styles are missing | The `<link>` to `LotekWebJar.CSS` is missing, or `/webjars` is not served and it answers 404 |
 | An `<lt-toast>` or `<lt-connection-status>` shows nothing, an `<lt-session-timeout>` never warns, or another component does nothing | The `define` function has not run. `<lt-toast>` and `<lt-connection-status>` create their content themselves and are empty without it, and `<lt-session-timeout>` does not count the time. The markup in the others comes from you and is there regardless, with two exceptions until they are registered. `<lt-tabs>` shows one panel: of those the server left without `hidden`, the one the URL points to, otherwise the first, and under `server-controlled` always the first. `<lt-suggestion>` hides the list |
-| A component speaks English on a page in another language | The text in the markup comes from you, and is written with the app's own translation setup. The few default texts the package has are replaced with `close-label` on `<lt-toast>`, `offline-text` and `online-text` on `<lt-connection-status>`, `count-none`, `count-one` and `count-other` on `<lt-suggestion>`, and `--lt-label-required-text`, `--lt-label-optional-text` and `--lt-label-required-symbol` in CSS. Numbers and durations follow the nearest `lang`, usually the one on `<html>`. See https://lo-tek.sobernetics.no/translation/ |
+| A component speaks English on a page in another language | The text in the markup comes from you, and is written with the app's own translation setup. The few default texts the package has are replaced with `close-label` on `<lt-toast>`, `offline-text` and `online-text` on `<lt-connection-status>`, `count-none`, `count-one` and `count-other` on `<lt-suggestion>`, and `--lt-label-required-text`, `--lt-label-optional-text`, `--lt-label-required-symbol` and `--lt-steps-done-text` in CSS. Numbers and durations follow the nearest `lang`, usually the one on `<html>`. See https://lo-tek.sobernetics.no/translation/ |
 | The error text never shows, and the field counts as valid | `attributes["hidden"] = "false"` on the error text, which hides it all the same. Leave the attribute out, or let `Lt.field(invalid = …)` decide |
 | `Type mismatch` on `InputType` | kotlinx.html has an `InputType` too. Import `no.lotek.InputType` by name |
 | A field loses what the user typed after an update from the server | The id comes from the loop index, a counter or a random value, and changed between two renders |

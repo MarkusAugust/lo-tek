@@ -101,6 +101,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   written into the CSS as `true`. In a block, `null` and `false` are now not
   given, as they are for a colour, where `null` was written as `null`.
 
+### Fixed
+
+- **The rulebooks for coding agents name every default text that can be
+  replaced.** `--lt-steps-done-text`, the text of a completed step, was
+  missing from the list. The Kotlin rulebook also names the fourth thing
+  the IntelliJ plugin warns about, `Lt.field(error = true)` without
+  `field.error`.
+
 ## 0.48.0 (2026-11-23)
 
 ### Added

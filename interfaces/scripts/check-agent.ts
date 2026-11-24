@@ -362,6 +362,61 @@ for (const [path, content] of Object.entries(expected)) {
   }
 }
 
+/*
+ * The texts the package has of its own, and what replaces each.
+ *
+ * The rulebooks have a paragraph for the component that speaks English on a
+ * page in another language, and it lists what replaces the package's default
+ * texts. The manifest holds the same as data: the attributes in `replacedBy`
+ * of an element's texts, and the `variable` of a class's texts. A text the
+ * paragraph leaves out is one the agent leaves in English. The paragraph may
+ * name more than these: `--lt-label-required-symbol` is a real variable of
+ * the label, which the manifest has among the variables and not among the
+ * texts, since an asterisk is not a text to translate.
+ */
+const FOREIGN_TEXT_PARAGRAPH =
+  "A component speaks English on a page in another language"
+const manifest = JSON.parse(
+  readFileSync(join(PACKAGE, "manifest/manifest.json"), "utf8"),
+) as {
+  elements: Record<
+    string,
+    { texts?: Record<string, { replacedBy?: string[] }> }
+  >
+  classes: Record<string, { texts?: { variable?: string }[] }>
+}
+const replacements = [
+  ...new Set([
+    ...Object.values(manifest.elements).flatMap((element) =>
+      Object.values(element.texts ?? {}).flatMap((t) => t.replacedBy ?? []),
+    ),
+    ...Object.values(manifest.classes).flatMap((entry) =>
+      (entry.texts ?? []).flatMap((t) => (t.variable ? [t.variable] : [])),
+    ),
+  ]),
+]
+let checkedReplacements = 0
+let withForeignText = 0
+for (const [path, content] of Object.entries(expected)) {
+  const paragraph = content
+    .split("\n")
+    .find((line) => line.includes(FOREIGN_TEXT_PARAGRAPH))
+  if (paragraph === undefined) {
+    demand(
+      false,
+      `${path} has no paragraph "${FOREIGN_TEXT_PARAGRAPH}": every rulebook says what replaces the package's default texts.`,
+    )
+    continue
+  }
+  withForeignText += 1
+  for (const name of replacements) {
+    demand(
+      paragraph.includes(`\`${name}\``),
+      `${path} does not name \`${name}\` where it says what replaces the package's default texts, and the manifest has a text it replaces.`,
+    )
+    checkedReplacements += 1
+  }
+}
 if (problems.length > 0) {
   console.error(
     `The rulebooks do not match the package:\n\n${problems
@@ -387,6 +442,15 @@ const expectedCounts = {
 }
 
 const shortfalls: string[] = []
+
+if (replacements.length < 9 || withForeignText === 0)
+  shortfalls.push(
+    `${replacements.length} replacements of default texts read from the manifest, and ${withForeignText} rulebooks with the paragraph about them`,
+  )
+if (checkedReplacements !== replacements.length * withForeignText)
+  shortfalls.push(
+    `${checkedReplacements} replacements of default texts looked for, expected ${replacements.length * withForeignText}`,
+  )
 
 if (checkedFiles !== expectedCounts.files || checkedFiles === 0)
   shortfalls.push(`${checkedFiles} files, expected ${expectedCounts.files}`)

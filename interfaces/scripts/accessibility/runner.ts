@@ -184,7 +184,6 @@ function leftOut(platform: Platform, state: State) {
   const key = `${state} (${platform.name})`
   uncompared.set(key, (uncompared.get(key) ?? 0) + 1)
 }
-export const leftOutStates = () => uncompared
 
 function compare(
   platform: Platform,

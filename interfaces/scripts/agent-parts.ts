@@ -439,18 +439,7 @@ export function countBuilderFunctions(): number {
   return Object.keys(lt).filter((key) => !HELPERS.has(key)).length
 }
 
-export function countComponents(): number {
-  return new Set(Object.values(classes).map((info) => info.component)).size
-}
-
-/**
- * The rows in the CSS table.
- *
- * `countComponents()` counts components that have at least one class, and
- * `field` has none. The number therefore matched neither the CSS table, the
- * sum of the two tables, nor the reading "so many components and so many
- * elements".
- */
+/** The rows in the CSS table: the components of the category `css`. */
 export function countCssComponents(): number {
   return new Set(
     Object.values(classes)

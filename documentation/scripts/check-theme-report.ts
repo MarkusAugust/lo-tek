@@ -21,17 +21,13 @@
  * Requires `documentation/dist` to be built.
  */
 
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs"
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
+import { ownOn } from "./theme-page"
+import { FAMILIES } from "./theme-recipe"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -50,9 +46,6 @@ const { buildTheme } = (await import(
     brands: { family: string; given: string; light: Fill; dark: Fill }[]
   }
 }
-const contract = JSON.parse(
-  readFileSync(`${ROOT}interfaces/src/tokens/color-contract.json`, "utf8"),
-) as { families: string[] }
 
 const folder = mkdtempSync(join(tmpdir(), "lotek-report-"))
 process.on("exit", () => rmSync(folder, { recursive: true, force: true }))
@@ -270,11 +263,10 @@ const told: Record<string, string> = {}
 
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
-  const own = (family: string) =>
-    page.locator(`input[role="switch"][name="own.${family}"]`)
+  const own = ownOn(page)
 
   const holds = async (name: string, recipe: Record<string, string>) => {
-    for (const family of contract.families) {
+    for (const family of FAMILIES) {
       if (family in recipe) {
         await own(family).check()
         await page.locator(`[name="${family}"]`).fill(recipe[family])

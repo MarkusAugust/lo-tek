@@ -5,7 +5,7 @@
  * `className` in a project with Go templates is an agent that writes
  * `className` in a Go template, and noise from a framework you do not use is
  * exactly what makes it guess. Duplication between the files costs nothing,
- * since all six are written from here.
+ * since all of them are written from here.
  *
  * The order in each file follows the mistakes agents actually make, most
  * expensive first: a forgotten stylesheet, invented components and variants,
@@ -472,7 +472,7 @@ const NO_DEFINE: [string, string] = [
 ]
 const FOREIGN_TEXT: [string, string] = [
   "A component speaks English on a page in another language",
-  "The text in the markup comes from you, and is written with the app's own translation setup. The few default texts the package has are replaced with `close-label` on `<lt-toast>`, `offline-text` and `online-text` on `<lt-connection-status>`, `count-none`, `count-one` and `count-other` on `<lt-suggestion>`, and `--lt-label-required-text`, `--lt-label-optional-text` and `--lt-label-required-symbol` in CSS. Numbers and durations follow the nearest `lang`, usually the one on `<html>`. See https://lo-tek.sobernetics.no/translation/",
+  "The text in the markup comes from you, and is written with the app's own translation setup. The few default texts the package has are replaced with `close-label` on `<lt-toast>`, `offline-text` and `online-text` on `<lt-connection-status>`, `count-none`, `count-one` and `count-other` on `<lt-suggestion>`, and `--lt-label-required-text`, `--lt-label-optional-text`, `--lt-label-required-symbol` and `--lt-steps-done-text` in CSS. Numbers and durations follow the nearest `lang`, usually the one on `<html>`. See https://lo-tek.sobernetics.no/translation/",
 ]
 const NEVER_INVALID: [string, string] = [
   "The error text never shows, and the field counts as valid",
@@ -1684,7 +1684,8 @@ In IntelliJ the plugin "LO-TEK Interfaces" from JetBrains Marketplace runs
 the same check while you type, also in HTML in a Kotlin string marked with
 \`@Language("HTML")\` or \`// language=HTML\`. In Kotlin it warns about a set
 on an element its part cannot be, such as \`label { lt(field.control) }\`,
-about \`of(…)!!\`, and about an id from the loop index.`,
+about \`of(…)!!\`, about an id from the loop index, and about
+\`Lt.field(error = true)\` without \`field.error\`.`,
     closing: `## When CSS is not enough
 
 The components are customised with tokens and \`--lt-\` variables. A complete

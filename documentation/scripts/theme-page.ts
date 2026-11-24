@@ -1,9 +1,11 @@
 /**
  * What the checks of the theme builder share when they read its page.
  *
- * Each `check-theme-*.ts` drives the page for its own question. Two things
- * they all need are the same question to the same page: which theme the two
- * frames hold, and the recipe that a set of typed values makes.
+ * Each `check-theme-*.ts` drives the page for its own question. What several
+ * of them need is the same question to the same page: which theme the two
+ * frames hold, the recipe that a set of typed values makes and the values a
+ * recipe is made of, the switch and the field of a key, and the wait for the
+ * page to come to a state.
  */
 
 import type { Page } from "playwright"
@@ -21,6 +23,46 @@ export function nested(values: Record<string, string>) {
     at[parts[parts.length - 1]] = value
   }
   return recipe
+}
+
+/** A recipe as paths and values as text, the way a form holds it. */
+export function flat(recipe: unknown, path = ""): [string, string][] {
+  return Object.entries(recipe as Record<string, unknown>).flatMap(
+    ([name, value]) =>
+      value !== null && typeof value === "object"
+        ? flat(value, `${path}${name}.`)
+        : [[`${path}${name}`, String(value)] as [string, string]],
+  )
+}
+
+/**
+ * The same recipe whether a weight is the number or the text: the form
+ * gives text, the theme is the same for both, and which the page writes is
+ * its own business.
+ */
+export const comparable = (recipe: unknown) =>
+  JSON.stringify(flat(recipe).sort(([a], [b]) => (a < b ? -1 : 1)))
+
+/** The switch that says a colour family has a colour of its own. */
+export const ownOn = (page: Page) => (family: string) =>
+  page.locator(`input[role="switch"][name="own.${family}"]`)
+
+/** The control of a key, by the name the form gives it. */
+export const fieldOn = (page: Page) => (name: string) =>
+  page.locator(`[name="${name}"]`)
+
+/** Waits up to five seconds for a state of the page, and gives the state it came to. */
+export async function untilOn<T>(
+  page: Page,
+  read: () => Promise<T>,
+  done: (state: T) => boolean,
+): Promise<T> {
+  let state = await read()
+  for (let attempt = 0; attempt < 50 && !done(state); attempt++) {
+    await page.waitForTimeout(100)
+    state = await read()
+  }
+  return state
 }
 
 /**
