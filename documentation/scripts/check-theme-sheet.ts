@@ -59,6 +59,19 @@ import { selectAll } from "hast-util-select"
 import rehypeParse from "rehype-parse"
 import { unified } from "unified"
 import { site } from "./site"
+import { CONTRACT } from "./theme-recipe"
+
+/** The roles the theme at a glance shows of each family, as CSS writes them. */
+const GLANCE_ROLES = [
+  "surface",
+  "border-subtle",
+  "border",
+  "border-strong",
+  "fill",
+  "text-subtle",
+  "text",
+  "text-strong",
+]
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const SHEET = `${ROOT}documentation/dist/theme-builder/sheet/index.html`
@@ -497,6 +510,62 @@ if (existsSync(SHEET)) {
   const s = await site({ pages: 1 })
   code = await s.run(async () => {
     const page = await s.open("/theme-builder/sheet/")
+    // The theme at a glance stands first, before any component: every
+    // colour family of the contract, in its order, with the roles of each.
+    // It is where a change of the theme is seen without scrolling
+    // (`check-theme-glance.ts`), and it is no component: the count of
+    // those is the manifest's, with or without it.
+    const glance = await page.evaluate(() => {
+      const main = document.querySelector("main")
+      const block = document.querySelector<HTMLElement>("[data-glance]")
+      const after = [...(main?.children ?? [])].filter(
+        (child) => child.tagName !== "H1",
+      )
+      return {
+        count: document.querySelectorAll("[data-glance]").length,
+        first: block !== null && after[0] === block,
+        afterTitle:
+          block !== null &&
+          main?.querySelector("h1") !== null &&
+          main?.querySelector("h1") !== undefined &&
+          (main.querySelector("h1")?.compareDocumentPosition(block) ?? 0) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        component:
+          block?.matches(".sheet__component, [data-component]") === true ||
+          block?.querySelector(".sheet__component, [data-component]") !== null,
+        families: [
+          ...(block?.querySelectorAll<HTMLElement>("li[data-family]") ?? []),
+        ].map((ramp) => ({
+          family: ramp.dataset.family ?? "",
+          roles: [...ramp.querySelectorAll<HTMLElement>("[data-role]")].map(
+            (role) => role.dataset.role ?? "",
+          ),
+        })),
+        components: document.querySelectorAll(".sheet__component").length,
+      }
+    })
+    if (glance.count !== 1 || !glance.first || !glance.afterTitle)
+      s.fail(
+        `the sheet has ${glance.count} [data-glance], and it is ${glance.first ? "" : "not "}the first thing in main after the title`,
+      )
+    if (glance.component)
+      s.fail("the theme at a glance is, or holds, a component of the sheet")
+    if (
+      JSON.stringify(glance.families.map((ramp) => ramp.family)) !==
+      JSON.stringify(CONTRACT.families)
+    )
+      s.fail(
+        `the theme at a glance has the families ${glance.families.map((ramp) => ramp.family).join(", ") || "none"}, expected the contract's in order: ${CONTRACT.families.join(", ")}`,
+      )
+    for (const { family, roles } of glance.families)
+      if (JSON.stringify(roles) !== JSON.stringify(GLANCE_ROLES))
+        s.fail(
+          `the theme at a glance shows ${roles.join(", ") || "no roles"} of ${family}, expected ${GLANCE_ROLES.join(", ")}`,
+        )
+    if (glance.components !== shown.size)
+      s.fail(
+        `the sheet has ${glance.components} components beside the theme at a glance, and the manifest gives it ${shown.size}`,
+      )
     // Registered first, or an element that has not done its work yet is
     // read as one that shows nothing.
     const elements = asked.flatMap((a) => (a.element ? [a.element] : []))

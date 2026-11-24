@@ -27,9 +27,36 @@
  */
 
 import "@lo-tek/interfaces/tokens.css"
+// For the block at the top, which is in the document and not in a root of
+// its own: what a part of a bar is, is said by LO-TEK's own tooltip, and the
+// card under the bars is LO-TEK's components.
+import "@lo-tek/interfaces/tooltip.css"
+import "@lo-tek/interfaces/card.css"
+import "@lo-tek/interfaces/heading.css"
+import "@lo-tek/interfaces/paragraph.css"
+import "@lo-tek/interfaces/link.css"
+import "@lo-tek/interfaces/label.css"
+import "@lo-tek/interfaces/input.css"
+import "@lo-tek/interfaces/button.css"
 import manifest from "../../../../interfaces/manifest/manifest.json"
+import contract from "../../../../interfaces/src/tokens/color-contract.json"
 import recipes from "../../../generated/recipes.json"
 import Preview, { type Stylesheet } from "../../components/Preview.astro"
+
+/**
+ * The roles of a family the bar at the top shows, in the order of the bar:
+ * from the surface through the borders and the fill to the texts.
+ */
+const ROLES = [
+  "surface",
+  "border-subtle",
+  "border",
+  "border-strong",
+  "fill",
+  "text-subtle",
+  "text",
+  "text-strong",
+]
 
 /**
  * The components left off on purpose, with why. `check-theme-sheet.ts` has
@@ -233,6 +260,56 @@ const components = [...pages]
 	<body>
 		<main class="sheet">
 			<h1 class="sheet__title">Every component, to look at a theme on</h1>
+			<!-- First, everything a recipe sets, in one look: each family of
+			     colours as a bar of its roles, and then a heading, a
+			     paragraph, a link, a labelled field and buttons on a card,
+			     which are where the font, the weights, the line heights and
+			     the corners show. It is kept low, so all of it is seen in a
+			     frame that is not scrolled. No component reads a brand family by itself, so without
+			     this a palette would change nothing that is seen. -->
+			<section class="sheet__glance" data-glance aria-labelledby="glance-title">
+				<h2 class="sheet__title" id="glance-title">The theme at a glance</h2>
+				<h3 class="sheet__name">colours</h3>
+				<ul class="glance__ramps">
+					{
+						contract.families.map((family) => (
+							<li class="glance__ramp" data-family={family}>
+								<span class="glance__name">{family}</span>
+								<span class="glance__bar">
+									{ROLES.map((role) => (
+										<span class="lt-tooltip">
+											<span
+												class="glance__part"
+												data-role={role}
+												aria-describedby={`glance-${family}-${role}`}
+												style={`background: var(--lt-color-${family}-${role})`}
+											/>
+											<span class="lt-tooltip__bubble" role="tooltip" id={`glance-${family}-${role}`}>
+												{role}
+											</span>
+										</span>
+									))}
+								</span>
+							</li>
+						))
+					}
+				</ul>
+				<h3 class="sheet__name">typography and shape</h3>
+				<div class="lt-card glance__card">
+					<h4 class="lt-heading" data-size="s">Route cleared for sector 9</h4>
+					<p class="lt-paragraph">
+						The relay is back. <a class="lt-link" href="#glance-title">Read the log</a>.
+					</p>
+					<div class="glance__form">
+						<div class="glance__field">
+							<label class="lt-label" for="glance-sector">Sector</label>
+							<input class="lt-input" id="glance-sector" type="text" value="Sector 9" />
+						</div>
+						<button class="lt-button" type="button">Send</button>
+						<button class="lt-button" type="button" data-variant="secondary">Cancel</button>
+					</div>
+				</div>
+			</section>
 			{
 				components.map(({ name, shown }) => (
 					<section class="sheet__component" data-component={name}>
@@ -276,6 +353,93 @@ const components = [...pages]
 		white-space: nowrap;
 	}
 
+	/* The theme at a glance: across the whole sheet, before the components. */
+	.sheet__glance {
+		grid-column: 1 / -1;
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-3);
+		min-inline-size: 0;
+	}
+
+	.glance__card {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+	}
+
+	.glance__card > * {
+		margin: 0;
+	}
+
+	.glance__form {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		gap: var(--lt-spacing-2);
+	}
+
+	.glance__field {
+		display: flex;
+		flex: 1 1 8rem;
+		flex-direction: column;
+		gap: var(--lt-spacing-1);
+		min-inline-size: 0;
+	}
+
+	.glance__name {
+		font-size: var(--lt-font-size-xs);
+		color: var(--lt-color-neutral-text-subtle);
+	}
+
+	/* A family as one bar: every role the theme makes of it, from the
+	   surface through the borders and the fill to the three texts. */
+	.glance__ramps {
+		margin: 0;
+		padding: 0;
+		list-style: none;
+		display: grid;
+		gap: 2px;
+	}
+
+	.glance__ramp {
+		display: grid;
+		grid-template-columns: 4.5rem 1fr;
+		align-items: center;
+		gap: var(--lt-spacing-2);
+	}
+
+	.glance__bar {
+		display: grid;
+		grid-template-columns: 2fr 1fr 1fr 1fr 3fr 1fr 1fr 1fr;
+		block-size: var(--lt-spacing-5);
+	}
+
+	/* A part of the bar, in the tooltip that says which role it is. */
+	.glance__bar > .lt-tooltip {
+		display: block;
+	}
+
+	.glance__part {
+		display: block;
+		block-size: 100%;
+	}
+
+	.glance__bar > .lt-tooltip:first-child > .glance__part {
+		border-start-start-radius: var(--lt-card-radius, var(--lt-spacing-1));
+		border-end-start-radius: var(--lt-card-radius, var(--lt-spacing-1));
+	}
+
+	.glance__bar > .lt-tooltip:last-child > .glance__part {
+		border-start-end-radius: var(--lt-card-radius, var(--lt-spacing-1));
+		border-end-end-radius: var(--lt-card-radius, var(--lt-spacing-1));
+	}
+
+	.glance__bar > .lt-tooltip:hover > .glance__part {
+		outline: 2px solid var(--lt-color-neutral-text-strong);
+		outline-offset: -2px;
+	}
+
 	.sheet__component {
 		display: flex;
 		flex-direction: column;
@@ -299,6 +463,21 @@ const components = [...pages]
 	import { defineLt } from "@lo-tek/interfaces/register"
 
 	defineLt()
+
+	// The tooltip of a part of a bar says its role, and under the pointer
+	// also the colour it has now: the theme is laid on the page after it is
+	// built, so the colour is read when it is asked for.
+	const hex = (color: string) => {
+		const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number)
+		if (!channels || channels.length < 3) return color
+		return `#${channels.map((c) => Math.round(c).toString(16).padStart(2, "0")).join("")}`
+	}
+	for (const part of document.querySelectorAll<HTMLElement>("[data-glance] [data-role]"))
+		part.parentElement?.addEventListener("pointerenter", () => {
+			const bubble = part.nextElementSibling
+			if (bubble)
+				bubble.textContent = `${part.dataset.role} ${hex(getComputedStyle(part).backgroundColor)}`
+		})
 
 	/** The first match in the examples of one component, each in its own root. */
 	const find = <T extends Element>(name: string, selector: string) => {
