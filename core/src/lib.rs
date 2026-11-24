@@ -681,7 +681,15 @@ pub unsafe extern "C" fn complete_raw(ptr: *mut u8, length: usize) -> u32 {
         Ok(read) => read,
         Err(error) => return refuse(&error),
     };
-    let html = matches!(root.get("html"), Some(json::Json::Bool(true)));
+    let html = match root.get("html") {
+        None => false,
+        Some(json::Json::Bool(html)) => *html,
+        Some(_) => {
+            return refuse(&format!(
+                "The input must be {shape}, where html is true or false."
+            ))
+        }
+    };
     let suggestions: Vec<String> = complete::complete(&text, offset, html, &vocabulary)
         .iter()
         .map(|s| {

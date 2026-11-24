@@ -113,6 +113,32 @@ test("input that is not what the export takes is refused with an explanation", (
     }
 })
 
+test("html that is not true or false is refused, and html left out is false", () => {
+  const ask = raw(true)
+  // A text is not a boolean: read as false, `"true"` gave the elements to
+  // an editor that has its own.
+  for (const html of ['"true"', '"false"', "1", "0", "null", "[]", "{}"]) {
+    const input = `{"text": "<lt-", "offset": 4, "html": ${html}}`
+    const { status, answer } = ask("complete_raw", input)
+    expect({ input, status }).toEqual({ input, status: 1 })
+    const { error } = answer as { error?: unknown }
+    expect(typeof error === "string" && error.length > 0).toBe(true)
+  }
+  // Left out, it is a file the editor has no service of its own for: the
+  // ten elements, as with `false`.
+  const without = ask("complete_raw", '{"text": "<lt-", "offset": 4}')
+  const withFalse = ask(
+    "complete_raw",
+    '{"text": "<lt-", "offset": 4, "html": false}',
+  )
+  expect(without.status).toBe(0)
+  expect((without.answer as unknown[]).length).toBe(10)
+  expect(without).toEqual(withFalse)
+  expect(
+    ask("complete_raw", '{"text": "<lt-", "offset": 4, "html": true}'),
+  ).toEqual({ status: 0, answer: [] })
+})
+
 test("an answer with nothing in it is a list without suggestions, and null from hover", () => {
   const ask = raw(true)
   expect(

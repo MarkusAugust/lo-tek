@@ -1,5 +1,6 @@
 package no.lotek.intellij
 
+import com.intellij.lang.html.HTMLLanguage
 import com.intellij.markdown.utils.doc.DocMarkdownToHtmlConverter
 import com.intellij.model.Pointer
 import com.intellij.openapi.project.Project
@@ -13,7 +14,7 @@ import com.intellij.psi.PsiFile
  * Quick Documentation on an `lt-` class in a class attribute: what the
  * component is, the attributes the class takes and a link to its page.
  *
- * On the HTML language, so it covers HTML injected into a string, like the
+ * In HTML only, which covers HTML injected into a string, like the
  * completion. The text is the core's answer to `hover`, see [Editing], the
  * one the language server shows in other editors. The core writes Markdown,
  * and the IDE shows HTML, so it is converted with the platform's own
@@ -21,6 +22,9 @@ import com.intellij.psi.PsiFile
  */
 class LotekDocumentationProvider : DocumentationTargetProvider {
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
+        // The extension point is not keyed on a language, as the one for
+        // completion is, so the provider is asked in every file.
+        if (!file.language.isKindOf(HTMLLanguage.INSTANCE)) return emptyList()
         val text = file.text
         val hover = Editing.hover(file, text, offset) ?: return emptyList()
         return listOf(ClassDocumentation(file.project, text.substring(hover.start, hover.end), hover.text))

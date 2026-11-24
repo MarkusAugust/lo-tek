@@ -85,7 +85,8 @@
 
         <!--
             Quick Documentation on a class, with the text the core writes for
-            hover. On the HTML language for the same reason.
+            hover. This extension point takes no language, so the provider
+            itself answers only in HTML.
         -->
         <platform.backend.documentation.targetProvider
             implementation="no.lotek.intellij.LotekDocumentationProvider" />

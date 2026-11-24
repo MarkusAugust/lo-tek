@@ -80,6 +80,27 @@ class QuickDocumentationTest : BasePlatformTestCase() {
         assertTrue("nothing from LO-TEK, got $found", found.ofLotek().isEmpty())
     }
 
+    fun `test nothing in a file that is not HTML`() {
+        // The same markup, written in a note: the class is text there, and
+        // the plugin has nothing to say in a file of another kind.
+        val files =
+            mapOf(
+                "notes.txt" to """Write <hr class="lt-div<caret>ider"> here""",
+                "page.md" to """Write `<hr class="lt-div<caret>ider">` here""",
+                "data.json" to """{"html": "<hr class=\"lt-div<caret>ider\">"}""",
+                "view.xml" to """<note>Write &lt;hr class="lt-div<caret>ider"&gt; here</note>""",
+            )
+        val answered = files.filter { (name, content) -> documentation(name, content).ofLotek().isNotEmpty() }.keys
+        assertTrue("nothing from LO-TEK in a file that is not HTML, got documentation in $answered", answered.isEmpty())
+    }
+
+    fun `test nothing in a Kotlin string that is not marked as HTML`() {
+        // A raw string, so the markup stands as it would in HTML, and no
+        // comment or annotation says it is HTML.
+        val found = documentation("View.kt", "val s = \"\"\"<hr class=\"lt-div<caret>ider\">\"\"\"\n")
+        assertTrue("nothing from LO-TEK in a plain string, got $found", found.ofLotek().isEmpty())
+    }
+
     /** The manifest in the package with `lt-divider` replaced by `lt-skille`, as after `lotek takeover`. */
     private val takenOver =
         java.io.File(System.getProperty("manifest")).readText().replace("\"lt-divider\": {", "\"lt-skille\": {")
