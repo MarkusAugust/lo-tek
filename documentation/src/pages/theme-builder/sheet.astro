@@ -443,6 +443,19 @@ const components = [...pages]
 		transform: none;
 	}
 
+	/* LO-TEK's bubble can be moved into, and stays while the pointer is on
+	   it, so that its text can be reached. Here it lies over the bar above,
+	   and a pointer moving up the bars would be caught by it and never
+	   reach the next bar. So the bubble, and the bridge up to it, let the
+	   pointer through. */
+	.glance__bar > .lt-tooltip > .lt-tooltip__bubble {
+		pointer-events: none;
+	}
+
+	.glance__bar > .lt-tooltip::before {
+		display: none;
+	}
+
 	.glance__bar > .lt-tooltip:hover > .glance__part {
 		outline: 2px solid var(--lt-color-neutral-text-strong);
 		outline-offset: -2px;
