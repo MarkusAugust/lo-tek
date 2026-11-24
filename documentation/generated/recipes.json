@@ -8219,6 +8219,12 @@
         {
           "lang": "kotlin",
           "meta": null,
+          "code": "val text = \"\"\"<hr class=\"lt-divider\" data-variant=\"\">\"\"\"\nLotek.complete(text, offset = 37, html = true).map { it.label } // [subtle, strong, default]\nLotek.hover(text, offset = 14)?.text // **Divider** · A line between parts of the content. …",
+          "section": "The builder functions"
+        },
+        {
+          "lang": "kotlin",
+          "meta": null,
           "code": "val anatomy = Lotek.manifest.builders.first { it.name == \"tabs\" }.anatomy!!\nvar tabs = Anatomies.created(anatomy, \"c1\")\ntabs = Anatomies.withItem(anatomy, tabs, \"tab\", \"claim\")\nval html = Anatomies.render(Lotek.manifest, \"tabs\", tabs)",
           "section": "The builder functions"
         },
@@ -8334,6 +8340,17 @@
         "null",
         "JavaCallTest",
         "Lt.button(…)",
+        "Lotek.complete(text, offset)",
+        "<lt-…>",
+        "Lotek.hover(text, offset)",
+        "null",
+        "complete()",
+        "hover()",
+        "loadCore()",
+        "@lo-tek/interfaces/diagnostics",
+        "start",
+        "end",
+        "html = true",
         "Anatomies.render",
         "renderAnatomy()",
         "@lo-tek/interfaces/anatomy",
@@ -9291,6 +9308,7 @@
         "web-types.json",
         "lt-",
         "class=\"…\"",
+        "data-variant",
         "// language=HTML",
         "@Language(\"HTML\")",
         "lt-field",

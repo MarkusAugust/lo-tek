@@ -69,6 +69,12 @@ with an explanation. It reads versions 1 and 2: version 2 added fields and took 
 away, so a manifest or a fragment of either version is read, and one can be merged
 onto the other.
 
+`src/takeover.rs` has the names of a component a project has taken over with
+`lotek takeover`: which names are the component's own, what each becomes, and
+the fragment of the manifest for the copy. It is a Rust function the command
+line calls, not part of the module's interface, and it is in the core because
+the check recognises a copy by the same names.
+
 ## Suppression
 
 A comment applies to the next tag:
