@@ -270,6 +270,14 @@ const components = [...pages]
 			<section class="sheet__glance" data-glance aria-labelledby="glance-title">
 				<h2 class="sheet__title" id="glance-title">The theme at a glance</h2>
 				<h3 class="sheet__name">colours</h3>
+				<!-- Which role each part of a bar is, said once over the bars
+				     and for the eye: a tooltip is for a pointer only. -->
+				<div class="glance__ramp glance__roles" aria-hidden="true">
+					<span />
+					<span class="glance__bar">
+						{ROLES.map((role) => <span class="glance__role">{role}</span>)}
+					</span>
+				</div>
 				<ul class="glance__ramps">
 					{
 						contract.families.map((family) => (
@@ -281,6 +289,8 @@ const components = [...pages]
 											<span
 												class="glance__part"
 												data-role={role}
+												role="img"
+												aria-label={`${family} ${role}`}
 												aria-describedby={`glance-${family}-${role}`}
 												style={`background: var(--lt-color-${family}-${role})`}
 											/>
@@ -416,6 +426,23 @@ const components = [...pages]
 		display: grid;
 		grid-template-columns: 2fr 1fr 1fr 1fr 3fr 1fr 1fr 1fr;
 		block-size: var(--lt-spacing-5);
+	}
+
+	/* The names of the roles stand on end, since a part is narrower than
+	   its name, and read from the bar and up. */
+	.glance__roles > .glance__bar {
+		block-size: auto;
+		align-items: end;
+	}
+
+	.glance__role {
+		justify-self: center;
+		writing-mode: vertical-rl;
+		rotate: 180deg;
+		font-size: var(--lt-font-size-xs);
+		line-height: var(--lt-line-height-compact);
+		color: var(--lt-color-neutral-text-subtle);
+		white-space: nowrap;
 	}
 
 	/* A part of the bar, in the tooltip that says which role it is. */

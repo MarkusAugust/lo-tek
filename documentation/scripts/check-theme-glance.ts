@@ -33,6 +33,8 @@ import {
   framesHold,
   nested,
   ownOn,
+  readRoleNames,
+  roleNameFaults,
   SHOWN,
   showAppearances,
 } from "./theme-page"
@@ -199,6 +201,7 @@ const samePalette: string[] = []
 let tried = 0
 let pressed = 0
 let roles = 0
+let named = 0
 
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
@@ -425,6 +428,16 @@ const code = await s.run(async () => {
       wrong.length === 0,
       `the ${appearance} frame: ${wrong.slice(0, 6).join("; ")}${wrong.length > 6 ? `, and ${wrong.length - 6} more` : ""}`,
     )
+    // The names of the roles stand over the bars, for one who has no
+    // pointer to ask each part with. Here beside the other frame, where
+    // there is least room for them.
+    const names = content ? await content.evaluate(readRoleNames) : null
+    const faults = names ? roleNameFaults(names) : ["the frame has no document"]
+    expect(
+      faults.length === 0,
+      `the ${appearance} frame, ${names?.window.width} pixels wide: ${faults.slice(0, 5).join("; ")}`,
+    )
+    named += names?.names.length ?? 0
   }
 })
 
@@ -442,6 +455,7 @@ if (
   tried !== KEYS.length * SHOWN.length ||
   pressed < 5 * SHOWN.length ||
   roles !== expected ||
+  named !== ROLES.length * APPEARANCES.length ||
   points < 180
 ) {
   console.error(

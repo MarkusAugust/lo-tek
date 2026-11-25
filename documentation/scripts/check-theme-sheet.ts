@@ -59,6 +59,7 @@ import { selectAll } from "hast-util-select"
 import rehypeParse from "rehype-parse"
 import { unified } from "unified"
 import { site } from "./site"
+import { readRoleNames, roleNameFaults } from "./theme-page"
 import { CONTRACT } from "./theme-recipe"
 
 /** The roles the theme at a glance shows of each family, as CSS writes them. */
@@ -661,6 +662,21 @@ if (existsSync(SHEET)) {
       s.fail(
         `the check placed ${gaps.length} components in columns, and the sheet has ${shown.size}`,
       )
+    // The names of the roles over the bars, with the sheet alone in a wide
+    // window. `check-theme-glance.ts` holds them in the builder's frames,
+    // narrow and in both appearances.
+    const opened = page.viewportSize()
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const names = await page.evaluate(readRoleNames)
+    for (const fault of roleNameFaults(names))
+      s.fail(
+        `the theme at a glance, ${names.window.width} pixels wide: ${fault}`,
+      )
+    if (names.names.length !== GLANCE_ROLES.length)
+      s.fail(
+        `the theme at a glance shows ${names.names.length} names of roles, and a bar has ${GLANCE_ROLES.length} parts`,
+      )
+    if (opened) await page.setViewportSize(opened)
     if (glance.components !== shown.size)
       s.fail(
         `the sheet has ${glance.components} components beside the theme at a glance, and the manifest gives it ${shown.size}`,
