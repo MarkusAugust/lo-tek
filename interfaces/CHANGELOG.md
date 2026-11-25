@@ -186,6 +186,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **`<lt-error-summary>` has focus after htmx has swapped the form.** When
+  the form was sent with Enter from a field, the box took focus as it
+  arrived, and htmx then put focus back in the new field with the same id,
+  after a swap with `outerHTML` or `innerHTML`. The box now takes focus
+  again, once, when focus goes to the replacement of the element that had
+  it.
+
 - **The dialog page says when a dialog a click opens needs `<lt-dialog>`.**
   It said the component gives nothing to a dialog the app opens with
   `showModal()`. In a region the server morphs, with Datastar or with

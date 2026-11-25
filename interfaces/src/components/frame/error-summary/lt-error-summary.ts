@@ -369,15 +369,24 @@ export class LtErrorSummary extends HostElement {
    * focus from a field in the same root. The condition is deliberately
    * coarse: a box portalled into a shadow root from a React app in plain DOM
    * does not take focus back.
+   *
+   * htmx does the same after a swap with `outerHTML` or `innerHTML`, but the
+   * field it gives focus to is a new element. It puts the new nodes in
+   * before it removes the old ones, so the field that had focus is still
+   * there when the box is connected, and is gone a moment later; htmx then
+   * gives focus to the element with the same id. That is how it is
+   * recognised. A script that moves focus to any other element has decided,
+   * as above.
    */
   private reclaimFocusFrom(previous: Element): void {
     queueMicrotask(() => {
-      if (
-        this.isConnected &&
-        !this.hidden &&
-        document.activeElement === previous
-      )
-        this.focus()
+      if (!this.isConnected || this.hidden) return
+      const now = document.activeElement
+      if (!now || now === this) return
+      const givenBack = now === previous
+      const givenToItsReplacement =
+        !previous.isConnected && previous.id !== "" && now.id === previous.id
+      if (givenBack || givenToItsReplacement) this.focus()
     })
   }
 
