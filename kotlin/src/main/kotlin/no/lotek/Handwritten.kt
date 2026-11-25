@@ -229,6 +229,7 @@ internal object Handwritten {
             "class" to "lt-suggestion__list",
             "id" to listId,
             "role" to "listbox",
+            "tabindex" to "-1",
             "aria-labelledby" to labelId,
             "popover" to "manual",
         )

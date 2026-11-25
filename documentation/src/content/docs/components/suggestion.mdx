@@ -230,7 +230,7 @@ const suggestion = lt.suggestion({ id: "breaker", keys: ["LDG-117", "LDG-042"], 
          autocomplete="off" aria-expanded="false" aria-controls="breaker-list"
          aria-autocomplete="list" aria-describedby="breaker-help breaker-status">
 
-  <ul class="lt-suggestion__list" id="breaker-list" role="listbox"
+  <ul class="lt-suggestion__list" id="breaker-list" role="listbox" tabindex="-1"
       aria-labelledby="breaker-label" popover="manual" hidden>
     <li class="lt-suggestion__option" id="breaker-option-LDG-117" role="option"
         aria-selected="false">Crowbar</li>
@@ -355,7 +355,7 @@ See [Markup and behaviour](../../markup-and-behaviour/#before-the-component-is-r
 | --- | --- |
 | `.lt-suggestion__list` | The list itself. `hidden` when it is closed |
 | `.lt-suggestion__option` | One option. The highlighted one has `aria-selected="true"` |
-| `.lt-suggestion__empty` | The text shown when nothing matches |
+| `.lt-suggestion__empty` | The text shown when nothing matches. It lies over the page below the field, as the open list does, so nothing below the field moves when it comes and goes |
 | `.lt-suggestion__value` | The hidden field that gets the code of the option the user chose |
 
 | Variable | Fallback |
@@ -380,7 +380,7 @@ The field is a `role="combobox"` with `aria-autocomplete="list"`, and the list a
 - **The list has a name**, the label. `lt.suggestion()` gives the label an id and the list `aria-labelledby` pointing at it. If the markup comes without them, the component does the same, but if the label is around the field, it gets no id, since an update would then replace the label and the field inside it. The list then gets the label's text as `aria-label`. A name the server wrote stays.
 - **Every option says whether it is selected**, with `aria-selected`, from the start.
 - **While the answer is on its way** the list says `aria-busy="true"`, which `lt.suggestion({ id, pending: true })` writes, and "No matches" stays hidden.
-- **Focus stays in the field.** The highlight moves with `aria-activedescendant`, not by moving focus, so the user can keep typing.
+- **Focus stays in the field.** The highlight moves with `aria-activedescendant`, not by moving focus, so the user can keep typing. The list has `tabindex="-1"`, so Tab goes from the field to what comes after it and never to the list: without it a list that scrolls is a tab stop of its own in Chromium.
 - **The number of matches is announced.** Without it, someone who cannot see the screen gets no message that the list narrowed. The component writes the text, and if an update from the server clears the element while the list is open, the component writes it again. Over a closed list it stays empty, or every update would announce the old count again.
 - **Escape closes the list** without clearing the field, and a click outside does the same.
 - **An option with `aria-disabled="true"`** is shown, but skipped by the arrow keys and cannot be chosen.

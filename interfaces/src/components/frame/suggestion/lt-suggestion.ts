@@ -132,6 +132,7 @@ export class LtSuggestion extends HostElement {
       "aria-activedescendant",
       // The wiring the web component fills in when the markup arrived without it.
       "role",
+      "tabindex",
       "id",
       "for",
       "aria-controls",
@@ -538,6 +539,11 @@ export class LtSuggestion extends HostElement {
     if (list) {
       addClass(list, SUGGESTION_LIST_CLASS)
       if (!list.hasAttribute("role")) setAttr(list, "role", "listbox")
+      // Focus stays in the field, and the list is never a stop for Tab. A
+      // list with more options than it has room for scrolls, and Chromium
+      // makes a scroll container with nothing focusable in it a stop of its
+      // own: Tab from the field then landed on the list, which stayed open.
+      if (!list.hasAttribute("tabindex")) setAttr(list, "tabindex", "-1")
       if (!list.id) {
         // Same rule as for the field: if `aria-controls` points to nothing,
         // that is the id the new list should have.

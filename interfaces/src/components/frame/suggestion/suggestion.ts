@@ -104,11 +104,14 @@ export const suggestion = ({
      * The list. It sits in the top layer, `popover="manual"`, so a parent
      * with `overflow` does not clip it. `hidden` still says whether it is
      * open; the web component opens and closes the popover from that.
+     * `tabindex="-1"` because focus stays in the field: a list that
+     * scrolls would otherwise be a stop for Tab in Chromium.
      */
     list: attributes({
       class: SUGGESTION_LIST_CLASS,
       id: listId,
       role: "listbox" as const,
+      tabindex: "-1" as const,
       "aria-labelledby": labelId,
       popover: "manual" as const,
       hidden: open ? undefined : (true as const),

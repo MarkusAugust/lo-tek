@@ -5,8 +5,10 @@
 @import "../../css/sr-only/sr-only.css";
 
 @layer lotek {
+  /* The empty message is placed from the host, see below. */
   lt-suggestion {
     display: block;
+    position: relative;
   }
 
   .lt-suggestion__list {
@@ -14,9 +16,12 @@
     margin: var(--lt-spacing-1) 0 0;
     padding: 0;
     list-style: none;
+    /* Four options and the two borders, which are inside the box: without
+       them the fourth option was two pixels too many, and four options
+       scrolled. */
     max-block-size: var(
       --lt-suggestion-max-height,
-      calc(var(--lt-spacing-10) * 4)
+      calc(var(--lt-spacing-10) * 4 + 2px)
     );
     overflow-y: auto;
     background: var(--lt-color-neutral-canvas);
@@ -89,13 +94,27 @@
     display: none;
   }
 
+  /* The empty message lies over the page below the field, as the open list
+     does, and looks like it. In the flow it pushed what stands below the
+     field down while it was shown; a press on a button there closed the
+     list, the message went, the button moved back, and the press was
+     released on something else: the click never arrived. */
   .lt-suggestion__empty {
+    position: absolute;
+    inset-inline: 0;
+    z-index: 1;
+    box-sizing: border-box;
+    margin: var(--lt-spacing-1) 0 0;
     padding: var(
       --lt-suggestion-option-padding,
       var(--lt-spacing-2) var(--lt-spacing-3)
     );
     font-size: var(--lt-font-size-m);
     color: var(--lt-color-neutral-text-subtle);
+    background: var(--lt-color-neutral-canvas);
+    border: 1px solid var(--lt-color-neutral-border);
+    border-radius: var(--lt-suggestion-radius, var(--lt-spacing-1));
+    box-shadow: var(--lt-shadow-overlay);
   }
 
   /* The empty message follows the list: when the list is closed, it is not

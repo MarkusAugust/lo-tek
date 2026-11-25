@@ -42,6 +42,16 @@ class ContractTest {
     }
 
     @Test
+    fun `the list of a suggestion is written as no tab stop`() {
+        // Held by the build cases as well, once they are written from a `lt.suggestion()`
+        // that says so. Here so that it is said in Kotlin whatever the cases have.
+        for (options in listOf(mapOf("id" to "k"), mapOf("id" to "k", "keys" to listOf("a", "b"), "open" to true))) {
+            val built = normalize(Dispatch.call("suggestion", options)) as Map<*, *>
+            assertEquals("-1", (built["list"] as Map<*, *>)["tabindex"], "suggestion($options)")
+        }
+    }
+
+    @Test
     fun `every builder function has build cases`() {
         assertEquals(Dispatch.names.sorted(), CASES.map { it["builder"] as String }.distinct().sorted())
     }

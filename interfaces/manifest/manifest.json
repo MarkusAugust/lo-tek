@@ -9104,7 +9104,7 @@
         "--lt-steps-done-text": "\"Completed \""
       },
       "suggestion": {
-        "--lt-suggestion-max-height": "calc(var(--lt-spacing-10) * 4)",
+        "--lt-suggestion-max-height": "calc(var(--lt-spacing-10) * 4 + 2px)",
         "--lt-suggestion-radius": "var(--lt-spacing-1)",
         "--lt-suggestion-option-padding": "var(--lt-spacing-2) var(--lt-spacing-3)"
       },
