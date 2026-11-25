@@ -19,7 +19,7 @@ Both use the same function underneath, so the contract cannot drift apart. The o
 `<lt-field>` creates no markup itself and does not use Shadow DOM, so `FormData`, form libraries and test tools find the elements as before.
 
 :::note[Other components are not either-or]
-`<lt-field>` can be replaced entirely by the builder function, because the wiring is markup and not behaviour. The same goes for [Dialog](../dialog/), when the app calls `showModal()` itself. [Tabs](../tabs/), [Popover](../popover/), [Suggestion](../suggestion/) and [Error Summary](../error-summary/) do something a function cannot, like arrow keys and focus, so there you use the builder function **and** the component. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
+`<lt-field>` can be replaced entirely by the builder function, because the wiring is markup and not behaviour. The same goes for [Dialog](../dialog/), when the app calls `showModal()` itself and the dialog is not in [a region the server morphs](../dialog/#a-dialog-in-a-region-the-server-morphs). [Tabs](../tabs/), [Popover](../popover/), [Suggestion](../suggestion/) and [Error Summary](../error-summary/) do something a function cannot, like arrow keys and focus, so there you use the builder function **and** the component. See [Markup and behaviour](/markup-and-behaviour/#builder-function-or-web-component).
 :::
 
 ## How to use it
