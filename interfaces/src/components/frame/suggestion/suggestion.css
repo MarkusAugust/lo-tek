@@ -14,9 +14,12 @@
     margin: var(--lt-spacing-1) 0 0;
     padding: 0;
     list-style: none;
+    /* Four options and the two borders, which are inside the box: without
+       them the fourth option was two pixels too many, and four options
+       scrolled. */
     max-block-size: var(
       --lt-suggestion-max-height,
-      calc(var(--lt-spacing-10) * 4)
+      calc(var(--lt-spacing-10) * 4 + 2px)
     );
     overflow-y: auto;
     background: var(--lt-color-neutral-canvas);
@@ -32,7 +35,8 @@
      in the flow below the field. `--lt-suggestion-left` is the distance from
      the left edge of the viewport; in a right-to-left document it is flipped
      below, as in `<lt-popover>`. */
-  .lt-suggestion__list:popover-open {
+  .lt-suggestion__list:popover-open,
+  .lt-suggestion__empty:popover-open {
     position: fixed;
     inset: auto;
     inset-block-start: var(--lt-suggestion-top, 0);
@@ -41,7 +45,8 @@
     margin: 0;
   }
 
-  .lt-suggestion__list:popover-open:dir(rtl) {
+  .lt-suggestion__list:popover-open:dir(rtl),
+  .lt-suggestion__empty:popover-open:dir(rtl) {
     inset-inline-start: auto;
     inset-inline-end: var(--lt-suggestion-left, 0);
   }
@@ -89,21 +94,34 @@
     display: none;
   }
 
+  /* The empty message is what the list shows when it shows nothing: it
+     sits in the top layer where the list would, placed by the web
+     component, and looks like the list. In the flow it pushed what stands
+     below the field down while it was shown; a press on a button there
+     closed the list, the message went, the button moved back, and the press
+     was released on something else: the click never arrived. */
   .lt-suggestion__empty {
+    box-sizing: border-box;
+    margin: 0;
     padding: var(
       --lt-suggestion-option-padding,
       var(--lt-spacing-2) var(--lt-spacing-3)
     );
     font-size: var(--lt-font-size-m);
     color: var(--lt-color-neutral-text-subtle);
+    background: var(--lt-color-neutral-canvas);
+    border: 1px solid var(--lt-color-neutral-border);
+    border-radius: var(--lt-suggestion-radius, var(--lt-spacing-1));
+    box-shadow: var(--lt-shadow-overlay);
   }
 
   /* The empty message follows the list: when the list is closed, it is not
-     shown. The rule is in the stylesheet and not in the web component,
-     because the app controls the empty message when it filters itself, and
+     shown. The app controls the empty message when it filters itself, and
      does not know whether the list is open. It only knows whether the search
-     found anything. The empty message must come after the list, as a
-     sibling. */
+     found anything. The web component opens the message with the list and
+     closes it with it. These two rules say the same for a list and a
+     message the web component has not handled, where the message is in the
+     flow: it must then come after the list, as a sibling. */
   .lt-suggestion__list[hidden] ~ .lt-suggestion__empty {
     display: none;
   }

@@ -8,7 +8,7 @@ import {
   waitForPaint,
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
-import { datastarPatch, replace } from "../../../testing/update"
+import { datastarPatch, REPLACEMENTS, replace } from "../../../testing/update"
 import { defineLtSuggestion, type LtSuggestion } from "./lt-suggestion"
 import { suggestion } from "./suggestion"
 
@@ -707,6 +707,33 @@ describe("lt.suggestion() writes what the web component would otherwise write", 
     ).toBe(true)
   })
 
+  it("writes that the list is no tab stop", () => {
+    // A list long enough to scroll is a tab stop of its own in one browser,
+    // and the keyboard is to stay in the field. On markup from here the web
+    // component writes nothing, so it is written here.
+    for (const options of [
+      { id: "k" },
+      { id: "k", keys: ["a", "b"] },
+      { id: "k", keys: ["a", "b"], open: true, activeIndex: 1 },
+      { id: "k", keys: [], pending: true },
+    ])
+      expect(suggestion(options).list.tabindex).toBe("-1")
+  })
+
+  it("writes that the message sits in the top layer, as the list does", () => {
+    // The message is placed like the list, above everything and clipped by
+    // nothing, and on markup from here the web component writes nothing.
+    for (const options of [
+      { id: "k" },
+      { id: "k", keys: [] },
+      { id: "k", keys: ["a", "b"], open: true },
+      { id: "k", keys: [], pending: true },
+    ]) {
+      expect(suggestion(options).empty.popover).toBe("manual")
+      expect(suggestion(options).list.popover).toBe("manual")
+    }
+  })
+
   it("writes the highlight only when the list is open, both halves together", () => {
     const closed = suggestion({
       id: "k",
@@ -850,6 +877,106 @@ describe("lt-suggestion wires up from bare structure", () => {
     expect(options[0].getAttribute("role")).toBe("option")
     expect(list.hidden).toBe(true)
   })
+
+  it("writes that the list is no tab stop, and leaves the author's own choice", async () => {
+    mount(BARE)
+    await paint()
+    expect(parts().list.getAttribute("tabindex")).toBe("-1")
+
+    mount(
+      BARE.replace(
+        '<ul class="lt-suggestion__list">',
+        '<ul class="lt-suggestion__list" tabindex="0">',
+      ),
+    )
+    await paint()
+    expect(parts().list.getAttribute("tabindex")).toBe("0")
+  })
+
+  for (const way of REPLACEMENTS)
+    it(`writes it again when ${way} brings the list back without it`, async () => {
+      mount(`<div id="region">${BARE}</div>`)
+      await paint()
+      expect(parts().list.getAttribute("tabindex")).toBe("-1")
+
+      // The server's markup, as it was: no tabindex on the list.
+      replace(way, "region", `<div id="region">${BARE}</div>`)
+      await paint()
+
+      expect(parts().list.getAttribute("tabindex")).toBe("-1")
+      expect(parts().list.getAttribute("role")).toBe("listbox")
+    })
+
+  it("writes that the message sits in the top layer, on markup that came without it", async () => {
+    mount(BARE)
+    await paint()
+    const empty = document.querySelector(".lt-suggestion__empty") as HTMLElement
+    expect(empty.getAttribute("popover")).toBe("manual")
+  })
+
+  /*
+   * The markup of the builder function, whole but for one attribute: what
+   * the web component then writes, it writes because that one is missing.
+   * And when an update brings the element back without it, with everything
+   * else as it was, it is written again. Bare markup does not hold that:
+   * there an update takes the roles and the ids away too, and the web
+   * component is at work for their sake.
+   */
+  for (const [part, name, value] of [
+    ["list", "tabindex", "-1"],
+    ["empty", "popover", "manual"],
+  ] as const) {
+    /** The builder's markup, with or without the one attribute. */
+    const markup = (whole: boolean) => {
+      const { [name]: _, ...without } = SUGGESTION[part] as Record<
+        string,
+        unknown
+      >
+      const built = {
+        ...SUGGESTION,
+        [part]: whole ? SUGGESTION[part] : without,
+      }
+      return `<div id="region"><lt-suggestion>
+        <label ${attr(built.label)}>Breaker</label>
+        <div>
+          <input ${attr(built.control)} name="breaker">
+          <ul ${attr(built.list)}>${built.options
+            .map((o, i) => `<li ${attr(o)}>${BREAKERS[i]}</li>`)
+            .join("")}</ul>
+          <p ${attr(built.empty)} hidden>No matches</p>
+          <span ${attr(built.status)}></span>
+        </div>
+        <p class="lt-help-text" ${attr(built.help)}>Start typing</p>
+      </lt-suggestion></div>`
+    }
+    const element = () =>
+      document.querySelector(
+        part === "list" ? "lt-suggestion ul" : ".lt-suggestion__empty",
+      ) as HTMLElement
+
+    it(`writes ${name} on the ${part} when it is the one thing missing`, async () => {
+      expect(
+        (SUGGESTION[part] as Record<string, unknown>)[name],
+        `lt.suggestion() does not write ${name} on the ${part}, so the test takes nothing away`,
+      ).toBe(value)
+      mount(markup(false))
+      await paint()
+
+      expect(element().getAttribute(name)).toBe(value)
+    })
+
+    for (const way of REPLACEMENTS)
+      it(`writes ${name} on the ${part} again when ${way} brings it back without it`, async () => {
+        mount(markup(true))
+        await paint()
+        expect(element().getAttribute(name)).toBe(value)
+
+        replace(way, "region", markup(false))
+        await paint()
+
+        expect(element().getAttribute(name)).toBe(value)
+      })
+  }
 
   it("writes nothing on markup from lt.suggestion()", async () => {
     // The direct claim behind "what the server wrote stays": zero mutation

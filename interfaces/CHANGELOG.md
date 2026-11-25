@@ -186,6 +186,24 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the IntelliJ plugin warns about, `Lt.field(error = true)` without
   `field.error`.
 
+- **"No matches" in `<lt-suggestion>` no longer moves the page.** The
+  message stood in the flow below the field and pushed everything after it
+  down while it was shown. A press on a button there closed the list, the
+  message went, the button moved back, and the click never arrived. The
+  message now sits in the top layer below the field, where the list would
+  be, and looks like it, so a dialog or a parent with `overflow` does not
+  cut it off. `lt.suggestion()` and `Lt.suggestion()` write
+  `popover="manual"` on it, and the component writes it on markup that
+  comes without it.
+- **The list of `<lt-suggestion>` is never a tab stop.** A list with more
+  options than it has room for scrolls, and Chromium makes such a list a
+  stop for Tab: focus went from the field to the list, which stayed open.
+  `lt.suggestion()` and `Lt.suggestion()` now write `tabindex="-1"` on the
+  list, and the component writes it on markup that comes without it.
+- **Four options fit in the list of `<lt-suggestion>` without scrolling.**
+  The height was four options with the borders inside it, two pixels too
+  little.
+
 ## 0.48.0 (2026-11-23)
 
 ### Added

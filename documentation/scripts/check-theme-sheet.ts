@@ -677,6 +677,67 @@ if (existsSync(SHEET)) {
         `the theme at a glance shows ${names.names.length} names of roles, and a bar has ${GLANCE_ROLES.length} parts`,
       )
     if (opened) await page.setViewportSize(opened)
+    // The list of suggestions and its message are opened by their web
+    // component into the top layer, where a sheet cannot show them. The
+    // sheet shows each as a specimen in the flow, one field with matches
+    // and one with none, and a specimen is as wide as its field: the box a
+    // visitor judges the theme on is the one the component gives in use.
+    const specimens = await page.evaluate(() => {
+      const hosts: HTMLElement[] = []
+      const walk = (root: ParentNode) => {
+        for (const element of root.querySelectorAll<HTMLElement>("*")) {
+          if (element.matches("lt-suggestion[data-shows]")) hosts.push(element)
+          if (element.shadowRoot) walk(element.shadowRoot)
+        }
+      }
+      walk(document)
+      return hosts.map((host) => {
+        const shows = host.dataset.shows ?? ""
+        const specimen = host.querySelector<HTMLElement>(
+          shows === "none" ? ".lt-suggestion__empty" : ".lt-suggestion__list",
+        )
+        const field = host.querySelector("input")
+        const style = specimen ? getComputedStyle(specimen) : null
+        return {
+          shows,
+          found: specimen !== null && field !== null,
+          displayed: specimen?.checkVisibility() === true,
+          inFlow:
+            style?.position === "static" || style?.position === "relative",
+          width: Math.round(specimen?.getBoundingClientRect().width ?? 0),
+          field: Math.round(field?.getBoundingClientRect().width ?? 0),
+          under:
+            (specimen?.getBoundingClientRect().top ?? 0) >=
+            (field?.getBoundingClientRect().bottom ?? 0) - 1,
+        }
+      })
+    })
+    if (
+      JSON.stringify(specimens.map((specimen) => specimen.shows).sort()) !==
+      JSON.stringify(["matches", "none"])
+    )
+      s.fail(
+        `the sheet shows the suggestions ${specimens.map((specimen) => specimen.shows).join(", ") || "nowhere"}, expected one field with matches and one with none`,
+      )
+    for (const specimen of specimens) {
+      const what =
+        specimen.shows === "none"
+          ? "the message that nothing matches"
+          : "the list of suggestions"
+      if (
+        !specimen.found ||
+        !specimen.displayed ||
+        !specimen.inFlow ||
+        !specimen.under
+      )
+        s.fail(
+          `${what} is not shown in the flow under its field on the sheet: ${JSON.stringify(specimen)}`,
+        )
+      else if (Math.abs(specimen.width - specimen.field) > 4)
+        s.fail(
+          `${what} is ${specimen.width} pixels wide on the sheet, under a field of ${specimen.field}: it is not as wide as its field`,
+        )
+    }
     if (glance.components !== shown.size)
       s.fail(
         `the sheet has ${glance.components} components beside the theme at a glance, and the manifest gives it ${shown.size}`,

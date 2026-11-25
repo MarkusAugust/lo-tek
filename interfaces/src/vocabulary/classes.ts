@@ -1808,6 +1808,19 @@ export const classes: Classes = {
     ],
     "attributes": {}
   },
+  "lt-suggestion__empty": {
+    "component": "suggestion",
+    "title": "Suggestion",
+    "description": "Field with a suggestion list that narrows as the user types. Frame component.",
+    "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+    "content": "text",
+    "tags": [
+      {
+        "tag": "p"
+      }
+    ],
+    "attributes": {}
+  },
   "lt-suggestion__option": {
     "component": "suggestion",
     "title": "Suggestion",
@@ -1836,19 +1849,6 @@ export const classes: Classes = {
             "hidden"
           ]
         }
-      }
-    ],
-    "attributes": {}
-  },
-  "lt-suggestion__empty": {
-    "component": "suggestion",
-    "title": "Suggestion",
-    "description": "Field with a suggestion list that narrows as the user types. Frame component.",
-    "link": "https://lo-tek.sobernetics.no/components/suggestion/",
-    "content": "text",
-    "tags": [
-      {
-        "tag": "p"
       }
     ],
     "attributes": {}

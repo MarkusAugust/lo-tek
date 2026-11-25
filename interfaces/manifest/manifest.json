@@ -2400,6 +2400,19 @@
       ],
       "attributes": {}
     },
+    "lt-suggestion__empty": {
+      "component": "suggestion",
+      "title": "Suggestion",
+      "description": "Field with a suggestion list that narrows as the user types. Frame component.",
+      "link": "https://lo-tek.sobernetics.no/components/suggestion/",
+      "content": "text",
+      "tags": [
+        {
+          "tag": "p"
+        }
+      ],
+      "attributes": {}
+    },
     "lt-suggestion__option": {
       "component": "suggestion",
       "title": "Suggestion",
@@ -2428,19 +2441,6 @@
               "hidden"
             ]
           }
-        }
-      ],
-      "attributes": {}
-    },
-    "lt-suggestion__empty": {
-      "component": "suggestion",
-      "title": "Suggestion",
-      "description": "Field with a suggestion list that narrows as the user types. Frame component.",
-      "link": "https://lo-tek.sobernetics.no/components/suggestion/",
-      "content": "text",
-      "tags": [
-        {
-          "tag": "p"
         }
       ],
       "attributes": {}
@@ -9104,7 +9104,7 @@
         "--lt-steps-done-text": "\"Completed \""
       },
       "suggestion": {
-        "--lt-suggestion-max-height": "calc(var(--lt-spacing-10) * 4)",
+        "--lt-suggestion-max-height": "calc(var(--lt-spacing-10) * 4 + 2px)",
         "--lt-suggestion-radius": "var(--lt-spacing-1)",
         "--lt-suggestion-option-padding": "var(--lt-spacing-2) var(--lt-spacing-3)"
       },

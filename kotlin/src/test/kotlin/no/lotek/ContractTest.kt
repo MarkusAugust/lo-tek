@@ -42,6 +42,19 @@ class ContractTest {
     }
 
     @Test
+    fun `the list of a suggestion is no tab stop, and its list and message sit in the top layer`() {
+        // The build cases hold these too. Here they are said in Kotlin by name: the web
+        // component writes nothing on markup from a builder function, so what the list
+        // and the message need has to come from here.
+        for (options in listOf(mapOf("id" to "k"), mapOf("id" to "k", "keys" to listOf("a", "b"), "open" to true))) {
+            val built = normalize(Dispatch.call("suggestion", options)) as Map<*, *>
+            assertEquals("-1", (built["list"] as Map<*, *>)["tabindex"], "suggestion($options)")
+            assertEquals("manual", (built["list"] as Map<*, *>)["popover"], "suggestion($options)")
+            assertEquals("manual", (built["empty"] as Map<*, *>)["popover"], "suggestion($options)")
+        }
+    }
+
+    @Test
     fun `every builder function has build cases`() {
         assertEquals(Dispatch.names.sorted(), CASES.map { it["builder"] as String }.distinct().sorted())
     }

@@ -229,13 +229,14 @@ internal object Handwritten {
             "class" to "lt-suggestion__list",
             "id" to listId,
             "role" to "listbox",
+            "tabindex" to "-1",
             "aria-labelledby" to labelId,
             "popover" to "manual",
         )
         if (!isOpen) list["hidden"] = ""
         if (pending == true) list["aria-busy"] = "true"
 
-        val empty = linkedMapOf("class" to "lt-suggestion__empty")
+        val empty = linkedMapOf("class" to "lt-suggestion__empty", "popover" to "manual")
         if (!(n == 0.0 && pending != true)) empty["hidden"] = ""
 
         return SuggestionParts(

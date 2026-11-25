@@ -743,17 +743,17 @@
           "doc-url": "https://lo-tek.sobernetics.no/components/suggestion/"
         },
         {
+          "name": "lt-suggestion__empty",
+          "description": "**Suggestion**\n\nField with a suggestion list that narrows as the user types. Frame component.",
+          "doc-url": "https://lo-tek.sobernetics.no/components/suggestion/"
+        },
+        {
           "name": "lt-suggestion__option",
           "description": "**Suggestion**\n\nField with a suggestion list that narrows as the user types. Frame component.",
           "doc-url": "https://lo-tek.sobernetics.no/components/suggestion/"
         },
         {
           "name": "lt-suggestion__value",
-          "description": "**Suggestion**\n\nField with a suggestion list that narrows as the user types. Frame component.",
-          "doc-url": "https://lo-tek.sobernetics.no/components/suggestion/"
-        },
-        {
-          "name": "lt-suggestion__empty",
           "description": "**Suggestion**\n\nField with a suggestion list that narrows as the user types. Frame component.",
           "doc-url": "https://lo-tek.sobernetics.no/components/suggestion/"
         },
