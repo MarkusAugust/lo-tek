@@ -68,27 +68,6 @@ function decodeFragment(fragment: string): string {
   }
 }
 
-/**
- * The element that last took focus in the document, the box itself and its
- * links aside.
- *
- * htmx puts focus back after a swap, on the element with the same id as the
- * one that had it. When the form is swapped with `innerHTML`, the field is
- * gone before the new box is connected, and `document.activeElement` is
- * `<body>`: nothing on the page says where focus was. So it is noted as it
- * moves, from the registration on.
- */
-let lastFocused: WeakRef<Element> | undefined
-let notingFocus = false
-
-function noteFocus(event: FocusEvent): void {
-  const target = event.target
-  if (!(target instanceof Element)) return
-  for (let node: Element | null = target; node; node = node.parentElement)
-    if (node instanceof LtErrorSummary) return
-  lastFocused = new WeakRef(target)
-}
-
 export class LtErrorSummary extends HostElement {
   static observedAttributes = ["data-autofocus", "hidden"] as const
 
@@ -358,13 +337,17 @@ export class LtErrorSummary extends HostElement {
         !nobodyTyping
       if (movedByScript) return
       const root = this.getRootNode() as Document | ShadowRoot
-      const before = lastFocused?.deref()
 
       this.focusAttempted = true
       this.focus()
       this.hasFocused = root.activeElement === this
-      if (this.hasFocused && root === document)
-        this.reclaimFocusFrom(active, before)
+      if (
+        this.hasFocused &&
+        root === document &&
+        active &&
+        active !== document.body
+      )
+        this.reclaimFocusFrom(active)
     }
   }
 
@@ -388,26 +371,21 @@ export class LtErrorSummary extends HostElement {
    * does not take focus back.
    *
    * htmx does the same after a swap with `outerHTML` or `innerHTML`, but the
-   * field it gives focus to is a new element: the one with the same id as
-   * the field that had focus, which the swap removed. That is how it is
+   * field it gives focus to is a new element. It puts the new nodes in
+   * before it removes the old ones, so the field that had focus is still
+   * there when the box is connected, and is gone a moment later; htmx then
+   * gives focus to the element with the same id. That is how it is
    * recognised. A script that moves focus to any other element has decided,
    * as above.
    */
-  private reclaimFocusFrom(
-    previous: Element | null,
-    before: Element | undefined,
-  ): void {
+  private reclaimFocusFrom(previous: Element): void {
     queueMicrotask(() => {
       if (!this.isConnected || this.hidden) return
       const now = document.activeElement
-      if (!now || now === this || now === document.body) return
+      if (!now || now === this) return
       const givenBack = now === previous
       const givenToItsReplacement =
-        before !== undefined &&
-        before !== now &&
-        !before.isConnected &&
-        before.id !== "" &&
-        now.id === before.id
+        !previous.isConnected && previous.id !== "" && now.id === previous.id
       if (givenBack || givenToItsReplacement) this.focus()
     })
   }
@@ -490,7 +468,4 @@ export function defineLtErrorSummary(
   tagName: string = LT_ERROR_SUMMARY_TAG,
 ): void {
   defineElement(tagName, LtErrorSummary)
-  if (notingFocus) return
-  notingFocus = true
-  document.addEventListener("focusin", noteFocus, true)
 }
