@@ -141,6 +141,9 @@ export const suggestion = ({
      */
     empty: attributes({
       class: SUGGESTION_EMPTY_CLASS,
+      // In the top layer when it is shown, as the list is: the web component
+      // opens it there, below the field.
+      popover: "manual" as const,
       hidden: count === 0 && !pending ? undefined : (true as const),
     }),
     /**

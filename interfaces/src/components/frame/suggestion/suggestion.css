@@ -5,10 +5,8 @@
 @import "../../css/sr-only/sr-only.css";
 
 @layer lotek {
-  /* The empty message is placed from the host, see below. */
   lt-suggestion {
     display: block;
-    position: relative;
   }
 
   .lt-suggestion__list {
@@ -37,7 +35,8 @@
      in the flow below the field. `--lt-suggestion-left` is the distance from
      the left edge of the viewport; in a right-to-left document it is flipped
      below, as in `<lt-popover>`. */
-  .lt-suggestion__list:popover-open {
+  .lt-suggestion__list:popover-open,
+  .lt-suggestion__empty:popover-open {
     position: fixed;
     inset: auto;
     inset-block-start: var(--lt-suggestion-top, 0);
@@ -46,7 +45,8 @@
     margin: 0;
   }
 
-  .lt-suggestion__list:popover-open:dir(rtl) {
+  .lt-suggestion__list:popover-open:dir(rtl),
+  .lt-suggestion__empty:popover-open:dir(rtl) {
     inset-inline-start: auto;
     inset-inline-end: var(--lt-suggestion-left, 0);
   }
@@ -94,17 +94,15 @@
     display: none;
   }
 
-  /* The empty message lies over the page below the field, as the open list
-     does, and looks like it. In the flow it pushed what stands below the
-     field down while it was shown; a press on a button there closed the
-     list, the message went, the button moved back, and the press was
-     released on something else: the click never arrived. */
+  /* The empty message is what the list shows when it shows nothing: it
+     sits in the top layer where the list would, placed by the web
+     component, and looks like the list. In the flow it pushed what stands
+     below the field down while it was shown; a press on a button there
+     closed the list, the message went, the button moved back, and the press
+     was released on something else: the click never arrived. */
   .lt-suggestion__empty {
-    position: absolute;
-    inset-inline: 0;
-    z-index: 1;
     box-sizing: border-box;
-    margin: var(--lt-spacing-1) 0 0;
+    margin: 0;
     padding: var(
       --lt-suggestion-option-padding,
       var(--lt-spacing-2) var(--lt-spacing-3)

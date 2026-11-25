@@ -152,9 +152,12 @@ export class LtSuggestion extends HostElement {
       "readonly",
       "disabled",
       "aria-disabled",
-      // The list sits in the top layer. A morph that removes `popover`
-      // closes the popover, and the web component sets it back.
+      // The list sits in the top layer, and so does the empty message. A
+      // morph that removes `popover` closes the popover, and the web
+      // component sets it back.
       "popover",
+      // While the answer is on its way the empty message is not shown.
+      "aria-busy",
       // The list's name, from the label.
       "aria-labelledby",
       "aria-label",
@@ -317,6 +320,7 @@ export class LtSuggestion extends HostElement {
     try {
       if (!list.hidden && !shown) list.showPopover()
       else if (list.hidden && shown) list.hidePopover()
+      this.mirrorEmpty(list)
     } catch {
       // An element on its way out of the tree cannot be shown. The next
       // round sees it again.
@@ -326,32 +330,70 @@ export class LtSuggestion extends HostElement {
   }
 
   /**
+   * Opens and closes the popover the empty message sits in.
+   *
+   * The message says what the list shows when it shows nothing, and stands
+   * where the list stands: in the top layer, below the field. In the flow
+   * it pushed what is below the field down while it was shown, and a press
+   * on a button there closed the list, the message went, the button moved
+   * back and the click never arrived. Placed against the host instead, it
+   * was cut off by a dialog and by any parent with `overflow`.
+   *
+   * Whether there is something to say is still `hidden` on the message,
+   * the web component's own or the app's with `prefiltered`, and
+   * `aria-busy` on the list. The popover only follows.
+   */
+  private mirrorEmpty(list: HTMLElement): void {
+    const empty = this.emptyElement
+    if (!empty?.isConnected || !empty.hasAttribute("popover")) return
+    const wanted =
+      !list.hidden &&
+      !empty.hidden &&
+      list.getAttribute("aria-busy") !== "true"
+    const shown = empty.matches(":popover-open")
+    if (wanted && !shown) empty.showPopover()
+    else if (!wanted && shown) empty.hidePopover()
+  }
+
+  /**
    * Places the list right below the field, as wide as it. If there is no
    * room below, it goes above, and it is squeezed into the viewport either
    * way, like the panel in `<lt-popover>`. The position is physical,
    * computed from the field's box.
    */
   private reposition = (): void => {
-    const list = this.listElement
     const control = this.querySelector<HTMLElement>(CONTROL_SELECTOR)
-    if (!list || !control || !list.matches(":popover-open")) return
-
+    if (!control) return
     const field = control.getBoundingClientRect()
-    const height = list.getBoundingClientRect().height
+    const list = this.listElement
+    const empty = this.emptyElement
+    const listShown = list?.matches(":popover-open") ?? false
+    if (list && listShown) this.place(list, field)
+    if (!empty?.matches(":popover-open")) return
+    // The empty message stands where the list would. An app that filters
+    // itself may show its message with options in the list, and then the
+    // message comes after them and not over them.
+    const options = list && listShown && this.visible.length > 0
+    this.place(empty, options ? list.getBoundingClientRect() : field, field)
+  }
+
+  /** Places `shown` below `under`, or above it without room below, as wide as the field. */
+  private place(shown: HTMLElement, under: DOMRect, field = under): void {
+    const height = shown.getBoundingClientRect().height
     const space = 4
 
-    let top = field.bottom + space
-    if (top + height > window.innerHeight && field.top - height - space >= 0) {
-      top = field.top - height - space
+    let top = under.bottom + space
+    if (top + height > window.innerHeight && under.top - height - space >= 0) {
+      top = under.top - height - space
     }
     top = Math.max(space, Math.min(top, window.innerHeight - height - space))
 
-    list.style.setProperty("--lt-suggestion-top", `${Math.round(top)}px`)
-    list.style.setProperty(
+    shown.style.setProperty("--lt-suggestion-top", `${Math.round(top)}px`)
+    shown.style.setProperty(
       "--lt-suggestion-left",
       `${Math.round(field.left)}px`,
     )
-    list.style.setProperty(
+    shown.style.setProperty(
       "--lt-suggestion-width",
       `${Math.round(field.width)}px`,
     )
@@ -556,6 +598,10 @@ export class LtSuggestion extends HostElement {
         setAttr(control, "aria-controls", list.id)
       }
       if (!list.hasAttribute("popover")) setAttr(list, "popover", "manual")
+      const empty = this.emptyElement
+      if (empty && !empty.hasAttribute("popover")) {
+        setAttr(empty, "popover", "manual")
+      }
       this.nameList(list, control)
       if (!control.hasAttribute("aria-expanded")) {
         if (!list.hasAttribute("hidden")) setFlag(list, "hidden", true)

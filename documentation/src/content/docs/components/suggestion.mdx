@@ -238,7 +238,7 @@ const suggestion = lt.suggestion({ id: "breaker", keys: ["LDG-117", "LDG-042"], 
         aria-selected="false">Needle</li>
   </ul>
 
-  <p class="lt-suggestion__empty" hidden>No matches</p>
+  <p class="lt-suggestion__empty" popover="manual" hidden>No matches</p>
   <span class="lt-sr-only" id="breaker-status" role="status"></span>
   <p class="lt-help-text" id="breaker-help">Type the name or the catalogue number.</p>
   <p class="lt-error-text" id="breaker-error" hidden>Choose a breaker from the list.</p>
@@ -355,7 +355,7 @@ See [Markup and behaviour](../../markup-and-behaviour/#before-the-component-is-r
 | --- | --- |
 | `.lt-suggestion__list` | The list itself. `hidden` when it is closed |
 | `.lt-suggestion__option` | One option. The highlighted one has `aria-selected="true"` |
-| `.lt-suggestion__empty` | The text shown when nothing matches. It lies over the page below the field, as the open list does, so nothing below the field moves when it comes and goes |
+| `.lt-suggestion__empty` | The text shown when nothing matches. It has `popover="manual"` and sits in the top layer below the field, where the list would be, so nothing below the field moves when it comes and goes |
 | `.lt-suggestion__value` | The hidden field that gets the code of the option the user chose |
 
 | Variable | Fallback |

@@ -5340,7 +5340,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<lt-suggestion>\n  <label class=\"lt-label\" for=\"breaker\" id=\"breaker-label\">Breaker</label>\n  <input class=\"lt-input\" id=\"breaker\" name=\"breaker\" type=\"text\" role=\"combobox\"\n         autocomplete=\"off\" aria-expanded=\"false\" aria-controls=\"breaker-list\"\n         aria-autocomplete=\"list\" aria-describedby=\"breaker-help breaker-status\">\n\n  <ul class=\"lt-suggestion__list\" id=\"breaker-list\" role=\"listbox\" tabindex=\"-1\"\n      aria-labelledby=\"breaker-label\" popover=\"manual\" hidden>\n    <li class=\"lt-suggestion__option\" id=\"breaker-option-LDG-117\" role=\"option\"\n        aria-selected=\"false\">Crowbar</li>\n    <li class=\"lt-suggestion__option\" id=\"breaker-option-LDG-042\" role=\"option\"\n        aria-selected=\"false\">Needle</li>\n  </ul>\n\n  <p class=\"lt-suggestion__empty\" hidden>No matches</p>\n  <span class=\"lt-sr-only\" id=\"breaker-status\" role=\"status\"></span>\n  <p class=\"lt-help-text\" id=\"breaker-help\">Type the name or the catalogue number.</p>\n  <p class=\"lt-error-text\" id=\"breaker-error\" hidden>Choose a breaker from the list.</p>\n</lt-suggestion>",
+          "code": "<lt-suggestion>\n  <label class=\"lt-label\" for=\"breaker\" id=\"breaker-label\">Breaker</label>\n  <input class=\"lt-input\" id=\"breaker\" name=\"breaker\" type=\"text\" role=\"combobox\"\n         autocomplete=\"off\" aria-expanded=\"false\" aria-controls=\"breaker-list\"\n         aria-autocomplete=\"list\" aria-describedby=\"breaker-help breaker-status\">\n\n  <ul class=\"lt-suggestion__list\" id=\"breaker-list\" role=\"listbox\" tabindex=\"-1\"\n      aria-labelledby=\"breaker-label\" popover=\"manual\" hidden>\n    <li class=\"lt-suggestion__option\" id=\"breaker-option-LDG-117\" role=\"option\"\n        aria-selected=\"false\">Crowbar</li>\n    <li class=\"lt-suggestion__option\" id=\"breaker-option-LDG-042\" role=\"option\"\n        aria-selected=\"false\">Needle</li>\n  </ul>\n\n  <p class=\"lt-suggestion__empty\" popover=\"manual\" hidden>No matches</p>\n  <span class=\"lt-sr-only\" id=\"breaker-status\" role=\"status\"></span>\n  <p class=\"lt-help-text\" id=\"breaker-help\">Type the name or the catalogue number.</p>\n  <p class=\"lt-error-text\" id=\"breaker-error\" hidden>Choose a breaker from the list.</p>\n</lt-suggestion>",
           "section": "The markup"
         },
         {
@@ -5468,6 +5468,7 @@
         ".lt-suggestion__option",
         "aria-selected=\"true\"",
         ".lt-suggestion__empty",
+        "popover=\"manual\"",
         ".lt-suggestion__value",
         "--lt-suggestion-max-height",
         "calc(var(--lt-spacing-10) * 4)",

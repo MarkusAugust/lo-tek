@@ -31,6 +31,24 @@ describe("suggestion.css before the component is registered", () => {
     expect(getComputedStyle(list).display).toBe("none")
   })
 
+  it("keeps the message hidden on markup from the builder function, with no component to show it", async () => {
+    expect(customElements.get("lt-suggestion")).toBeUndefined()
+    mount(`
+      <lt-suggestion>
+        <label for="breaker">Breaker</label>
+        <div>
+          <input class="lt-input" id="breaker" name="breaker">
+          <ul class="lt-suggestion__list" role="listbox" popover="manual" hidden></ul>
+          <p class="lt-suggestion__empty" popover="manual">No matches</p>
+        </div>
+      </lt-suggestion>
+    `)
+    await waitForPaint()
+
+    const empty = document.querySelector(".lt-suggestion__empty") as HTMLElement
+    expect(empty.checkVisibility()).toBe(false)
+  })
+
   it("keeps the message that nothing matches hidden too", async () => {
     expect(customElements.get("lt-suggestion")).toBeUndefined()
     mount(`

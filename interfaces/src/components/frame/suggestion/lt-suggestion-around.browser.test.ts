@@ -5,12 +5,15 @@
  * pointer and a real keyboard.
  *
  * The list itself sits in the top layer and moves nothing. Two things beside
- * it did: the message that nothing matches stood in the flow and pushed
+ * it did. The message that nothing matches stood in the flow and pushed
  * everything below the field down while it was shown, so a press on a
  * button there landed on the button and the release beside it, and no click
- * arrived. Out of the flow it lies over what is below the field, as the
- * list does, and a press on it is a press on it; and a list tall enough to scroll was a tab stop of its own in
+ * arrived. And a list tall enough to scroll was a tab stop of its own in
  * Chromium, so Tab from the field went to the list and not on.
+ *
+ * The message belongs where the list is: below the field, as wide as the
+ * field, above everything and clipped by nothing. Then it lies over what is
+ * below the field, as the list does, and a press on it is a press on it.
  */
 
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
@@ -438,4 +441,318 @@ describe("the open list is not a place the keyboard stops at", () => {
     expect(document.activeElement).toBe(input)
     expect(input.value).toBe(NAMES[2])
   })
+})
+
+/*
+ * The message is placed like the open list: below the field, as wide as the
+ * field, above everything, clipped by nothing. A message that is only taken
+ * out of the flow is cut off by a dialog or a box that ends under the field,
+ * makes them scroll, and lands on the field itself when the host lays its
+ * children out another way.
+ */
+describe("the message that nothing matches is placed like the open list", () => {
+  beforeAll(() => {
+    defineLtSuggestion()
+  })
+
+  /**
+   * The field alone, as the app filters it: no matches, so the message is
+   * shown as soon as the list opens. `matches` gives it options all the
+   * same, for an app that shows its message beside them.
+   */
+  function fieldAlone(
+    options: {
+      host?: string
+      wrapper?: string
+      input?: string
+      matches?: number
+      /** The field, the list and the message as the host's own children, with no element around them. */
+      flat?: boolean
+    } = {},
+  ) {
+    const built = suggestion({
+      id: "breaker",
+      keys: NAMES.slice(0, options.matches ?? 0).map((n) => n.toLowerCase()),
+    })
+    const { hidden: _, ...empty } = built.empty
+    const inner = `<input ${attr(built.control)} name="breaker"${options.input ? ` style="${options.input}"` : ""}>
+          <ul ${attr(built.list)}>${built.options
+            .map((option, i) => `<li ${attr(option)}>${NAMES[i]}</li>`)
+            .join("")}</ul>
+          <p ${attr(empty)}>No matches</p>
+          <span ${attr(built.status)}></span>`
+    return `
+      <lt-suggestion prefiltered${options.host ? ` style="${options.host}"` : ""}>
+        <label ${attr(built.label)}>Breaker</label>
+        ${options.flat ? inner : `<div${options.wrapper ? ` style="${options.wrapper}"` : ""}>${inner}</div>`}
+      </lt-suggestion>`
+  }
+  const field = () => ({
+    host: document.querySelector("lt-suggestion") as LtSuggestion,
+    label: document.querySelector("lt-suggestion label") as HTMLElement,
+    input: document.querySelector("lt-suggestion input") as HTMLInputElement,
+    list: document.querySelector("lt-suggestion ul") as HTMLElement,
+    empty: document.querySelector(".lt-suggestion__empty") as HTMLElement,
+  })
+  /** The list open with nothing found, by the user writing in the field. */
+  async function search() {
+    const { input, list, empty } = field()
+    await searchFor(input, "xyz")
+    expect(list.hidden, "the list did not open").toBe(false)
+    expect(isShown(empty), "the message is not shown").toBe(true)
+  }
+  /** What is wrong with where the message stands, measured against the field. */
+  function misplaced(): string[] {
+    const { input, label, empty } = field()
+    const [m, f, l] = [empty, input, label].map((e) =>
+      e.getBoundingClientRect(),
+    )
+    const faults: string[] = []
+    if (!(m.width > 0 && m.height > 0)) return ["the message has no size"]
+    if (!(m.top >= f.bottom - 1 || m.bottom <= f.top + 1))
+      faults.push(
+        `the message, from ${Math.round(m.top)} to ${Math.round(m.bottom)}, lies over the field, from ${Math.round(f.top)} to ${Math.round(f.bottom)}`,
+      )
+    if (
+      m.top < l.bottom - 1 &&
+      m.bottom > l.top + 1 &&
+      m.left < l.right &&
+      m.right > l.left
+    )
+      faults.push(
+        `the message, from ${Math.round(m.top)} to ${Math.round(m.bottom)}, lies over the label, from ${Math.round(l.top)} to ${Math.round(l.bottom)}`,
+      )
+    if (Math.abs(m.width - f.width) > 2 || Math.abs(m.left - f.left) > 2)
+      faults.push(
+        `the message is ${Math.round(m.width)} wide from ${Math.round(m.left)}, and the field ${Math.round(f.width)} from ${Math.round(f.left)}`,
+      )
+    if (
+      m.left < 0 ||
+      m.top < 0 ||
+      m.right > window.innerWidth + 1 ||
+      m.bottom > window.innerHeight + 1
+    )
+      faults.push(`the message reaches outside the window: ${place(empty)}`)
+    // Seen whole: the middle and a point just inside each corner are the
+    // message, and nothing that cuts it off or lies over it.
+    for (const [name, x, y] of [
+      ["the middle", (m.left + m.right) / 2, (m.top + m.bottom) / 2],
+      ["the top left corner", m.left + 3, m.top + 3],
+      ["the top right corner", m.right - 3, m.top + 3],
+      ["the bottom left corner", m.left + 3, m.bottom - 3],
+      ["the bottom right corner", m.right - 3, m.bottom - 3],
+    ] as const) {
+      const at = document.elementFromPoint(x, y)
+      if (at === null || !(at === empty || empty.contains(at)))
+        faults.push(
+          `${name} of the message is ${at === null ? "outside the window" : `covered or cut off: <${at.tagName.toLowerCase()}${at.id ? ` id="${at.id}"` : ""}${at.className ? ` class="${at.className}"` : ""}> is there`}`,
+        )
+    }
+    return faults
+  }
+
+  /** Where the field stands, what ends right under it, and what stands after that. */
+  const PLACES: Record<
+    string,
+    { markup: string; scrolls: string; open?: boolean }
+  > = {
+    "last in the body of a modal dialog": {
+      markup: `<dialog class="lt-dialog" aria-label="Log a run">
+        <div class="lt-dialog__body">${fieldAlone()}</div>
+        <div class="lt-dialog__footer"><button class="lt-button" type="button" id="after">Save</button></div>
+      </dialog>`,
+      scrolls: ".lt-dialog__body",
+      open: true,
+    },
+    "last in a plain modal dialog": {
+      markup: `<dialog class="lt-dialog" aria-label="Log a run">
+        <p id="after">Name the breaker.</p>
+        ${fieldAlone()}
+      </dialog>`,
+      scrolls: "dialog",
+      open: true,
+    },
+    "in a box that hides what reaches out of it": {
+      markup: `<div id="box" style="overflow: hidden">${fieldAlone()}</div>
+        <p id="after">Below the box.</p>`,
+      scrolls: "#box",
+    },
+    "in a box that scrolls what reaches out of it": {
+      markup: `<div id="box" style="overflow: auto">${fieldAlone()}</div>
+        <p id="after">Below the box.</p>`,
+      scrolls: "#box",
+    },
+    "at the bottom of the page": {
+      markup: `<p id="after">Above the field.</p>
+        <div id="box" style="block-size: calc(100vh - 12rem)"></div>
+        ${fieldAlone()}`,
+      scrolls: "html",
+    },
+  }
+
+  for (const [where, { markup, scrolls, open }] of Object.entries(PLACES))
+    it(`is seen whole, and makes nothing scroll or move, ${where}`, async () => {
+      mount(markup)
+      if (open)
+        (document.querySelector("dialog") as HTMLDialogElement).showModal()
+      await paint()
+      const container = document.querySelector(scrolls) as HTMLElement
+      const after = document.getElementById("after") as HTMLElement
+      const sizes = () => ({
+        container: [container.scrollHeight, container.scrollWidth],
+        page: [
+          document.documentElement.scrollHeight,
+          document.documentElement.scrollWidth,
+        ],
+        after: place(after),
+      })
+      const closed = sizes()
+
+      await search()
+
+      expect(misplaced().join("; ")).toBe("")
+      expect(
+        sizes(),
+        "something scrolls or stands elsewhere while the message is shown",
+      ).toEqual(closed)
+    })
+
+  for (const [how, options] of Object.entries({
+    "the host is a flex column": {
+      host: "display: flex; flex-direction: column; gap: 4px",
+    },
+    "the host is a grid": { host: "display: grid; gap: 4px" },
+    "the host is a flex column with the field as its own child": {
+      host: "display: flex; flex-direction: column; gap: 4px",
+      flat: true,
+    },
+    "the host is a grid with the field as its own child": {
+      host: "display: grid; gap: 4px",
+      flat: true,
+    },
+    "the app has a flex column around field, list and message": {
+      wrapper: "display: flex; flex-direction: column; gap: 4px",
+    },
+  }))
+    it(`stands under the field and not over it when ${how}`, async () => {
+      mount(`${fieldAlone(options)}<p id="after">Below the field.</p>`)
+      await paint()
+      const stood = place(document.getElementById("after") as HTMLElement)
+
+      await search()
+
+      expect(misplaced().join("; ")).toBe("")
+      expect(place(document.getElementById("after") as HTMLElement)).toEqual(
+        stood,
+      )
+    })
+
+  for (const direction of ["ltr", "rtl"])
+    it(`is as wide as the field when the field is narrower than its host, ${direction}`, async () => {
+      mount(
+        `<div dir="${direction}">${fieldAlone({ input: "inline-size: 12rem" })}</div>`,
+      )
+      await paint()
+      const { host, input } = field()
+      expect(
+        host.getBoundingClientRect().width -
+          input.getBoundingClientRect().width,
+        "the field is not narrower than its host, so the test says nothing",
+      ).toBeGreaterThan(100)
+
+      await search()
+
+      expect(misplaced().join("; ")).toBe("")
+    })
+
+  it("has a ground of its own, and lies over what is raised below the field", async () => {
+    mount(`${fieldAlone()}
+      <div id="raised" style="position: relative; z-index: 5; background: rgb(200, 200, 200); block-size: 6rem">
+        <button class="lt-button" type="button">Save</button>
+      </div>`)
+    await paint()
+    await search()
+    const { empty } = field()
+
+    // Read from the message itself: what is behind it must not show through.
+    const ground = getComputedStyle(empty).backgroundColor
+    const alpha = /^rgba?\(([^)]*)\)$/.exec(ground)?.[1].split(/[,/]/)[3]
+    expect(
+      ground !== "transparent" && (alpha === undefined || Number(alpha) === 1),
+      `the ground of the message is ${ground}`,
+    ).toBe(true)
+    expect(
+      contrast(getComputedStyle(empty).color, ground),
+      `the message is ${getComputedStyle(empty).color} on its own ${ground}`,
+    ).toBeGreaterThanOrEqual(4.5)
+    expect(misplaced().join("; ")).toBe("")
+  })
+
+  it("follows the app: hidden on the message and aria-busy on the list, each time in its place", async () => {
+    mount(`${fieldAlone()}<p id="after">Below the field.</p>`)
+    await paint()
+    await search()
+    const { list, empty } = field()
+    expect(misplaced().join("; ")).toBe("")
+
+    // The app found matches, and then none again.
+    for (let round = 0; round < 2; round++) {
+      empty.hidden = true
+      await paint()
+      expect(isShown(empty), "shown with the app's hidden on it").toBe(false)
+      empty.hidden = false
+      await paint()
+      expect(isShown(empty), "not shown after the app took hidden off").toBe(
+        true,
+      )
+      expect(misplaced().join("; ")).toBe("")
+    }
+    // The app is asking the server, and then has its answer: nothing.
+    for (let round = 0; round < 2; round++) {
+      list.setAttribute("aria-busy", "true")
+      await paint()
+      expect(isShown(empty), "shown while the answer is on its way").toBe(false)
+      list.removeAttribute("aria-busy")
+      await paint()
+      expect(isShown(empty), "not shown after the answer came").toBe(true)
+      expect(misplaced().join("; ")).toBe("")
+    }
+  })
+
+  for (const [how, close] of [
+    ["Escape", () => userEvent.keyboard("{Escape}")],
+    [
+      "focus leaving the field",
+      async () => (document.getElementById("next") as HTMLElement).focus(),
+    ],
+    [
+      "an option being chosen",
+      () =>
+        userEvent.click(
+          document.querySelector('[role="option"]') as HTMLElement,
+        ),
+    ],
+  ] as const)
+    it(`goes when the list closes, by ${how}, and comes back in its place`, async () => {
+      // With options beside it: an app may show its message with them.
+      mount(`${fieldAlone({ matches: 2 })}<input id="next" aria-label="Note">`)
+      await paint()
+      const { input, list, empty } = field()
+      await searchFor(input, "g")
+      expect(list.hidden).toBe(false)
+      expect(isShown(empty), "the message is not shown").toBe(true)
+
+      await close()
+      await paint()
+      expect(list.hidden, "the list is still open").toBe(true)
+      expect(isShown(empty), "the message is still shown").toBe(false)
+
+      await searchFor(input, "xyz")
+      expect(isShown(empty), "the message did not come back").toBe(true)
+      const [m, f] = [empty, input].map((e) => e.getBoundingClientRect())
+      expect(
+        Math.abs(m.width - f.width) <= 2 && Math.abs(m.left - f.left) <= 2,
+        `the message came back ${Math.round(m.width)} wide from ${Math.round(m.left)}, and the field is ${Math.round(f.width)} from ${Math.round(f.left)}`,
+      ).toBe(true)
+    })
 })

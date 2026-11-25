@@ -190,8 +190,11 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   message stood in the flow below the field and pushed everything after it
   down while it was shown. A press on a button there closed the list, the
   message went, the button moved back, and the click never arrived. The
-  message now lies over the page below the field, as the open list does,
-  and looks like it. `<lt-suggestion>` has `position: relative` for that.
+  message now sits in the top layer below the field, where the list would
+  be, and looks like it, so a dialog or a parent with `overflow` does not
+  cut it off. `lt.suggestion()` and `Lt.suggestion()` write
+  `popover="manual"` on it, and the component writes it on markup that
+  comes without it.
 - **The list of `<lt-suggestion>` is never a tab stop.** A list with more
   options than it has room for scrolls, and Chromium makes such a list a
   stop for Tab: focus went from the field to the list, which stayed open.

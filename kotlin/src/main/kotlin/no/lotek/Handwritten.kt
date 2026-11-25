@@ -236,7 +236,7 @@ internal object Handwritten {
         if (!isOpen) list["hidden"] = ""
         if (pending == true) list["aria-busy"] = "true"
 
-        val empty = linkedMapOf("class" to "lt-suggestion__empty")
+        val empty = linkedMapOf("class" to "lt-suggestion__empty", "popover" to "manual")
         if (!(n == 0.0 && pending != true)) empty["hidden"] = ""
 
         return SuggestionParts(
