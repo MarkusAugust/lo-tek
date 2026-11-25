@@ -1691,8 +1691,8 @@ describe("a dialog the app opened itself, in a region the server morphs", () => 
         <p>${text}</p>
       </div>
       <form method="dialog" class="lt-dialog__footer">
-        <button class="lt-button lt-button--secondary" value="keep">Keep the job</button>
-        <button class="lt-button" value="cancel">Cancel the job</button>
+        <button class="lt-button" data-variant="secondary" value="keep">Keep the job</button>
+        <button class="lt-button" data-variant="danger" value="cancel">Cancel the job</button>
       </form>
     </dialog>`
     return `<div id="jobs">

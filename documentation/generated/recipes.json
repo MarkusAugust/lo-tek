@@ -1753,7 +1753,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<div id=\"orders\">\n  <button class=\"lt-button\" type=\"button\" id=\"cancel\">Cancel the job</button>\n\n  <lt-dialog>\n    <dialog class=\"lt-dialog\" id=\"confirm\">\n      <h2>Cancel job 222-0481?</h2>\n      <div class=\"lt-dialog__body\">\n        <p>The crew is told at once.</p>\n      </div>\n      <form method=\"dialog\" class=\"lt-dialog__footer\">\n        <button class=\"lt-button\" value=\"keep\">Keep the job</button>\n      </form>\n    </dialog>\n  </lt-dialog>\n</div>",
+          "code": "<div id=\"jobs\">\n  <button class=\"lt-button\" type=\"button\" id=\"cancel\">Cancel the job</button>\n\n  <lt-dialog>\n    <dialog class=\"lt-dialog\" id=\"confirm\">\n      <h2>Cancel job 222-0481?</h2>\n      <div class=\"lt-dialog__body\">\n        <p>The crew is told at once.</p>\n      </div>\n      <form method=\"dialog\" class=\"lt-dialog__footer\">\n        <button class=\"lt-button\" data-variant=\"secondary\" value=\"keep\">Keep the job</button>\n        <button class=\"lt-button\" data-variant=\"danger\" value=\"cancel\">Cancel the job</button>\n      </form>\n    </dialog>\n  </lt-dialog>\n</div>",
           "section": "A dialog in a region the server morphs"
         },
         {
@@ -1818,9 +1818,9 @@
         "showModal()",
         "<dialog open>",
         "<lt-dialog>",
+        "open",
         "<lt-dialog>",
         "open",
-        "showModal()",
         "open",
         "server-controlled",
         "open",
@@ -1885,6 +1885,12 @@
         "open",
         "open",
         "<dialog>",
+        "open",
+        "server-controlled",
+        "dialog-toggle",
+        "close",
+        "<dialog>",
+        "returnValue",
         "/react",
         "className",
         "htmlFor",
