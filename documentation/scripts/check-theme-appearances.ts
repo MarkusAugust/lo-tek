@@ -18,7 +18,7 @@
  * Requires `documentation/dist` to be built.
  */
 
-import { existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
 import {
@@ -172,7 +172,93 @@ async function place(appearance: string, component: string) {
 
 let places = 0
 
+/** The component that counts as where a frame is, the columns of the frame, and where one component is. */
+async function columnsAt(appearance: string, component = "") {
+  return (await framed(appearance)).evaluate((name) => {
+    const sections = [
+      ...document.querySelectorAll<HTMLElement>("main [data-component]"),
+    ]
+    const of = (section: HTMLElement | undefined) => ({
+      component: section?.dataset.component ?? "",
+      top: section?.getBoundingClientRect().top ?? Number.NaN,
+      bottom: section?.getBoundingClientRect().bottom ?? Number.NaN,
+      title:
+        section?.querySelector(":scope > h2")?.getBoundingClientRect().top ??
+        Number.NaN,
+    })
+    const lefts = [
+      ...new Set(
+        sections.map((section) =>
+          Math.round(section.getBoundingClientRect().left),
+        ),
+      ),
+    ].sort((a, b) => a - b)
+    return {
+      columns: lefts.length,
+      /** The components of the first column, from the top down. */
+      firstColumn: sections
+        .filter(
+          (section) =>
+            Math.round(section.getBoundingClientRect().left) === lefts[0],
+        )
+        .map((section) => section.dataset.component ?? ""),
+      // Document order is column order: the first component whose bottom
+      // is below the top of the frame is the one at the top of the first
+      // column.
+      counts: of(
+        sections.find((section) => section.getBoundingClientRect().bottom > 1),
+      ).component,
+      one: of(sections.find((section) => section.dataset.component === name)),
+      scrolled: window.scrollY,
+    }
+  }, component)
+}
+/** Which page the frames show: the radio of the view, by its label. */
+const showView = (view: "sheet" | "page") =>
+  page.locator(`label:has(input[name="view"][value="${view}"])`).click()
+/** Waits until both frames hold this page of the site, loaded. */
+async function frameOn(path: string) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const urls = await Promise.all(
+      APPEARANCES.map(async (a) => new URL((await framed(a)).url()).pathname),
+    )
+    if (urls.every((url) => url === path)) break
+    await page.waitForTimeout(100)
+  }
+  for (const appearance of APPEARANCES)
+    await (await framed(appearance)).waitForLoadState("load")
+}
+
+let widths = 0
+let crossed = 0
+
 const code = await s.run(async () => {
+  // As it is served, before any script has run: the frame the page does
+  // not open with is not displayed. Otherwise it is laid out and seen
+  // until the script takes it away.
+  const served = readFileSync(
+    `${ROOT}documentation/dist/theme-builder/index.html`,
+    "utf8",
+  )
+  const figures = [
+    ...served.matchAll(
+      /<figure\b([^>]*\bclass="[^"]*\bbuilder__frame\b[^"]*"[^>]*)>([\s\S]*?)<\/figure>/g,
+    ),
+  ].map(([, attributes, inside]) => ({
+    appearance: /data-appearance="([a-z]+)"/.exec(inside)?.[1] ?? "",
+    hidden:
+      /\bstyle="[^"]*display:\s*none/.test(attributes) ||
+      /\bhidden\b/.test(attributes),
+  }))
+  expect(
+    JSON.stringify(figures) ===
+      JSON.stringify([
+        { appearance: "dark", hidden: false },
+        { appearance: "light", hidden: true },
+      ]),
+    `as served, the frames are ${JSON.stringify(figures)}: expected the dark one displayed and the light one not, before any script`,
+  )
+
   await s.open("/theme-builder/")
   const first = await now()
 
@@ -325,12 +411,144 @@ const code = await s.run(async () => {
       places += 1
     }
   }
+
+  /*
+   * The same in a window where a frame alone has room for more than one
+   * column. Then what is in the middle of the top edge is in another
+   * column than the one the visitor reads from, and the place that counts
+   * is the top of the first: the component there before a change is at the
+   * top of every shown frame after it.
+   */
+  for (const [width, wanted] of [
+    [1440, 2],
+    [1728, 3],
+  ]) {
+    await page.setViewportSize({ width, height: 900 })
+    await showAppearances(page, "dark")
+    await shows(`at ${width} pixels wide`, "dark")
+    await (await framed("dark")).evaluate(() => window.scrollTo(0, 0))
+    await page.waitForTimeout(300)
+    const laid = await columnsAt("dark")
+    expect(
+      laid.columns === wanted,
+      `at ${width} pixels wide the dark frame alone has ${laid.columns} columns, and the check is written for ${wanted}`,
+    )
+    if (laid.columns < 2) continue
+    // A component from the middle of the first column, once with its title
+    // at the top and once with the top a third of the way into it.
+    const component = laid.firstColumn[Math.floor(laid.firstColumn.length / 2)]
+    for (const into of [0, 1 / 3]) {
+      const how =
+        into === 0
+          ? `with the top of ${component} at the top`
+          : `with the top a third into ${component}`
+      await showAppearances(page, "dark")
+      await shows(`at ${width} pixels wide, before the place is tried`, "dark")
+      await (await framed("dark")).evaluate(
+        ([name, part]) => {
+          const section = document.querySelector<HTMLElement>(
+            `[data-component="${name}"]`,
+          )
+          const box = section?.getBoundingClientRect()
+          window.scrollTo(
+            0,
+            window.scrollY +
+              (box?.top ?? 0) +
+              (box?.height ?? 0) * Number(part),
+          )
+        },
+        [component, into] as const,
+      )
+      const before = await untilOn(
+        page,
+        () => columnsAt("dark", component),
+        (at) => at.counts === component && at.scrolled > 300,
+      )
+      expect(
+        before.counts === component && before.scrolled > 300,
+        `at ${width} pixels wide the check could not put ${component} at the top of the first column: ${JSON.stringify(before)}`,
+      )
+      for (const choice of ["both", "light", "dark"] as const) {
+        await showAppearances(page, choice)
+        await shows(
+          `at ${width} pixels wide, ${how}, after ${choice} was chosen`,
+          choice,
+        )
+        for (const appearance of SHOWS[choice]) {
+          const held = (at: Awaited<ReturnType<typeof columnsAt>>) =>
+            into === 0
+              ? Math.abs(at.one.top) <= 8
+              : at.one.top <= 8 && at.one.bottom > 8
+          await untilOn(page, () => columnsAt(appearance, component), held)
+          // And it stays: a frame that is put right and then drawn along
+          // by the other has not kept the place.
+          await page.waitForTimeout(500)
+          const at = await columnsAt(appearance, component)
+          expect(
+            held(at),
+            `at ${width} pixels wide, ${how} of the dark frame alone: after ${choice} was chosen ${component} is not at the top of the ${appearance} frame, its top is ${Math.round(at.one.top)} pixels from it and ${at.counts} is there`,
+          )
+        }
+      }
+    }
+    widths += 1
+  }
+  await page.setViewportSize({ width: 1280, height: 720 })
+
+  /*
+   * The place belongs to the page it was noted in. After another page is
+   * framed, the frames are at its top, and stay there through a change of
+   * what is shown: nothing has been scrolled in the new page, so nothing
+   * of the old one's place is to be found in it.
+   */
+  const tops = async () =>
+    Promise.all(
+      APPEARANCES.map(async (a) =>
+        Math.round(await (await framed(a)).evaluate(() => window.scrollY)),
+      ),
+    )
+  for (const [from, to, depths] of [
+    ["sheet", "page", [60, 140, 240, 360, 520, 900, 2400]],
+    ["page", "sheet", [80, 200, 400, 700, 1100]],
+  ] as const) {
+    const paths = {
+      sheet: "/theme-builder/sheet/",
+      page: "/theme-builder/page/",
+    }
+    for (const depth of depths) {
+      await showAppearances(page, "dark")
+      await showView(from)
+      await frameOn(paths[from])
+      await (await framed("dark")).evaluate((y) => window.scrollTo(0, y), depth)
+      await page.waitForTimeout(250)
+      await showView(to)
+      await frameOn(paths[to])
+      await page.waitForTimeout(250)
+      const opened = await tops()
+      expect(
+        opened.every((y) => y === 0),
+        `from ${depth} pixels down the ${from} view, the ${to} view opens with the frames at ${opened.join(" and ")} pixels, expected the top`,
+      )
+      for (const choice of ["both", "light", "dark"] as const) {
+        await showAppearances(page, choice)
+        await shows(`in the ${to} view, after ${choice} was chosen`, choice)
+        await page.waitForTimeout(250)
+        const after = await tops()
+        expect(
+          after.every((y) => y === 0),
+          `from ${depth} pixels down the ${from} view, in the ${to} view after ${choice} was chosen: the frames are at ${after.join(" and ")} pixels, and nothing was scrolled there`,
+        )
+      }
+      crossed += 1
+    }
+  }
+  await showView("sheet")
 })
 
 if (code !== 0) process.exit(code)
-if (places !== 8 || points < 50) {
+if (places !== 8 || widths !== 2 || crossed !== 12 || points < 150) {
   console.error(
-    `✗ The check held the place in ${places} of 8 frames and ${points} points. It has not looked at what it should.`,
+    `✗ The check held the place in ${places} of 8 frames, at ${widths} of 2 widths and across ${crossed} of 12 changes of view, and ${points} points. It has not looked at what it should.`,
   )
   process.exit(1)
 }

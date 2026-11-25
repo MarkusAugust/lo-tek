@@ -165,6 +165,14 @@ function read(families: string[]) {
         type: b.getAttribute("type") ?? "",
         name: named(b),
         pressed: b.getAttribute("aria-pressed") ?? "",
+        /** What the button is described by, for one who does not see its dots. */
+        described: collapsed(
+          b.getAttribute("aria-description") ??
+            (b.getAttribute("aria-describedby") ?? "")
+              .split(/\s+/)
+              .map((id) => document.getElementById(id)?.textContent ?? "")
+              .join(" "),
+        ),
         disabled: b.disabled,
         shown: shown(b),
         /** Whether the button says it is the one in use, where a visitor sees it. */
@@ -335,6 +343,20 @@ async function showsPalettes(what: string, asked: unknown): Promise<State> {
     same(shownRows(state), wanted),
     `${what}: the palettes on the page are not the core's for ${JSON.stringify(asked)}\n  Core: ${JSON.stringify(wanted).slice(0, 500)}\n  Page: ${JSON.stringify(shownRows(state)).slice(0, 500)}`,
   )
+  // The dots are paint. One who does not see them is told what the palette
+  // is in the core's own sentence, whether it is the one in use or not.
+  const undescribed = paletteButtons(state)
+    .filter(
+      (b) =>
+        b.described !==
+        (answer.palettes.find((p) => p.name === paletteOf(b.name))
+          ?.description ?? ""),
+    )
+    .map((b) => `${paletteOf(b.name)} is described by "${b.described}"`)
+  expect(
+    undescribed.length === 0,
+    `${what}: a palette's button is not described by the core's sentence about it: ${undescribed.slice(0, 3).join("; ")}`,
+  )
   const unpainted = paletteButtons(state).flatMap(({ name, dots }) =>
     dots.filter((dot) => !dot.painted).map((dot) => `${dot.family} of ${name}`),
   )
@@ -487,6 +509,52 @@ const code = await s.run(async () => {
       SUGGESTED.map((family) => [family, BRANDS[family]]),
     ) && ownDots.every((dot) => dot.painted),
     `"${DEFAULT}" does not have a painted dot for each of LO-TEK's own ${SUGGESTED.join(", ")}: ${JSON.stringify(ownDots)}`,
+  )
+
+  // The keyboard is seen on every button: one that has the focus looks
+  // another way than the same one without it, pressed or not, and a
+  // pressed one another way than one that is not.
+  const look = (locator: ReturnType<typeof press>) =>
+    locator.evaluate((element) => {
+      const style = getComputedStyle(element)
+      return {
+        focused: element.matches(":focus-visible"),
+        paint: [
+          style.outlineStyle,
+          style.outlineWidth,
+          style.outlineColor,
+          style.outlineOffset,
+          style.boxShadow,
+          style.borderTopColor,
+          style.borderTopWidth,
+          style.backgroundColor,
+        ].join(" | "),
+      }
+    })
+  // From the keyboard, so the browser shows the focus as it does for one
+  // who uses it.
+  await page.keyboard.press("Tab")
+  for (const [what, strip] of [
+    [`"${DEFAULT}", which is pressed`, pressDefault()],
+    ["Near, which is not pressed", press("Near")],
+  ] as const) {
+    await strip.blur()
+    const without = await look(strip)
+    await strip.focus()
+    const withFocus = await look(strip)
+    expect(
+      withFocus.focused && !without.focused,
+      `the check could not give ${what} the focus of the keyboard`,
+    )
+    expect(
+      withFocus.paint !== without.paint,
+      `${what} looks the same with the focus of the keyboard as without it: ${withFocus.paint}`,
+    )
+    await strip.blur()
+  }
+  expect(
+    (await look(pressDefault())).paint !== (await look(press("Near"))).paint,
+    "a pressed palette button looks the same as one that is not pressed",
   )
 
   // An accent: the palettes are the core's for it, and one of them is used.

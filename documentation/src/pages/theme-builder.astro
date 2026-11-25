@@ -555,6 +555,7 @@ const dot = (color: string) =>
 														data-show={`$palettes.${place}.name !== ''`}
 														data-attr:disabled="$palettes.stale"
 														data-attr:aria-pressed={`${inUse(place)} ? 'true' : 'false'`}
+													data-attr:aria-description={`$palettes.${place}.description`}
 														data-on:click={`@usePalette($palettes.${place})`}
 													>
 														<span data-text={`$palettes.${place}.name`} />
@@ -744,6 +745,7 @@ const dot = (color: string) =>
 							APPEARANCES.map((appearance) => (
 								<figure
 									class="builder__frame"
+									style={appearance === signals.appearances ? undefined : "display: none"}
 									data-show={`$appearances === 'both' || $appearances === '${appearance}'`}
 								>
 									<figcaption class="profile-label">{appearance}</figcaption>
@@ -1194,9 +1196,10 @@ const dot = (color: string) =>
 		outline-offset: 2px;
 	}
 
+	/* Not an outline: that is the focus ring's, and a pressed strip has to
+	   show the focus of the keyboard as any other does. */
 	.builder__strip[aria-pressed="true"] {
-		outline: 2px solid var(--lt-color-accent-fill);
-		outline-offset: -2px;
+		box-shadow: inset 0 0 0 2px var(--lt-color-accent-fill);
 		font-weight: var(--lt-font-weight-semibold);
 	}
 
@@ -1637,11 +1640,15 @@ const dot = (color: string) =>
 	// The two frames show the same page, and are read side by side: scrolling
 	// one scrolls the other to the same place. A frame that is already there
 	// is left alone, which is what stops the two from answering each other.
-	// Where the frames are, as the element at the top of the one last
-	// scrolled and how far into it the top is. A frame that is hidden has no
-	// height and forgets where it was, and one that gets another width lays
-	// its page out again, so a number of pixels would not be the same place.
-	let place: { path: number[]; into: number } | null = null
+	// Where the frames are, as the part of the page at the top of the one
+	// last scrolled and how far into it the top is. A frame that is hidden
+	// has no height and forgets where it was, and one that gets another width
+	// lays its page out again, so a number of pixels would not be the same
+	// place. A part is a child of the page's `main`, and the one that counts
+	// is the first of them that is not above the frame: where the page
+	// stands in columns that is the top of the first column, which is where
+	// reading begins.
+	let place: { part: number; into: number } | null = null
 	// While the frames are put back, their own scrolling says nothing.
 	let placing = false
 
@@ -1651,22 +1658,24 @@ const dot = (color: string) =>
 		return root && root.clientHeight > 0 ? root : null
 	}
 
+	const partsOf = (root: HTMLElement) => [
+		...(root.ownerDocument.querySelector("main") ?? root.ownerDocument.body).children,
+	]
+
 	const notePlace = (root: HTMLElement) => {
-		const doc = root.ownerDocument
-		const at = doc.elementFromPoint(root.clientWidth / 2, 1)
-		if (!at || !doc.body.contains(at)) return
-		const path: number[] = []
-		for (let el: Element = at; el !== doc.body && el.parentElement; el = el.parentElement)
-			path.unshift([...el.parentElement.children].indexOf(el))
-		const box = at.getBoundingClientRect()
-		place = { path, into: box.height > 0 ? -box.top / box.height : 0 }
+		const parts = partsOf(root)
+		const part = parts.findIndex((el) => {
+			const box = el.getBoundingClientRect()
+			return box.height > 0 && box.bottom > 0
+		})
+		if (part < 0) return
+		const box = parts[part].getBoundingClientRect()
+		place = { part, into: -box.top / box.height }
 	}
 
 	const toPlace = (root: HTMLElement) => {
-		if (!place) return
-		let el: Element | undefined = root.ownerDocument.body
-		for (const index of place.path) el = el?.children[index]
-		if (!el) return
+		const el = place && partsOf(root)[place.part]
+		if (!place || !el) return
 		const box = el.getBoundingClientRect()
 		const top = root.scrollTop + box.top + place.into * box.height
 		root.ownerDocument.defaultView?.scrollTo({ top, behavior: "instant" })
@@ -1675,6 +1684,8 @@ const dot = (color: string) =>
 	action({
 		name: "scrollTogether",
 		apply(_: unknown, frame: HTMLIFrameElement) {
+			// Another page in the frame: what was noted is of the page before.
+			place = null
 			frame.contentWindow?.addEventListener(
 				"scroll",
 				() => {
@@ -1707,9 +1718,13 @@ const dot = (color: string) =>
 						const root = pageOf(frame)
 						if (root) toPlace(root)
 					}
-					requestAnimationFrame(() => {
-						placing = false
-					})
+					// The frames answer with a scroll of their own, a frame
+					// or two later, and that is not the visitor's.
+					requestAnimationFrame(() =>
+						requestAnimationFrame(() => {
+							placing = false
+						}),
+					)
 				}),
 			)
 		},
