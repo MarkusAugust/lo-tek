@@ -10,7 +10,7 @@ import {
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
-import { color } from "../../../testing/color"
+import { color, rgb } from "../../../testing/color"
 import { findOverflow, mountIsolated } from "../../../testing/isolated"
 import inputCss from "./input.css?inline"
 
@@ -236,11 +236,16 @@ const PICKED = [
  * fields that stand far enough off for their own rings to stay out of its
  * picture.
  */
-function pickedField(type: string, value: string, direction = "ltr") {
+function pickedField(
+  type: string,
+  value: string,
+  direction = "ltr",
+  state = "",
+) {
   mount(`
     <input id="first" class="lt-input" aria-label="Before" />
     <div id="frame" dir="${direction}" style="inline-size: max-content; padding: 12px; margin-block: 32px">
-      <input id="field" class="lt-input" type="${type}" data-variant="${type}" value="${value}" aria-label="When" style="inline-size: 16rem" />
+      <input id="field" class="lt-input" type="${type}" data-variant="${type}" ${state && `data-state="${state}"`} value="${value}" aria-label="When" style="inline-size: 16rem" />
     </div>
     <input id="last" class="lt-input" aria-label="After" />
   `)
@@ -377,6 +382,80 @@ describe.skipIf(server.browser !== "chromium")(
   },
 )
 
+/*
+ * The ring at the picker's stop has the colour the field's own ring has in
+ * its state, so a field that is wrong does not turn to the accent while the
+ * keyboard is on its button. The colours are read from the tokens, and the
+ * pixels counted are the ones the stop paints at the icon: the ring.
+ */
+describe.skipIf(server.browser !== "chromium")(
+  "lt-input with a picker shows the keyboard in the colour of its state",
+  () => {
+    const RINGS = {
+      accent: "--lt-color-accent-border-strong",
+      danger: "--lt-color-danger-text",
+      success: "--lt-color-success-text",
+    }
+    for (const [state, ring] of [
+      ["", "accent"],
+      ["invalid", "danger"],
+      ["success", "success"],
+    ] as const)
+      it(`rings the picker's stop in the ${ring} colour when the field is ${state || "plain"}`, async () => {
+        const { first, field, frame } = pickedField(
+          "date",
+          "2079-05-31",
+          "ltr",
+          state,
+        )
+        first.focus()
+        await userEvent.keyboard("{Shift>}{Tab}{/Shift}")
+        await userEvent.tab()
+        first.focus()
+        await waitForPaint()
+        const elsewhere = await picture(frame)
+
+        let last = elsewhere
+        let stops = 0
+        await userEvent.tab()
+        while (document.activeElement === field && stops < 12) {
+          await waitForPaint()
+          last = await picture(frame)
+          stops += 1
+          await userEvent.tab()
+        }
+        expect(stops, "stops in the field").toBeGreaterThan(1)
+
+        // The pixels the stop paints at the icon, by the colour each has.
+        const off = offTheEdge(last, frame, field)
+        const painted = (token: string) => {
+          const { r, g, b } = rgb(color(token))
+          return differing(last, elsewhere, (x, y) => {
+            if (!iconPart(last)(x) || !off(x, y)) return false
+            const at = (y * last.width + x) * 4
+            return (
+              Math.abs(last.data[at] - r) <= 12 &&
+              Math.abs(last.data[at + 1] - g) <= 12 &&
+              Math.abs(last.data[at + 2] - b) <= 12
+            )
+          })
+        }
+        const counts = Object.fromEntries(
+          Object.entries(RINGS).map(([name, token]) => [name, painted(token)]),
+        )
+        expect(
+          Object.fromEntries(
+            Object.entries(counts).map(([name, count]) => [
+              name,
+              name === ring ? count >= SEEN : count,
+            ]),
+          ),
+          `pixels of each colour in the ring: ${JSON.stringify(counts)}`,
+        ).toEqual({ accent: 0, danger: 0, success: 0, [ring]: true })
+      })
+  },
+)
+
 describe("lt-input with a picker paints one icon", () => {
   afterEach(() => {
     document.documentElement.style.colorScheme = ""
@@ -445,12 +524,15 @@ describe.skipIf(server.browser !== "chromium")(
 
         // To the last stop in the field: the button.
         let last = elsewhere
+        let stops = 0
         await userEvent.tab()
-        while (document.activeElement === field) {
+        while (document.activeElement === field && stops < 12) {
           await waitForPaint()
           last = await picture(frame)
+          stops += 1
           await userEvent.tab()
         }
+        expect(stops, "stops in the field").toBeGreaterThan(1)
 
         expect(
           differing(last, elsewhere, iconPart(last)),

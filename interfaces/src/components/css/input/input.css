@@ -122,6 +122,10 @@
     right: calc(var(--lt-spacing-2) - (var(--lt-spacing-6) - 0.95rem) / 2);
     top: 50%;
     transform: translateY(-50%);
+    /* The browser gives the button padding of its own, and the box was
+       wider than the width below says. */
+    box-sizing: border-box;
+    padding: 0;
     border-radius: var(--lt-spacing-1);
     width: var(--lt-spacing-6);
     height: var(--lt-spacing-6);
@@ -153,6 +157,15 @@
     .lt-input[data-variant="datetime-local"]::-webkit-calendar-picker-indicator {
       background-image: none;
       outline-color: var(--lt-color-accent-border-strong);
+    }
+
+    /* The colours the field's own ring has in these states. */
+    .lt-input[data-state="invalid"]::-webkit-calendar-picker-indicator {
+      outline-color: var(--lt-color-danger-text);
+    }
+
+    .lt-input[data-state="success"]::-webkit-calendar-picker-indicator {
+      outline-color: var(--lt-color-success-text);
     }
   }
 
