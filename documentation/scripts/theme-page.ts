@@ -65,6 +65,21 @@ export async function untilOn<T>(
   return state
 }
 
+/** The choices of which appearances the builder shows, in the order they stand. */
+export const SHOWN = ["dark", "both", "light"] as const
+export type Shown = (typeof SHOWN)[number]
+
+/**
+ * Chooses which appearances the builder shows, as a visitor does: by the
+ * option's label. The builder opens with the dark one alone, so a check
+ * that needs the light frame, or both, asks for it first.
+ */
+export async function showAppearances(page: Page, which: Shown) {
+  await page
+    .locator(`label:has(input[name="appearances"][value="${which}"])`)
+    .click()
+}
+
 /**
  * The theme each frame holds, light then dark: the text of its styles with
  * the generator's layer in them. None when the frame has no theme.

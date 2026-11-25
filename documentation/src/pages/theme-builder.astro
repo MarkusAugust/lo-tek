@@ -221,7 +221,8 @@ const PLACES = ["p1", "p2", "p3", "p4", "p5"] as const
  * and `built` is the core's answer to it: the theme, what is wrong with
  * each field, in the shape of `fields`, and what became of each colour.
  * `shown` is the theme the frames have, the last one that was built, and
- * `view` which page they frame. `copied` is the recipe the clipboard last
+ * `view` which page they frame and `appearances` which of the frames are
+ * shown: the dark one alone, both, or the light one alone. `copied` is the recipe the clipboard last
  * took and `notCopied` the one it last refused. `pasted` is the text in the
  * field a recipe can be pasted into, and `pasteError` why it was not taken.
  * `suggested` says which families hold a colour a palette filled in, and
@@ -293,6 +294,7 @@ const signals = {
   },
   shown: "",
   view: "sheet",
+  appearances: "dark",
   copied: "",
   notCopied: "",
   pasted: "",
@@ -300,7 +302,7 @@ const signals = {
 }
 
 /** The two appearances a theme has, each in a frame of its own. */
-const APPEARANCES = ["light", "dark"] as const
+const APPEARANCES = ["dark", "light"] as const
 
 /**
  * The command that builds the theme from the recipe file, with the version
@@ -695,6 +697,25 @@ const dot = (color: string) =>
 							>
 								Start again
 							</button>
+						<!-- One appearance alone has the width of both. Which is
+						     shown is about the visitor and not the recipe, so
+						     "Start again" leaves it. -->
+						<div hidden data-effect="$ready && (@rememberAppearances($appearances), @keepPlace())"></div>
+						<fieldset class="lt-toggle-group">
+							<legend class="lt-sr-only">Which appearances are shown</legend>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="appearances" value="dark" checked data-bind="appearances" />
+								Dark
+							</label>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="appearances" value="both" data-bind="appearances" />
+								Both
+							</label>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="appearances" value="light" data-bind="appearances" />
+								Light
+							</label>
+						</fieldset>
 						<fieldset class="lt-toggle-group">
 							<legend class="lt-sr-only">What the theme is shown on</legend>
 							<label class="lt-toggle-group__option">
@@ -721,7 +742,10 @@ const dot = (color: string) =>
 					<div class="builder__frames">
 						{
 							APPEARANCES.map((appearance) => (
-								<figure class="builder__frame">
+								<figure
+									class="builder__frame"
+									data-show={`$appearances === 'both' || $appearances === '${appearance}'`}
+								>
 									<figcaption class="profile-label">{appearance}</figcaption>
 									<iframe
 										title={`The theme in the ${appearance} appearance`}
@@ -1613,19 +1637,53 @@ const dot = (color: string) =>
 	// The two frames show the same page, and are read side by side: scrolling
 	// one scrolls the other to the same place. A frame that is already there
 	// is left alone, which is what stops the two from answering each other.
+	// Where the frames are, as the element at the top of the one last
+	// scrolled and how far into it the top is. A frame that is hidden has no
+	// height and forgets where it was, and one that gets another width lays
+	// its page out again, so a number of pixels would not be the same place.
+	let place: { path: number[]; into: number } | null = null
+	// While the frames are put back, their own scrolling says nothing.
+	let placing = false
+
+	const frames = () => [...document.querySelectorAll<HTMLIFrameElement>("iframe[data-appearance]")]
+	const pageOf = (frame: HTMLIFrameElement) => {
+		const root = frame.contentDocument?.documentElement
+		return root && root.clientHeight > 0 ? root : null
+	}
+
+	const notePlace = (root: HTMLElement) => {
+		const doc = root.ownerDocument
+		const at = doc.elementFromPoint(root.clientWidth / 2, 1)
+		if (!at || !doc.body.contains(at)) return
+		const path: number[] = []
+		for (let el: Element = at; el !== doc.body && el.parentElement; el = el.parentElement)
+			path.unshift([...el.parentElement.children].indexOf(el))
+		const box = at.getBoundingClientRect()
+		place = { path, into: box.height > 0 ? -box.top / box.height : 0 }
+	}
+
+	const toPlace = (root: HTMLElement) => {
+		if (!place) return
+		let el: Element | undefined = root.ownerDocument.body
+		for (const index of place.path) el = el?.children[index]
+		if (!el) return
+		const box = el.getBoundingClientRect()
+		const top = root.scrollTop + box.top + place.into * box.height
+		root.ownerDocument.defaultView?.scrollTo({ top, behavior: "instant" })
+	}
+
 	action({
 		name: "scrollTogether",
 		apply(_: unknown, frame: HTMLIFrameElement) {
-			const from = frame.contentDocument?.documentElement
-			if (!from) return
 			frame.contentWindow?.addEventListener(
 				"scroll",
 				() => {
+					const from = pageOf(frame)
+					if (placing || !from) return
+					notePlace(from)
 					const part = from.scrollTop / Math.max(1, from.scrollHeight - from.clientHeight)
-					for (const other of document.querySelectorAll<HTMLIFrameElement>(
-						"iframe[data-appearance]",
-					)) {
-						const to = other.contentDocument?.documentElement
+					for (const other of frames()) {
+						const to = pageOf(other)
 						if (other === frame || !to) continue
 						const top = part * (to.scrollHeight - to.clientHeight)
 						if (Math.abs(to.scrollTop - top) > 1.5)
@@ -1633,6 +1691,26 @@ const dot = (color: string) =>
 					}
 				},
 				{ passive: true },
+			)
+		},
+	})
+
+	// Another choice of frames shows the same place in those that are shown,
+	// once they have their new width.
+	action({
+		name: "keepPlace",
+		apply() {
+			placing = true
+			requestAnimationFrame(() =>
+				requestAnimationFrame(() => {
+					for (const frame of frames()) {
+						const root = pageOf(frame)
+						if (root) toPlace(root)
+					}
+					requestAnimationFrame(() => {
+						placing = false
+					})
+				}),
 			)
 		},
 	})
@@ -1665,6 +1743,19 @@ const dot = (color: string) =>
 				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields, suggested, used }))
 			} catch {
 				// Nothing to do: the page is as useful, only not next time.
+			}
+		},
+	})
+
+	// Which appearances are shown is kept by itself: it is not of the recipe.
+	const SHOWN = "lotek-theme-builder-appearances"
+	action({
+		name: "rememberAppearances",
+		apply(_: unknown, appearances: string) {
+			try {
+				localStorage.setItem(SHOWN, appearances)
+			} catch {
+				// As for the recipe: the page works without remembering.
 			}
 		},
 	})
@@ -1762,6 +1853,13 @@ const dot = (color: string) =>
 			})
 	} catch {
 		// Nothing remembered that can be read. The page starts empty.
+	}
+
+	try {
+		const appearances = localStorage.getItem(SHOWN)
+		if (appearances === "light" || appearances === "both") mergePatch({ appearances })
+	} catch {
+		// Nothing remembered: the dark one is shown.
 	}
 
 	if (loaded) mergePatch({ ready: true })

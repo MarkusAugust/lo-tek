@@ -562,6 +562,105 @@ if (existsSync(SHEET)) {
         s.fail(
           `the theme at a glance shows ${roles.join(", ") || "no roles"} of ${family}, expected ${GLANCE_ROLES.join(", ")}`,
         )
+    // The components stand in columns, each right under the one before it:
+    // rows would leave open space the height of the tallest neighbour, and
+    // a visitor scrolls past it. At the width the page opens with there is
+    // more than one column, no component is cut in two between columns,
+    // nothing reaches out to the side, and the theme at a glance has the
+    // whole width to itself.
+    const columns = await page.evaluate(() => {
+      const main = document.querySelector("main")
+      const block = document.querySelector<HTMLElement>("[data-glance]")
+      const sections = [
+        ...document.querySelectorAll<HTMLElement>(".sheet__component"),
+      ].map((section) => ({
+        name: section.dataset.component ?? "",
+        pieces: section.getClientRects().length,
+        left: Math.round(section.getBoundingClientRect().left),
+        top: section.getBoundingClientRect().top,
+        bottom: section.getBoundingClientRect().bottom,
+        right: section.getBoundingClientRect().right,
+        width: section.getBoundingClientRect().width,
+      }))
+      const style = main ? getComputedStyle(main) : null
+      return {
+        viewport: window.innerWidth,
+        scrolls:
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+        room: main
+          ? main.clientWidth -
+            Number.parseFloat(style?.paddingLeft ?? "0") -
+            Number.parseFloat(style?.paddingRight ?? "0")
+          : 0,
+        glance: block?.getBoundingClientRect().width ?? 0,
+        glanceBottom: block?.getBoundingClientRect().bottom ?? 0,
+        sections,
+      }
+    })
+    const lefts = [...new Set(columns.sections.map((c) => c.left))].sort(
+      (a, b) => a - b,
+    )
+    if (columns.viewport < 1000 || lefts.length < 2)
+      s.fail(
+        `at ${columns.viewport} pixels wide the components stand in ${lefts.length} column, expected more than one`,
+      )
+    const cut = columns.sections.filter((c) => c.pieces !== 1)
+    if (cut.length > 0)
+      s.fail(
+        `${cut.map((c) => c.name).join(", ")} ${cut.length === 1 ? "is" : "are"} cut between two columns`,
+      )
+    if (columns.scrolls > 0)
+      s.fail(
+        `the sheet is ${columns.scrolls} pixels wider than its window, so it scrolls sideways`,
+      )
+    const out = columns.sections.filter((c) => c.right > columns.viewport + 1)
+    if (out.length > 0)
+      s.fail(
+        `${out.map((c) => c.name).join(", ")} reach out of the window to the right`,
+      )
+    if (
+      columns.glance < columns.room - 2 ||
+      columns.glance < (columns.sections[0]?.width ?? 0) * 1.5
+    )
+      s.fail(
+        `the theme at a glance is ${Math.round(columns.glance)} pixels wide, where the sheet has ${Math.round(columns.room)} and a column ${Math.round(columns.sections[0]?.width ?? 0)}: it does not span the whole width`,
+      )
+    // In each column, from the top down: no component is further below
+    // the one above it than the first is below the theme at a glance, give
+    // or take what a line or a margin is.
+    const gaps: { name: string; gap: number }[] = []
+    for (const left of lefts) {
+      const column = columns.sections
+        .filter((c) => c.left === left)
+        .sort((a, b) => a.top - b.top)
+      for (const [index, c] of column.entries())
+        gaps.push({
+          name: c.name,
+          gap:
+            c.top -
+            (index === 0 ? columns.glanceBottom : column[index - 1].bottom),
+        })
+    }
+    const usual = [...gaps].sort((a, b) => a.gap - b.gap)[
+      Math.floor(gaps.length / 2)
+    ]?.gap
+    const apart = gaps.filter(
+      ({ gap }) => usual === undefined || gap < -1 || gap > usual + 48,
+    )
+    if (apart.length > 0)
+      s.fail(
+        `${apart
+          .slice(0, 5)
+          .map(({ name, gap }) => `${name} (${Math.round(gap)} pixels)`)
+          .join(
+            ", ",
+          )} ${apart.length === 1 ? "does" : "do"} not stand right under the component above in the column, where the usual space is ${Math.round(usual ?? 0)} pixels`,
+      )
+    if (gaps.length !== shown.size)
+      s.fail(
+        `the check placed ${gaps.length} components in columns, and the sheet has ${shown.size}`,
+      )
     if (glance.components !== shown.size)
       s.fail(
         `the sheet has ${glance.components} components beside the theme at a glance, and the manifest gives it ${shown.size}`,

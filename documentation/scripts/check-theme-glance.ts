@@ -3,8 +3,9 @@
  *
  * The previews are there to give a direct impression of what a change does,
  * without scrolling around to look for it. So the goal is held from outside,
- * as a visitor meets it: the builder at its usual window size, both frames
- * at the top where they open, and then one change at a time. Every key of
+ * as a visitor meets it: the builder at its usual window size, the frames
+ * at the top where they open, and then one change at a time, for each
+ * choice of what is shown: the dark frame alone, both, the light one alone. Every key of
  * the recipe, set to a value far from where it rests, must change what is
  * painted in the part of each frame that is seen, and so must each palette
  * pressed after another. A key that changes nothing there is a key the
@@ -27,7 +28,14 @@
 import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import { site } from "./site"
-import { fieldOn, framesHold, nested, ownOn } from "./theme-page"
+import {
+  fieldOn,
+  framesHold,
+  nested,
+  ownOn,
+  SHOWN,
+  showAppearances,
+} from "./theme-page"
 import { BRANDS, CONTRACT, FAMILIES, KEYS } from "./theme-recipe"
 import { SLIDERS, unread } from "./theme-rest"
 
@@ -108,28 +116,72 @@ if (KEYS.length < 20 || untried.length > 0) {
 const s = await site({ pages: 1 })
 const page = s.page
 let points = 0
+/** Which appearances the visitor has chosen to see, for the messages. */
+let showing = ""
 const expect = (claim: boolean, description: string) => {
   points += 1
-  if (!claim) s.fail(description)
+  if (!claim)
+    s.fail(showing === "" ? description : `${showing} shown: ${description}`)
 }
 const own = ownOn(page)
 const field = fieldOn(page)
 const frame = (appearance: string) =>
   page.locator(`iframe[data-appearance="${appearance}"]`)
 
-/** A picture of what is seen of each frame, light then dark. */
+/** The frames that are shown with the choice the check is at. */
+let seen: (typeof APPEARANCES)[number][] = []
+/** A picture of what is seen of each frame that is shown. */
 async function pictures(): Promise<Buffer[]> {
+  // The pointer rests where the check last pressed, which may be over a
+  // frame: what it points at there says so, and that is no change of theme.
+  await page.mouse.move(0, 0)
   // What was just set has been painted, and nothing is half way there.
   await page.waitForTimeout(150)
   return Promise.all(
-    APPEARANCES.map((appearance) =>
+    seen.map((appearance) =>
       frame(appearance).screenshot({ animations: "disabled", caret: "hide" }),
     ),
   )
 }
-/** The appearances in which two sets of pictures are the same. */
-const unchanged = (before: Buffer[], after: Buffer[]) =>
-  APPEARANCES.filter((_, index) => before[index].equals(after[index]))
+/**
+ * Whether two pictures show the same. Not byte for byte: where a frame
+ * stands at half a pixel, the edge of a border is drawn a shade lighter or
+ * darker from one picture to the next, one level of 255 in a few pixels.
+ * A change of the theme moves a pixel by far more than the four levels
+ * that are let through here.
+ */
+function alike(before: Buffer, after: Buffer): Promise<boolean> {
+  if (before.equals(after)) return Promise.resolve(true)
+  return page.evaluate(
+    async ([a, b]) => {
+      const pixels = async (source: string) => {
+        const image = new Image()
+        image.src = `data:image/png;base64,${source}`
+        await image.decode()
+        const canvas = document.createElement("canvas")
+        canvas.width = image.width
+        canvas.height = image.height
+        const context = canvas.getContext("2d")
+        if (!context) throw new Error("no canvas to read a picture with")
+        context.drawImage(image, 0, 0)
+        return context.getImageData(0, 0, image.width, image.height)
+      }
+      const [p, q] = [await pixels(a), await pixels(b)]
+      if (p.width !== q.width || p.height !== q.height) return false
+      for (let i = 0; i < p.data.length; i++)
+        if (Math.abs(p.data[i] - q.data[i]) > 4) return false
+      return true
+    },
+    [before.toString("base64"), after.toString("base64")],
+  )
+}
+/** The shown appearances in which two sets of pictures are the same. */
+async function unchanged(before: Buffer[], after: Buffer[]) {
+  const same = await Promise.all(
+    seen.map((_, index) => alike(before[index], after[index])),
+  )
+  return seen.filter((_, index) => same[index])
+}
 
 /** Sets one key by hand, and waits for the frames to hold the theme it gives. */
 async function set(key: string, value: string) {
@@ -141,6 +193,7 @@ async function rest(key: string) {
   else await field(key).fill("")
 }
 
+const ACCENT = "#7c3aed"
 const blind: string[] = []
 const samePalette: string[] = []
 let tried = 0
@@ -150,123 +203,153 @@ let roles = 0
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
 
-  // As a visitor meets it: both frames with the components, at the top.
-  const at = await Promise.all(
-    APPEARANCES.map(async (appearance) => {
-      const handle = await frame(appearance).elementHandle()
-      const content = await handle?.contentFrame()
-      const box = await handle?.boundingBox()
-      return {
-        appearance,
-        url: content?.url() ?? "",
-        scrolled: content
-          ? await content.evaluate(() => window.scrollY)
-          : Number.NaN,
-        seen:
-          box !== null &&
-          box !== undefined &&
-          box.width > 100 &&
-          box.height > 100,
-      }
-    }),
-  )
-  expect(
-    at.every(
-      (f) =>
-        f.url.includes("/theme-builder/sheet/") && f.scrolled === 0 && f.seen,
-    ),
-    `the frames do not open on the component sheet, at its top, where they are seen: ${JSON.stringify(at)}`,
-  )
-  expect(
-    await framesHold(page, null),
-    "the frames hold a theme on a first visit",
-  )
+  // The same for each choice of what is shown: the dark frame alone, as the
+  // page opens, both, and the light one alone. A frame alone has the width
+  // of both, so what is seen of it is not what is seen of it beside the other.
+  for (const choice of SHOWN) {
+    await showAppearances(page, choice)
+    seen = APPEARANCES.filter((a) => choice === "both" || choice === a)
+    showing = choice
+    // The place in the sheet follows from one choice to the next, and this
+    // is about what is seen where the page opens.
+    for (const appearance of APPEARANCES)
+      await (await frame(appearance).elementHandle())
+        ?.contentFrame()
+        .then((content) => content?.evaluate(() => window.scrollTo(0, 0)))
 
-  // A picture that moves by itself would be told from nothing.
-  const atRest = await pictures()
-  await page.waitForTimeout(700)
-  const still = await pictures()
-  expect(
-    unchanged(atRest, still).length === APPEARANCES.length,
-    `what is seen of the frames changes while nothing is set, in ${APPEARANCES.filter((a) => !unchanged(atRest, still).includes(a)).join(" and ")}: the check cannot tell a change from that`,
-  )
-  if (unchanged(atRest, still).length !== APPEARANCES.length) return
-
-  // Every key, one at a time, from rest.
-  for (const key of KEYS) {
-    const value = farFrom(key)
-    await set(key, value)
-    const built = buildTheme(nested({ [key]: value })).css
-    const held = await framesHold(page, built)
-    expect(
-      held,
-      `${key} set to ${value}: the frames do not hold the theme it gives`,
+    // As a visitor meets it: the frames that are shown, with the components,
+    // at the top.
+    const at = await Promise.all(
+      seen.map(async (appearance) => {
+        const handle = await frame(appearance).elementHandle()
+        const content = await handle?.contentFrame()
+        const box = await handle?.boundingBox()
+        return {
+          appearance,
+          url: content?.url() ?? "",
+          scrolled: content
+            ? await content.evaluate(() => window.scrollY)
+            : Number.NaN,
+          seen:
+            box !== null &&
+            box !== undefined &&
+            box.width > 100 &&
+            box.height > 100,
+        }
+      }),
     )
-    if (held) {
-      const after = await pictures()
-      const same = unchanged(atRest, after)
-      expect(
-        same.length === 0,
-        `${key} set to ${value} changes nothing that is seen in the ${same.join(" and the ")} frame`,
-      )
-      if (same.length > 0) blind.push(`${key} (${same.join(", ")})`)
-      tried += 1
-    }
-    await rest(key)
+    expect(
+      at.every(
+        (f) =>
+          f.url.includes("/theme-builder/sheet/") && f.scrolled === 0 && f.seen,
+      ),
+      `the frames do not open on the component sheet, at its top, where they are seen: ${JSON.stringify(at)}`,
+    )
     expect(
       await framesHold(page, null),
-      `${key} put back to rest: the frames still hold a theme`,
+      "the frames hold a theme with nothing set",
     )
-  }
-  // And the page at rest is what it was: nothing above leaked into the next.
-  expect(
-    unchanged(atRest, await pictures()).length === APPEARANCES.length,
-    "after every key was set and put back, what is seen of the frames is not what it was at rest",
-  )
 
-  // Each palette pressed after another changes what is seen.
-  const ACCENT = "#7c3aed"
-  await set("accent", ACCENT)
-  expect(
-    await framesHold(page, buildTheme({ accent: ACCENT }).css),
-    "with an accent, the frames do not hold its theme",
-  )
-  const answer = suggestPalettes({ accent: ACCENT })
-  expect(
-    answer !== null && answer.palettes.length >= 5,
-    "the package suggests fewer than five palettes for the accent",
-  )
-  let before = await pictures()
-  let last = "the accent alone"
-  for (const palette of answer?.palettes ?? []) {
-    const filled = Object.fromEntries(
-      palette.colors.filter((c) => !c.kept).map((c) => [c.family, c.color]),
-    )
-    await page
-      .locator("[data-palettes] button[data-palette]")
-      .filter({ hasText: new RegExp(`^\\s*${palette.name}`) })
-      .click()
-    const held = await framesHold(
-      page,
-      buildTheme({ accent: ACCENT, ...filled }).css,
-    )
+    // A picture that moves by itself would be told from nothing.
+    const atRest = await pictures()
+    await page.waitForTimeout(700)
+    const still = await pictures()
+    const steady = await unchanged(atRest, still)
     expect(
-      held,
-      `${palette.name} pressed: the frames do not hold the theme of the accent and the palette`,
+      steady.length === seen.length,
+      `what is seen of the frames changes while nothing is set, in ${seen.filter((a) => !steady.includes(a)).join(" and ")}: the check cannot tell a change from that`,
     )
-    if (!held) continue
-    const after = await pictures()
-    const same = unchanged(before, after)
+    if (steady.length !== seen.length) continue
+
+    // Every key, one at a time, from rest.
+    for (const key of KEYS) {
+      const value = farFrom(key)
+      await set(key, value)
+      const built = buildTheme(nested({ [key]: value })).css
+      const held = await framesHold(page, built)
+      expect(
+        held,
+        `${key} set to ${value}: the frames do not hold the theme it gives`,
+      )
+      if (held) {
+        const after = await pictures()
+        const same = await unchanged(atRest, after)
+        expect(
+          same.length === 0,
+          `${key} set to ${value} changes nothing that is seen in the ${same.join(" and the ")} frame`,
+        )
+        if (same.length > 0)
+          blind.push(`${key} (${showing}: ${same.join(", ")})`)
+        tried += 1
+      }
+      await rest(key)
+      expect(
+        await framesHold(page, null),
+        `${key} put back to rest: the frames still hold a theme`,
+      )
+    }
+    // And the page at rest is what it was: nothing above leaked into the next.
     expect(
-      same.length === 0,
-      `${palette.name} pressed after ${last} changes nothing that is seen in the ${same.join(" and the ")} frame`,
+      (await unchanged(atRest, await pictures())).length === seen.length,
+      "after every key was set and put back, what is seen of the frames is not what it was at rest",
     )
-    if (same.length > 0)
-      samePalette.push(`${palette.name} after ${last} (${same.join(", ")})`)
-    before = after
-    last = palette.name
-    pressed += 1
+
+    // Each palette pressed after another changes what is seen.
+    await set("accent", ACCENT)
+    expect(
+      await framesHold(page, buildTheme({ accent: ACCENT }).css),
+      "with an accent, the frames do not hold its theme",
+    )
+    const answer = suggestPalettes({ accent: ACCENT })
+    expect(
+      answer !== null && answer.palettes.length >= 5,
+      "the package suggests fewer than five palettes for the accent",
+    )
+    let before = await pictures()
+    let last = "the accent alone"
+    for (const palette of answer?.palettes ?? []) {
+      const filled = Object.fromEntries(
+        palette.colors.filter((c) => !c.kept).map((c) => [c.family, c.color]),
+      )
+      await page
+        .locator("[data-palettes] button[data-palette]")
+        .filter({ hasText: new RegExp(`^\\s*${palette.name}`) })
+        .click()
+      const held = await framesHold(
+        page,
+        buildTheme({ accent: ACCENT, ...filled }).css,
+      )
+      expect(
+        held,
+        `${palette.name} pressed: the frames do not hold the theme of the accent and the palette`,
+      )
+      if (!held) continue
+      const after = await pictures()
+      const same = await unchanged(before, after)
+      expect(
+        same.length === 0,
+        `${palette.name} pressed after ${last} changes nothing that is seen in the ${same.join(" and the ")} frame`,
+      )
+      if (same.length > 0)
+        samePalette.push(
+          `${palette.name} after ${last} (${showing}: ${same.join(", ")})`,
+        )
+      before = after
+      last = palette.name
+      pressed += 1
+    }
+
+    // Back to rest for the next choice.
+    await page.locator("[data-palettes] button[data-palette-default]").click()
+    await rest("accent")
+    expect(
+      await framesHold(page, null),
+      "after the palettes were tried and put away, the frames still hold a theme",
+    )
   }
+  showing = ""
+  await showAppearances(page, "both")
+  seen = [...APPEARANCES]
 
   // The block at the top: every role of every family, painted with the
   // value the package gives that token for the recipe on the page.
@@ -355,12 +438,17 @@ if (samePalette.length > 0)
   )
 if (code !== 0) process.exit(code)
 const expected = CONTRACT.families.length * ROLES.length * APPEARANCES.length
-if (tried !== KEYS.length || pressed < 5 || roles !== expected || points < 60) {
+if (
+  tried !== KEYS.length * SHOWN.length ||
+  pressed < 5 * SHOWN.length ||
+  roles !== expected ||
+  points < 180
+) {
   console.error(
-    `✗ The check tried ${tried} of ${KEYS.length} keys, pressed ${pressed} palettes and read ${roles} of ${expected} roles. It has not looked at what it should.`,
+    `✗ The check tried ${tried} of ${KEYS.length * SHOWN.length} keys, pressed ${pressed} palettes and read ${roles} of ${expected} roles. It has not looked at what it should.`,
   )
   process.exit(1)
 }
 console.log(
-  `✓ Each of the ${KEYS.length} keys of the recipe and each of ${pressed} palettes changes what is seen of both frames of the theme builder without scrolling, and the ${roles} roles at the top of the sheet are painted as the package builds them.`,
+  `✓ Each of the ${KEYS.length} keys of the recipe and each of the five palettes changes what is seen of every shown frame of the theme builder without scrolling, with the dark frame alone, both and the light one alone, and the ${roles} roles at the top of the sheet are painted as the package builds them.`,
 )

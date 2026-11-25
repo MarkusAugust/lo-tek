@@ -336,10 +336,12 @@ const components = [...pages]
 		background: var(--lt-color-neutral-canvas);
 	}
 
+	/* Columns, and not a grid: the components are of very different heights,
+	   and in rows each would leave the height of the tallest beside it open.
+	   In a column each stands right under the one before. */
 	.sheet {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
-		gap: var(--lt-spacing-6);
+		columns: 22rem;
+		column-gap: var(--lt-spacing-6);
 		padding: var(--lt-spacing-6);
 	}
 
@@ -355,7 +357,8 @@ const components = [...pages]
 
 	/* The theme at a glance: across the whole sheet, before the components. */
 	.sheet__glance {
-		grid-column: 1 / -1;
+		column-span: all;
+		margin-block-end: var(--lt-spacing-6);
 		display: flex;
 		flex-direction: column;
 		gap: var(--lt-spacing-3);
@@ -466,6 +469,9 @@ const components = [...pages]
 		flex-direction: column;
 		gap: var(--lt-spacing-4);
 		min-inline-size: 0;
+		/* Whole in one column, never begun in one and ended in the next. */
+		break-inside: avoid;
+		margin-block-end: var(--lt-spacing-6);
 		padding-block-start: var(--lt-spacing-3);
 		border-block-start: var(--lt-spacing-px) solid
 			var(--lt-color-neutral-border-subtle);
