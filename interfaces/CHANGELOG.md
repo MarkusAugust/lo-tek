@@ -133,6 +133,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Changed
 
+- **A message in `<lt-toast>` ends with `dismiss()`, `clear()` or its
+  timer, not with `remove()` on the element.** The component puts back a
+  message of its own that is taken out of the region, so that an update
+  from the server does not lose it, and it cannot tell an update from the
+  app's own `remove()`.
+
 - **`lotek check` finds the manifest the way the editor does.** Each file
   is checked against the nearest manifest from its folder upwards to the
   working directory, `build/lotek/manifest.json` before the installed
@@ -189,15 +195,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`<lt-toast>` keeps its messages through an update that takes them
   away.** A morph that does not know `data-ignore-morph`, such as
   idiomorph, removed messages the user had not read. The ones `show()`
-  made are now put back in their places, without `toast-dismiss`. A
-  message ends with `dismiss()`, `clear()` or its timer: one removed with
-  `remove()` on the element comes back.
+  made are now put back in their order, without `toast-dismiss`.
 
 - **The close button works on every message in `<lt-toast>`.** A message
   the server patched into the region, or one that came back with a page
   restored from history, had a close button that did nothing, because the
   listener was put on the messages `show()` made. The region now listens
-  for all of them.
+  for all of them, and closing such a message dispatches `toast-dismiss`
+  as for the component's own.
 
 - **`<lt-connection-status>` keeps its bar through an update that takes
   it away.** A morph that does not know `data-ignore-morph`, such as

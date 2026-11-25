@@ -48,8 +48,10 @@ export type ShowOptions = {
  * them, so there is nothing for the server to render.
  *
  * The server writes the container with `lt.toast()`, which sets
- * `data-ignore-morph`. Without it the Datastar morph tears the messages away
+ * `data-ignore-morph`. Without it the Datastar morph takes the messages out
  * at the next patch, because the server's version of the region is empty.
+ * The component puts them back (see `restoreMessages`), but that is a
+ * repair: a message put back may be announced again and has lost focus.
  *
  * The container is a `role="status"` region, not `role="alert"`. A message
  * that appears in the corner should not interrupt what the screen reader is
@@ -173,11 +175,40 @@ export class LtToast extends HostElement {
    * away, and is left gone.
    */
   private restoreMessages(): void {
+    // From the last to the first, so that a message finds the ones that
+    // stood after it already back.
     for (let index = this.own.length - 1; index >= 0; index--) {
       const message = this.own[index]
       if (!message || message.parentNode === this) continue
-      this.insertBefore(message, this.own[index + 1] ?? null)
+      this.insertBefore(message, this.placeFor(message))
     }
+    this.stood = [...this.children]
+  }
+
+  /**
+   * What stood in the region the last time it was at rest, the component's
+   * own messages and others alike. It is what says where a message that was
+   * taken stood.
+   */
+  private stood: Element[] = []
+
+  /**
+   * The node a message that was taken goes back in front of: the nearest
+   * one that stood after it and is still there, otherwise right after the
+   * nearest one that stood before it. When nothing it stood among is left,
+   * it goes first, where `show()` puts a message.
+   */
+  private placeFor(message: HTMLElement): Node | null {
+    const at = this.stood.indexOf(message)
+    if (at !== -1) {
+      for (const after of this.stood.slice(at + 1)) {
+        if (after.parentNode === this) return after
+      }
+      for (const before of this.stood.slice(0, at).reverse()) {
+        if (before.parentNode === this) return before.nextSibling
+      }
+    }
+    return this.firstChild
   }
 
   /**
@@ -290,8 +321,14 @@ export class LtToast extends HostElement {
     close.textContent = "×"
     toast.append(close)
 
+    // Anything an update took in this same turn goes back first, so the
+    // new message is placed among all of them.
+    this.restoreMessages()
     this.own.unshift(toast)
     this.prepend(toast)
+    // Now, not when the observer comes round: an update can take the
+    // message in the same turn.
+    this.stood = [...this.children]
 
     if (duration > 0) {
       let timer = window.setTimeout(() => this.dismiss(toast), duration)
