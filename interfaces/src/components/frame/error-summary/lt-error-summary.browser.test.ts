@@ -1,6 +1,7 @@
 /// <reference path="../../../types/css.d.ts" />
 
 import { beforeAll, beforeEach, describe, expect, it } from "vitest"
+import { userEvent } from "vitest/browser"
 
 import {
   expectNoAccessibilityViolations,
@@ -1116,4 +1117,281 @@ describe("lt-error-summary when the form fails again while the box is shown", ()
       await waitForPaint()
       expect(document.activeElement).toBe(field)
     })
+})
+
+/**
+ * Swaps the way htmx does, and then puts focus back the way htmx does.
+ *
+ * From htmx 2.0.11, `dist/htmx.js`: `swap()` notes `document.activeElement`
+ * and its selection before it touches the page, swaps, and then, if that
+ * element is no longer in the body and has an id, gives focus to the
+ * element with the same id, with the selection set first when there was one
+ * (`setSelectionRange`, and `focus({ preventScroll: true })` by default).
+ * `swapOuterHTML` inserts the new nodes before the target and then removes
+ * the target; `swapInnerHTML` inserts the new nodes before the first child
+ * and then removes the old children. The response is parsed in a document
+ * of its own, so an element in it is not upgraded until it is inserted.
+ * All of it runs in one task, with nothing awaited between the swap and the
+ * focus.
+ */
+function htmxSwap(
+  style: "outerHTML" | "innerHTML",
+  target: Element,
+  html: string,
+): void {
+  const active = document.activeElement as HTMLInputElement | null
+  const selection = {
+    start: active?.selectionStart ?? null,
+    end: active?.selectionEnd ?? null,
+  }
+  const parsed = new DOMParser().parseFromString(
+    `<body><template>${html}</template></body>`,
+    "text/html",
+  )
+  const fragment = (parsed.querySelector("template") as HTMLTemplateElement)
+    .content
+  const into = (parent: Node, before: Node | null) => {
+    while (fragment.childNodes.length > 0)
+      parent.insertBefore(fragment.firstChild as Node, before)
+  }
+  if (style === "outerHTML") {
+    into(target.parentNode as Node, target)
+    target.remove()
+  } else {
+    const first = target.firstChild
+    into(target, first)
+    if (first) {
+      while (first.nextSibling) target.removeChild(first.nextSibling)
+      target.removeChild(first)
+    }
+  }
+  const id = active?.getAttribute("id")
+  if (active && !document.body.contains(active) && id) {
+    const restored = document.getElementById(id) as HTMLInputElement | null
+    if (restored) {
+      if (selection.start && restored.setSelectionRange) {
+        try {
+          restored.setSelectionRange(selection.start, selection.end)
+        } catch {
+          // Present on fields that do not take it; htmx lets it fail too.
+        }
+      }
+      restored.focus({ preventScroll: true })
+    }
+  }
+}
+
+/*
+ * A form sent with Enter from a field, answered by the same form with the
+ * errors in it, and swapped in as htmx swaps. The new box takes focus as it
+ * comes into the page, and in the same task htmx gives focus back to the
+ * field with the id of the one that had it. That is no decision about where
+ * the user should be: it is the old place put back, and the form has
+ * failed. Focus belongs on the box.
+ *
+ * A script that puts focus somewhere else than where it was has decided,
+ * and the box leaves it there, as before.
+ */
+describe("lt-error-summary when the form is swapped and focus is put back in the field", () => {
+  beforeAll(() => {
+    defineLtErrorSummary()
+  })
+
+  /** The box as the server writes it. */
+  const boxOf = (more = "") =>
+    `<lt-error-summary ${attr(ERRORS.host)}${more}>
+        <h2 ${attr(ERRORS.title)}>The form has errors</h2>
+        <ul>
+          <li><a href="#email">Enter a valid address</a></li>
+          <li><a href="#deliver-by">Enter a date that exists</a></li>
+        </ul>
+      </lt-error-summary>`
+  /** The form, with the box the server gives it, or none. */
+  const formWith = (box: string, value = "") =>
+    `<form id="order">
+      ${box}
+      <label class="lt-label" for="email">Fixer's address</label>
+      <input class="lt-input" id="email" name="email" value="${value}">
+      <label class="lt-label" for="deliver-by">Deliver by</label>
+      <input class="lt-input" id="deliver-by" name="deliver-by">
+      <button type="submit">Send</button>
+    </form>`
+  const page = () => ({
+    box: document.querySelector("lt-error-summary") as HTMLElement,
+    email: document.getElementById("email") as HTMLInputElement,
+    other: document.getElementById("deliver-by") as HTMLInputElement,
+    send: document.querySelector('button[type="submit"]') as HTMLButtonElement,
+    outside: document.getElementById("outside") as HTMLButtonElement,
+    form: document.getElementById("order") as HTMLFormElement,
+    container: document.getElementById("container") as HTMLElement,
+  })
+  /** The form in the page before it is sent, with the box it had then. */
+  async function unsent(box: string, value = "") {
+    mount(
+      `<button type="button" id="outside">Help</button><div id="container">${formWith(box, value)}</div>`,
+    )
+    await settle()
+    return page()
+  }
+  /** A microtask and a paint: what the component needs to act on a swap. */
+  async function swapped() {
+    await Promise.resolve()
+    await waitForPaint()
+  }
+  /** What the page had before the form was sent. */
+  const BEFORE = {
+    "no box": "",
+    "a hidden box": boxOf(" hidden"),
+  }
+  /** The swaps htmx makes of a form: the form itself, or what is in the element around it. */
+  const SWAPS = {
+    "outerHTML of the form": (html: string) =>
+      htmxSwap("outerHTML", page().form, html),
+    "innerHTML of what is around the form": (html: string) =>
+      htmxSwap("innerHTML", page().container, html),
+  }
+
+  for (const [swap, swapIn] of Object.entries(SWAPS)) {
+    for (const [had, old] of Object.entries(BEFORE))
+      it(`has focus after ${swap}, when the page had ${had} and focus was in a field`, async () => {
+        const first = await unsent(old)
+        first.email.focus()
+
+        swapIn(formWith(boxOf()))
+        // What htmx leaves behind: focus in the new field of the same id.
+        expect(document.activeElement, "htmx put focus back in the field").toBe(
+          page().email,
+        )
+        expect(page().email, "the field is a new one").not.toBe(first.email)
+        await swapped()
+
+        expect(page().box.hidden).toBe(false)
+        expect(
+          document.activeElement,
+          "the box did not take focus when the form failed",
+        ).toBe(page().box)
+      })
+
+    it(`has focus after ${swap}, when the field had a selection that htmx put back`, async () => {
+      const first = await unsent("", "fixer@sector")
+      first.email.focus()
+      first.email.setSelectionRange(2, 5)
+
+      swapIn(formWith(boxOf(), "fixer@sector"))
+      expect(document.activeElement).toBe(page().email)
+      expect(
+        [page().email.selectionStart, page().email.selectionEnd],
+        "htmx put the selection back",
+      ).toEqual([2, 5])
+      await swapped()
+
+      expect(document.activeElement).toBe(page().box)
+    })
+
+    it(`has focus after ${swap}, when the form was sent from a button htmx cannot find again`, async () => {
+      const first = await unsent("")
+      first.send.focus()
+
+      swapIn(formWith(boxOf()))
+      await swapped()
+
+      expect(document.activeElement).toBe(page().box)
+    })
+
+    // What stays as it is.
+    it(`leaves focus in the field htmx put it back in after ${swap}, when the new box is hidden`, async () => {
+      const first = await unsent("")
+      first.email.focus()
+
+      swapIn(formWith(boxOf(" hidden")))
+      await swapped()
+
+      expect(document.activeElement).toBe(page().email)
+    })
+
+    it(`leaves focus in the field htmx put it back in after ${swap}, when the page has said no to it`, async () => {
+      const first = await unsent("")
+      first.email.focus()
+
+      swapIn(formWith(boxOf(' data-autofocus="false"')))
+      await swapped()
+
+      expect(document.activeElement).toBe(page().email)
+    })
+
+    for (const [where, pick] of [
+      ["another field of the form", () => page().other],
+      ["a button outside the form", () => page().outside],
+      ["the button that sends the form", () => page().send],
+    ] as const)
+      it(`leaves focus where a script moved it in the task of ${swap}: ${where}`, async () => {
+        // Somewhere else than where it was: the script has decided.
+        const first = await unsent("")
+        first.email.focus()
+
+        swapIn(formWith(boxOf()))
+        pick().focus()
+        await swapped()
+
+        expect(document.activeElement).toBe(pick())
+      })
+
+    it(`takes focus once after ${swap}, and leaves it where the user goes afterwards`, async () => {
+      const first = await unsent("")
+      first.email.focus()
+      swapIn(formWith(boxOf()))
+      await swapped()
+      expect(document.activeElement, "the form failed").toBe(page().box)
+
+      // The user goes to the field to correct it, with the pointer.
+      await userEvent.click(page().email)
+      await swapped()
+      expect(document.activeElement, "after a click in the field").toBe(
+        page().email,
+      )
+      // The server answers the field as it is corrected: the list changes.
+      ;(page().box.querySelector("ul") as HTMLElement).innerHTML =
+        '<li><a href="#deliver-by">Enter a date that exists</a></li>'
+      await swapped()
+      expect(document.activeElement, "after the list of errors changed").toBe(
+        page().email,
+      )
+
+      // And with the keyboard, from the box on to a field. How many stops
+      // there are on the way is the browser's: one of them does not stop at
+      // a link unless it is asked to.
+      page().box.focus()
+      for (
+        let stop = 0;
+        stop < 6 && !(document.activeElement instanceof HTMLInputElement);
+        stop++
+      )
+        await userEvent.tab()
+      const reached = document.activeElement
+      expect(
+        reached instanceof HTMLInputElement && page().form.contains(reached),
+        "Tab from the box came to a field of the form",
+      ).toBe(true)
+      await swapped()
+      expect(document.activeElement, "after Tab from the box").toBe(reached)
+    })
+
+    it(`takes focus once after ${swap}, also when focus is put in the same field again later`, async () => {
+      const first = await unsent("")
+      first.email.focus()
+      swapIn(formWith(boxOf()))
+      await swapped()
+      expect(document.activeElement, "the form failed").toBe(page().box)
+
+      // In a later task, the same field htmx had put focus back in.
+      for (let again = 0; again < 2; again++) {
+        page().email.focus()
+        await swapped()
+        await swapped()
+        expect(document.activeElement, "focus put in the field later").toBe(
+          page().email,
+        )
+      }
+    })
+  }
 })

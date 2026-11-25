@@ -2260,6 +2260,8 @@
         "focus()",
         "tabindex",
         "ignoreActiveValue",
+        "outerHTML",
+        "innerHTML",
         "document.activeElement",
         "<body>",
         "tabindex=\"-1\""

@@ -68,6 +68,27 @@ function decodeFragment(fragment: string): string {
   }
 }
 
+/**
+ * The element that last took focus in the document, the box itself and its
+ * links aside.
+ *
+ * htmx puts focus back after a swap, on the element with the same id as the
+ * one that had it. When the form is swapped with `innerHTML`, the field is
+ * gone before the new box is connected, and `document.activeElement` is
+ * `<body>`: nothing on the page says where focus was. So it is noted as it
+ * moves, from the registration on.
+ */
+let lastFocused: WeakRef<Element> | undefined
+let notingFocus = false
+
+function noteFocus(event: FocusEvent): void {
+  const target = event.target
+  if (!(target instanceof Element)) return
+  for (let node: Element | null = target; node; node = node.parentElement)
+    if (node instanceof LtErrorSummary) return
+  lastFocused = new WeakRef(target)
+}
+
 export class LtErrorSummary extends HostElement {
   static observedAttributes = ["data-autofocus", "hidden"] as const
 
@@ -337,17 +358,13 @@ export class LtErrorSummary extends HostElement {
         !nobodyTyping
       if (movedByScript) return
       const root = this.getRootNode() as Document | ShadowRoot
+      const before = lastFocused?.deref()
 
       this.focusAttempted = true
       this.focus()
       this.hasFocused = root.activeElement === this
-      if (
-        this.hasFocused &&
-        root === document &&
-        active &&
-        active !== document.body
-      )
-        this.reclaimFocusFrom(active)
+      if (this.hasFocused && root === document)
+        this.reclaimFocusFrom(active, before)
     }
   }
 
@@ -369,15 +386,29 @@ export class LtErrorSummary extends HostElement {
    * focus from a field in the same root. The condition is deliberately
    * coarse: a box portalled into a shadow root from a React app in plain DOM
    * does not take focus back.
+   *
+   * htmx does the same after a swap with `outerHTML` or `innerHTML`, but the
+   * field it gives focus to is a new element: the one with the same id as
+   * the field that had focus, which the swap removed. That is how it is
+   * recognised. A script that moves focus to any other element has decided,
+   * as above.
    */
-  private reclaimFocusFrom(previous: Element): void {
+  private reclaimFocusFrom(
+    previous: Element | null,
+    before: Element | undefined,
+  ): void {
     queueMicrotask(() => {
-      if (
-        this.isConnected &&
-        !this.hidden &&
-        document.activeElement === previous
-      )
-        this.focus()
+      if (!this.isConnected || this.hidden) return
+      const now = document.activeElement
+      if (!now || now === this || now === document.body) return
+      const givenBack = now === previous
+      const givenToItsReplacement =
+        before !== undefined &&
+        before !== now &&
+        !before.isConnected &&
+        before.id !== "" &&
+        now.id === before.id
+      if (givenBack || givenToItsReplacement) this.focus()
     })
   }
 
@@ -459,4 +490,7 @@ export function defineLtErrorSummary(
   tagName: string = LT_ERROR_SUMMARY_TAG,
 ): void {
   defineElement(tagName, LtErrorSummary)
+  if (notingFocus) return
+  notingFocus = true
+  document.addEventListener("focusin", noteFocus, true)
 }
