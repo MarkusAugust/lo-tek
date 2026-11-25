@@ -446,7 +446,9 @@ lightness of every colour is the role's, so a brand colour is moved, and a
 light one far: a yellow gives an olive fill. The command says what each colour
 became, and why. Do not put the brand colour back by overriding
 \`--lt-color-<family>-fill\`: the fill alone carries the state of a checkbox,
-a radio button and a switch, and has to stand out from the page. The recipe
+a radio button and a switch, and has to stand out from the page. With only
+an accent, \`suggestPalettes(recipe)\` from \`@lo-tek/interfaces/theme\`
+suggests colours for visited, the three brand families and neutral. The recipe
 has the hue and chroma of each family, the font, the weights, the line heights, three
 kinds of corners, and the border and the weight of the button. It has no
 scale for spacing or type size and no roles of its own. The theme is in a
@@ -1694,6 +1696,8 @@ light one far: a yellow gives an olive fill. \`Theme.brands\` and the task's
 output say what each colour became, and why. Do not put the brand colour back
 by overriding \`--lt-color-<family>-fill\`: the fill alone carries the state
 of a checkbox, a radio button and a switch, and has to stand out from the page.
+With only an accent, \`Lotek.suggestPalettes(recipe)\` suggests colours for
+visited, the three brand families and neutral.
 The recipe has the hue and chroma of each family, the font, the weights, the line
 heights, three kinds of corners, and the border and the weight of the button.
 It has no scale for spacing or type size and no roles of its own. The theme is

@@ -78,6 +78,7 @@ export function defaultCore(): Core {
     checkRecipe: (recipe) => withContract().checkRecipe(recipe),
     recipeValues: (recipe) => withContract().recipeValues(recipe),
     recipeBrands: (recipe) => withContract().recipeBrands(recipe),
+    suggestPalettes: (recipe) => withContract().suggestPalettes(recipe),
     inspectTheme: (css) => withContract().inspectTheme(css),
   }
   return core

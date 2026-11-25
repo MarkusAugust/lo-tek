@@ -27,7 +27,7 @@ The generator decides more than most theme tools do, and that is how it can prom
 
 The generator is the same wherever you run it, and the recipe is what the ways share: a `lotek.theme.json`.
 
-- **In the browser.** The [theme builder](/theme-builder/) shows LO-TEK's components with the theme as you set it, light and dark side by side, says what became of each colour, and gives you the recipe and the file. Nothing is installed, and what you enter is sent nowhere.
+- **In the browser.** The [theme builder](/theme-builder/) shows LO-TEK's components with the theme as you set it, light and dark side by side, says what became of each colour, suggests [colours to go with your accent](#colours-to-go-with-the-accent), and gives you the recipe and the file. Nothing is installed, and what you enter is sent nowhere.
 - **On the command line.** `npx @lo-tek/interfaces theme`, from flags or from the recipe. That is the rest of this section.
 - **In a build step.** `buildTheme()` in TypeScript. See [Programmatic use](#programmatic-use).
 - **From Kotlin and Gradle.** `Lotek.buildTheme()` and the `lotekTheme` task. See [The theme](../kotlin/#the-theme) on the Kotlin page.
@@ -140,6 +140,24 @@ accent: #f7df1e gives the fill #7a6d00 in the light theme and #a19100 in the dar
 The first line is also written at the top of the generated file, so the file still says it later.
 
 The second line is the reason: the promises about `fill` your colour would break if it were the fill itself, each said as what the fill is measured against. The theme does not break them. A colour that fits as the fill on a light page is too dark on a dark one, and the other way round, so every colour gets such a line for at least one of the themes.
+
+## Colours to go with the accent
+
+An organisation often has one colour, and a theme has nine families. The generator suggests five palettes for the ones you have not set:
+
+| Palette | brand1, brand2 and brand3 |
+| --- | --- |
+| Near | The hues beside the accent on the colour wheel. |
+| Opposite | The hues across the colour wheel from the accent. |
+| Three ways | Three hues that share the colour wheel evenly with the accent. |
+| One hue | The hue of the accent, in three saturations. |
+| Quiet | The hues beside the accent, with less than half its saturation. |
+
+Each also has a colour for `visited`, the accent muted, and for `neutral`, a grey with a faint cast of the accent. Those two are the same in all five. `danger`, `warning` and `success` are never suggested: red, yellow and green carry a meaning. A suggested brand colour whose hue lands near one of the three is moved away from it, and so is one that lands on the accent or on another suggestion. A palette is then less regular than its name, and its description says that hues were moved.
+
+A suggestion is made at the lightness of the fill, so the colour you see is the fill the theme gets in the light theme, and not one the generator then moves. A family you have set yourself stands as it is.
+
+In the [theme builder](/theme-builder/) each palette is a button under the accent, with its colours on it. Pressing one fills the families you have not set, pressing another swaps them, and "LO-TEK" takes the suggestions away again. From code, see [`suggestPalettes`](#programmatic-use).
 
 ## What the generator does not do
 
@@ -311,6 +329,33 @@ recipeValues({ accent: "#7c3aed", danger: null, shape: { fieldRadius: 0 } })
 ```
 
 And `recipeBrands` says what became of each colour the generator takes, whatever else in the recipe is wrong: the rows `buildTheme` gives as `brands`. A form can show what a colour becomes while another field is still being written.
+
+`suggestPalettes` gives the [colours to go with the accent](#colours-to-go-with-the-accent) of a recipe:
+
+```ts
+import { suggestPalettes } from "@lo-tek/interfaces/theme"
+
+suggestPalettes({ accent: "#7c3aed", brand2: "#0d7a5f" })
+// {
+//   from: "#7c3aed",
+//   palettes: [
+//     {
+//       name: "Near",
+//       description: "The hues beside the accent on the colour wheel.",
+//       colors: [
+//         { family: "visited", color: "#7b53b2", kept: false },
+//         { family: "brand1", color: "#a909bb", kept: false },
+//         { family: "brand2", color: "#0d7a5f", kept: true },
+//         { family: "brand3", color: "#c00077", kept: false },
+//         { family: "neutral", color: "#6c6a74", kept: false }
+//       ]
+//     },
+//     … Opposite, Three ways, One hue, Quiet
+//   ]
+// }
+```
+
+`from` is the accent the palettes are built on, LO-TEK's own when the recipe gives none. A row with `kept: true` is the recipe's own colour, and a family whose value the generator refuses has no row, so writing the rows with `kept: false` into the recipe writes over nothing. The answer is `null` when the recipe is not an object, and when its accent is not a colour.
 
 The keys are the family names: `accent`, `visited`, `brand1` to `brand3`, `neutral`, `danger`, `warning` and `success`. They have the same names on the command line. A key that does not exist throws, with the same message as on the command line: the keys are checked by the core, so a typo is a typo wherever the theme is built.
 

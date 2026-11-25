@@ -510,6 +510,35 @@ for (const entry of editing.cases) {
 if (editingCases < 20)
   failures.push(`editing/cases.json has ${editingCases} cases: it was not read`)
 
+/*
+ * The palettes a recipe is suggested, against `core/theme/palettes.json`,
+ * which Kotlin is held to as well, to the letter: what they are built on,
+ * the five names and what each says it is, and every row with its colour.
+ * The arithmetic behind a suggested colour is held in the core's own tests;
+ * here it is that the answer is the same through the port.
+ */
+const palettes: Record<string, { recipe: unknown; expect: unknown }> =
+  JSON.parse(readFileSync(join(THEME, "palettes.json"), "utf8"))
+let palettesAnswered = 0
+for (const [name, { recipe, expect }] of Object.entries(palettes)) {
+  count += 1
+  let answer: unknown
+  try {
+    answer = core.suggestPalettes(recipe)
+  } catch (e) {
+    answer = `threw: ${e instanceof Error ? e.message : e}`
+  }
+  if (expect !== null) palettesAnswered += 1
+  if (sorted(answer) !== sorted(expect))
+    failures.push(
+      `theme/palettes.json, ${name}\n  Expected: ${sorted(expect).slice(0, 600)}\n  Core:     ${sorted(answer).slice(0, 600)}`,
+    )
+}
+if (palettesAnswered < 10)
+  failures.push(
+    `theme/palettes.json: ${palettesAnswered} cases with an answer, so the file was not read`,
+  )
+
 const reports: Record<string, unknown> = JSON.parse(
   readFileSync(join(THEME, "reports.json"), "utf8"),
 )

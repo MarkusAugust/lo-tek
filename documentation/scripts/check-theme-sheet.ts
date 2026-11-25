@@ -59,6 +59,20 @@ import { selectAll } from "hast-util-select"
 import rehypeParse from "rehype-parse"
 import { unified } from "unified"
 import { site } from "./site"
+import { readRoleNames, roleNameFaults } from "./theme-page"
+import { CONTRACT } from "./theme-recipe"
+
+/** The roles the theme at a glance shows of each family, as CSS writes them. */
+const GLANCE_ROLES = [
+  "surface",
+  "border-subtle",
+  "border",
+  "border-strong",
+  "fill",
+  "text-subtle",
+  "text",
+  "text-strong",
+]
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 const SHEET = `${ROOT}documentation/dist/theme-builder/sheet/index.html`
@@ -497,6 +511,176 @@ if (existsSync(SHEET)) {
   const s = await site({ pages: 1 })
   code = await s.run(async () => {
     const page = await s.open("/theme-builder/sheet/")
+    // The theme at a glance stands first, before any component: every
+    // colour family of the contract, in its order, with the roles of each.
+    // It is where a change of the theme is seen without scrolling
+    // (`check-theme-glance.ts`), and it is no component: the count of
+    // those is the manifest's, with or without it.
+    const glance = await page.evaluate(() => {
+      const main = document.querySelector("main")
+      const block = document.querySelector<HTMLElement>("[data-glance]")
+      const after = [...(main?.children ?? [])].filter(
+        (child) => child.tagName !== "H1",
+      )
+      return {
+        count: document.querySelectorAll("[data-glance]").length,
+        first: block !== null && after[0] === block,
+        afterTitle:
+          block !== null &&
+          main?.querySelector("h1") !== null &&
+          main?.querySelector("h1") !== undefined &&
+          (main.querySelector("h1")?.compareDocumentPosition(block) ?? 0) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        component:
+          block?.matches(".sheet__component, [data-component]") === true ||
+          block?.querySelector(".sheet__component, [data-component]") !== null,
+        families: [
+          ...(block?.querySelectorAll<HTMLElement>("li[data-family]") ?? []),
+        ].map((ramp) => ({
+          family: ramp.dataset.family ?? "",
+          roles: [...ramp.querySelectorAll<HTMLElement>("[data-role]")].map(
+            (role) => role.dataset.role ?? "",
+          ),
+        })),
+        components: document.querySelectorAll(".sheet__component").length,
+      }
+    })
+    if (glance.count !== 1 || !glance.first || !glance.afterTitle)
+      s.fail(
+        `the sheet has ${glance.count} [data-glance], and it is ${glance.first ? "" : "not "}the first thing in main after the title`,
+      )
+    if (glance.component)
+      s.fail("the theme at a glance is, or holds, a component of the sheet")
+    if (
+      JSON.stringify(glance.families.map((ramp) => ramp.family)) !==
+      JSON.stringify(CONTRACT.families)
+    )
+      s.fail(
+        `the theme at a glance has the families ${glance.families.map((ramp) => ramp.family).join(", ") || "none"}, expected the contract's in order: ${CONTRACT.families.join(", ")}`,
+      )
+    for (const { family, roles } of glance.families)
+      if (JSON.stringify(roles) !== JSON.stringify(GLANCE_ROLES))
+        s.fail(
+          `the theme at a glance shows ${roles.join(", ") || "no roles"} of ${family}, expected ${GLANCE_ROLES.join(", ")}`,
+        )
+    // The components stand in columns, each right under the one before it:
+    // rows would leave open space the height of the tallest neighbour, and
+    // a visitor scrolls past it. At the width the page opens with there is
+    // more than one column, no component is cut in two between columns,
+    // nothing reaches out to the side, and the theme at a glance has the
+    // whole width to itself.
+    const columns = await page.evaluate(() => {
+      const main = document.querySelector("main")
+      const block = document.querySelector<HTMLElement>("[data-glance]")
+      const sections = [
+        ...document.querySelectorAll<HTMLElement>(".sheet__component"),
+      ].map((section) => ({
+        name: section.dataset.component ?? "",
+        pieces: section.getClientRects().length,
+        left: Math.round(section.getBoundingClientRect().left),
+        top: section.getBoundingClientRect().top,
+        bottom: section.getBoundingClientRect().bottom,
+        right: section.getBoundingClientRect().right,
+        width: section.getBoundingClientRect().width,
+      }))
+      const style = main ? getComputedStyle(main) : null
+      return {
+        viewport: window.innerWidth,
+        scrolls:
+          document.documentElement.scrollWidth -
+          document.documentElement.clientWidth,
+        room: main
+          ? main.clientWidth -
+            Number.parseFloat(style?.paddingLeft ?? "0") -
+            Number.parseFloat(style?.paddingRight ?? "0")
+          : 0,
+        glance: block?.getBoundingClientRect().width ?? 0,
+        glanceBottom: block?.getBoundingClientRect().bottom ?? 0,
+        sections,
+      }
+    })
+    const lefts = [...new Set(columns.sections.map((c) => c.left))].sort(
+      (a, b) => a - b,
+    )
+    if (columns.viewport < 1000 || lefts.length < 2)
+      s.fail(
+        `at ${columns.viewport} pixels wide the components stand in ${lefts.length} column, expected more than one`,
+      )
+    const cut = columns.sections.filter((c) => c.pieces !== 1)
+    if (cut.length > 0)
+      s.fail(
+        `${cut.map((c) => c.name).join(", ")} ${cut.length === 1 ? "is" : "are"} cut between two columns`,
+      )
+    if (columns.scrolls > 0)
+      s.fail(
+        `the sheet is ${columns.scrolls} pixels wider than its window, so it scrolls sideways`,
+      )
+    const out = columns.sections.filter((c) => c.right > columns.viewport + 1)
+    if (out.length > 0)
+      s.fail(
+        `${out.map((c) => c.name).join(", ")} reach out of the window to the right`,
+      )
+    if (
+      columns.glance < columns.room - 2 ||
+      columns.glance < (columns.sections[0]?.width ?? 0) * 1.5
+    )
+      s.fail(
+        `the theme at a glance is ${Math.round(columns.glance)} pixels wide, where the sheet has ${Math.round(columns.room)} and a column ${Math.round(columns.sections[0]?.width ?? 0)}: it does not span the whole width`,
+      )
+    // In each column, from the top down: no component is further below
+    // the one above it than the first is below the theme at a glance, give
+    // or take what a line or a margin is.
+    const gaps: { name: string; gap: number }[] = []
+    for (const left of lefts) {
+      const column = columns.sections
+        .filter((c) => c.left === left)
+        .sort((a, b) => a.top - b.top)
+      for (const [index, c] of column.entries())
+        gaps.push({
+          name: c.name,
+          gap:
+            c.top -
+            (index === 0 ? columns.glanceBottom : column[index - 1].bottom),
+        })
+    }
+    const usual = [...gaps].sort((a, b) => a.gap - b.gap)[
+      Math.floor(gaps.length / 2)
+    ]?.gap
+    const apart = gaps.filter(
+      ({ gap }) => usual === undefined || gap < -1 || gap > usual + 48,
+    )
+    if (apart.length > 0)
+      s.fail(
+        `${apart
+          .slice(0, 5)
+          .map(({ name, gap }) => `${name} (${Math.round(gap)} pixels)`)
+          .join(
+            ", ",
+          )} ${apart.length === 1 ? "does" : "do"} not stand right under the component above in the column, where the usual space is ${Math.round(usual ?? 0)} pixels`,
+      )
+    if (gaps.length !== shown.size)
+      s.fail(
+        `the check placed ${gaps.length} components in columns, and the sheet has ${shown.size}`,
+      )
+    // The names of the roles over the bars, with the sheet alone in a wide
+    // window. `check-theme-glance.ts` holds them in the builder's frames,
+    // narrow and in both appearances.
+    const opened = page.viewportSize()
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const names = await page.evaluate(readRoleNames)
+    for (const fault of roleNameFaults(names))
+      s.fail(
+        `the theme at a glance, ${names.window.width} pixels wide: ${fault}`,
+      )
+    if (names.names.length !== GLANCE_ROLES.length)
+      s.fail(
+        `the theme at a glance shows ${names.names.length} names of roles, and a bar has ${GLANCE_ROLES.length} parts`,
+      )
+    if (opened) await page.setViewportSize(opened)
+    if (glance.components !== shown.size)
+      s.fail(
+        `the sheet has ${glance.components} components beside the theme at a glance, and the manifest gives it ${shown.size}`,
+      )
     // Registered first, or an element that has not done its work yet is
     // read as one that shows nothing.
     const elements = asked.flatMap((a) => (a.element ? [a.element] : []))

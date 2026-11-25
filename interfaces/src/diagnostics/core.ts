@@ -99,6 +99,32 @@ export type BrandFill = {
 }
 
 /**
+ * The colour of one family in a palette. `kept` is true when the colour is
+ * the recipe's own, and not a suggestion.
+ */
+export type PaletteColor = {
+  family: string
+  color: string
+  kept: boolean
+}
+
+/** One palette: its name, what it is in a sentence, and its colours. */
+export type Palette = {
+  name: string
+  description: string
+  colors: PaletteColor[]
+}
+
+/**
+ * The palettes for a recipe. `from` is the accent they are built on, as
+ * `#rrggbb`: the recipe's, or LO-TEK's own when the recipe gives none.
+ */
+export type Palettes = {
+  from: string
+  palettes: Palette[]
+}
+
+/**
  * What became of one brand colour. The lightness is the role's, so a light
  * brand colour comes out much darker as a fill.
  */
@@ -251,6 +277,12 @@ export type Core = {
    * `checkRecipe` does.
    */
   recipeBrands(recipe: unknown): Brand[]
+  /**
+   * Palettes to go with the accent of a recipe. `null` when the recipe is
+   * not an object, and when its accent is not a colour. Throws as
+   * `checkRecipe` does.
+   */
+  suggestPalettes(recipe: unknown): Palettes | null
   /** Checks every promise in a theme written as CSS. Throws without a colour contract. */
   inspectTheme(css: string): CoreThemeReport
   /** The classes and attribute values a stylesheet styles, read with the core's CSS reader. */
@@ -288,6 +320,7 @@ type Exports = {
   check_recipe_raw(pointer: number, length: number): number
   recipe_values_raw(pointer: number, length: number): number
   recipe_brands_raw(pointer: number, length: number): number
+  suggest_palettes_raw(pointer: number, length: number): number
   inspect_theme_raw(pointer: number, length: number): number
   inspect_styles_raw(pointer: number, length: number): void
   diagnose_styled_raw(pointer: number, length: number): number
@@ -365,6 +398,8 @@ export function loadCore(source: BufferSource | WebAssembly.Module): Core {
       answer(e.recipe_values_raw(...write(JSON.stringify(recipe)))),
     recipeBrands: (recipe) =>
       answer(e.recipe_brands_raw(...write(JSON.stringify(recipe)))),
+    suggestPalettes: (recipe) =>
+      answer(e.suggest_palettes_raw(...write(JSON.stringify(recipe)))),
     inspectTheme: (css) => answer(e.inspect_theme_raw(...write(css))),
     inspectStyles: (css) => {
       e.inspect_styles_raw(...write(css))

@@ -203,7 +203,13 @@ function read({ families, keys }: { families: string[]; keys: string[] }) {
       }),
     ),
     /** The families the report has a row for. */
-    rows: [...document.querySelectorAll<HTMLElement>("[data-family]")]
+    rows: [
+      ...document.querySelectorAll<HTMLElement>(
+        // The rows of the report: the suggestions under the accent have a
+        // place for each family too, and are another matter.
+        "[data-family]:not([data-palettes] *)",
+      ),
+    ]
       .filter((row) => row.getClientRects().length > 0)
       .map((row) => row.dataset.family ?? ""),
     /** The block of each field: whether it says it is changed, its reset button, its help. */

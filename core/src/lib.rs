@@ -519,6 +519,60 @@ pub unsafe extern "C" fn recipe_brands_raw(ptr: *mut u8, length: usize) -> u32 {
     }
 }
 
+/// Suggests palettes to go with the accent of a recipe: for each, its name,
+/// what it is, and a colour for each family it has one for. Answers 0 with
+/// the palettes, or with `null` when the recipe is not an object or its
+/// accent is not a colour, and 1 when the input is not JSON or the core has
+/// not been given a colour contract.
+///
+/// # Safety
+/// `ptr` and `length` must come from `alloc(length)`, filled with UTF-8.
+#[no_mangle]
+pub unsafe extern "C" fn suggest_palettes_raw(ptr: *mut u8, length: usize) -> u32 {
+    if !theme::contract::loaded() {
+        return refuse(NO_CONTRACT);
+    }
+    match json::parse(&read_input(ptr, length)) {
+        Ok(input) => {
+            let Some(found) = theme::suggest_palettes(&input) else {
+                respond("null".to_string());
+                return 0;
+            };
+            let palettes: Vec<String> = found
+                .palettes
+                .iter()
+                .map(|palette| {
+                    let colors: Vec<String> = palette
+                        .colors
+                        .iter()
+                        .map(|c| {
+                            format!(
+                                "{{\"family\":{},\"color\":{},\"kept\":{}}}",
+                                json_string(&c.family),
+                                json_string(&c.color),
+                                c.kept
+                            )
+                        })
+                        .collect();
+                    format!(
+                        "{{\"name\":{},\"description\":{},\"colors\":[{}]}}",
+                        json_string(&palette.name),
+                        json_string(&palette.description),
+                        colors.join(",")
+                    )
+                })
+                .collect();
+            respond(format!(
+                "{{\"from\":{},\"palettes\":[{}]}}",
+                json_string(&found.from),
+                palettes.join(",")
+            ));
+            0
+        }
+        Err(error) => refuse(&error),
+    }
+}
+
 /// Checks a theme the host has written in, as CSS text. Returns 0 with the
 /// report, or 1 when the core has not been given a colour contract.
 ///

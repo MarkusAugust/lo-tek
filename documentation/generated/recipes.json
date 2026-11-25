@@ -8291,6 +8291,12 @@
         {
           "lang": "kotlin",
           "meta": null,
+          "code": "val near = Lotek.suggestPalettes(\"\"\"{\"accent\": \"#7c3aed\"}\"\"\")?.palettes?.first()\nnear?.colors?.map { it.family to it.color } // [(visited, #7b53b2), (brand1, #a909bb), …]",
+          "section": "The theme"
+        },
+        {
+          "lang": "kotlin",
+          "meta": null,
           "code": "// build.gradle.kts\nplugins {\n    id(\"io.github.markusaugust.lo-tek\") version \"VERSION\"\n}\n\nlotek {\n    templates.from(fileTree(\"src/main/jte\"))\n    themeRecipe = file(\"lotek.theme.json\")\n}",
           "section": "The Gradle plugin"
         },
@@ -8456,6 +8462,15 @@
         "withoutColours",
         "message",
         "lotek theme",
+        "Lotek.suggestPalettes(recipe)",
+        "name",
+        "description",
+        "colors",
+        "ThemePaletteColor",
+        "family",
+        "color",
+        "kept",
+        "null",
         "lotek check",
         "lotek theme",
         "lotekCheck",
@@ -9728,6 +9743,12 @@
         {
           "lang": "ts",
           "meta": null,
+          "code": "import { suggestPalettes } from \"@lo-tek/interfaces/theme\"\n\nsuggestPalettes({ accent: \"#7c3aed\", brand2: \"#0d7a5f\" })\n// {\n//   from: \"#7c3aed\",\n//   palettes: [\n//     {\n//       name: \"Near\",\n//       description: \"The hues beside the accent on the colour wheel.\",\n//       colors: [\n//         { family: \"visited\", color: \"#7b53b2\", kept: false },\n//         { family: \"brand1\", color: \"#a909bb\", kept: false },\n//         { family: \"brand2\", color: \"#0d7a5f\", kept: true },\n//         { family: \"brand3\", color: \"#c00077\", kept: false },\n//         { family: \"neutral\", color: \"#6c6a74\", kept: false }\n//       ]\n//     },\n//     … Opposite, Three ways, One hue, Quiet\n//   ]\n// }",
+          "section": "Programmatic use"
+        },
+        {
+          "lang": "ts",
+          "meta": null,
           "code": "import { loadCore } from \"@lo-tek/interfaces/diagnostics\"\nimport wasmUrl from \"@lo-tek/interfaces/core.wasm?url\"\nimport contract from \"@lo-tek/interfaces/color-contract.json?raw\"\n\nconst core = loadCore(await WebAssembly.compileStreaming(fetch(wasmUrl)))\ncore.loadContract(contract)\nconst theme = core.buildTheme({ accent: \"#7c3aed\" })",
           "section": "Programmatic use"
         }
@@ -9765,6 +9786,12 @@
         "hsl(60 100% 50%)",
         "hsl(240 100% 50%)",
         "fill",
+        "visited",
+        "neutral",
+        "danger",
+        "warning",
+        "success",
+        "suggestPalettes",
         "fill",
         "lotek check-theme",
         "tokens.css",
@@ -9848,6 +9875,11 @@
         "recipeBrands",
         "buildTheme",
         "brands",
+        "suggestPalettes",
+        "from",
+        "kept: true",
+        "kept: false",
+        "null",
         "accent",
         "visited",
         "brand1",

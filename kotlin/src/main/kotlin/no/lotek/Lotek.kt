@@ -193,6 +193,43 @@ object Lotek {
     }
 
     /**
+     * Suggests five palettes to go with the accent of a recipe: Near,
+     * Opposite, Three ways, One hue and Quiet. Each has a colour for visited,
+     * brand1, brand2, brand3 and neutral, made at the lightness of the fill,
+     * so the colour is the fill the theme gets in the light theme. danger,
+     * warning and success are never suggested. A family the recipe gives a
+     * colour stands as it is, as [ThemePaletteColor.kept], and one whose
+     * value the core refuses has no row.
+     *
+     * `null` when the recipe is not an object, and when its accent is not a
+     * colour. [recipe] is the JSON text of a recipe, and what is thrown is
+     * as for [recipeBrands].
+     */
+    fun suggestPalettes(recipe: String): ThemePalettes? {
+        val answer = Json.parse(askTheme(SUGGEST_PALETTES, recipe)) as Map<*, *>? ?: return null
+        return ThemePalettes(
+            from = answer["from"] as String,
+            palettes =
+                (answer["palettes"] as List<*>).map { p ->
+                    val palette = p as Map<*, *>
+                    ThemePalette(
+                        name = palette["name"] as String,
+                        description = palette["description"] as String,
+                        colors =
+                            (palette["colors"] as List<*>).map { c ->
+                                val color = c as Map<*, *>
+                                ThemePaletteColor(
+                                    family = color["family"] as String,
+                                    color = color["color"] as String,
+                                    kept = color["kept"] as Boolean,
+                                )
+                            },
+                    )
+                },
+        )
+    }
+
+    /**
      * One call to an operation of the theme: the core is given the colour
      * contract first, and what it refuses is thrown as
      * [IllegalArgumentException] with the core's own explanation.
@@ -378,6 +415,7 @@ object Lotek {
     private const val CHECK_RECIPE = "check_recipe_raw"
     private const val RECIPE_VALUES = "recipe_values_raw"
     private const val RECIPE_BRANDS = "recipe_brands_raw"
+    private const val SUGGEST_PALETTES = "suggest_palettes_raw"
     private const val INSPECT_THEME = "inspect_theme_raw"
     private const val COMPLETE = "complete_raw"
     private const val HOVER = "hover_raw"
@@ -556,6 +594,31 @@ data class ThemeBrand(
     val summary: String,
     /** Why, in the core's own sentences. Show them as they are. */
     val reasons: List<String>,
+)
+
+/**
+ * The palettes for a recipe, the same fields as `Palettes` in TypeScript.
+ * [from] is the accent they are built on, as `#rrggbb`: the recipe's, or
+ * LO-TEK's own when the recipe gives none.
+ */
+data class ThemePalettes(
+    val from: String,
+    val palettes: List<ThemePalette>,
+)
+
+/** One palette: its name, what it is in a sentence, and its colours. */
+data class ThemePalette(
+    val name: String,
+    val description: String,
+    val colors: List<ThemePaletteColor>,
+)
+
+/** The colour of one family in a palette. */
+data class ThemePaletteColor(
+    val family: String,
+    val color: String,
+    /** The colour is the recipe's own, and not a suggestion. */
+    val kept: Boolean,
 )
 
 /** The fill a brand colour got in one scheme, the same fields as `BrandFill` in TypeScript. */

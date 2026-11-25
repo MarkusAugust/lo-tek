@@ -22,6 +22,7 @@ import { existsSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import type { Frame } from "playwright"
 import { site } from "./site"
+import { showAppearances } from "./theme-page"
 
 const ROOT = fileURLToPath(new URL("../..", import.meta.url))
 
@@ -160,6 +161,8 @@ async function follows(
 
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
+  // The builder opens with the dark frame alone, and this is about both.
+  await showAppearances(page, "both")
   for (const appearance of APPEARANCES)
     expect(
       (await page

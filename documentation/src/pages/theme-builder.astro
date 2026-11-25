@@ -206,6 +206,13 @@ const blocks = (at: "rest" | "nothing") => ({
  */
 const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
 
+/**
+ * The places the page has for palettes. The core suggests five, and a
+ * signal cannot hold a list, so each has a place in the markup that the
+ * answer fills in.
+ */
+const PLACES = ["p1", "p2", "p3", "p4", "p5"] as const
+
 /*
  * The signals. `own` says which families have a colour of the consumer's,
  * `fields` holds what is written in every field, in the shape of the recipe:
@@ -214,9 +221,19 @@ const WHY = ["reason1", "reason2", "reason3", "reason4"] as const
  * and `built` is the core's answer to it: the theme, what is wrong with
  * each field, in the shape of `fields`, and what became of each colour.
  * `shown` is the theme the frames have, the last one that was built, and
- * `view` which page they frame. `copied` is the recipe the clipboard last
+ * `view` which page they frame and `appearances` which of the frames are
+ * shown: the dark one alone, both, or the light one alone. `copied` is the recipe the clipboard last
  * took and `notCopied` the one it last refused. `pasted` is the text in the
  * field a recipe can be pasted into, and `pasteError` why it was not taken.
+ * `suggested` says which families hold a colour a palette filled in, and
+ * not one the visitor wrote or picked, and `palettes` is the core's answer
+ * to the recipe without those: the colour the palettes are built on, and
+ * each palette in its place. Beside them, `none` has LO-TEK's own colour of
+ * each family the palettes have one for, and `stale` says the answer is an
+ * earlier one, shown while the accent is no colour. `used` is the name of
+ * the palette the suggested colours are from, which they follow when the
+ * accent changes. `undo` is what was chosen before "Start again", as text,
+ * while it can still be put back.
  * `failed` says the core never came.
  *
  * A signal an action answers into always has the same keys, and only text,
@@ -230,6 +247,26 @@ const signals = {
   ready: false,
   failed: false,
   own: Object.fromEntries(families.map(([name]) => [name, false])),
+  suggested: Object.fromEntries(families.map(([name]) => [name, false])),
+  used: "",
+  undo: "",
+  palettes: {
+    from: "",
+    stale: false,
+    none: Object.fromEntries(families.map(([name]) => [name, ""])),
+    ...Object.fromEntries(
+      PLACES.map((place) => [
+        place,
+        {
+          name: "",
+          description: "",
+          colors: Object.fromEntries(
+            families.map(([name]) => [name, { color: "", kept: false }]),
+          ),
+        },
+      ]),
+    ),
+  },
   fields: {
     ...Object.fromEntries(families.map(([name]) => [name, ""])),
     ...blocks("rest"),
@@ -257,6 +294,7 @@ const signals = {
   },
   shown: "",
   view: "sheet",
+  appearances: "dark",
   copied: "",
   notCopied: "",
   pasted: "",
@@ -264,7 +302,7 @@ const signals = {
 }
 
 /** The two appearances a theme has, each in a frame of its own. */
-const APPEARANCES = ["light", "dark"] as const
+const APPEARANCES = ["dark", "light"] as const
 
 /**
  * The command that builds the theme from the recipe file, with the version
@@ -281,6 +319,16 @@ const USE = `@import "@lo-tek/interfaces/tokens.css";
 @import "./theme.css";`
 
 const id = (path: string) => `field-${path.replaceAll(".", "-")}`
+
+/** Whether any family holds a suggestion, and whether a palette is in use. */
+const anySuggested = `(${families.map(([name]) => `$suggested.${name}`).join(" || ")})`
+const inUse = (place: string) =>
+  `$used !== '' && $used === $palettes.${place}.name && ${anySuggested}`
+/** What the palette in use says of itself, and nothing when none is. */
+const says = `${PLACES.map((place) => `${inUse(place)} ? $palettes.${place}.description : `).join("")}''`
+/** A dot of a strip: the colour as paint, and out of the way without one. */
+const dot = (color: string) =>
+  `${color} !== '' ? 'background-color: ' + ${color} : 'display: none'`
 ---
 
 <!doctype html>
@@ -348,6 +396,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				     theme. The core is asked only when it has been loaded. -->
 				<div hidden data-effect="$ready && ($recipe = @recipe($own, $fields))"></div>
 				<div hidden data-effect="$ready && ($built = @buildTheme($recipe, $own))"></div>
+				<div hidden data-effect="$ready && ($palettes = @suggestPalettes($recipe, $suggested))"></div>
+				<div hidden data-effect="$ready && $used !== '' && @followPalette($palettes, $suggested, $used)"></div>
 				<div hidden data-effect="$ready && ($built.ok ? ($shown = $built.css) : $built.error === '' && ($shown = ''))"></div>
 
 				<section class="builder__recipe" aria-labelledby="recipe-title">
@@ -370,7 +420,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											id={`own-${name}`}
 											name={`own.${name}`}
 											data-bind={`own.${name}`}
-											data-on:change={`!el.checked && ($fields.${name} = '')`}
+											data-on:change={`!el.checked && ($fields.${name} = '', $suggested.${name} = false)`}
 />
 <label class="lt-label" id={`own-${name}-label`} for={`own-${name}`}>
 											{name}
@@ -388,7 +438,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											aria-label={`Reset ${name}`}
 											style="display: none"
 											data-show={`$own.${name} || $fields.${name} !== ''`}
-											data-on:click={`$fields.${name} = ''; $own.${name} = false; document.getElementById('own-${name}').focus()`}
+											data-on:click={`$fields.${name} = ''; $own.${name} = false; $suggested.${name} = false; document.getElementById('own-${name}').focus()`}
 >
 											Reset
 </button>
@@ -399,14 +449,17 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 									     as the core read it, and not the field: the core
 									     takes #f0a and F7DF1E, and a picker takes nothing
 									     but #rrggbb, and says so in the console for anything
-									     else. -->
+									     else. The field is not bound with data-bind: what is
+									     written is the visitor's own before it is a value, so
+									     the family stops being a suggestion first, and the
+									     palette in use does not write its colour back. -->
 									<div class="builder__colour">
 										<input
 											class="builder__picker"
 											type="color"
 											aria-label={`Pick the colour of ${name}`}
 											value={OWN[name]}
-											data-on:input={`$fields.${name} = el.value; $own.${name} = true`}
+											data-on:input={`$fields.${name} = el.value; $own.${name} = true; $suggested.${name} = false`}
 											data-effect={`$built.report.${name}.given !== '' ? (el.value = $built.report.${name}.given) : $fields.${name} === '' && (el.value = '${OWN[name]}')`}
 										/>
 										<input
@@ -420,7 +473,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 											autocomplete="off"
 											spellcheck="false"
 											disabled
-											data-bind={`fields.${name}`}
+											data-on:input={`$suggested.${name} = false; $fields.${name} = el.value`}
+											data-effect={`el.value !== $fields.${name} && (el.value = $fields.${name})`}
 											data-attr:disabled={`!$own.${name}`}
 											data-attr:aria-invalid={`$built.wrong.${name} !== '' && 'true'`}
 											data-attr:data-state={`$built.wrong.${name} !== '' && 'invalid'`}
@@ -480,6 +534,74 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 										))}
 									</details>
 								</div>
+								{
+									name === "accent" && (
+										<details class="lt-accordion builder__palettes" data-variant="plain" open style="display: none" data-show="$palettes.from !== ''">
+											<!-- The palettes the core suggests, each a strip to press:
+											     its name and its colours as paint. The one in use is
+											     pressed and says so, and LO-TEK's own, last, takes
+											     the suggestions away. While the accent is no colour
+											     the strips stand as they were and cannot be pressed.
+											     They can be folded away, and are open until they are. -->
+											<summary>Palette</summary>
+											<div class="lt-accordion__content builder__palettes-content">
+											<div class="builder__strips" role="group" aria-label="Palette" data-palettes>
+												{PLACES.map((place) => (
+													<button
+														class="builder__strip"
+														type="button"
+														data-palette
+														style="display: none"
+														data-show={`$palettes.${place}.name !== ''`}
+														data-attr:disabled="$palettes.stale"
+														data-attr:aria-pressed={`${inUse(place)} ? 'true' : 'false'`}
+													data-attr:aria-description={`$palettes.${place}.description`}
+														data-on:click={`@usePalette($palettes.${place})`}
+													>
+														<span data-text={`$palettes.${place}.name`} />
+														<span class="builder__dots">
+															{families.map(([family]) => (
+																<span
+																	class="builder__dot"
+																	data-family={family}
+																	style="display: none"
+																	data-attr:data-kept={`$palettes.${place}.colors.${family}.kept ? 'true' : 'false'`}
+																	data-attr:data-color={`$palettes.${place}.colors.${family}.color`}
+																	data-attr:style={dot(`$palettes.${place}.colors.${family}.color`)}
+																/>
+															))}
+														</span>
+														<span class="builder__changed" style="display: none" data-show={inUse(place)}>
+															In use
+														</span>
+													</button>
+												))}
+												<button
+													class="builder__strip"
+													type="button"
+													data-palette-default
+													data-attr:aria-pressed={`${PLACES.map((place) => `!(${inUse(place)})`).join(" && ")} ? 'true' : 'false'`}
+													data-on:click="@noPalette($suggested)"
+												>
+													<span>LO-TEK</span>
+													<span class="builder__dots">
+														{families.map(([family]) => (
+															<span
+																class="builder__dot"
+																data-family={family}
+																style="display: none"
+																data-attr:data-color={`$palettes.none.${family}`}
+																data-attr:style={dot(`$palettes.none.${family}`)}
+															/>
+														))}
+													</span>
+												</button>
+											</div>
+											<p class="builder__why" data-palette-says style="display: none" data-show={`(${says}) !== ''`} data-text={says} />
+											</div>
+										</details>
+									)
+								}
 								</div>
 							))
 						}
@@ -563,6 +685,38 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				<section class="builder__preview" aria-labelledby="preview-title">
 					<div class="builder__preview-head">
 						<h2 class="profile-label" id="preview-title">Preview</h2>
+						<!-- "Start again" empties everything, and is then the way
+						     back, until something is chosen again. -->
+						<div class="builder__preview-tools">
+							<div hidden data-effect="$undo !== '' && @recipe($own, $fields) !== '{}' && ($undo = '')"></div>
+							<button
+								class="lt-button"
+								data-variant="secondary"
+								type="button"
+								data-on:click="$undo !== '' ? @undoStartAgain($undo) : @startAgain($own, $fields, $suggested, $used)"
+								data-text="$undo !== '' ? 'Undo' : 'Start again'"
+							>
+								Start again
+							</button>
+						<!-- One appearance alone has the width of both. Which is
+						     shown is about the visitor and not the recipe, so
+						     "Start again" leaves it. -->
+						<div hidden data-effect="$ready && (@rememberAppearances($appearances), @keepPlace())"></div>
+						<fieldset class="lt-toggle-group">
+							<legend class="lt-sr-only">Which appearances are shown</legend>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="appearances" value="dark" checked data-bind="appearances" />
+								Dark
+							</label>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="appearances" value="both" data-bind="appearances" />
+								Both
+							</label>
+							<label class="lt-toggle-group__option">
+								<input type="radio" name="appearances" value="light" data-bind="appearances" />
+								Light
+							</label>
+						</fieldset>
 						<fieldset class="lt-toggle-group">
 							<legend class="lt-sr-only">What the theme is shown on</legend>
 							<label class="lt-toggle-group__option">
@@ -574,6 +728,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 								Page
 							</label>
 						</fieldset>
+						</div>
 					</div>
 					<!-- Each frame holds a whole page, and every control in it is a
 					     stop for the keyboard. -->
@@ -588,7 +743,11 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					<div class="builder__frames">
 						{
 							APPEARANCES.map((appearance) => (
-								<figure class="builder__frame">
+								<figure
+									class="builder__frame"
+									style={appearance === signals.appearances ? undefined : "display: none"}
+									data-show={`$appearances === 'both' || $appearances === '${appearance}'`}
+								>
 									<figcaption class="profile-label">{appearance}</figcaption>
 									<iframe
 										title={`The theme in the ${appearance} appearance`}
@@ -610,7 +769,7 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					<!-- What was chosen is remembered in this browser. "Copied" is said
 					     of the recipe the clipboard took, once it has taken it, and
 					     only while that recipe is the one shown. -->
-					<div hidden data-effect="$ready && @remember($own, $fields)"></div>
+					<div hidden data-effect="$ready && @remember($own, $fields, $suggested, $used)"></div>
 					<p class="builder__actions">
 						<button
 							class="lt-button"
@@ -631,14 +790,6 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 						>
 							Download theme.css
 						</a>
-						<button
-							class="lt-button"
-							data-variant="ghost"
-							type="button"
-							data-on:click="@startAgain()"
-						>
-							Start again
-						</button>
 						<span class="builder__said" role="status" data-text="$copied === $recipe ? 'Copied.' : $notCopied === $recipe ? 'The browser would not copy it. Select the recipe and copy it by hand.' : ''"></span>
 					</p>
 					<p class="builder__line">
@@ -988,6 +1139,97 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		text-wrap: pretty;
 	}
 
+	/* The palettes the core suggests, under the accent: a strip each. */
+	/* An accordion of LO-TEK, with the page behind it. Its summary keeps
+	   room at the sides, less than LO-TEK's own: the hover and the focus
+	   ring are drawn to its edge, and with none they lie on the text and
+	   the chevron. The content has none, so the strips are as wide as the
+	   fields around them. */
+	.builder__palettes {
+		--lt-accordion-padding-inline: var(--lt-spacing-2);
+		margin-block-start: var(--lt-spacing-3);
+		/* The family it stands in ends with a rule of its own. */
+		border-block-end: 0;
+		background: none;
+	}
+
+	.builder__palettes > .lt-accordion__content {
+		padding-inline: 0;
+	}
+
+	.builder__palettes-content {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+	}
+
+	.builder__palettes-content > p {
+		margin: 0;
+	}
+
+	.builder__strips {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(6.9rem, 1fr));
+		gap: var(--lt-spacing-2);
+	}
+
+	.builder__strip {
+		display: flex;
+		flex-direction: column;
+		gap: var(--lt-spacing-2);
+		padding: var(--lt-spacing-2) var(--lt-spacing-3);
+		border: var(--profile-rule);
+		background: none;
+		color: inherit;
+		font: inherit;
+		font-size: var(--lt-font-size-s);
+		text-align: start;
+		cursor: pointer;
+	}
+
+	.builder__strip:hover {
+		background: var(--lt-color-neutral-surface);
+	}
+
+	.builder__strip:focus-visible {
+		outline: var(--lt-focus-ring, 2px solid var(--lt-color-accent-fill));
+		outline-offset: 2px;
+	}
+
+	/* Not an outline: that is the focus ring's, and a pressed strip has to
+	   show the focus of the keyboard as any other does. */
+	.builder__strip[aria-pressed="true"] {
+		box-shadow: inset 0 0 0 2px var(--lt-color-accent-fill);
+		font-weight: var(--lt-font-weight-semibold);
+	}
+
+	.builder__strip:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.builder__strip .builder__changed {
+		font-weight: var(--lt-font-weight-regular);
+	}
+
+	.builder__dots {
+		display: flex;
+		gap: 3px;
+	}
+
+	.builder__dot {
+		inline-size: 1.1rem;
+		block-size: 1.1rem;
+		border: var(--profile-rule-subtle);
+	}
+
+	.builder__preview-tools {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: var(--lt-spacing-3);
+	}
+
 	.builder__preview-head {
 		display: flex;
 		flex-wrap: wrap;
@@ -1107,6 +1349,13 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 
 	type Fields = { [key: string]: string | Fields }
 
+	/** A palette in its place: a colour for every family, or none. */
+	type Place = {
+		name: string
+		description: string
+		colors: Record<string, { color: string; kept: boolean }>
+	}
+
 	/*
 	 * The page as on a first visit: what the markup itself says the signals
 	 * are. It is the shape of `own` and `fields`, and what every field holds
@@ -1115,6 +1364,8 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	 */
 	const first = JSON.parse(document.body.getAttribute("data-signals") ?? "{}") as {
 		own: Record<string, boolean>
+		suggested: Record<string, boolean>
+		palettes: { p1: Place; none: Record<string, string> } & Record<string, unknown>
 		fields: Fields
 	}
 
@@ -1240,6 +1491,127 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 		},
 	})
 
+	type Answer = {
+		from: string
+		palettes: { name: string; description: string; colors: { family: string; color: string; kept: boolean }[] }[]
+	}
+
+	/** LO-TEK's own colour of each family, from the contract the core has. */
+	const ownColours = JSON.parse(contract).brands as Record<string, string>
+
+	/** A place with no palette in it, as text. */
+	const emptyPlace = JSON.stringify(first.palettes.p1)
+
+	/** The palettes as the signal holds them, from an answer of the core. */
+	const laidOut = (answer: Answer) => {
+		// A place of its own each time: what is handed to Datastar becomes
+		// the signal's, and two places must not share a colour.
+		const blank = (): Place => JSON.parse(emptyPlace)
+		const places = Object.keys(first.palettes).filter((key) => /^p\d+$/.test(key))
+		// The families the palettes have a colour for, with LO-TEK's own.
+		const suggestedFor = new Set(answer.palettes.flatMap((p) => p.colors.map((c) => c.family)))
+		return {
+			from: answer.from,
+			stale: false,
+			none: Object.fromEntries(
+				Object.keys(first.palettes.none).map((family) => [
+					family,
+					suggestedFor.has(family) ? (ownColours[family] ?? "") : "",
+				]),
+			),
+			...Object.fromEntries(
+				places.map((place, at) => {
+					const palette = answer.palettes[at]
+					if (!palette) return [place, blank()]
+					const colors = blank().colors
+					for (const { family, color, kept } of palette.colors)
+						if (family in colors) colors[family] = { color, kept }
+					return [place, { name: palette.name, description: palette.description, colors }]
+				}),
+			),
+		}
+	}
+
+	// The core's palettes for what the visitor chose: the recipe without the
+	// families a palette filled in, so the palettes stay what they were after
+	// one is taken. With no answer, while the accent is no colour, the last
+	// one stands and says it is stale, so nothing moves while a colour is
+	// written; before any answer every place is empty.
+	// The last answer is kept as text: what an action hands Datastar becomes
+	// the signal's own, and must not be handed over twice.
+	let lastPalettes: string | undefined
+	action({
+		name: "suggestPalettes",
+		apply(_: unknown, recipe: string, suggested: Record<string, boolean>) {
+			const chosen = JSON.parse(recipe)
+			for (const [family, is] of Object.entries(suggested)) if (is) delete chosen[family]
+			const answer: Answer | null = core.suggestPalettes(chosen)
+			if (answer) lastPalettes = JSON.stringify(laidOut(answer))
+			if (!lastPalettes) return laidOut({ from: "", palettes: [] })
+			return { ...JSON.parse(lastPalettes), stale: !answer }
+		},
+	})
+
+	// A palette into the fields: every colour the core suggests, and none it
+	// says is the recipe's own. The families are remembered as suggested, so
+	// the next palette can take their place.
+	action({
+		name: "usePalette",
+		apply(_: unknown, palette: Place) {
+			const filled = Object.entries(palette.colors).filter(
+				([, { color, kept }]) => color !== "" && !kept,
+			)
+			mergePatch({
+				own: Object.fromEntries(filled.map(([family]) => [family, true])),
+				suggested: Object.fromEntries(filled.map(([family]) => [family, true])),
+				fields: Object.fromEntries(filled.map(([family, { color }]) => [family, color])),
+				used: palette.name,
+			})
+		},
+	})
+
+	// LO-TEK's own again: every family that holds a suggestion is emptied and
+	// switched off, and no palette is in use. A colour the visitor wrote is
+	// no suggestion, and stands.
+	action({
+		name: "noPalette",
+		apply(_: unknown, suggested: Record<string, boolean>) {
+			const emptied = Object.keys(suggested).filter((family) => suggested[family])
+			mergePatch({
+				own: Object.fromEntries(emptied.map((family) => [family, false])),
+				suggested: Object.fromEntries(emptied.map((family) => [family, false])),
+				fields: Object.fromEntries(emptied.map((family) => [family, ""])),
+				used: "",
+			})
+		},
+	})
+
+	// The suggested colours follow their palette: when the core's answer
+	// changes, with the accent or a status, each family that still holds a
+	// suggestion gets the colour the palette in use now has for it. A colour
+	// the visitor wrote, and a family that was emptied, is no suggestion and
+	// is left alone. With no answer the colours stand.
+	action({
+		name: "followPalette",
+		apply(_: unknown, palettes: Record<string, unknown>, suggested: Record<string, boolean>, used: string) {
+			// Only the places are asked for a name: to read a key a signal
+			// does not have is to give it one, and an answer without that
+			// key is then a change every time.
+			const palette = Object.entries(palettes)
+				.filter(([key]) => /^p\d+$/.test(key))
+				.map(([, place]) => place as Place)
+				.find((place) => place.name === used)
+			if (!palette) return
+			const follows = Object.entries(palette.colors).filter(
+				([family, { color, kept }]) => suggested[family] && color !== "" && !kept,
+			)
+			if (follows.length > 0)
+				mergePatch({
+					fields: Object.fromEntries(follows.map(([family, { color }]) => [family, color])),
+				})
+		},
+	})
+
 	/*
 	 * The theme of a frame: the appearance on `<html>`, and the CSS in one
 	 * `<style>` in `<head>`, the file as the generator writes it. An empty
@@ -1268,19 +1640,61 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	// The two frames show the same page, and are read side by side: scrolling
 	// one scrolls the other to the same place. A frame that is already there
 	// is left alone, which is what stops the two from answering each other.
+	// Where the frames are, as the part of the page at the top of the one
+	// last scrolled and how far into it the top is. A frame that is hidden
+	// has no height and forgets where it was, and one that gets another width
+	// lays its page out again, so a number of pixels would not be the same
+	// place. A part is a child of the page's `main`, and the one that counts
+	// is the first of them that is not above the frame: where the page
+	// stands in columns that is the top of the first column, which is where
+	// reading begins.
+	let place: { part: number; into: number } | null = null
+	// While the frames are put back, their own scrolling says nothing.
+	let placing = false
+
+	const frames = () => [...document.querySelectorAll<HTMLIFrameElement>("iframe[data-appearance]")]
+	const pageOf = (frame: HTMLIFrameElement) => {
+		const root = frame.contentDocument?.documentElement
+		return root && root.clientHeight > 0 ? root : null
+	}
+
+	const partsOf = (root: HTMLElement) => [
+		...(root.ownerDocument.querySelector("main") ?? root.ownerDocument.body).children,
+	]
+
+	const notePlace = (root: HTMLElement) => {
+		const parts = partsOf(root)
+		const part = parts.findIndex((el) => {
+			const box = el.getBoundingClientRect()
+			return box.height > 0 && box.bottom > 0
+		})
+		if (part < 0) return
+		const box = parts[part].getBoundingClientRect()
+		place = { part, into: -box.top / box.height }
+	}
+
+	const toPlace = (root: HTMLElement) => {
+		const el = place && partsOf(root)[place.part]
+		if (!place || !el) return
+		const box = el.getBoundingClientRect()
+		const top = root.scrollTop + box.top + place.into * box.height
+		root.ownerDocument.defaultView?.scrollTo({ top, behavior: "instant" })
+	}
+
 	action({
 		name: "scrollTogether",
 		apply(_: unknown, frame: HTMLIFrameElement) {
-			const from = frame.contentDocument?.documentElement
-			if (!from) return
+			// Another page in the frame: what was noted is of the page before.
+			place = null
 			frame.contentWindow?.addEventListener(
 				"scroll",
 				() => {
+					const from = pageOf(frame)
+					if (placing || !from) return
+					notePlace(from)
 					const part = from.scrollTop / Math.max(1, from.scrollHeight - from.clientHeight)
-					for (const other of document.querySelectorAll<HTMLIFrameElement>(
-						"iframe[data-appearance]",
-					)) {
-						const to = other.contentDocument?.documentElement
+					for (const other of frames()) {
+						const to = pageOf(other)
 						if (other === frame || !to) continue
 						const top = part * (to.scrollHeight - to.clientHeight)
 						if (Math.abs(to.scrollTop - top) > 1.5)
@@ -1288,6 +1702,30 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 					}
 				},
 				{ passive: true },
+			)
+		},
+	})
+
+	// Another choice of frames shows the same place in those that are shown,
+	// once they have their new width.
+	action({
+		name: "keepPlace",
+		apply() {
+			placing = true
+			requestAnimationFrame(() =>
+				requestAnimationFrame(() => {
+					for (const frame of frames()) {
+						const root = pageOf(frame)
+						if (root) toPlace(root)
+					}
+					// The frames answer with a scroll of their own, a frame
+					// or two later, and that is not the visitor's.
+					requestAnimationFrame(() =>
+						requestAnimationFrame(() => {
+							placing = false
+						}),
+					)
+				}),
 			)
 		},
 	})
@@ -1315,21 +1753,54 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 	// switched off, and then the page works without remembering.
 	action({
 		name: "remember",
-		apply(_: unknown, own: Record<string, boolean>, fields: Fields) {
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields, suggested: Record<string, boolean>, used: string) {
 			try {
-				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields }))
+				localStorage.setItem(REMEMBERED, JSON.stringify({ own, fields, suggested, used }))
 			} catch {
 				// Nothing to do: the page is as useful, only not next time.
 			}
 		},
 	})
 
+	// Which appearances are shown is kept by itself: it is not of the recipe.
+	const SHOWN = "lotek-theme-builder-appearances"
+	action({
+		name: "rememberAppearances",
+		apply(_: unknown, appearances: string) {
+			try {
+				localStorage.setItem(SHOWN, appearances)
+			} catch {
+				// As for the recipe: the page works without remembering.
+			}
+		},
+	})
+
+	// Everything as on a first visit. What was chosen is kept as text for as
+	// long as it can be put back: until something is chosen again. Nothing
+	// chosen, nothing to put back.
 	action({
 		name: "startAgain",
-		apply() {
+		apply(_: unknown, own: Record<string, boolean>, fields: Fields, suggested: Record<string, boolean>, used: string) {
+			const nothing = JSON.stringify({ own: first.own, fields: first.fields })
 			// The empty page is what is then remembered: the effect that
 			// remembers runs on this as on any change.
-			mergePatch({ own: first.own, fields: first.fields, pasted: "", pasteError: "" })
+			mergePatch({
+				own: first.own,
+				suggested: first.suggested,
+				used: "",
+				fields: first.fields,
+				pasted: "",
+				pasteError: "",
+				undo: JSON.stringify({ own, fields }) === nothing ? "" : JSON.stringify({ own, fields, suggested, used }),
+			})
+		},
+	})
+
+	action({
+		name: "undoStartAgain",
+		apply(_: unknown, undo: string) {
+			const before = JSON.parse(undo)
+			mergePatch({ ...before, undo: "" })
 		},
 	})
 
@@ -1360,11 +1831,20 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				own: Object.fromEntries(
 					Object.keys(first.own).map((name) => [name, given([name])]),
 				),
+				// A pasted recipe is the visitor's own, every colour of it.
+				suggested: first.suggested,
+				used: "",
 				fields: placed(first.fields, values),
 				pasteError: "",
 			})
 		},
 	})
+
+	// The families the core suggests colours for, and what its palettes are
+	// called: those of a recipe that gives nothing.
+	const offered: Answer["palettes"] = loaded?.suggestPalettes({})?.palettes ?? []
+	const suggestable = new Set(offered.flatMap((palette) => palette.colors.map((color) => color.family)))
+	const named = new Set(offered.map((palette) => palette.name))
 
 	// What was left the last time, before Datastar is told the core is here.
 	try {
@@ -1374,10 +1854,27 @@ const id = (path: string) => `field-${path.replaceAll(".", "-")}`
 				own: Object.fromEntries(
 					Object.keys(first.own).map((name) => [name, kept.own?.[name] === true]),
 				),
+				// Only a family that is switched on can hold a suggestion, and
+				// only one the core suggests colours for: what is remembered
+				// may be from another version, or not the page's own writing.
+				suggested: Object.fromEntries(
+					Object.keys(first.suggested).map((name) => [
+						name,
+						kept.suggested?.[name] === true && kept.own?.[name] === true && suggestable.has(name),
+					]),
+				),
+				used: typeof kept.used === "string" && named.has(kept.used) ? kept.used : "",
 				fields: laid(first.fields, kept.fields),
 			})
 	} catch {
 		// Nothing remembered that can be read. The page starts empty.
+	}
+
+	try {
+		const appearances = localStorage.getItem(SHOWN)
+		if (appearances === "light" || appearances === "both") mergePatch({ appearances })
+	} catch {
+		// Nothing remembered: the dark one is shown.
 	}
 
 	if (loaded) mergePatch({ ready: true })
