@@ -63,6 +63,9 @@ const CONTROL_SELECTOR = LT_SUGGESTION_PARTS.control
 const LIST_SELECTOR = LT_SUGGESTION_PARTS.list
 const OPTION_SELECTOR = LT_SUGGESTION_PARTS.option
 
+/** The room between the field and what is opened by it, and between the two of those. */
+const SPACE = 4
+
 /**
  * The keyboard and the filtering in a field with a suggestion list.
  *
@@ -106,10 +109,10 @@ const OPTION_SELECTOR = LT_SUGGESTION_PARTS.option
  *   <input class="lt-input" id="breaker" role="combobox" aria-controls="breaker-list"
  *          aria-expanded="false" aria-autocomplete="list" autocomplete="off"
  *          aria-describedby="breaker-status">
- *   <ul class="lt-suggestion__list" id="breaker-list" role="listbox" hidden>
+ *   <ul class="lt-suggestion__list" id="breaker-list" role="listbox" tabindex="-1" popover="manual" hidden>
  *     <li class="lt-suggestion__option" id="breaker-option-0" role="option">Crowbar</li>
  *   </ul>
- *   <p class="lt-suggestion__empty">No matches</p>
+ *   <p class="lt-suggestion__empty" popover="manual">No matches</p>
  *   <span class="lt-sr-only" id="breaker-status" role="status"></span>
  * </lt-suggestion>
  * ```
@@ -314,19 +317,27 @@ export class LtSuggestion extends HostElement {
    * not clip it.
    */
   private mirrorPopover(): void {
-    const list = this.listElement
-    if (!list?.isConnected || !list.hasAttribute("popover")) return
-    const shown = list.matches(":popover-open")
+    const found = this.listElement
+    const list =
+      found?.isConnected && found.hasAttribute("popover") ? found : undefined
     try {
-      if (!list.hidden && !shown) list.showPopover()
-      else if (list.hidden && shown) list.hidePopover()
-      this.mirrorEmpty(list)
+      let opened = false
+      if (list) {
+        const shown = list.matches(":popover-open")
+        if (!list.hidden && !shown) {
+          list.showPopover()
+          opened = true
+        } else if (list.hidden && shown) list.hidePopover()
+      }
+      // Also without a list: an app may render the list only when it has
+      // matches, and the message of a list that is gone is not left behind.
+      this.mirrorEmpty(list, opened)
     } catch {
       // An element on its way out of the tree cannot be shown. The next
       // round sees it again.
       return
     }
-    if (!list.hidden) this.reposition()
+    if (list && !list.hidden) this.reposition()
   }
 
   /**
@@ -342,17 +353,25 @@ export class LtSuggestion extends HostElement {
    * Whether there is something to say is still `hidden` on the message,
    * the web component's own or the app's with `prefiltered`, and
    * `aria-busy` on the list. The popover only follows.
+   *
+   * What is opened last lies on top. A list that was just opened, as one
+   * that replaced another is, would lie over the edge of a message that
+   * was open already, so the message is then opened again after it.
    */
-  private mirrorEmpty(list: HTMLElement): void {
+  private mirrorEmpty(
+    list: HTMLElement | undefined,
+    listOpened: boolean,
+  ): void {
     const empty = this.emptyElement
     if (!empty?.isConnected || !empty.hasAttribute("popover")) return
     const wanted =
+      list !== undefined &&
       !list.hidden &&
       !empty.hidden &&
       list.getAttribute("aria-busy") !== "true"
     const shown = empty.matches(":popover-open")
-    if (wanted && !shown) empty.showPopover()
-    else if (!wanted && shown) empty.hidePopover()
+    if (shown && (!wanted || listOpened)) empty.hidePopover()
+    if (wanted && (!shown || listOpened)) empty.showPopover()
   }
 
   /**
@@ -360,34 +379,45 @@ export class LtSuggestion extends HostElement {
    * room below, it goes above, and it is squeezed into the viewport either
    * way, like the panel in `<lt-popover>`. The position is physical,
    * computed from the field's box.
+   *
+   * The empty message stands where the list would. An app that filters
+   * itself may show its message with options in the list: the two are then
+   * placed as one, the message after the options, so that they are on the
+   * same side of the field and neither lies over it.
    */
   private reposition = (): void => {
     const control = this.querySelector<HTMLElement>(CONTROL_SELECTOR)
     if (!control) return
     const field = control.getBoundingClientRect()
-    const list = this.listElement
-    const empty = this.emptyElement
-    const listShown = list?.matches(":popover-open") ?? false
-    if (list && listShown) this.place(list, field)
-    if (!empty?.matches(":popover-open")) return
-    // The empty message stands where the list would. An app that filters
-    // itself may show its message with options in the list, and then the
-    // message comes after them and not over them.
-    const options = list && listShown && this.visible.length > 0
-    this.place(empty, options ? list.getBoundingClientRect() : field, field)
+    const open = (element: HTMLElement | null | undefined) =>
+      element?.matches(":popover-open") ? element : undefined
+    const list = open(this.listElement)
+    const empty = open(this.emptyElement)
+    const height = (element: HTMLElement) =>
+      element.getBoundingClientRect().height
+
+    if (list && empty && this.visible.length > 0) {
+      const options = height(list)
+      const top = this.topFor(field, options + SPACE + height(empty))
+      this.place(list, top, field)
+      this.place(empty, top + options + SPACE, field)
+      return
+    }
+    for (const shown of [list, empty]) {
+      if (shown) this.place(shown, this.topFor(field, height(shown)), field)
+    }
   }
 
-  /** Places `shown` below `under`, or above it without room below, as wide as the field. */
-  private place(shown: HTMLElement, under: DOMRect, field = under): void {
-    const height = shown.getBoundingClientRect().height
-    const space = 4
-
-    let top = under.bottom + space
-    if (top + height > window.innerHeight && under.top - height - space >= 0) {
-      top = under.top - height - space
+  /** Where something this high begins: below the field, or above it without room below. */
+  private topFor(field: DOMRect, height: number): number {
+    let top = field.bottom + SPACE
+    if (top + height > window.innerHeight && field.top - height - SPACE >= 0) {
+      top = field.top - height - SPACE
     }
-    top = Math.max(space, Math.min(top, window.innerHeight - height - space))
+    return Math.max(SPACE, Math.min(top, window.innerHeight - height - SPACE))
+  }
 
+  private place(shown: HTMLElement, top: number, field: DOMRect): void {
     shown.style.setProperty("--lt-suggestion-top", `${Math.round(top)}px`)
     shown.style.setProperty(
       "--lt-suggestion-left",

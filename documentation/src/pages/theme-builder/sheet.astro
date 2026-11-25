@@ -157,9 +157,11 @@ const IN_PLACE = `
 		position: static;
 	}
 
+	/* Both have \`popover\`, which makes a box only as wide as its content. */
 	[data-shows] .lt-suggestion__list {
 		display: block;
 		position: static;
+		inline-size: auto;
 	}
 
 	[data-shows="matches"] .lt-suggestion__empty,
@@ -170,6 +172,7 @@ const IN_PLACE = `
 	[data-shows="none"] .lt-suggestion__empty {
 		display: block;
 		position: static;
+		inline-size: auto;
 	}
 `
 

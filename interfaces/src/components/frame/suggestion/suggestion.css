@@ -116,11 +116,12 @@
   }
 
   /* The empty message follows the list: when the list is closed, it is not
-     shown. The rule is in the stylesheet and not in the web component,
-     because the app controls the empty message when it filters itself, and
+     shown. The app controls the empty message when it filters itself, and
      does not know whether the list is open. It only knows whether the search
-     found anything. The empty message must come after the list, as a
-     sibling. */
+     found anything. The web component opens the message with the list and
+     closes it with it. These two rules say the same for a list and a
+     message the web component has not handled, where the message is in the
+     flow: it must then come after the list, as a sibling. */
   .lt-suggestion__list[hidden] ~ .lt-suggestion__empty {
     display: none;
   }

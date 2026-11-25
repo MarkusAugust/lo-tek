@@ -5423,7 +5423,6 @@
         "prefiltered",
         "lt.suggestion({ id, keys, pending })",
         "hidden",
-        "hidden",
         "pending: true",
         "hidden",
         "[role=\"status\"]",

@@ -17,7 +17,7 @@
  */
 
 import { afterEach, beforeAll, describe, expect, it } from "vitest"
-import { userEvent } from "vitest/browser"
+import { page, userEvent } from "vitest/browser"
 
 import { mount, waitForPaint } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
@@ -755,4 +755,265 @@ describe("the message that nothing matches is placed like the open list", () => 
         `the message came back ${Math.round(m.width)} wide from ${Math.round(m.left)}, and the field is ${Math.round(f.width)} from ${Math.round(f.left)}`,
       ).toBe(true)
     })
+
+  /** What is wrong with where the options and the message stand together, measured against the field. */
+  function together(): string[] {
+    const { input, list, empty } = field()
+    const [o, m, f] = [list, empty, input].map((e) => e.getBoundingClientRect())
+    const span = (box: DOMRect) =>
+      `from ${Math.round(box.top)} to ${Math.round(box.bottom)}`
+    const over = (a: DOMRect, b: DOMRect) =>
+      a.top < b.bottom - 1 &&
+      a.bottom > b.top + 1 &&
+      a.left < b.right - 1 &&
+      a.right > b.left + 1
+    const faults: string[] = []
+    if (!(o.height > 0)) faults.push("the options are not shown")
+    if (!(m.height > 0)) faults.push("the message is not shown")
+    if (faults.length > 0) return faults
+    for (const [name, box] of [
+      ["the options", o],
+      ["the message", m],
+    ] as const) {
+      if (over(box, f))
+        faults.push(`${name}, ${span(box)}, lie over the field, ${span(f)}`)
+      if (
+        box.left < 0 ||
+        box.top < 0 ||
+        box.right > window.innerWidth + 1 ||
+        box.bottom > window.innerHeight + 1
+      )
+        faults.push(
+          `${name}, ${span(box)}, reach outside the window, which is ${window.innerHeight} high`,
+        )
+    }
+    if (over(o, m))
+      faults.push(
+        `the options, ${span(o)}, and the message, ${span(m)}, lie over each other`,
+      )
+    const below = (box: DOMRect) => box.top >= f.bottom - 1
+    if (below(o) !== below(m))
+      faults.push(
+        `the options, ${span(o)}, and the message, ${span(m)}, are on different sides of the field, ${span(f)}`,
+      )
+    else if (below(o) && m.top < o.bottom - 1)
+      faults.push(
+        `the message, ${span(m)}, does not come after the options, ${span(o)}`,
+      )
+    return faults
+  }
+
+  // With options and the message both shown, an app's choice with
+  // `prefiltered`: the two stand together on one side of the field, the
+  // message after the options, whatever room there is under the field.
+  for (const [room, pixels] of [
+    ["room for both under the field", 360],
+    ["room for the options and not the message", 104],
+    ["room for less than the options", 64],
+    ["room for neither", 24],
+  ] as const)
+    it(`keeps the options and the message together and off the field, with ${room}`, async () => {
+      mount(`<p id="after">Above the field.</p>
+        <div id="spacer" style="block-size: 10rem"></div>
+        ${fieldAlone({ matches: 2 })}`)
+      await paint()
+      const { input, list, empty } = field()
+      // The field this far from the bottom of the window, to the pixel.
+      const spacer = document.getElementById("spacer") as HTMLElement
+      const under = () =>
+        window.innerHeight - input.getBoundingClientRect().bottom
+      spacer.style.blockSize = `${spacer.getBoundingClientRect().height + under() - pixels}px`
+      await paint()
+      expect(
+        Math.abs(under() - pixels),
+        `the field is ${Math.round(under())} pixels from the bottom of the window, and the test is written for ${pixels}`,
+      ).toBeLessThanOrEqual(2)
+
+      await searchFor(input, "g")
+      expect(list.hidden, "the list did not open").toBe(false)
+      expect(isShown(empty), "the message is not shown").toBe(true)
+      // What the names of the cases say there is room for.
+      const [o, m] = [list, empty].map((e) => e.getBoundingClientRect().height)
+      expect(
+        { both: o + m <= pixels, options: o <= pixels },
+        `the options are ${Math.round(o)} high and the message ${Math.round(m)}, with ${pixels} pixels under the field`,
+      ).toEqual({
+        both: pixels === 360,
+        options: pixels === 360 || pixels === 104,
+      })
+
+      expect(together().join("; ")).toBe("")
+    })
+
+  it("puts the options alone right above the field when there is no room under it", async () => {
+    // The list is placed against the field's own box, as the panel of a
+    // popover is against its button. A label that stands above the field is
+    // then under the list while it is open; the field itself never is.
+    mount(`<p id="after">Above the field.</p>
+      <div id="spacer" style="block-size: 10rem"></div>
+      ${fieldAlone({ matches: 2 })}`)
+    await paint()
+    const { input, list, empty } = field()
+    empty.hidden = true
+    const spacer = document.getElementById("spacer") as HTMLElement
+    spacer.style.blockSize = `${spacer.getBoundingClientRect().height + window.innerHeight - input.getBoundingClientRect().bottom - 24}px`
+    await paint()
+
+    await searchFor(input, "g")
+    expect(list.hidden, "the list did not open").toBe(false)
+    const [o, f] = [list, input].map((e) => e.getBoundingClientRect())
+    expect(
+      o.bottom <= f.top + 1,
+      `the options, from ${Math.round(o.top)} to ${Math.round(o.bottom)}, are not above the field, from ${Math.round(f.top)} to ${Math.round(f.bottom)}`,
+    ).toBe(true)
+    // Right above it: the small gap the list keeps to the field, and no more.
+    expect(
+      f.top - o.bottom,
+      "how far the options are above the field",
+    ).toBeLessThanOrEqual(8)
+    expect(
+      o.top >= 0 && o.left >= 0 && o.right <= window.innerWidth + 1,
+      `the options reach outside the window: from ${Math.round(o.top)} to ${Math.round(o.bottom)}`,
+    ).toBe(true)
+  })
+
+  it("shows no message when the list is gone, and shows it again when a list comes back", async () => {
+    // An app that writes the list only when it has something to list, or
+    // an update that drops it.
+    mount(`${fieldAlone()}<p id="after">Below the field.</p>`)
+    await paint()
+    await search()
+    const { input, list, empty } = field()
+    const again = list.outerHTML
+
+    list.remove()
+    await paint()
+    expect(isShown(empty), "the message is shown with no list").toBe(false)
+
+    empty.insertAdjacentHTML("beforebegin", again)
+    await paint()
+    await searchFor(input, "xyzz")
+    expect(field().list.hidden, "the list that came back did not open").toBe(
+      false,
+    )
+    expect(isShown(empty), "the message did not come back with the list").toBe(
+      true,
+    )
+    expect(misplaced().join("; ")).toBe("")
+  })
+
+  for (const way of ["outerHTML", "a new element in its place"] as const)
+    it(`is seen whole after the list is replaced by ${way}, when the component filters`, async () => {
+      mount(fieldBetween({ count: 4 }))
+      await paint()
+      const { input, list, empty } = parts()
+      await searchFor(input, "xyz")
+      expect(isShown(empty), "the message is not shown").toBe(true)
+
+      if (way === "outerHTML") {
+        // The same markup, written anew: the element is another one.
+        const markup = list.outerHTML
+        list.outerHTML = markup
+      } else {
+        const fresh = list.cloneNode(true) as HTMLElement
+        list.replaceWith(fresh)
+      }
+      await paint()
+      await waitForPaint()
+
+      expect(
+        isShown(empty),
+        "the message went when the list was replaced",
+      ).toBe(true)
+      const m = empty.getBoundingClientRect()
+      // The top edge too: the list that was opened last lies over it.
+      const covered = (
+        [
+          ["the middle", (m.left + m.right) / 2, (m.top + m.bottom) / 2],
+          ["the top edge", (m.left + m.right) / 2, m.top + 1],
+          ["the top left corner", m.left + 3, m.top + 3],
+          ["the top right corner", m.right - 3, m.top + 3],
+          ["the bottom left corner", m.left + 3, m.bottom - 3],
+          ["the bottom right corner", m.right - 3, m.bottom - 3],
+        ] as const
+      ).flatMap(([name, x, y]) => {
+        const at = document.elementFromPoint(x, y)
+        return at !== null && (at === empty || empty.contains(at))
+          ? []
+          : [
+              `${name} is <${at?.tagName.toLowerCase()} class="${at?.className}">`,
+            ]
+      })
+      expect(covered.join("; ")).toBe("")
+    })
+
+  it("follows the field when the page is scrolled", async () => {
+    mount(`<div style="block-size: 6rem"></div>${fieldAlone()}
+      <div id="after" style="block-size: 200vh"></div>`)
+    await paint()
+    await search()
+    const { input, empty } = field()
+    const before = [input, empty].map((e) => e.getBoundingClientRect().top)
+
+    window.scrollBy(0, 60)
+    await paint()
+    await waitForPaint()
+
+    const after = [input, empty].map((e) => e.getBoundingClientRect().top)
+    expect(
+      Math.round(before[0] - after[0]),
+      "the field did not move with the page",
+    ).toBe(60)
+    expect(
+      Math.round(before[1] - after[1]),
+      "the message did not move as far as the field",
+    ).toBe(60)
+    expect(misplaced().join("; ")).toBe("")
+    window.scrollTo(0, 0)
+  })
+
+  it("follows the field when the window gets another size", async () => {
+    await page.viewport(900, 700)
+    mount(`${fieldAlone()}<p id="after">Below the field.</p>`)
+    await paint()
+    await search()
+    const { input, empty } = field()
+    const wide = input.getBoundingClientRect().width
+
+    await page.viewport(420, 700)
+    await paint()
+    await waitForPaint()
+
+    expect(
+      input.getBoundingClientRect().width,
+      "the field is no narrower in a narrower window, so the test says nothing",
+    ).toBeLessThan(wide - 100)
+    expect(isShown(empty), "the message went when the window changed").toBe(
+      true,
+    )
+    expect(misplaced().join("; ")).toBe("")
+    await page.viewport(414, 896)
+  })
+
+  it("has an edge of its own all the way round", async () => {
+    mount(fieldAlone())
+    await paint()
+    await search()
+    const style = getComputedStyle(field().empty)
+
+    for (const side of ["Top", "Right", "Bottom", "Left"] as const) {
+      const [width, kind, colour] = [
+        style[`border${side}Width`],
+        style[`border${side}Style`],
+        style[`border${side}Color`],
+      ]
+      expect(
+        Number.parseFloat(width) >= 1 &&
+          kind !== "none" &&
+          kind !== "hidden" &&
+          !/rgba\(.*,\s*0\)$|transparent/.test(colour),
+        `the ${side.toLowerCase()} edge of the message is ${width} ${kind} ${colour}`,
+      ).toBe(true)
+    }
+  })
 })
