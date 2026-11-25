@@ -17,7 +17,7 @@ import "@lo-tek/interfaces/dialog.css"
 
 Opening it **must** be a call. `showModal()` moves focus inside, keeps focus within the dialog, closes on Escape and makes the rest of the page inert. A `<dialog open>` in the markup does none of this, and is just a box on the page. HTML now has a way without a script, a button with `commandfor` and `command="show-modal"`, which has been [Baseline since December 2025](https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/command). In a browser from before that the button does nothing, so the recipes open the dialog with `showModal()`.
 
-A click in the page makes the call with one line of script. When it is the server that decides the dialog is open, as with an answer that asks the user to confirm or a patch from Datastar, there is nowhere to make the call from. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`.
+A click in the page makes the call with one line of script. When it is the server that decides the dialog is open, as with an answer that asks the user to confirm or a patch from Datastar, there is nowhere to make the call from. For that there is `<lt-dialog>`, [further down the page](#when-the-server-opens-the-dialog). It is optional, in the same way that `<lt-field>` is optional next to `lt.field()`, with one exception: [a dialog in a region the server morphs](#a-dialog-in-a-region-the-server-morphs) needs it, also when a click opens it.
 
 ## How to use it
 
@@ -316,7 +316,7 @@ Without `showModal()` the markup is a box on the page. That is the state the ser
 
 ## When the server opens the dialog
 
-This section applies when the server decides that the dialog is open, not a click in the browser: an answer that asks the user to confirm, or a patch from Datastar or htmx. When a click opens it, as in the recipes above, `showModal()` is one call, and a component in between gives you nothing.
+This section applies when the server decides that the dialog is open, not a click in the browser: an answer that asks the user to confirm, or a patch from Datastar or htmx. When a click opens it, as in the recipes above, `showModal()` is one call, and a component in between gives you nothing, unless the server morphs the region the dialog is in. That case is [further down](#a-dialog-in-a-region-the-server-morphs).
 
 The server has nowhere to call `showModal()` from. It sends `open` on `<lt-dialog>`, and the component makes the call.
 
@@ -367,6 +367,47 @@ One caveat: the dialog is fixed-positioned before it becomes modal, while a real
 
 None of this applies outside the host. A `.lt-dialog` with `open` and no `<lt-dialog>` around it stays where it is in the flow, as the browser's own style places it.
 
+## A dialog in a region the server morphs
+
+A dialog you open yourself with `showModal()` needs `<lt-dialog>` around it when it is in a region the server morphs, with Datastar or with idiomorph, which htmx morphs with.
+
+A morph makes the page say what the server sent. `showModal()` set `open` on the `<dialog>` and the server did not send it, so the morph takes it off. The browser then hides the dialog, but it is still modal: the page behind it stays inert, under a dialog nobody can see.
+
+Wrap the dialog, and keep opening it with your own call:
+
+```html
+<div id="orders">
+  <button class="lt-button" type="button" id="cancel">Cancel the job</button>
+
+  <lt-dialog>
+    <dialog class="lt-dialog" id="confirm">
+      <h2>Cancel job 222-0481?</h2>
+      <div class="lt-dialog__body">
+        <p>The crew is told at once.</p>
+      </div>
+      <form method="dialog" class="lt-dialog__footer">
+        <button class="lt-button" value="keep">Keep the job</button>
+      </form>
+    </dialog>
+  </lt-dialog>
+</div>
+```
+
+```js
+import { defineLtDialog } from "@lo-tek/interfaces/dialog"
+
+defineLtDialog()
+
+// Listen on the document: a morph may replace the button.
+document.addEventListener("click", (event) => {
+  if (event.target.closest("#cancel")) {
+    document.getElementById("confirm").showModal()
+  }
+})
+```
+
+The host has no `open`, and the server never sends one: here it is your call that opens the dialog, not the server. The component puts `open` back on the `<dialog>` for as long as it is in the top layer, so the dialog stays open and modal through the morph, and new content from the server arrives in it. When the user has closed it, it stays closed.
+
 ## Types
 
 ```ts
@@ -394,7 +435,7 @@ The import goes to `/react` here, since the example is JSX. From there the keys 
 
 `lt.dialog.title`, `lt.dialog.body` and `lt.dialog.footer` give the class names alone. See [Type-safe use](../../type-safe-use/).
 
-If the app has code in the browser that calls `showModal()`, you need no component, whatever rendered the markup: call `showModal()` yourself, as in the "Plain HTML" recipe above. Then do not pass `open` to `lt.dialog()`. The attribute is the server's message to `<lt-dialog>`, and `showModal()` throws `InvalidStateError` on a dialog that is already open.
+If the app has code in the browser that calls `showModal()`, you need no component, whatever rendered the markup: call `showModal()` yourself, as in the "Plain HTML" recipe above. The exception is [a dialog in a region the server morphs](#a-dialog-in-a-region-the-server-morphs). Then do not pass `open` to `lt.dialog()`. The attribute is the server's message to `<lt-dialog>`, and `showModal()` throws `InvalidStateError` on a dialog that is already open.
 
 In React the attribute is also the only thing that matches when the server renders the dialog open. The component sets `open` on `<dialog>` before React hydrates, so if it was not in the server's HTML, React reported a mismatch on every single page load.
 

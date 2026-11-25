@@ -1662,3 +1662,139 @@ describe("lt-dialog when React writes the property", () => {
     expect(document.querySelector("dialog")?.matches(":modal")).toBe(false)
   })
 })
+
+/*
+ * A dialog the app opens itself with `showModal()`, in a region the server
+ * morphs. The server's markup has no `open`: the server does not know the
+ * dialog is open, and a morph makes the page like the server's markup.
+ *
+ * Inside `<lt-dialog>` the dialog stays open and modal through the update.
+ * Without the host the update takes `open` off the `<dialog>` and nothing
+ * puts it back: see the last test here for what a visitor is left with.
+ */
+describe("a dialog the app opened itself, in a region the server morphs", () => {
+  beforeAll(() => {
+    defineLtDialog()
+  })
+
+  /** The region as the server writes it, never with `open`, with or without the host. */
+  const served = (text: string, host = true) => {
+    const inner = `<dialog class="lt-dialog" id="confirm" aria-labelledby="confirm-title">
+        <h2 class="lt-dialog__title" id="confirm-title">Cancel job 222-0481?</h2>
+        <div class="lt-dialog__body"><p id="body-text">${text}</p></div>
+        <form method="dialog" class="lt-dialog__footer">
+          <button class="lt-button" id="keep" value="keep">Keep the job</button>
+        </form>
+      </dialog>`
+    return `<div id="region">
+      <p>Jobs</p>
+      ${host ? `<lt-dialog>${inner}</lt-dialog>` : inner}
+    </div>`
+  }
+  const FIRST = "The crew keeps the advance."
+  const LATER = "The crew keeps the advance, and the fixer her cut."
+  const theDialog = () =>
+    document.getElementById("confirm") as HTMLDialogElement
+  /** Long enough for the component to see an update and to act on it. */
+  async function settled() {
+    for (let frame = 0; frame < 3; frame++) await waitForPaint()
+  }
+  /** The region in the page, and the dialog opened by the app. */
+  async function opened(host = true) {
+    mount(served(FIRST, host))
+    if (host) await customElements.whenDefined("lt-dialog")
+    await settled()
+    const dialog = theDialog()
+    dialog.showModal()
+    await settled()
+    expect(dialog.open && dialog.matches(":modal"), "the app opened it").toBe(
+      true,
+    )
+    return dialog
+  }
+  /** What a visitor has of the dialog. */
+  const state = (dialog: HTMLDialogElement) => ({
+    open: dialog.open,
+    modal: dialog.matches(":modal"),
+    seen:
+      dialog.getBoundingClientRect().width > 0 &&
+      dialog.getBoundingClientRect().height > 0,
+  })
+  const SHOWN = { open: true, modal: true, seen: true }
+
+  afterEach(() => {
+    for (const dialog of document.querySelectorAll("dialog"))
+      if (dialog.matches(":modal") || dialog.open) dialog.close()
+  })
+
+  for (const way of ["Datastar", "idiomorph"] as const) {
+    it(`stays open and modal inside <lt-dialog> when ${way} morphs the region`, async () => {
+      const dialog = await opened()
+
+      replace(way, "region", served(FIRST))
+      await settled()
+      expect(theDialog(), "the dialog is the element it was").toBe(dialog)
+      expect(state(dialog), "after the update").toEqual(SHOWN)
+
+      // And again, and with something new to say in it.
+      replace(way, "region", served(FIRST))
+      await settled()
+      expect(state(dialog), "after a second update").toEqual(SHOWN)
+
+      replace(way, "region", served(LATER))
+      await settled()
+      expect(theDialog()).toBe(dialog)
+      expect(document.getElementById("body-text")?.textContent).toBe(LATER)
+      expect(state(dialog), "after an update with another text").toEqual(SHOWN)
+      expect(document.querySelectorAll("dialog:modal").length).toBe(1)
+    })
+
+    for (const [how, close] of [
+      [
+        "its own button",
+        () => userEvent.click(document.getElementById("keep") as HTMLElement),
+      ],
+      ["close()", async () => theDialog().close()],
+    ] as const)
+      it(`stays closed after the user closed it with ${how}, when ${way} morphs the region again`, async () => {
+        const dialog = await opened()
+        replace(way, "region", served(FIRST))
+        await settled()
+        expect(state(dialog)).toEqual(SHOWN)
+
+        await close()
+        await settled()
+        expect(dialog.open, "the dialog closed").toBe(false)
+
+        replace(way, "region", served(LATER))
+        await settled()
+        replace(way, "region", served(FIRST))
+        await settled()
+
+        expect(theDialog()).toBe(dialog)
+        expect(state(dialog), "after updates that follow the closing").toEqual({
+          open: false,
+          modal: false,
+          seen: false,
+        })
+        expect(document.querySelectorAll("dialog:modal").length).toBe(0)
+      })
+
+    it(`is left modal and not shown without the host when ${way} morphs the region`, async () => {
+      // What the host is for. The update takes `open` away, and the
+      // browser keeps the dialog in the top layer as modal: the page is
+      // inert under a dialog nobody sees.
+      const dialog = await opened(false)
+
+      replace(way, "region", served(FIRST, false))
+      await settled()
+
+      expect(theDialog(), "the dialog is the element it was").toBe(dialog)
+      expect(state(dialog), "after the update").toEqual({
+        open: false,
+        modal: true,
+        seen: false,
+      })
+    })
+  }
+})

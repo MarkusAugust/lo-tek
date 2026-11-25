@@ -186,6 +186,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The dialog page says when a dialog a click opens needs `<lt-dialog>`.**
+  It said the component gives nothing to a dialog the app opens with
+  `showModal()`. In a region the server morphs, with Datastar or with
+  idiomorph, the morph takes `open` off the `<dialog>`, and the page is
+  left inert under a dialog nobody can see. Inside `<lt-dialog>` the dialog
+  stays open, and the page now says so, with a recipe.
+
 - **The rulebooks for coding agents name every default text that can be
   replaced.** `--lt-steps-done-text`, the text of a completed step, was
   missing from the list. The Kotlin rulebook also names the fourth thing
