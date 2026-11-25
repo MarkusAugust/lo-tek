@@ -1,13 +1,15 @@
 /// <reference path="../../../types/css.d.ts" />
 
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { userEvent } from "vitest/browser"
 
 import {
   expectNoAccessibilityViolations,
   mount,
   waitForPaint,
 } from "../../../testing/a11y"
-import { onItsTags } from "../../../testing/markup"
+import { attr, onItsTags } from "../../../testing/markup"
+import { datastarPatch, morph } from "../../../testing/update"
 import { defineLtToast, type LtToast, showToast } from "./lt-toast"
 import { toast as ltToast } from "./toast"
 
@@ -443,6 +445,447 @@ describe("lt-toast in a shadow root", () => {
 
     region.clear()
 
+    expect(document.activeElement).toBe(outside)
+  })
+})
+
+/*
+ * The messages and what happens to them from outside the component.
+ *
+ * A message can be in the region without `show()` having made it: the
+ * server may patch one in, if it writes the message and its close button as
+ * the component does, and a page restored from history comes back with the
+ * messages it had, under an element that made none of them. Its close button
+ * closes it all the same.
+ *
+ * And an update can take the messages away. The region asks to be left
+ * alone with `data-ignore-morph`, and a morph that does not know that word
+ * removes every child the server did not send. A message the component
+ * showed and the user has not closed is still to be read: it is back, the
+ * same node in the same place, until it is closed or its time is out. A
+ * message the server wrote is the server's to take away.
+ */
+describe("lt-toast and messages from outside, and updates that take messages away", () => {
+  beforeAll(() => {
+    defineLtToast()
+  })
+
+  /** A message as `show()` writes it, written by someone else. */
+  const written = (text: string) =>
+    `<div class="lt-toast__message"><span>${text}</span><button type="button" class="lt-toast__close" aria-label="Close message">×</button></div>`
+  const messages = (region: Element) => [
+    ...region.querySelectorAll<HTMLElement>(".lt-toast__message"),
+  ]
+  const texts = (region: Element) =>
+    messages(region).map(
+      (message) => message.querySelector("span")?.textContent,
+    )
+  const closeOf = (message: Element) =>
+    message.querySelector(".lt-toast__close") as HTMLButtonElement
+
+  /** The region as the builder function writes it, with a button before it and what the page is told. */
+  async function region(inner = "") {
+    mount(
+      `<button id="outside" type="button">Save</button><lt-toast ${attr(ltToast().host)}>${inner}</lt-toast>`,
+    )
+    await customElements.whenDefined("lt-toast")
+    await waitForPaint()
+    const toast = document.querySelector("lt-toast") as LtToast
+    const told = { dismissed: 0 }
+    toast.addEventListener("toast-dismiss", () => {
+      told.dismissed += 1
+    })
+    return {
+      toast,
+      told,
+      outside: document.getElementById("outside") as HTMLButtonElement,
+    }
+  }
+  /** Long enough for the component to see what was done to it and to act. */
+  async function settled() {
+    for (let frame = 0; frame < 3; frame++) await waitForPaint()
+  }
+  /** What goes wrong in the page while `during` runs. */
+  async function faultsDuring(during: () => Promise<void>): Promise<string[]> {
+    const faults: string[] = []
+    const fault = (event: ErrorEvent | PromiseRejectionEvent) =>
+      faults.push("message" in event ? event.message : String(event.reason))
+    window.addEventListener("error", fault)
+    window.addEventListener("unhandledrejection", fault)
+    try {
+      await during()
+      await settled()
+    } finally {
+      window.removeEventListener("error", fault)
+      window.removeEventListener("unhandledrejection", fault)
+    }
+    return faults
+  }
+
+  /** The two ways a message comes to be in the region without `show()`. */
+  const ARRIVES: Record<
+    string,
+    (text: string[]) => Promise<Awaited<ReturnType<typeof region>>>
+  > = {
+    "was in the markup when the region connected": (text) =>
+      region(text.map(written).join("")),
+    "was added to the region afterwards": async (text) => {
+      const page = await region()
+      page.toast.insertAdjacentHTML("afterbegin", text.map(written).join(""))
+      await settled()
+      return page
+    },
+  }
+
+  for (const [how, arrive] of Object.entries(ARRIVES)) {
+    it(`closes a message that ${how}, on a click on its close button`, async () => {
+      const { toast, told } = await arrive(["Saved", "Sent"])
+      const [first, second] = messages(toast)
+
+      // A press elsewhere in the message is no press on the button.
+      await userEvent.click(first.querySelector("span") as HTMLElement)
+      expect(texts(toast)).toEqual(["Saved", "Sent"])
+      expect(told.dismissed).toBe(0)
+
+      await userEvent.click(closeOf(first))
+
+      expect(texts(toast), "the messages left").toEqual(["Sent"])
+      expect(told.dismissed, "toast-dismiss events").toBe(1)
+      expect(second.isConnected).toBe(true)
+    })
+
+    for (const key of ["Enter", "Space"])
+      it(`closes a message that ${how}, on ${key} on its close button`, async () => {
+        const { toast, told } = await arrive(["Saved"])
+        closeOf(messages(toast)[0]).focus()
+
+        await userEvent.keyboard(key === "Enter" ? "{Enter}" : " ")
+
+        expect(texts(toast), "the messages left").toEqual([])
+        expect(told.dismissed, "toast-dismiss events").toBe(1)
+      })
+
+    it(`moves focus on from a closed message that ${how}, as for its own`, async () => {
+      const { toast, outside } = await arrive(["Saved", "Sent"])
+      const [first, second] = messages(toast)
+      outside.focus()
+      closeOf(first).focus()
+
+      // The neighbouring message first.
+      closeOf(first).click()
+      expect(document.activeElement, "focus after the first was closed").toBe(
+        closeOf(second),
+      )
+      // And then back where it came from.
+      closeOf(second).click()
+      expect(document.activeElement, "focus after the last was closed").toBe(
+        outside,
+      )
+      expect(messages(toast)).toEqual([])
+    })
+  }
+
+  it("closes a message of its own and one from outside alike, side by side", async () => {
+    const { toast, told } = await region(written("From the server"))
+    const own = toast.show("From the page", { duration: 0 })
+    const [, served] = messages(toast)
+
+    closeOf(served).click()
+    expect(texts(toast)).toEqual(["From the page"])
+    closeOf(own).click()
+    expect(texts(toast)).toEqual([])
+    // One for each, and not two for the component's own.
+    expect(told.dismissed, "toast-dismiss events").toBe(2)
+  })
+
+  // An update takes messages: everything in the region, or one of them.
+  it("has its messages back, the same and in order, when the region is emptied", async () => {
+    const { toast, told } = await region()
+    const shown = [
+      toast.show("First", { duration: 0 }),
+      toast.show("Second", { duration: 0, color: "success" }),
+      toast.show("Third", { duration: 0 }),
+    ]
+    const before = messages(toast)
+    expect(texts(toast)).toEqual(["Third", "Second", "First"])
+
+    const faults = await faultsDuring(async () => {
+      toast.replaceChildren()
+      expect(messages(toast), "the messages were taken").toEqual([])
+    })
+
+    expect(messages(toast), "the messages in the region").toEqual(before)
+    expect(told.dismissed, "toast-dismiss events").toBe(0)
+    expect(faults, "what went wrong in the page").toEqual([])
+    // And they are live: the close button of one closes that one.
+    closeOf(shown[1]).click()
+    expect(texts(toast)).toEqual(["Third", "First"])
+    expect(told.dismissed, "toast-dismiss events").toBe(1)
+  })
+
+  for (const [which, index] of [
+    ["first", 0],
+    ["middle", 1],
+    ["last", 2],
+  ] as const)
+    it(`has a message back in its place when the ${which} of three is removed`, async () => {
+      const { toast, told } = await region()
+      toast.show("First", { duration: 0 })
+      toast.show("Second", { duration: 0 })
+      toast.show("Third", { duration: 0 })
+      const before = messages(toast)
+
+      before[index].remove()
+      await settled()
+
+      expect(messages(toast), "the messages in the region").toEqual(before)
+      expect(told.dismissed, "toast-dismiss events").toBe(0)
+    })
+
+  it("comes to rest: nothing more happens to the region after the messages are back", async () => {
+    const { toast } = await region()
+    toast.show("First", { duration: 0 })
+    toast.show("Second", { duration: 0 })
+    toast.replaceChildren()
+    await settled()
+    expect(messages(toast).length, "the messages in the region").toBe(2)
+
+    let changes = 0
+    const watch = new MutationObserver((records) => {
+      changes += records.length
+    })
+    watch.observe(toast, { childList: true, subtree: true, attributes: true })
+    const faults = await faultsDuring(
+      () => new Promise((done) => setTimeout(done, 300)),
+    )
+    watch.disconnect()
+
+    expect(changes, "changes to the region while nothing was done to it").toBe(
+      0,
+    )
+    expect(faults).toEqual([])
+  })
+
+  it("lets a message that was taken and put back go when its time is out, once", async () => {
+    const { toast, told } = await region()
+    const timed = toast.show("Goes", { duration: 250 })
+    const kept = toast.show("Stays", { duration: 0 })
+
+    toast.replaceChildren()
+    await settled()
+    expect(messages(toast), "the messages in the region").toEqual([kept, timed])
+
+    await new Promise((done) => setTimeout(done, 400))
+    await settled()
+    expect(messages(toast), "the messages after the time of one").toEqual([
+      kept,
+    ])
+    expect(told.dismissed, "toast-dismiss events").toBe(1)
+
+    // And the one that stays, stays.
+    await new Promise((done) => setTimeout(done, 300))
+    expect(messages(toast)).toEqual([kept])
+  })
+
+  it("has its messages back when it was emptied out of the document, once it is in again", async () => {
+    const { toast, told } = await region()
+    const shown = toast.show("Saved", { duration: 0 })
+    const parent = toast.parentElement as HTMLElement
+
+    toast.remove()
+    toast.replaceChildren()
+    parent.append(toast)
+    await settled()
+
+    expect(messages(toast), "the messages in the region").toEqual([shown])
+    expect(told.dismissed).toBe(0)
+  })
+
+  // What does not come back.
+  it("does not bring back a message that was dismissed, cleared or timed out", async () => {
+    const { toast, told } = await region()
+    const dismissed = toast.show("Dismissed", { duration: 0 })
+    toast.show("Timed out", { duration: 100 })
+    const kept = toast.show("Kept", { duration: 0 })
+
+    toast.dismiss(dismissed)
+    await new Promise((done) => setTimeout(done, 250))
+    await settled()
+    expect(messages(toast)).toEqual([kept])
+    expect(told.dismissed, "toast-dismiss events").toBe(2)
+
+    // An update later is no reason to show them again.
+    toast.replaceChildren()
+    await settled()
+    expect(messages(toast), "the messages after an update").toEqual([kept])
+
+    toast.clear()
+    await settled()
+    toast.replaceChildren()
+    await settled()
+    expect(messages(toast), "the messages after clear() and an update").toEqual(
+      [],
+    )
+    expect(told.dismissed, "toast-dismiss events").toBe(2)
+  })
+
+  it("dismisses a message for good when it is dismissed right after an update took it", async () => {
+    // The app asked for a message that was live to be dismissed. That the
+    // update got to it a moment before is not the app's to know: the
+    // message is gone for good, and the page is told so once.
+    const { toast, told } = await region()
+    const gone = toast.show("Gone", { duration: 0 })
+    const kept = toast.show("Kept", { duration: 0 })
+
+    toast.replaceChildren()
+    toast.dismiss(gone)
+    await settled()
+
+    expect(messages(toast), "the messages in the region").toEqual([kept])
+    expect(told.dismissed, "toast-dismiss events").toBe(1)
+    // And not a second time for the same message.
+    toast.dismiss(gone)
+    expect(told.dismissed, "toast-dismiss events").toBe(1)
+  })
+
+  for (const [how, arrive] of Object.entries(ARRIVES))
+    it(`leaves a message that ${how} gone when an update takes it`, async () => {
+      // The server wrote it, and the server took it away.
+      const { toast, told } = await arrive(["From the server"])
+      const own = toast.show("From the page", { duration: 0 })
+      expect(texts(toast)).toEqual(["From the page", "From the server"])
+
+      toast.replaceChildren()
+      await settled()
+
+      expect(messages(toast), "the messages in the region").toEqual([own])
+      expect(told.dismissed, "toast-dismiss events").toBe(0)
+    })
+
+  /*
+   * The same with the updates themselves, and not a stand-in for them. The
+   * server's version of the page has the region empty, as the recipe
+   * writes it: the messages are the page's and the server knows none.
+   */
+  const SERVED = `<lt-toast id="messages" ${attr(ltToast().host)}></lt-toast>`
+  const PAGE = `<div id="page"><p>Routes</p>${SERVED}</div>`
+  /** The served page with two messages showing, and what the page is told. */
+  async function served() {
+    mount(PAGE)
+    await customElements.whenDefined("lt-toast")
+    await waitForPaint()
+    const toast = document.querySelector("lt-toast") as LtToast
+    const told = { dismissed: 0 }
+    toast.addEventListener("toast-dismiss", () => {
+      told.dismissed += 1
+    })
+    const oldest = toast.show("First", { duration: 0 })
+    const newest = toast.show("Second", { duration: 0, color: "success" })
+    expect(messages(toast)).toEqual([newest, oldest])
+    return { toast, told, oldest, newest }
+  }
+  /** The real updates that reach the region with the server's empty version of it. */
+  const UPDATES: Record<string, (toast: LtToast) => void> = {
+    // idiomorph does not know `data-ignore-morph`, and removes what the
+    // server did not send.
+    "idiomorph morphs the page around the region": () =>
+      morph(document.getElementById("page") as HTMLElement, PAGE),
+    "idiomorph morphs the region itself": (toast) => morph(toast, SERVED),
+    // Datastar knows the word, and leaves the region alone.
+    "Datastar patches the page around the region": () => datastarPatch(PAGE),
+    "Datastar patches the region itself": () => datastarPatch(SERVED),
+  }
+  for (const [how, update] of Object.entries(UPDATES))
+    it(`has its messages after ${how}, the same and in order`, async () => {
+      const { toast, told, oldest, newest } = await served()
+
+      const faults = await faultsDuring(async () => {
+        update(toast)
+      })
+
+      expect(
+        document.querySelector("lt-toast"),
+        "the region is the element it was",
+      ).toBe(toast)
+      expect(messages(toast), "the messages in the region").toEqual([
+        newest,
+        oldest,
+      ])
+      expect(texts(toast)).toEqual(["Second", "First"])
+      expect(newest.dataset.color).toBe("success")
+      expect(told.dismissed, "toast-dismiss events").toBe(0)
+      expect(faults, "what went wrong in the page").toEqual([])
+
+      // And a second update of the same kind leaves them as they are.
+      update(toast)
+      await settled()
+      expect(messages(toast), "the messages after a second update").toEqual([
+        newest,
+        oldest,
+      ])
+
+      closeOf(newest).click()
+      expect(messages(toast)).toEqual([oldest])
+      expect(told.dismissed, "toast-dismiss events").toBe(1)
+    })
+
+  it("puts its own message back first, before a message from outside that stayed", async () => {
+    // The newest stands first. The server's message was there before the
+    // page showed its own, and the update took only the page's.
+    const { toast, told } = await region(written("From the server"))
+    const own = toast.show("From the page", { duration: 0 })
+    const [, served] = messages(toast)
+    expect(texts(toast)).toEqual(["From the page", "From the server"])
+
+    own.remove()
+    await settled()
+
+    expect(texts(toast), "the messages in the region, first to last").toEqual([
+      "From the page",
+      "From the server",
+    ])
+    expect(messages(toast), "the messages in the region").toEqual([own, served])
+    expect(told.dismissed, "toast-dismiss events").toBe(0)
+  })
+
+  it("puts its own messages back around one from outside, each where it stood", async () => {
+    const { toast } = await region()
+    const oldest = toast.show("First", { duration: 0 })
+    toast.insertAdjacentHTML("afterbegin", written("From the server"))
+    const served = messages(toast)[0]
+    const newest = toast.show("Second", { duration: 0 })
+    await settled()
+    expect(messages(toast)).toEqual([newest, served, oldest])
+
+    newest.remove()
+    oldest.remove()
+    await settled()
+
+    expect(texts(toast), "the messages in the region, first to last").toEqual([
+      "Second",
+      "From the server",
+      "First",
+    ])
+    expect(messages(toast), "the messages in the region").toEqual([
+      newest,
+      served,
+      oldest,
+    ])
+  })
+
+  it("keeps where focus goes as it was, for messages that were taken and put back", async () => {
+    const { toast, outside } = await region()
+    const oldest = toast.show("First", { duration: 0 })
+    const newest = toast.show("Second", { duration: 0 })
+    toast.replaceChildren()
+    await settled()
+    expect(messages(toast)).toEqual([newest, oldest])
+
+    outside.focus()
+    closeOf(newest).focus()
+    closeOf(newest).click()
+    expect(document.activeElement).toBe(closeOf(oldest))
+    closeOf(oldest).click()
     expect(document.activeElement).toBe(outside)
   })
 })

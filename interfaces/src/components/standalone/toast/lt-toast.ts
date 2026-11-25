@@ -48,8 +48,10 @@ export type ShowOptions = {
  * them, so there is nothing for the server to render.
  *
  * The server writes the container with `lt.toast()`, which sets
- * `data-ignore-morph`. Without it the Datastar morph tears the messages away
+ * `data-ignore-morph`. Without it the Datastar morph takes the messages out
  * at the next patch, because the server's version of the region is empty.
+ * The component puts them back (see `restoreMessages`), but that is a
+ * repair: a message put back may be announced again and has lost focus.
  *
  * The container is a `role="status"` region, not `role="alert"`. A message
  * that appears in the corner should not interrupt what the screen reader is
@@ -154,15 +156,92 @@ export class LtToast extends HostElement {
     if (origin?.isConnected) origin.focus({ preventScroll: true })
   }
 
+  /**
+   * The messages `show()` made that are still live, in the order they stand
+   * in the region: the newest first.
+   */
+  private own: HTMLElement[] = []
+
+  private childObserver?: MutationObserver
+
+  /**
+   * Puts back the messages an update took out of the region.
+   *
+   * A morph that does not know `data-ignore-morph` removes what the server
+   * did not send, and the messages are exactly that: the user lost a
+   * message they had not read. Only `dismiss()`, `clear()` and the timer end
+   * a message `show()` made, so one that is missing goes back where it
+   * stood. A message someone else wrote into the region is theirs to take
+   * away, and is left gone.
+   */
+  private restoreMessages(): void {
+    // From the last to the first, so that a message finds the ones that
+    // stood after it already back.
+    for (let index = this.own.length - 1; index >= 0; index--) {
+      const message = this.own[index]
+      if (!message || message.parentNode === this) continue
+      this.insertBefore(message, this.placeFor(message))
+    }
+    this.stood = [...this.children]
+  }
+
+  /**
+   * What stood in the region the last time it was at rest, the component's
+   * own messages and others alike. It is what says where a message that was
+   * taken stood.
+   */
+  private stood: Element[] = []
+
+  /**
+   * The node a message that was taken goes back in front of: the nearest
+   * one that stood after it and is still there, otherwise right after the
+   * nearest one that stood before it. When nothing it stood among is left,
+   * it goes first, where `show()` puts a message.
+   */
+  private placeFor(message: HTMLElement): Node | null {
+    const at = this.stood.indexOf(message)
+    if (at !== -1) {
+      for (const after of this.stood.slice(at + 1)) {
+        if (after.parentNode === this) return after
+      }
+      for (const before of this.stood.slice(0, at).reverse()) {
+        if (before.parentNode === this) return before.nextSibling
+      }
+    }
+    return this.firstChild
+  }
+
+  /**
+   * One listener for every close button in the region, not one per
+   * message. A message the server patched in, or one that came back with
+   * the page from the history, was not made by `show()` here, and its close
+   * button did nothing.
+   */
+  private closeFromClick = (event: MouseEvent): void => {
+    if (!(event.target instanceof Element)) return
+    const close = event.target.closest(`.${TOAST_CLOSE_CLASS}`)
+    const message = close?.closest<HTMLElement>(`.${TOAST_MESSAGE_CLASS}`)
+    if (message && this.contains(message)) this.dismiss(message)
+  }
+
   disconnectedCallback(): void {
     this.removeEventListener("focusin", this.rememberOrigin)
     this.removeEventListener("focusout", this.forgetOrigin)
+    this.removeEventListener("click", this.closeFromClick)
+    this.childObserver?.disconnect()
+    this.childObserver = undefined
     this.focusOrigin = null
   }
 
   connectedCallback(): void {
     this.addEventListener("focusin", this.rememberOrigin)
     this.addEventListener("focusout", this.forgetOrigin)
+    this.addEventListener("click", this.closeFromClick)
+    // The region may have been emptied while it was out of the document.
+    this.restoreMessages()
+    this.childObserver?.disconnect()
+    this.childObserver = new MutationObserver(() => this.restoreMessages())
+    this.childObserver.observe(this, { childList: true })
     // If the server wrote the region with lt.toast(), all of this is
     // already there. Here it is only set when missing, so a plain HTML page
     // without a builder function also gets a region the screen reader
@@ -240,10 +319,16 @@ export class LtToast extends HostElement {
     close.className = TOAST_CLOSE_CLASS
     close.setAttribute("aria-label", closeLabel)
     close.textContent = "×"
-    close.addEventListener("click", () => this.dismiss(toast))
     toast.append(close)
 
+    // Anything an update took in this same turn goes back first, so the
+    // new message is placed among all of them.
+    this.restoreMessages()
+    this.own.unshift(toast)
     this.prepend(toast)
+    // Now, not when the observer comes round: an update can take the
+    // message in the same turn.
+    this.stood = [...this.children]
 
     if (duration > 0) {
       let timer = window.setTimeout(() => this.dismiss(toast), duration)
@@ -283,7 +368,12 @@ export class LtToast extends HostElement {
 
   /** Removes a message. */
   dismiss(toast: HTMLElement): void {
-    if (!this.contains(toast)) return
+    // A message of the component's own is live until this runs, also when
+    // an update has just taken it out of the region: the app asked for it
+    // to go, and it must not be put back.
+    const index = this.own.indexOf(toast)
+    if (index === -1 && !this.contains(toast)) return
+    if (index !== -1) this.own.splice(index, 1)
 
     /*
      * If focus was in the message, as on the close button after Enter, it
@@ -310,6 +400,7 @@ export class LtToast extends HostElement {
   /** Removes all the messages. */
   clear(): void {
     if (this.holdsFocus(this)) this.restoreFocus()
+    this.own = []
     for (const toast of this.querySelectorAll(`.${TOAST_MESSAGE_CLASS}`)) {
       toast.remove()
     }

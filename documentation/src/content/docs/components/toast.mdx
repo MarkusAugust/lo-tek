@@ -266,7 +266,7 @@ That is why you spread `host` and not the whole object. The container is the onl
 
 If you spread the whole of `toasts`, you set three attributes called `host`, `message` and `close`, none of which the browser knows. The container then has no `role="status"` until `defineLtToast()` has run, because the component fills in the role when it is missing. Until then no screen reader announces what appears in it. Safari does not reliably pick up a role that a script adds to an element already on the page, so when any of the three region attributes is missing the component takes the region out and puts it back where it stood: a message that had focus loses it, and Datastar runs `data-init` on the region once more. And `data-ignore-morph` never arrives, since that is the one thing the component does not set itself.
 
-The other two sets are **names, not markup**. The component knows them and uses them on what it creates itself. You need them only when someone else writes the message: a Datastar app where the server patches a message straight into the region has to write `lt-toast__message` and `lt-toast__close` itself, and then they should have the same names as the ones the component uses.
+The other two sets are **names, not markup**. The component knows them and uses them on what it creates itself. You need them only when someone else writes the message: a Datastar app where the server patches a message straight into the region has to write `lt-toast__message` and `lt-toast__close` itself, and then they should have the same names as the ones the component uses. The close button of such a message works as the component's own does: a click on it removes the message and dispatches `toast-dismiss`. The message has no timer, so it stays until it is closed or the server takes it away.
 
 Without a build step, you write the same set out as plain attributes, as the "Plain HTML" and "Datastar" recipes do:
 
@@ -277,7 +277,9 @@ Without a build step, you write the same set out as plain attributes, as the "Pl
 
 `data-ignore-morph` is the most important of them, and the only one the component does not set itself.
 
-`data-ignore-morph` is not optional. The component creates and removes the messages inside the region itself, and without the attribute an update from the server tears them away, because the server's version of the region is empty. See [Markup and behaviour](/markup-and-behaviour/#the-standalone-components).
+`data-ignore-morph` is not optional. The component creates and removes the messages inside the region itself, and without the attribute an update from the server takes them out, because the server's version of the region is empty. See [Markup and behaviour](/markup-and-behaviour/#the-standalone-components).
+
+A morph that does not know the attribute removes the messages anyway. The component puts back the ones `show()` made, in their order, without dispatching anything. That is a repair and not a replacement for the attribute: a message that is taken out and put back may be announced once more, and loses focus if it had it. For the same reason a message ends with `dismiss()` or `clear()`, not with `remove()` on the element: one that is only removed comes back.
 
 ## Attributes and methods
 
