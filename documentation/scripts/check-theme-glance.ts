@@ -86,10 +86,33 @@ const ROLES = [
   "text-strong",
 ]
 
+/** The keys that are a weight of the font. */
+const isWeight = (key: string) =>
+  key.startsWith("typography.weights.") || key === "shape.buttonFontWeight"
+/**
+ * How the font the sheet gets on this machine draws each weight, as a
+ * picture of a line of text: two weights with the same picture cannot be
+ * told apart there. Read from a frame once the page is open.
+ *
+ * A machine's own font decides this, not the page. One with a face for
+ * every weight draws nine different lines. The one a bare Linux image gives
+ * `system-ui` has a single face, and draws 100 to 700 alike and only the
+ * heaviest two bolder, so there a semibold or a bold set to 100 changes
+ * nothing anyone could see, on any page.
+ */
+let drawn: Record<number, string> | null = null
+/** The weights from the far end of the range inwards, seen from where a key rests. */
+const fromFar = (rest: number) =>
+  [100, 200, 300, 400, 500, 600, 700, 800, 900].sort(
+    (a, b) => Math.abs(b - rest) - Math.abs(a - rest) || a - b,
+  )
+
 /**
  * A value far from where the key rests: for a colour one that is nothing
  * like LO-TEK's own, for a number the end of its range furthest from where
- * it stands, and another kind of font.
+ * it stands, and another kind of font. For a weight it is the furthest one
+ * the machine's font draws another way than the resting one, so the check
+ * asks for a change that can be seen there.
  */
 function farFrom(key: string): string {
   if (FAMILIES.includes(key))
@@ -98,6 +121,22 @@ function farFrom(key: string): string {
   const slider = SLIDERS[key]
   if (!slider) throw new Error(`${key} has no value far from its rest`)
   const { min, max, rest, unit } = slider
+  if (isWeight(key)) {
+    // The weight of the button's text has no one resting value: its
+    // stylesheet falls back to the medium weight.
+    const from = Number.isNaN(rest)
+      ? SLIDERS["typography.weights.medium"].rest
+      : rest
+    const looks = drawn
+    const far = fromFar(from).find(
+      (weight) =>
+        weight >= min &&
+        weight <= max &&
+        weight !== from &&
+        (looks === null || looks[weight] !== looks[from]),
+    )
+    return far === undefined ? "" : `${far}${unit}`
+  }
   const far = Number.isNaN(rest) || rest - min <= max - rest ? max : min
   return `${far}${unit}`
 }
@@ -201,10 +240,44 @@ const samePalette: string[] = []
 let tried = 0
 let pressed = 0
 let roles = 0
+/** How many ways the machine's font draws the nine weights. */
+let weightsDrawn = 0
 let named = 0
 
 const code = await s.run(async () => {
   await s.open("/theme-builder/")
+
+  // Which weights this machine's font can show a difference between, read
+  // in the sheet itself, in the font it has there before a theme names one.
+  drawn = await (async () => {
+    const content = await (await frame("dark").elementHandle())?.contentFrame()
+    await content?.waitForLoadState("load")
+    return (
+      content?.evaluate(() => {
+        const family = getComputedStyle(document.body).fontFamily
+        return Object.fromEntries(
+          [100, 200, 300, 400, 500, 600, 700, 800, 900].map((weight) => {
+            const canvas = document.createElement("canvas")
+            canvas.width = 420
+            canvas.height = 40
+            const context = canvas.getContext("2d")
+            if (!context) return [weight, ""]
+            context.font = `${weight} 20px ${family}`
+            context.fillText("Route cleared for sector 9 Send", 4, 26)
+            return [weight, canvas.toDataURL()]
+          }),
+        )
+      }) ?? null
+    )
+  })()
+  const ways = new Set(Object.values(drawn ?? {})).size
+  const unseen = KEYS.filter((key) => isWeight(key) && farFrom(key) === "")
+  expect(
+    drawn !== null && ways >= 2 && unseen.length === 0,
+    `the font the sheet gets on this machine draws the nine weights ${ways} ways, and no weight looks another way than the resting one of ${unseen.join(", ") || "none"}: the check has nothing to set those keys to that could be seen`,
+  )
+  if (drawn === null || unseen.length > 0) return
+  weightsDrawn = ways
 
   // The same for each choice of what is shown: the dark frame alone, as the
   // page opens, both, and the light one alone. A frame alone has the width
@@ -464,5 +537,5 @@ if (
   process.exit(1)
 }
 console.log(
-  `✓ Each of the ${KEYS.length} keys of the recipe and each of the five palettes changes what is seen of every shown frame of the theme builder without scrolling, with the dark frame alone, both and the light one alone, and the ${roles} roles at the top of the sheet are painted as the package builds them.`,
+  `✓ Each of the ${KEYS.length} keys of the recipe and each of the five palettes changes what is seen of every shown frame of the theme builder without scrolling, with the dark frame alone, both and the light one alone, and the ${roles} roles at the top of the sheet are painted as the package builds them. The font of this machine draws the nine weights ${weightsDrawn} ways, and each weight was set to one it draws another way than the resting one.`,
 )
