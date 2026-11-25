@@ -6823,8 +6823,6 @@
             "toggle-group",
             "sr-only"
           ],
-          "layout": "stack",
-          "maxWidth": "30rem",
           "ts": [
             {
               "lang": "tsx",
