@@ -94,14 +94,24 @@ export class LtConnectionStatus extends HostElement {
      */
     this.hostIsRegion = this.hasRegionAttributes()
     // The host may have changed while it was out of the document.
+    this.restoreBar()
+    this.removeForeignBars()
     this.matchRegion()
-    this.regionObserver = new MutationObserver(() => {
+    this.regionObserver = new MutationObserver((records) => {
+      this.restoreBar()
+      this.removeForeignBars()
+      // Only a change to the host's own attributes can change who the
+      // region is. `matchRegion` replaces the bar, which is a change to the
+      // children: answering that with `matchRegion` again must not be
+      // possible, or a bar that does not come out as expected loops for good.
+      if (!records.some((record) => record.type === "attributes")) return
       if (!this.hasRegionAttributes()) this.hostIsRegion = false
       this.matchRegion()
     })
     this.regionObserver.observe(this, {
       attributes: true,
       attributeFilter: ["role", "aria-live"],
+      childList: true,
     })
     window.addEventListener("offline", this.handleOffline)
     window.addEventListener("online", this.handleOnline)
@@ -150,6 +160,46 @@ export class LtConnectionStatus extends HostElement {
       bar.setAttribute("aria-live", "polite")
     }
     return bar
+  }
+
+  /**
+   * Puts the bar back when an update took it out of the host.
+   *
+   * A morph that does not know `data-ignore-morph` removes what the server
+   * did not send, and the bar is exactly that. The element kept the removed
+   * node and believed it was showing, so nothing was drawn for the rest of
+   * the outage. The outage is not over because the bar was taken, so the
+   * same bar goes back, and the app is told nothing new. The receipt is
+   * only a receipt: once taken, it is let go.
+   */
+  private restoreBar(): void {
+    const bar = this.bar
+    if (!bar || bar.parentNode === this) return
+    if (bar.dataset.state === "offline") {
+      this.append(bar)
+      return
+    }
+    if (this.timer) window.clearTimeout(this.timer)
+    this.timer = undefined
+    this.bar = undefined
+  }
+
+  /**
+   * Removes a bar this element did not make.
+   *
+   * A page restored from history comes back with the bar it had when the
+   * user left, and a morph can bring one from an old snapshot. Such a bar
+   * belongs to no one: it was never removed, and the next outage drew a
+   * second bar beside it. It can arrive after the element is connected, as
+   * when the element is defined before the parser reaches its children, so
+   * this runs on every change to the children too.
+   */
+  private removeForeignBars(): void {
+    for (const bar of this.querySelectorAll(
+      `:scope > .${CONNECTION_STATUS_BAR_CLASS}`,
+    )) {
+      if (bar !== this.bar) bar.remove()
+    }
   }
 
   private matchRegion(): void {
@@ -229,6 +279,7 @@ export class LtConnectionStatus extends HostElement {
     // bar already says "offline", there is nothing new to write or report:
     // each write was announced again, and each report gave the app a new
     // `connection-lost`.
+    this.restoreBar()
     if (this.bar?.dataset.state === "offline") return
 
     if (this.timer) window.clearTimeout(this.timer)
@@ -239,6 +290,7 @@ export class LtConnectionStatus extends HostElement {
   }
 
   private showOnline(): void {
+    this.restoreBar()
     if (!this.bar || this.bar.dataset.state === "online") return
     const bar = this.bar
     bar.dataset.state = "online"

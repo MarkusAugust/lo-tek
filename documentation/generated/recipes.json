@@ -1557,6 +1557,7 @@
         "data-ignore-morph",
         "data-on",
         "data-ignore-morph",
+        "connection-lost",
         "navigator.onLine",
         "reportFailure()",
         "reportSuccess()",
