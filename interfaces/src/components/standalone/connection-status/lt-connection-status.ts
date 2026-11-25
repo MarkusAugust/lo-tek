@@ -93,22 +93,13 @@ export class LtConnectionStatus extends HostElement {
      * stays the region.
      */
     this.hostIsRegion = this.hasRegionAttributes()
-    /*
-     * A bar in the markup that this element did not make belongs to no one:
-     * a page restored from history comes back with the bar it had when the
-     * user left. It was never removed, and the next outage drew a second
-     * bar beside it.
-     */
-    for (const bar of this.querySelectorAll(
-      `:scope > .${CONNECTION_STATUS_BAR_CLASS}`,
-    )) {
-      if (bar !== this.bar) bar.remove()
-    }
     // The host may have changed while it was out of the document.
     this.restoreBar()
+    this.removeForeignBars()
     this.matchRegion()
     this.regionObserver = new MutationObserver(() => {
       this.restoreBar()
+      this.removeForeignBars()
       if (!this.hasRegionAttributes()) this.hostIsRegion = false
       this.matchRegion()
     })
@@ -186,6 +177,24 @@ export class LtConnectionStatus extends HostElement {
     if (this.timer) window.clearTimeout(this.timer)
     this.timer = undefined
     this.bar = undefined
+  }
+
+  /**
+   * Removes a bar this element did not make.
+   *
+   * A page restored from history comes back with the bar it had when the
+   * user left, and a morph can bring one from an old snapshot. Such a bar
+   * belongs to no one: it was never removed, and the next outage drew a
+   * second bar beside it. It can arrive after the element is connected, as
+   * when the element is defined before the parser reaches its children, so
+   * this runs on every change to the children too.
+   */
+  private removeForeignBars(): void {
+    for (const bar of this.querySelectorAll(
+      `:scope > .${CONNECTION_STATUS_BAR_CLASS}`,
+    )) {
+      if (bar !== this.bar) bar.remove()
+    }
   }
 
   private matchRegion(): void {

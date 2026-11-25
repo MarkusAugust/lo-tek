@@ -564,32 +564,55 @@ describe("lt-connection-status when an update takes its bar away", () => {
       }
 
   for (const [how, take] of Object.entries(TAKEN)) {
-    it(`throws nothing and leaves no bar behind when ${how} while the receipt shows`, async () => {
+    it(`gives the receipt up, without a fault, when ${how} while it shows`, async () => {
+      // The receipt has been given, and an outage is over: it is not put
+      // back. What the taking must not do is leave the component working on
+      // a bar that is gone, so whatever goes wrong in the page while the
+      // receipt's time runs is collected, from what the component sees
+      // happen to it and from its timer.
       const { status, told } = await mounted()
       status.reportFailure()
       await settled()
+      const faults: string[] = []
+      const fault = (event: ErrorEvent | PromiseRejectionEvent) =>
+        faults.push("message" in event ? event.message : String(event.reason))
+      window.addEventListener("error", fault)
+      window.addEventListener("unhandledrejection", fault)
       vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
       try {
         status.reportSuccess()
         expect(bars(status)[0]?.dataset.state).toBe("online")
 
         take(status)
-        // The receipt has been given; whether it comes back is not held.
-        // It is never doubled, and it is gone when its time is out.
-        expect(bars(status).length).toBeLessThanOrEqual(1)
+        // Once the component has seen it: what it sees comes as a
+        // microtask, and a bar it writes comes at once.
+        await Promise.resolve()
+        await Promise.resolve()
+        await vi.advanceTimersByTimeAsync(0)
+        expect(bars(status).length, "bars after the receipt was taken").toBe(0)
+
         await vi.advanceTimersByTimeAsync(4000)
         expect(bars(status).length, "bars after the receipt's time").toBe(0)
       } finally {
         vi.useRealTimers()
+        window.removeEventListener("error", fault)
+        window.removeEventListener("unhandledrejection", fault)
       }
+      await settled()
+      expect(faults, "what went wrong in the page").toEqual([])
       expect(told).toEqual(["connection-lost", "connection-restored"])
 
-      // And the next outage shows, once.
+      // And the next outage shows, once, and is told of once.
       status.reportFailure()
       await settled()
       expect(bars(status).length, "bars in the host for the new outage").toBe(1)
       expect(bars(status)[0].dataset.state).toBe("offline")
       expect(bars(status)[0].textContent).toContain("No connection")
+      expect(told).toEqual([
+        "connection-lost",
+        "connection-restored",
+        "connection-lost",
+      ])
     })
 
     it(`shows an outage that begins right after ${how} while the receipt shows, and keeps it`, async () => {
@@ -651,6 +674,80 @@ describe("lt-connection-status when an update takes its bar away", () => {
       expect(told).toEqual(["connection-lost"])
     })
   }
+
+  /** A bar from markup, as an update or the parser adds it to the host. */
+  const stale = (markup: string) => {
+    const holder = document.createElement("div")
+    holder.innerHTML = markup
+    return holder.firstElementChild as HTMLElement
+  }
+  // A bar no element made can come after the element is in the page: the
+  // element was defined before the parser reached its children, or an
+  // update brings an old picture of the page.
+  for (const [what, markup] of Object.entries(LEFT))
+    for (const when of [
+      "right after the element is in the page",
+      "into an element that has been showing nothing",
+    ] as const) {
+      it(`takes away ${what} that arrives ${when}, with the network up and nothing failing`, async () => {
+        const host = document.createElement(
+          "lt-connection-status",
+        ) as LtConnectionStatus
+        const told: string[] = []
+        for (const name of ["connection-lost", "connection-restored"])
+          host.addEventListener(name, () => told.push(name))
+        const surface = mount("")
+        surface.append(host)
+        expect(host.childElementCount, "the element is connected empty").toBe(0)
+        if (when !== "right after the element is in the page") await settled()
+
+        host.append(stale(markup))
+        expect(bars(host).length, "the bar arrived").toBe(1)
+        await settled()
+
+        expect(navigator.onLine).toBe(true)
+        expect(bars(host).length, "bars left in the host").toBe(0)
+        expect(told).toEqual([])
+
+        // And an outage after it shows one bar, the element's own.
+        host.reportFailure()
+        await settled()
+        const shown = bars(host)
+        expect(shown.length, "bars in the host for the outage").toBe(1)
+        expect(shown[0].dataset.state).toBe("offline")
+        expect(shown[0].textContent).toContain("No connection")
+        expect(told).toEqual(["connection-lost"])
+      })
+    }
+
+  for (const [what, markup] of Object.entries(LEFT))
+    it(`keeps its own bar and takes away ${what} that arrives beside it during an outage`, async () => {
+      const { status, told } = await mounted()
+      status.reportFailure()
+      await settled()
+      const own = bars(status)[0]
+      expect(own?.dataset.state).toBe("offline")
+
+      status.append(stale(markup))
+      expect(bars(status).length, "the bar arrived").toBe(2)
+      await settled()
+
+      const shown = bars(status)
+      expect(shown.length, "bars in the host while the outage lasts").toBe(1)
+      expect(shown[0], "the bar that stays is the element's own").toBe(own)
+      expect(shown[0].dataset.state).toBe("offline")
+      expect(shown[0].textContent).toContain("No connection")
+      expect(told).toEqual(["connection-lost"])
+
+      // The same before it, as an update that writes at the start of the host.
+      status.prepend(stale(markup))
+      await settled()
+      expect(
+        bars(status),
+        "bars after one arrived before the element's own",
+      ).toEqual([own])
+      expect(told).toEqual(["connection-lost"])
+    })
 
   it("shows one bar when the page comes back with a bar in the markup and no network", async () => {
     const offline = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false)
