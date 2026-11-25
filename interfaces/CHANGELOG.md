@@ -188,10 +188,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **`<lt-error-summary>` takes focus when the form fails again.** The
   recipe sets `hidden` and removes it again in the same turn, and so do two
   Datastar patches in one response. The component looked for `hidden` a
-  microtask later, found the box shown both times, and left focus where it
-  was: someone using a screen reader was not told that the form had failed
+  microtask later and found the box shown both times, so focus stayed where
+  the user had put it, or was dropped to the page when it was still in the
+  box: someone using a screen reader was not told that the form had failed
   a second time. It worked only when something came between the two
-  changes.
+  changes. A script that moves focus itself in the same turn still decides,
+  now also when `hidden` changed more than once in that turn.
 
 ## 0.48.0 (2026-11-23)
 
