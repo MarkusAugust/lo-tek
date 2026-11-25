@@ -156,7 +156,18 @@ export class LtErrorSummary extends HostElement {
     this.focusBefore ??= document.activeElement
     // Hidden: let go of focus now, in the morph's attribute pass, so the
     // morph still updates the content (see `sync()`).
-    if (this.hidden) this.blurInside()
+    //
+    // And that submission is over, which is noted now and not in the
+    // deferred round: a script that sets `hidden` and removes it again in
+    // the same turn, as the recipe for a form that fails again does, and two
+    // patches in one response, have shown the box again before that round
+    // runs, and it never saw the box hidden. The box then kept focus from
+    // the first failure and took none for the second.
+    if (this.hidden) {
+      this.blurInside()
+      this.hasFocused = false
+      this.focusAttempted = false
+    }
     queueMicrotask(() => {
       if (this.isConnected) this.sync()
       this.focusBefore = undefined

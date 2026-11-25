@@ -185,6 +185,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   missing from the list. The Kotlin rulebook also names the fourth thing
   the IntelliJ plugin warns about, `Lt.field(error = true)` without
   `field.error`.
+- **`<lt-error-summary>` takes focus when the form fails again.** The
+  recipe sets `hidden` and removes it again in the same turn, and so do two
+  Datastar patches in one response. The component looked for `hidden` a
+  microtask later, found the box shown both times, and left focus where it
+  was: someone using a screen reader was not told that the form had failed
+  a second time. It worked only when something came between the two
+  changes.
 
 ## 0.48.0 (2026-11-23)
 
