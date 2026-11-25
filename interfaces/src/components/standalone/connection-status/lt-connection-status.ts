@@ -97,9 +97,14 @@ export class LtConnectionStatus extends HostElement {
     this.restoreBar()
     this.removeForeignBars()
     this.matchRegion()
-    this.regionObserver = new MutationObserver(() => {
+    this.regionObserver = new MutationObserver((records) => {
       this.restoreBar()
       this.removeForeignBars()
+      // Only a change to the host's own attributes can change who the
+      // region is. `matchRegion` replaces the bar, which is a change to the
+      // children: answering that with `matchRegion` again must not be
+      // possible, or a bar that does not come out as expected loops for good.
+      if (!records.some((record) => record.type === "attributes")) return
       if (!this.hasRegionAttributes()) this.hostIsRegion = false
       this.matchRegion()
     })
