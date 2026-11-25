@@ -115,15 +115,45 @@
   .lt-input[data-variant="time"]::-webkit-calendar-picker-indicator,
   .lt-input[data-variant="datetime-local"]::-webkit-calendar-picker-indicator {
     position: absolute;
-    inset-inline-end: var(--lt-spacing-2);
+    /* Centred on the icon, which is 0.95rem wide and stands `spacing-2`
+       from the edge, so the focus ring goes round it. A physical side, as
+       for the icon: the button did not follow `inset-inline-end` to the
+       left in a right-to-left field. */
+    right: calc(var(--lt-spacing-2) - (var(--lt-spacing-6) - 0.95rem) / 2);
     top: 50%;
     transform: translateY(-50%);
-    opacity: 0;
+    border-radius: var(--lt-spacing-1);
     width: var(--lt-spacing-6);
     height: var(--lt-spacing-6);
     min-width: var(--lt-spacing-6);
     min-height: var(--lt-spacing-6);
     cursor: pointer;
+  }
+
+  .lt-input[data-variant="date"]:dir(rtl)::-webkit-calendar-picker-indicator,
+  .lt-input[data-variant="time"]:dir(rtl)::-webkit-calendar-picker-indicator,
+  .lt-input[data-variant="datetime-local"]:dir(
+    rtl
+  )::-webkit-calendar-picker-indicator {
+    right: auto;
+    left: calc(var(--lt-spacing-2) - (var(--lt-spacing-6) - 0.95rem) / 2);
+  }
+
+  /* The browser's button stays, without its picture: ours is painted on the
+     field. It was hidden with `opacity: 0`, and that hid its focus ring
+     too. In Chromium the button is a tab stop of its own, and the field
+     does not match `:focus-visible` while focus is on it, so nothing showed
+     where the keyboard was. `:focus-visible` on the button cannot be
+     written from a stylesheet; the ring is the browser's, and only its
+     colour is set here. In high contrast the browser's button is shown as
+     it is, see below. */
+  @media (forced-colors: none) {
+    .lt-input[data-variant="date"]::-webkit-calendar-picker-indicator,
+    .lt-input[data-variant="time"]::-webkit-calendar-picker-indicator,
+    .lt-input[data-variant="datetime-local"]::-webkit-calendar-picker-indicator {
+      background-image: none;
+      outline-color: var(--lt-color-accent-border-strong);
+    }
   }
 
   /* iOS Safari: with the native appearance, a date or time field stood wider
@@ -148,19 +178,13 @@
   }
 
   /* High contrast: the icon is painted into the image with a fixed colour,
-     and can become invisible in a dark theme. The browser's own button is
-     hidden behind our icon, and is brought back here. */
+     and can become invisible in a dark theme. The browser's own button
+     keeps its picture here, and ours is taken away. */
   @media (forced-colors: active) {
     .lt-input[data-variant="date"],
     .lt-input[data-variant="time"],
     .lt-input[data-variant="datetime-local"] {
       background-image: none;
-    }
-
-    .lt-input[data-variant="date"]::-webkit-calendar-picker-indicator,
-    .lt-input[data-variant="time"]::-webkit-calendar-picker-indicator,
-    .lt-input[data-variant="datetime-local"]::-webkit-calendar-picker-indicator {
-      opacity: 1;
     }
   }
 }
