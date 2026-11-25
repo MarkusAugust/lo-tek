@@ -785,3 +785,335 @@ describe("lt-error-summary when a framework gives focus back", () => {
     expect(document.activeElement).toBe(email)
   })
 })
+
+/*
+ * The form fails again while the box is still shown. The recipe for that is
+ * to hide the box and show it in one go: `box.hidden = true` and then
+ * `box.hidden = false`, or from the server two patches in one response, the
+ * box with `hidden` and then without. Both lines run in the same task, so
+ * by the time the component looks, the box is shown, as it was before. It
+ * was hidden in between all the same, and that is what says the form was
+ * sent again: focus goes to the box.
+ */
+describe("lt-error-summary when the form fails again while the box is shown", () => {
+  beforeAll(() => {
+    defineLtErrorSummary()
+  })
+
+  const LIST = `<ul>
+          <li><a href="#email">Enter a valid address</a></li>
+          <li><a href="#deliver-by">Enter a date that exists</a></li>
+        </ul>`
+  const OTHER = `<ul><li><a href="#deliver-by">Enter a date after today</a></li></ul>`
+  /** The box as the server sends it, hidden or shown, with this list. */
+  const boxWith = (list: string, more = "") =>
+    `<lt-error-summary ${attr(ERRORS.host)}${more}>
+        <h2 ${attr(ERRORS.title)}>The form has errors</h2>
+        ${list}
+      </lt-error-summary>`
+
+  /** The box shown with its errors and focus on it, as after the first failure, and somewhere else to be. */
+  async function failedOnce(box = boxWith(LIST)) {
+    mount(`
+      ${box}
+      <label class="lt-label" for="email">Fixer's address</label>
+      <input class="lt-input" id="email" type="email" />
+      <label class="lt-label" for="deliver-by">Deliver by</label>
+      <input class="lt-input" id="deliver-by" />
+      <button type="button" id="send">Send</button>
+    `)
+    await settle()
+    return {
+      box: document.querySelector("lt-error-summary") as HTMLElement,
+      field: document.getElementById("email") as HTMLInputElement,
+      button: document.getElementById("send") as HTMLButtonElement,
+    }
+  }
+
+  /** Hidden and shown in the same task, each way a page does it. */
+  const AGAIN: Record<string, (box: HTMLElement) => void> = {
+    "the property": (box) => {
+      box.hidden = true
+      box.hidden = false
+    },
+    "the attribute": (box) => {
+      box.setAttribute("hidden", "")
+      box.removeAttribute("hidden")
+    },
+  }
+
+  for (const [how, again] of Object.entries(AGAIN))
+    for (const from of ["button", "field"] as const)
+      it(`takes focus from the ${from} when it is hidden and shown in one go with ${how}`, async () => {
+        const page = await failedOnce()
+        expect(document.activeElement, "the first failure").toBe(page.box)
+
+        page[from].focus()
+        again(page.box)
+        await waitForPaint()
+
+        expect(
+          document.activeElement,
+          "the box did not take focus the second time the form failed",
+        ).toBe(page.box)
+      })
+
+  for (const [how, again] of Object.entries(AGAIN)) {
+    it(`takes focus when the list is replaced while it is hidden, with ${how}`, async () => {
+      const { box, button } = await failedOnce()
+      button.focus()
+
+      // The recipe: the new errors are written, then the box is shown.
+      if (how === "the property") box.hidden = true
+      else box.setAttribute("hidden", "")
+      ;(box.querySelector("ul") as HTMLElement).outerHTML = OTHER
+      if (how === "the property") box.hidden = false
+      else box.removeAttribute("hidden")
+      await waitForPaint()
+
+      expect(document.activeElement).toBe(box)
+      expect(box.querySelectorAll("li").length).toBe(1)
+    })
+
+    it(`takes focus when the list is replaced before it is hidden and shown, with ${how}`, async () => {
+      const { box, button } = await failedOnce()
+      button.focus()
+
+      ;(box.querySelector("ul") as HTMLElement).outerHTML = OTHER
+      again(box)
+      await waitForPaint()
+
+      expect(document.activeElement).toBe(box)
+    })
+
+    it(`takes focus when the list is replaced right after it is hidden and shown, with ${how}`, async () => {
+      // A patch from the server sets the attributes of the box and then
+      // goes on to its children, in the same pass.
+      const { box, button } = await failedOnce()
+      button.focus()
+
+      again(box)
+      ;(box.querySelector("ul") as HTMLElement).outerHTML = OTHER
+      await waitForPaint()
+
+      expect(document.activeElement).toBe(box)
+    })
+  }
+
+  it("takes focus when Datastar patches the box hidden and then shown in one response", async () => {
+    const { box, field } = await failedOnce()
+    field.focus()
+
+    // Two `datastar-patch-elements` events of one response, one after the
+    // other in the same task.
+    datastarPatch(boxWith(LIST, " hidden"))
+    datastarPatch(boxWith(LIST))
+    await waitForPaint()
+
+    expect(
+      document.querySelector("lt-error-summary"),
+      "the box is morphed, not replaced",
+    ).toBe(box)
+    expect(box.hidden).toBe(false)
+    expect(document.activeElement).toBe(box)
+  })
+
+  it("takes focus when Datastar patches the box hidden and then shown with other errors", async () => {
+    const { box, button } = await failedOnce()
+    button.focus()
+
+    datastarPatch(boxWith(LIST, " hidden"))
+    datastarPatch(boxWith(OTHER))
+    await waitForPaint()
+
+    expect(box.querySelectorAll("li").length).toBe(1)
+    expect(document.activeElement).toBe(box)
+  })
+
+  it("takes focus a third time, and each time after", async () => {
+    const { box, button, field } = await failedOnce()
+    for (const from of [button, field, button]) {
+      from.focus()
+      AGAIN["the property"](box)
+      await waitForPaint()
+      expect(document.activeElement).toBe(box)
+    }
+  })
+
+  // What hiding and showing in one go must not do.
+  for (const [how, again] of Object.entries(AGAIN)) {
+    it(`moves nothing when the box has no errors, with ${how}`, async () => {
+      const { box, button } = await failedOnce(boxWith("<ul></ul>"))
+      button.focus()
+
+      again(box)
+      await waitForPaint()
+
+      expect(document.activeElement).toBe(button)
+    })
+
+    it(`moves nothing when the page has said no to it, with ${how}`, async () => {
+      const { box, field } = await failedOnce(
+        boxWith(LIST, ' data-autofocus="false"'),
+      )
+      field.focus()
+
+      again(box)
+      await waitForPaint()
+
+      expect(document.activeElement).toBe(field)
+    })
+  }
+
+  it("moves nothing when Datastar patches a box without errors hidden and then shown", async () => {
+    const { button } = await failedOnce(boxWith("<ul></ul>"))
+    button.focus()
+
+    datastarPatch(boxWith("<ul></ul>", " hidden"))
+    datastarPatch(boxWith("<ul></ul>"))
+    await waitForPaint()
+
+    expect(document.activeElement).toBe(button)
+  })
+
+  it("does not pull focus out of a field when only the list changes, in one go or over time", async () => {
+    // The box is shown throughout: the user is correcting, and the server
+    // answers each field as it is left.
+    const { box, field } = await failedOnce()
+    field.focus()
+
+    ;(box.querySelector("ul") as HTMLElement).outerHTML = OTHER
+    await waitForPaint()
+    expect(document.activeElement).toBe(field)
+
+    datastarPatch(boxWith(LIST))
+    datastarPatch(boxWith(OTHER))
+    await waitForPaint()
+    expect(document.activeElement).toBe(field)
+  })
+
+  it("does not take focus when the box is hidden and stays hidden", async () => {
+    const { box, field } = await failedOnce()
+    field.focus()
+
+    box.hidden = true
+    box.hidden = false
+    box.hidden = true
+    await waitForPaint()
+
+    expect(document.activeElement).toBe(field)
+  })
+
+  // A script that moves focus in the same task has decided where it goes,
+  // and the box leaves it there: also when the box was hidden and shown in
+  // that task, which is what the recipe does.
+  for (const [how, again] of Object.entries(AGAIN)) {
+    it(`leaves focus where a script moved it in the task the form failed again, with ${how}`, async () => {
+      const { box, button, field } = await failedOnce()
+      button.focus()
+
+      again(box)
+      field.focus()
+      await waitForPaint()
+
+      expect(
+        document.activeElement,
+        "the box took focus from where the script had just put it",
+      ).toBe(field)
+    })
+
+    it(`leaves focus where a script moved it in the task the form first failed, with ${how}`, async () => {
+      // The recipe on a box the server sent hidden: the same two lines,
+      // whether the box was shown before or not.
+      const { box, field } = await failedOnce(boxWith(LIST, " hidden"))
+      expect(document.activeElement, "nothing has failed yet").not.toBe(box)
+
+      again(box)
+      field.focus()
+      await waitForPaint()
+
+      expect(box.hidden).toBe(false)
+      expect(
+        document.activeElement,
+        "the box took focus from where the script had just put it",
+      ).toBe(field)
+    })
+  }
+
+  // Focus is still in the box when the form fails again: it is on the box
+  // afterwards, not lost to the page because the box was hidden under it.
+  for (const where of ["the box itself", "a link in the box"] as const) {
+    const inBox = (box: HTMLElement) => {
+      const at =
+        where === "the box itself"
+          ? box
+          : (box.querySelector("a") as HTMLAnchorElement)
+      at.focus()
+      expect(document.activeElement, "the test put focus there").toBe(at)
+    }
+
+    it(`has focus after the form fails again with focus on ${where}`, async () => {
+      const { box } = await failedOnce()
+      inBox(box)
+
+      box.hidden = true
+      box.hidden = false
+      await waitForPaint()
+
+      expect(document.activeElement).toBe(box)
+    })
+
+    it(`has focus after Datastar patches other errors in with focus on ${where}`, async () => {
+      const { box } = await failedOnce()
+      inBox(box)
+
+      datastarPatch(boxWith(LIST, " hidden"))
+      datastarPatch(boxWith(OTHER))
+      await waitForPaint()
+
+      expect(document.querySelector("lt-error-summary")).toBe(box)
+      expect(box.querySelectorAll("li").length).toBe(1)
+      expect(document.activeElement).toBe(box)
+    })
+  }
+
+  // Only `hidden` says a form was sent again. Another attribute of the box
+  // changing while it is shown is no new failure, and the user stays in
+  // the field they are correcting.
+  for (const [what, change] of [
+    [
+      "set to true",
+      (box: HTMLElement) => box.setAttribute("data-autofocus", "true"),
+    ],
+    [
+      "set to true and removed",
+      (box: HTMLElement) => {
+        box.setAttribute("data-autofocus", "true")
+        box.removeAttribute("data-autofocus")
+      },
+    ],
+    [
+      "set to false and then to true",
+      (box: HTMLElement) => {
+        box.setAttribute("data-autofocus", "false")
+        box.setAttribute("data-autofocus", "true")
+      },
+    ],
+  ] as const)
+    it(`does not pull focus out of a field when data-autofocus is ${what}`, async () => {
+      const { box, field } = await failedOnce()
+      expect(document.activeElement, "the first failure").toBe(box)
+      field.focus()
+
+      change(box)
+      await waitForPaint()
+      expect(document.activeElement).toBe(field)
+
+      // Nor over time, one change in each task.
+      box.setAttribute("data-autofocus", "false")
+      await waitForPaint()
+      box.removeAttribute("data-autofocus")
+      await waitForPaint()
+      expect(document.activeElement).toBe(field)
+    })
+})

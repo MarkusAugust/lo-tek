@@ -84,8 +84,10 @@ export class LtErrorSummary extends HostElement {
    * live validation patched the list.
    */
   private focusAttempted = false
-  /** Where focus was when `hidden` last changed, until the deferred round has run. */
+  /** Where focus was when `hidden` first changed in this turn, until the deferred round has run. */
   private focusBefore: Element | null | undefined
+  /** Whether the deferred round of this turn is waiting to run. */
+  private roundPending = false
   /**
    * The `aria-labelledby` the component wrote on the box, through
    * `nameFromHeading()`.
@@ -156,8 +158,30 @@ export class LtErrorSummary extends HostElement {
     this.focusBefore ??= document.activeElement
     // Hidden: let go of focus now, in the morph's attribute pass, so the
     // morph still updates the content (see `sync()`).
-    if (this.hidden) this.blurInside()
+    //
+    //
+    // And that submission is over. Without this reset the box only took
+    // focus the first time: the pattern in a Datastar app is that the list
+    // keeps the same links throughout and only `hidden` is toggled, so "have
+    // I moved focus here before" does not answer whether this is a new
+    // submission. It is noted now and not in the deferred round: a script
+    // that sets `hidden` and removes it again in the same turn, as the
+    // recipe for a form that fails again does, and two patches in one
+    // response, have shown the box again before that round runs, and it
+    // never saw the box hidden. Focus then stayed where the user had put
+    // it, or was dropped to the page when it was still in the box.
+    if (this.hidden) {
+      this.blurInside()
+      this.hasFocused = false
+      this.focusAttempted = false
+    }
+    // One round for a turn, however many times `hidden` changed in it. With
+    // a round for each change the first one forgot where focus had been,
+    // and the next took focus from the field a script had just moved it to.
+    if (this.roundPending) return
+    this.roundPending = true
     queueMicrotask(() => {
+      this.roundPending = false
       if (this.isConnected) this.sync()
       this.focusBefore = undefined
     })
@@ -236,17 +260,10 @@ export class LtErrorSummary extends HostElement {
       ...this.querySelectorAll<HTMLAnchorElement>(LT_ERROR_SUMMARY_PARTS.link),
     ]
 
-    // If the server hides the box again, that submission is over. Without
-    // this reset the box only took focus the first time: the pattern in a
-    // Datastar app is that the list keeps the same links throughout and only
-    // `hidden` is toggled, so "have I moved focus here before" does not
-    // answer whether this is a new submission. It comes before the return
-    // for an empty list: React removes the items before it sets `hidden` on
-    // the host, so the list is already empty in the round where the box is
-    // hidden.
+    // That a hidden box ends the submission is noted as `hidden` is set, in
+    // `attributeChangedCallback`, which every way of becoming hidden goes
+    // through.
     if (this.hidden) {
-      this.hasFocused = false
-      this.focusAttempted = false
       /*
        * A hidden box gives up focus. HTML's focus fixup rule moves focus
        * off an element that is no longer rendered; Chromium does it at
@@ -259,7 +276,7 @@ export class LtErrorSummary extends HostElement {
     }
 
     if (links.length === 0) {
-      // The flags are not reset by an empty list, only by `hidden` above. A
+      // The flags are not reset by an empty list, only by `hidden`. A
       // visible list that is emptied and filled while the user corrects
       // would otherwise pull focus out of the field they were in.
       warnAboutMarkup(
