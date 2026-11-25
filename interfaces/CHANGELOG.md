@@ -186,6 +186,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the IntelliJ plugin warns about, `Lt.field(error = true)` without
   `field.error`.
 
+- **`<lt-connection-status>` keeps its bar through an update that takes
+  it away.** A morph that does not know `data-ignore-morph`, such as
+  idiomorph, removed the bar, and the component drew nothing for the rest
+  of the outage. The bar is now put back while the outage lasts, and
+  `connection-lost` is not sent again. A bar left in the markup of a page
+  restored from history is removed, so the next outage shows one bar and
+  not two.
+
 - **"No matches" in `<lt-suggestion>` no longer moves the page.** The
   message stood in the flow below the field and pushed everything after it
   down while it was shown. A press on a button there closed the list, the

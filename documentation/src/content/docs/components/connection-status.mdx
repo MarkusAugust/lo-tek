@@ -192,6 +192,8 @@ defineLtConnectionStatus()
 
 The server by definition cannot tell you that it is unavailable. If it is down, nothing comes from it to render. So the component creates the content itself, and the builder function sets `data-ignore-morph` so that a later patch does not tear the bar away the moment the connection is back. See [Markup and behaviour](/markup-and-behaviour/).
 
+A morph that does not know the attribute removes the bar anyway. The component puts it back for as long as the outage lasts, and does not send `connection-lost` again.
+
 ## `navigator.onLine` is not enough
 
 The browser only knows whether the machine has a network, not whether the server answers. An office network with no route to the internet, a server that is down, or a stream that has dropped all count as "online".
