@@ -186,6 +186,19 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   the IntelliJ plugin warns about, `Lt.field(error = true)` without
   `field.error`.
 
+- **`<lt-toast>` keeps its messages through an update that takes them
+  away.** A morph that does not know `data-ignore-morph`, such as
+  idiomorph, removed messages the user had not read. The ones `show()`
+  made are now put back in their places, without `toast-dismiss`. A
+  message ends with `dismiss()`, `clear()` or its timer: one removed with
+  `remove()` on the element comes back.
+
+- **The close button works on every message in `<lt-toast>`.** A message
+  the server patched into the region, or one that came back with a page
+  restored from history, had a close button that did nothing, because the
+  listener was put on the messages `show()` made. The region now listens
+  for all of them.
+
 - **`<lt-connection-status>` keeps its bar through an update that takes
   it away.** A morph that does not know `data-ignore-morph`, such as
   idiomorph, removed the bar, and the component drew nothing for the rest

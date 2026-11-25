@@ -154,15 +154,63 @@ export class LtToast extends HostElement {
     if (origin?.isConnected) origin.focus({ preventScroll: true })
   }
 
+  /**
+   * The messages `show()` made that are still live, in the order they stand
+   * in the region: the newest first.
+   */
+  private own: HTMLElement[] = []
+
+  private childObserver?: MutationObserver
+
+  /**
+   * Puts back the messages an update took out of the region.
+   *
+   * A morph that does not know `data-ignore-morph` removes what the server
+   * did not send, and the messages are exactly that: the user lost a
+   * message they had not read. Only `dismiss()`, `clear()` and the timer end
+   * a message `show()` made, so one that is missing goes back where it
+   * stood. A message someone else wrote into the region is theirs to take
+   * away, and is left gone.
+   */
+  private restoreMessages(): void {
+    for (let index = this.own.length - 1; index >= 0; index--) {
+      const message = this.own[index]
+      if (!message || message.parentNode === this) continue
+      this.insertBefore(message, this.own[index + 1] ?? null)
+    }
+  }
+
+  /**
+   * One listener for every close button in the region, not one per
+   * message. A message the server patched in, or one that came back with
+   * the page from the history, was not made by `show()` here, and its close
+   * button did nothing.
+   */
+  private closeFromClick = (event: MouseEvent): void => {
+    if (!(event.target instanceof Element)) return
+    const close = event.target.closest(`.${TOAST_CLOSE_CLASS}`)
+    const message = close?.closest<HTMLElement>(`.${TOAST_MESSAGE_CLASS}`)
+    if (message && this.contains(message)) this.dismiss(message)
+  }
+
   disconnectedCallback(): void {
     this.removeEventListener("focusin", this.rememberOrigin)
     this.removeEventListener("focusout", this.forgetOrigin)
+    this.removeEventListener("click", this.closeFromClick)
+    this.childObserver?.disconnect()
+    this.childObserver = undefined
     this.focusOrigin = null
   }
 
   connectedCallback(): void {
     this.addEventListener("focusin", this.rememberOrigin)
     this.addEventListener("focusout", this.forgetOrigin)
+    this.addEventListener("click", this.closeFromClick)
+    // The region may have been emptied while it was out of the document.
+    this.restoreMessages()
+    this.childObserver?.disconnect()
+    this.childObserver = new MutationObserver(() => this.restoreMessages())
+    this.childObserver.observe(this, { childList: true })
     // If the server wrote the region with lt.toast(), all of this is
     // already there. Here it is only set when missing, so a plain HTML page
     // without a builder function also gets a region the screen reader
@@ -240,9 +288,9 @@ export class LtToast extends HostElement {
     close.className = TOAST_CLOSE_CLASS
     close.setAttribute("aria-label", closeLabel)
     close.textContent = "×"
-    close.addEventListener("click", () => this.dismiss(toast))
     toast.append(close)
 
+    this.own.unshift(toast)
     this.prepend(toast)
 
     if (duration > 0) {
@@ -283,7 +331,12 @@ export class LtToast extends HostElement {
 
   /** Removes a message. */
   dismiss(toast: HTMLElement): void {
-    if (!this.contains(toast)) return
+    // A message of the component's own is live until this runs, also when
+    // an update has just taken it out of the region: the app asked for it
+    // to go, and it must not be put back.
+    const index = this.own.indexOf(toast)
+    if (index === -1 && !this.contains(toast)) return
+    if (index !== -1) this.own.splice(index, 1)
 
     /*
      * If focus was in the message, as on the close button after Enter, it
@@ -310,6 +363,7 @@ export class LtToast extends HostElement {
   /** Removes all the messages. */
   clear(): void {
     if (this.holdsFocus(this)) this.restoreFocus()
+    this.own = []
     for (const toast of this.querySelectorAll(`.${TOAST_MESSAGE_CLASS}`)) {
       toast.remove()
     }
