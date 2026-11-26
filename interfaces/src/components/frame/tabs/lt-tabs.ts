@@ -532,6 +532,15 @@ export class LtTabs extends HostElement {
             this.selectedOwn.lost(tab, "aria-selected")
         : now !== null
     })
+    // The marks go with the memory. One left behind stood on an element the
+    // new memory does not know, and was taken for a mark copied into the
+    // template: the warning came after a click, to a consumer whose markup
+    // never had it.
+    for (const tab of tabs) {
+      const panel = this.panelFor(tab)
+      if (panel) this.hiddenOwn.forget(panel, "hidden")
+      if (serverSpoke) this.selectedOwn.forget(tab, "aria-selected")
+    }
     this.hiddenOwn = ownership()
     if (serverSpoke) {
       this.selectedOwn = ownership()

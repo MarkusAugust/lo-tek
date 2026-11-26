@@ -186,6 +186,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **`<lt-tabs server-controlled>` no longer warns about `data-lt-written`
+  in markup that never had it.** After a click, when the answer came as
+  attributes a script or React wrote on some of the tabs and panels, or
+  named another tab than the one clicked, the component took its own mark
+  from the click for one copied into the template and said to remove it.
+  The selection was right all along; only the warning was wrong.
+- **The page of `term` says where focus goes on Escape.** It said focus
+  always goes back to the word. It goes back when it was on the word, in
+  the card or nowhere, and stays in a field elsewhere on the page, as the
+  component has done all along.
 - **Tabs do not move when the component is registered.** Until then no tab
   said it was selected, and the one the component selects turned semibold
   and wider at registration, which moved the tabs after it. `tabs.css` now
