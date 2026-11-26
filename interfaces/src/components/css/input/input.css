@@ -116,10 +116,12 @@
   .lt-input[data-variant="datetime-local"]::-webkit-calendar-picker-indicator {
     position: absolute;
     /* Centred on the icon, which is 0.95rem wide and stands `spacing-2`
-       from the edge, so the focus ring goes round it. A physical side, as
-       for the icon: the button did not follow `inset-inline-end` to the
-       left in a right-to-left field. */
-    right: calc(var(--lt-spacing-2) - (var(--lt-spacing-6) - 0.95rem) / 2);
+       from the edge, so the focus ring goes round it. */
+    inset-inline-end: calc(
+      var(--lt-spacing-2) -
+      (var(--lt-spacing-6) - 0.95rem) /
+      2
+    );
     top: 50%;
     transform: translateY(-50%);
     /* The browser gives the button padding of its own, and the box was
@@ -139,8 +141,17 @@
   .lt-input[data-variant="datetime-local"]:dir(
     rtl
   )::-webkit-calendar-picker-indicator {
-    right: auto;
-    left: calc(var(--lt-spacing-2) - (var(--lt-spacing-6) - 0.95rem) / 2);
+    /* Chromium lays a date or time field out left to right whatever the
+       page says: its computed `direction` is `ltr` while it matches
+       `:dir(rtl)`. So the end is still the right-hand side here, and the
+       button stayed there while the icon went to the left. The start is the
+       left-hand side. */
+    inset-inline-end: auto;
+    inset-inline-start: calc(
+      var(--lt-spacing-2) -
+      (var(--lt-spacing-6) - 0.95rem) /
+      2
+    );
   }
 
   /* The browser's button stays, without its picture: ours is painted on the
