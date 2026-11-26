@@ -307,6 +307,8 @@ export class LtTabs extends HostElement {
    */
   private selectedOwn = ownership()
   private hiddenOwn = ownership()
+  /** The tabs and panels whose word has been read, and so may carry the mark. */
+  private readonly met = new WeakSet<Element>()
   /**
    * The form the server hides panels in, the last time it hid something:
    * `""` from `lt.tabs()`, `"until-found"` or something else. The web
@@ -477,7 +479,14 @@ export class LtTabs extends HostElement {
     element: Element,
     name: string,
   ): string | null {
-    if (!own.knows(element, name)) warnAboutCopiedMark(this, element)
+    // Only at the first meeting. Afterwards a mark on the element is the
+    // component's own, also when the memory of it has been replaced since:
+    // a panel whose tab was out of the row when a click was released kept
+    // its mark, and was taken for one copied into the template.
+    if (!this.met.has(element)) {
+      this.met.add(element)
+      warnAboutCopiedMark(this, element)
+    }
     return own.serverWord(element, name)
   }
 
