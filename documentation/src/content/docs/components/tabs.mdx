@@ -305,6 +305,10 @@ The panels are on the page before `defineLtTabs()` has run. The plain `lt.tabs()
 - Otherwise the panel the address points to, or the panel with that inside it. That is also where a link in the row leads when the component is never registered.
 - Otherwise the first.
 
+The tab of that panel looks selected from the start too, so the tabs do not move when it turns semibold. A stylesheet cannot follow a link to its panel, so when the address points to a panel the tab is found by its place in the row, and that reaches the first ten tabs. From the eleventh on, a tab the address points to looks selected only once the component is registered.
+
+A panel keeps the margin of its last child inside itself, so the content after the tabs stands the same distance below whichever tab is selected, and before the component is registered.
+
 Under `server-controlled` the address does not select, and the first visible panel is shown. The rule only reaches the panels inside `<lt-tabs>`: a panel outside must have `hidden` from the server. And it cannot connect `aria-selected` on a tab to its panel, so markup with `aria-selected`, as from the React entry point, must also have `hidden` on the panels that are not selected. The React entry point writes both.
 
 See [Markup and behaviour](/markup-and-behaviour/#before-the-component-is-registered).

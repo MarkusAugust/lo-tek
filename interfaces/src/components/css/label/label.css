@@ -1,10 +1,12 @@
 @layer lotek {
   /* A label in `<lt-field>` without the class looks the same before the
      component is registered: the component sets the class, and the label
-     then grew and moved what stood under it. `:where()` keeps the weight of
-     the selector under `.lt-label`. */
+     then grew and moved what stood under it. Only the first label directly
+     in the element, which is the one the component takes: a label further
+     in may belong to something else, such as a checkbox in the help text.
+     `:where()` keeps the weight of the selector under `.lt-label`. */
   .lt-label,
-  :where(lt-field:not(:defined)) label {
+  :where(lt-field:not(:defined)) > label:first-of-type {
     display: block;
     font-family: inherit;
     font-size: var(--lt-font-size-s);
@@ -14,14 +16,15 @@
   }
 
   .lt-label[data-required]::after,
-  :where(lt-field:not(:defined)) label[data-required]::after {
+  :where(lt-field:not(:defined)) > label:first-of-type[data-required]::after {
     content: var(--lt-label-required-symbol, " *");
     color: var(--lt-color-danger-text);
     font-weight: var(--lt-font-weight-bold);
   }
 
   .lt-label[data-required="text"]::after,
-  :where(lt-field:not(:defined)) label[data-required="text"]::after {
+  :where(lt-field:not(:defined))
+    > label:first-of-type[data-required="text"]::after {
     /* Keep the fallback ASCII. A stylesheet without `@charset` inherits the
        page's encoding, and a non-ASCII fallback came out garbled when the
        page lacked `<meta charset>` and the server sent no charset. Write any
@@ -39,7 +42,8 @@
   .lt-label[data-optional]:not([data-required])::after,
   :where(lt-field:not(:defined))
     label[data-optional]:not([data-required])::after,
-  :where(lt-field:not(:defined)[optional]) label:not([data-required])::after {
+  :where(lt-field:not(:defined)[optional])
+    > label:first-of-type:not([data-required])::after {
     content: var(--lt-label-optional-text, " (optional)");
     color: var(--lt-color-neutral-text-subtle);
     font-weight: var(--lt-font-weight-regular);
