@@ -277,4 +277,218 @@ describe("lt-tabs server-controlled, and the answer to a click", () => {
           )
         })
     })
+
+  /*
+   * The same, when the answer or a later patch changes which tabs are in
+   * the row. A tab that is away when the answer comes, and the panel it
+   * led to, still carry what the component wrote on them before. When the
+   * tab is back the component meets them again, and they are still its own.
+   */
+  describe("with a row of tabs that changes", () => {
+    const row = () =>
+      document.querySelector("#file-tabs .lt-tabs__list") as HTMLElement
+    const item = (index: number) =>
+      links()[index].closest("li") as HTMLLIElement
+    /** The row as the server writes it, with the tabs in `indexes`. */
+    const rowOf = (indexes: number[], selected?: number) => {
+      const built = tabs(OPTIONS)
+      return `<ul ${attr(built.list)} id="file-row">${indexes
+        .map(
+          (index) =>
+            `<li><a ${attr(built.tabs[index])}${selected === undefined ? "" : ` aria-selected="${index === selected}"`}>${WORDS[index]}</a></li>`,
+        )
+        .join("")}</ul>`
+    }
+    const all =
+      SCRIPTS[
+        "a script that writes aria-selected on every tab and hidden on every panel"
+      ]
+    const hiddenOnly = SCRIPTS["a script that moves only hidden"]
+
+    /** Takes the third tab away, and gives what puts it back. */
+    const AWAY: Record<string, () => () => void> = {
+      "a script takes the tab's item out and puts in a new one": () => {
+        // The new one as the server writes its tabs: with the state when
+        // the others have it, and bare when they are.
+        const state = links()[2].hasAttribute("role")
+          ? tabsWithState({ ...OPTIONS, selected: 1 })
+          : undefined
+        item(2).remove()
+        return () => {
+          row().insertAdjacentHTML(
+            "beforeend",
+            state
+              ? `<li ${attr(state.item)}><a ${attr(state.tabs[2])}>${WORDS[2]}</a></li>`
+              : `<li><a ${attr(tabs(OPTIONS).tabs[2])}>${WORDS[2]}</a></li>`,
+          )
+        }
+      },
+      "a script takes the tab's item out and puts the same one back": () => {
+        const taken = item(2)
+        taken.remove()
+        return () => {
+          row().append(taken)
+        }
+      },
+      "a morph of the row drops the tab and a morph brings it back": () => {
+        row().id = "file-row"
+        replace("idiomorph", "file-row", rowOf([0, 1]))
+        return () => replace("idiomorph", "file-row", rowOf([0, 1, 2]))
+      },
+      "a morph of the row with aria-selected drops the tab and a morph brings it back":
+        () => {
+          row().id = "file-row"
+          replace("idiomorph", "file-row", rowOf([0, 1], 1))
+          return () => replace("idiomorph", "file-row", rowOf([0, 1, 2], 1))
+        },
+      "the row is written again without the tab, and again with it": () => {
+        row().id = "file-row"
+        replace("outerHTML", "file-row", rowOf([0, 1]))
+        return () => replace("outerHTML", "file-row", rowOf([0, 1, 2]))
+      },
+      "the tab's link points elsewhere, and back at its panel": () => {
+        links()[2].setAttribute("href", "#somewhere-else")
+        return () => links()[2].setAttribute("href", "#file-messages")
+      },
+      "the tab's link loses its href, and gets it back": () => {
+        links()[2].removeAttribute("href")
+        return () =>
+          document
+            .querySelectorAll("#file-tabs .lt-tabs__list a")[2]
+            .setAttribute("href", "#file-messages")
+      },
+    }
+
+    for (const [markup, write] of MARKUPS)
+      for (const [way, away] of Object.entries(AWAY))
+        for (const [answered, answer] of [
+          ["the change alone", () => {}],
+          ["the change and hidden on the panels", hiddenOnly],
+          ["the change and the whole selection", all],
+        ] as const)
+          it(`says nothing when ${way}, with ${markup}, the answer being ${answered}`, async () => {
+            mount(write())
+            await settled()
+            const said = listen()
+
+            // The click on the second tab, and the answer to it.
+            await userEvent.click(links()[1])
+            await settled()
+            const back = away()
+            answer(0, 1)
+            await settled()
+
+            // Later the tab is there again.
+            back()
+            await settled()
+            expect(links().length).toBe(3)
+
+            // And the tabs are used once more.
+            await userEvent.click(links()[2])
+            await settled()
+            all(1, 2)
+            await settled()
+
+            expect(said()).toEqual([])
+            expect(showing()).toEqual({ selected: [2], shown: [2] })
+          })
+  })
+
+  /*
+   * A selection that did not come from a click on a tab, and then an
+   * answer: the component wrote the selection itself, and what it wrote is
+   * still its own when the server speaks.
+   */
+  describe("with a selection that was not a click under server-controlled", () => {
+    for (const [markup, write] of MARKUPS)
+      for (const [way, answer] of Object.entries(SCRIPTS)) {
+        it(`says nothing when server-controlled is set on tabs that have been used, and the answer is ${way}, with ${markup}`, async () => {
+          mount(write().replace(" server-controlled", ""))
+          await settled()
+          const said = listen()
+
+          await userEvent.click(links()[1])
+          await settled()
+          await userEvent.click(links()[2])
+          await settled()
+          document
+            .getElementById("file-tabs")
+            ?.setAttribute("server-controlled", "")
+          await settled()
+          answer(2, 0)
+          await settled()
+          await userEvent.click(links()[1])
+          await settled()
+          answer(0, 1)
+          await settled()
+
+          expect(said()).toEqual([])
+        })
+
+        it(`says nothing when find in page opened a panel, and the answer is ${way}, with ${markup}`, async () => {
+          mount(write())
+          await settled()
+          const said = listen()
+
+          // What the browser sends when it finds text in a hidden panel.
+          panels()[2].dispatchEvent(new Event("beforematch", { bubbles: true }))
+          await settled()
+          answer(0, 2)
+          await settled()
+          answer(2, 1)
+          await settled()
+
+          expect(said()).toEqual([])
+        })
+      }
+  })
+
+  /*
+   * The warning that is true still comes. Markup that arrives later with
+   * the mark in it, on a tab or a panel the component has never seen, was
+   * copied into a template, and the component says so.
+   */
+  describe("and a mark that really is in the markup the server sends", () => {
+    /**
+     * A fourth tab and its panel, as the server writes the others: with
+     * the roles and the state when they have them, and bare when they are.
+     * `marked` is the one of the two that carries the copied mark.
+     */
+    function arrive(marked: "tab" | "panel"): void {
+      const state = links()[0].hasAttribute("role")
+      const mark = (name: string, on: "tab" | "panel") =>
+        marked === on ? ` data-lt-written="${name}"` : ""
+      const tab = state
+        ? `<li role="presentation"><a id="file-log-tab" href="#file-log" role="tab" aria-selected="false" aria-controls="file-log" tabindex="-1"${mark("aria-selected", "tab")}>Log</a></li>`
+        : `<li><a href="#file-log" aria-selected="false"${mark("aria-selected", "tab")}>Log</a></li>`
+      const panel = state
+        ? `<section id="file-log" class="lt-tabs__panel" role="tabpanel" aria-labelledby="file-log-tab" hidden${mark("hidden", "panel")}><h2>Log</h2></section>`
+        : `<section id="file-log" class="lt-tabs__panel" hidden${mark("hidden", "panel")}><h2>Log</h2></section>`
+      document
+        .querySelector("#file-tabs .lt-tabs__list")
+        ?.insertAdjacentHTML("beforeend", tab)
+      document
+        .getElementById("file-tabs")
+        ?.insertAdjacentHTML("beforeend", panel)
+    }
+
+    for (const [markup, write] of MARKUPS)
+      for (const marked of ["tab", "panel"] as const)
+        for (const used of [false, true])
+          it(`warns about a new ${marked} with the mark, arriving ${used ? "after a click and its answer" : "on tabs that have not been used"}, with ${markup}`, async () => {
+            mount(write())
+            await settled()
+            const said = listen()
+            if (used) {
+              await converse([1], Object.values(SCRIPTS)[0], "later")
+              expect(said()).toEqual([])
+            }
+
+            arrive(marked)
+            await settled()
+
+            expect(said().length).toBe(1)
+            expect(said()[0]).toContain("found data-lt-written")
+          })
+  })
 })
