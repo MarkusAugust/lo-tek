@@ -1,5 +1,10 @@
 @layer lotek {
-  .lt-label {
+  /* A label in `<lt-field>` without the class looks the same before the
+     component is registered: the component sets the class, and the label
+     then grew and moved what stood under it. `:where()` keeps the weight of
+     the selector under `.lt-label`. */
+  .lt-label,
+  :where(lt-field:not(:defined)) label {
     display: block;
     font-family: inherit;
     font-size: var(--lt-font-size-s);
@@ -8,13 +13,15 @@
     color: var(--lt-color-neutral-text-strong);
   }
 
-  .lt-label[data-required]::after {
+  .lt-label[data-required]::after,
+  :where(lt-field:not(:defined)) label[data-required]::after {
     content: var(--lt-label-required-symbol, " *");
     color: var(--lt-color-danger-text);
     font-weight: var(--lt-font-weight-bold);
   }
 
-  .lt-label[data-required="text"]::after {
+  .lt-label[data-required="text"]::after,
+  :where(lt-field:not(:defined)) label[data-required="text"]::after {
     /* Keep the fallback ASCII. A stylesheet without `@charset` inherits the
        page's encoding, and a non-ASCII fallback came out garbled when the
        page lacked `<meta charset>` and the server sent no charset. Write any
@@ -29,7 +36,10 @@
      required, and hand-written markup with both must give the same result.
      The colour is not `disabled-text`: the text is not disabled, and that
      colour gave 4.37:1. */
-  .lt-label[data-optional]:not([data-required])::after {
+  .lt-label[data-optional]:not([data-required])::after,
+  :where(lt-field:not(:defined))
+    label[data-optional]:not([data-required])::after,
+  :where(lt-field:not(:defined)[optional]) label:not([data-required])::after {
     content: var(--lt-label-optional-text, " (optional)");
     color: var(--lt-color-neutral-text-subtle);
     font-weight: var(--lt-font-weight-regular);
