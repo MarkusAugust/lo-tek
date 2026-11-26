@@ -200,8 +200,7 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   at registration, and stood 16px closer under the last tab than under the
   rest. With `hidden` written without a value, as the React entry point
   does, it stood 16px closer under every tab, and now stands as far below
-  as elsewhere. A panel also contains a float in it now. Set `display` on
-  `.lt-tabs__panel` yourself to have it otherwise.
+  as elsewhere. A panel also contains a float in it now.
 - **A label without `lt-label` in `<lt-field>` does not move when the
   component is registered.** The component sets the class, and the label
   grew by 3px then. `label.css` gives the first `<label>` directly in an

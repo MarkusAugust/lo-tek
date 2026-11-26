@@ -59,26 +59,34 @@
        moved. So the first tab has the look from the start, when it is the
        one the component selects: the markup is as the plain recipe writes
        it, with no `hidden` and no `aria-selected` from the server, the
-       address points to none of the panels, and the first item in the list
-       is a tab that is not disabled. Everywhere else no tab has the look
-       until the component is registered: a selector cannot follow a link to
-       its panel, and a wrong tab that looks selected is worse than none. */
+       address points to none of the panels, the list stands directly in
+       the element and has no roles from the server, and the first item in
+       it is a tab that is not disabled. The list directly in the element,
+       so that a rule for an outer tab list does not reach one inside it.
+       Everywhere else no tab has the look until the component is
+       registered: a selector cannot follow a link to its panel, and a wrong
+       tab that looks selected is worse than none. */
     lt-tabs:not(:defined):has(.lt-tabs__panel):not(
         :has(
           .lt-tabs__panel[hidden],
           .lt-tabs__panel:target,
           .lt-tabs__panel :target,
-          .lt-tabs__list [aria-selected="true"]
+          .lt-tabs__list [aria-selected="true"],
+          .lt-tabs__list [role]
         )
-      ) .lt-tabs__list
+      ) > .lt-tabs__list
       > li:first-child
-      > a[href^="#"]:not([aria-disabled="true"]),
+      > a[href^="#"]:not([href="#"], [aria-disabled="true"]),
     lt-tabs:not(:defined)[server-controlled]:has(.lt-tabs__panel):not(
-        :has(.lt-tabs__panel[hidden], .lt-tabs__list [aria-selected="true"])
+        :has(
+          .lt-tabs__panel[hidden],
+          .lt-tabs__list [aria-selected="true"],
+          .lt-tabs__list [role]
+        )
       )
-      .lt-tabs__list
+      > .lt-tabs__list
       > li:first-child
-      > a[href^="#"]:not([aria-disabled="true"]) {
+      > a[href^="#"]:not([href="#"], [aria-disabled="true"]) {
       color: var(--lt-color-neutral-text-strong);
       font-weight: var(--lt-font-weight-semibold);
       border-block-end-color: var(--lt-color-accent-border);
@@ -175,18 +183,23 @@
             .lt-tabs__panel[hidden],
             .lt-tabs__panel:target,
             .lt-tabs__panel :target,
-            .lt-tabs__list [aria-selected="true"]
+            .lt-tabs__list [aria-selected="true"],
+            .lt-tabs__list [role]
           )
         )
-        .lt-tabs__list
+        > .lt-tabs__list
         > li:first-child
-        > a[href^="#"]:not([aria-disabled="true"]),
+        > a[href^="#"]:not([href="#"], [aria-disabled="true"]),
       lt-tabs:not(:defined)[server-controlled]:has(.lt-tabs__panel):not(
-          :has(.lt-tabs__panel[hidden], .lt-tabs__list [aria-selected="true"])
+          :has(
+            .lt-tabs__panel[hidden],
+            .lt-tabs__list [aria-selected="true"],
+            .lt-tabs__list [role]
+          )
         )
-        .lt-tabs__list
+        > .lt-tabs__list
         > li:first-child
-        > a[href^="#"]:not([aria-disabled="true"]) {
+        > a[href^="#"]:not([href="#"], [aria-disabled="true"]) {
         border-block-end-color: Highlight;
         color: Highlight;
       }
