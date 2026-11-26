@@ -186,6 +186,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The Astro recipes for `toast` and `error-summary` pass `astro check`.**
+  Under `astro/tsconfigs/strict` the toast recipe gave five type errors
+  and the error summary one: `window.notify` was not declared, its
+  parameters had no types, the container could be null and was not known
+  as an `<lt-toast>`, and the errors came from untyped props. The recipes
+  now declare what they use. `astro build` does not check types, so the
+  pages built all along. A check in the tests of the documentation runs
+  `astro check` on every Astro recipe.
 - **The Astro recipe for `term` no longer glues "an" to "act of God".**
   From version 7 Astro follows the whitespace rule of JSX unless
   `compressHTML` says otherwise, and drops a line break between text and

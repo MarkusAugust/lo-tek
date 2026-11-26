@@ -147,6 +147,10 @@ defineLtErrorSummary()
     import "@lo-tek/interfaces/tokens.css"
     import "@lo-tek/interfaces/error-summary.css"
 
+    interface Props {
+      errors: { id: string; message: string }[]
+    }
+
     const { errors } = Astro.props
     const box = lt.errorSummary({ count: errors.length, id: "errors" })
     ---

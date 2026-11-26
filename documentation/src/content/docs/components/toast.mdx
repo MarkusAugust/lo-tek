@@ -155,12 +155,23 @@ The container is added once, and the messages come from your code. That is the d
     <lt-toast id="messages" {...toasts.host}></lt-toast>
 
     <script>
-      import { defineLtToast } from "@lo-tek/interfaces/toast"
+      import {
+        defineLtToast,
+        type LtToast,
+        type ShowOptions,
+      } from "@lo-tek/interfaces/toast"
       defineLtToast()
 
+      declare global {
+        interface Window {
+          notify: (text: string, options?: ShowOptions) => void
+        }
+      }
+
       // Make the queue available to the islands on the page
-      window.notify = (text, options) =>
-        document.getElementById("messages").show(text, options)
+      window.notify = (text, options) => {
+        document.querySelector<LtToast>("#messages")?.show(text, options)
+      }
     </script>
     ```
 
