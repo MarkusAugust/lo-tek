@@ -186,6 +186,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The page on choosing a theme has a recipe for Astro's
+  `<ClientRouter />`.** With the router and the `localStorage` recipe, the
+  choice was gone at the first link the user followed: the script in
+  `<head>` does not run again, `<html>` gets the attributes of the new
+  page, and the new buttons had no listener. The new recipe applies the
+  choice again at `astro:after-swap` and listens on the document.
 - **The Astro recipes for `toast` and `error-summary` pass `astro check`.**
   Under `astro/tsconfigs/strict` the toast recipe gave five type errors
   and the error summary one: `window.notify` was not declared, its
