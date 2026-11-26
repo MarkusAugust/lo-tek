@@ -97,7 +97,11 @@ function measure(name: string) {
   return {
     boxes,
     shown,
-    weights: links.map((link) => getComputedStyle(link).fontWeight),
+    // The weight, the colour and the line under each tab.
+    looks: links.map((link) => {
+      const style = getComputedStyle(link)
+      return `${style.fontWeight} ${style.color} ${style.borderBottomColor}`
+    }),
   }
 }
 
@@ -171,13 +175,54 @@ describe("the transition from tabs.css to the component, measured", () => {
         expect(moved(before[name], after[name])).toEqual([])
       })
 
-      it("has the weight on every tab before registration that it has after", () => {
-        expect(before[name].weights).toEqual(after[name].weights)
+      it("has the weight, the colour and the line on every tab before registration that it has after", () => {
+        expect(before[name].looks).toEqual(after[name].looks)
         // And the tab of the shown panel is the one that stands out.
-        const selected = after[name].weights[CASES[name].shown]
-        expect(
-          after[name].weights.filter((weight) => weight === selected),
-        ).toEqual([selected])
+        const selected = after[name].looks[CASES[name].shown]
+        expect(after[name].looks.filter((look) => look === selected)).toEqual([
+          selected,
+        ])
       })
     })
+})
+
+/*
+ * After registration, whichever tab is selected: what follows the tabs
+ * stands as far under the last line of the shown panel for the last tab as
+ * for the first. The last panel has nothing after it, and the margin under
+ * its last line went out through the component, while the panels before it
+ * had a hidden panel after them that kept theirs in.
+ */
+describe("the text after the tabs, tab by tab", () => {
+  it("stands the same distance under the shown panel's last line for every tab", async () => {
+    mount(markup("each", { shown: 0 }))
+    await waitForPaint()
+    await waitForPaint()
+    const box = document.getElementById("case-each") as HTMLElement
+    const after = document.getElementById("each-after") as HTMLElement
+    const distances: number[] = []
+    for (const link of box.querySelectorAll<HTMLElement>(".lt-tabs__list a")) {
+      link.click()
+      await waitForPaint()
+      await waitForPaint()
+      const shown = [
+        ...box.querySelectorAll<HTMLElement>(".lt-tabs__panel"),
+      ].filter((panel) =>
+        (panel.firstElementChild as HTMLElement).checkVisibility(),
+      )
+      expect(shown.map((panel) => panel.id)).toEqual([
+        link.getAttribute("href")?.slice(1),
+      ])
+      const last = shown[0].lastElementChild as HTMLElement
+      distances.push(
+        Math.round(
+          (after.getBoundingClientRect().top -
+            last.getBoundingClientRect().bottom) *
+            10,
+        ) / 10,
+      )
+    }
+    expect(distances).toEqual([distances[0], distances[0], distances[0]])
+    expect(distances[0]).toBeGreaterThan(0)
+  })
 })

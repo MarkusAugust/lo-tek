@@ -49,9 +49,13 @@ function shown(...ids: string[]): boolean[] {
   )
 }
 
+/**
+ * Which panels are shown and which are taken away. Not the kind of box a
+ * shown panel is, which is the stylesheet's to choose.
+ */
 function displays(): string[] {
   return [...document.querySelectorAll<HTMLElement>(".lt-tabs__panel")].map(
-    (panel) => getComputedStyle(panel).display,
+    (panel) => (getComputedStyle(panel).display === "none" ? "none" : "shown"),
   )
 }
 
@@ -65,14 +69,14 @@ describe("tabs.css before the component is registered", () => {
     mount(BARE)
     await waitForPaint()
 
-    expect(displays()).toEqual(["block", "none", "none"])
+    expect(displays()).toEqual(["shown", "none", "none"])
   })
 
   it("lets the server's hidden decide which panel is the first visible one", async () => {
     mount(BARE.replace('id="claim">Claim', 'id="claim" hidden>Claim'))
     await waitForPaint()
 
-    expect(displays()).toEqual(["none", "block", "none"])
+    expect(displays()).toEqual(["none", "shown", "none"])
   })
 
   /*
@@ -87,7 +91,7 @@ describe("tabs.css before the component is registered", () => {
     await goTo("#messages")
     await waitForPaint()
 
-    expect(displays()).toEqual(["none", "none", "block"])
+    expect(displays()).toEqual(["none", "none", "shown"])
   })
 
   it("shows the panel with what the address points at inside it", async () => {
@@ -95,7 +99,7 @@ describe("tabs.css before the component is registered", () => {
     await goTo("#in-attachments")
     await waitForPaint()
 
-    expect(displays()).toEqual(["none", "block", "none"])
+    expect(displays()).toEqual(["none", "shown", "none"])
   })
 
   it("shows the panel an encoded fragment points at", async () => {
@@ -103,7 +107,7 @@ describe("tabs.css before the component is registered", () => {
     await goTo("#caf%C3%A9-2")
     await waitForPaint()
 
-    expect(displays()).toEqual(["none", "block", "none"])
+    expect(displays()).toEqual(["none", "shown", "none"])
   })
 
   it("shows the first panel when the address points outside the tab list", async () => {
@@ -111,7 +115,7 @@ describe("tabs.css before the component is registered", () => {
     await goTo("#other")
     await waitForPaint()
 
-    expect(displays()).toEqual(["block", "none", "none"])
+    expect(displays()).toEqual(["shown", "none", "none"])
   })
 
   it("puts the server's hidden before the address", async () => {
@@ -124,7 +128,7 @@ describe("tabs.css before the component is registered", () => {
     await goTo("#messages")
     await waitForPaint()
 
-    expect(displays()).toEqual(["none", "block", "none"])
+    expect(displays()).toEqual(["none", "shown", "none"])
   })
 
   it("ignores the address under server-controlled, where the component does not select from it", async () => {
@@ -132,7 +136,7 @@ describe("tabs.css before the component is registered", () => {
     await goTo("#messages")
     await waitForPaint()
 
-    expect(displays()).toEqual(["block", "none", "none"])
+    expect(displays()).toEqual(["shown", "none", "none"])
   })
 
   it("shows the target in tabs in tabs, in both tab lists", async () => {
@@ -160,6 +164,6 @@ describe("tabs.css before the component is registered", () => {
     )
     await waitForPaint()
 
-    expect(displays()).toEqual(["none", "none", "block"])
+    expect(displays()).toEqual(["none", "none", "shown"])
   })
 })
