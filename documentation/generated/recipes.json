@@ -6447,6 +6447,7 @@
         "min-block-size",
         "<dl>",
         "align-content: start",
+        "align-content",
         ".lt-term",
         ".lt-term__entry",
         "--lt-term-width",
