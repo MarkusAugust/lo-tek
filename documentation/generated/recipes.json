@@ -6444,6 +6444,8 @@
         "term-without-entry",
         "lotek check --rendered",
         "sm",
+        "min-block-size",
+        "<dl>",
         ".lt-term",
         ".lt-term__entry",
         "--lt-term-width",
@@ -6468,6 +6470,8 @@
         "--lt-term-left",
         "--lt-term-top",
         "--lt-term-left",
+        "style",
+        "<dl>",
         "aria-details",
         "aria-expanded",
         "aria-details"

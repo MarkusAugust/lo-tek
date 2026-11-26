@@ -94,13 +94,12 @@ function carriesOwn(element: HTMLElement): boolean {
   )
 }
 
-function writeProperty(element: HTMLElement, name: string, value: string) {
-  if (element.style.getPropertyValue(name) === value) return
+/** To call before the component writes an inline property on the element. */
+function rememberStyle(element: HTMLElement): void {
   // Nothing of the component's is there: the attribute is the server's, as
   // written or as a patch just rewrote it.
   if (!carriesOwn(element))
     styleBefore.set(element, element.getAttribute("style"))
-  element.style.setProperty(name, value)
 }
 
 function clearProperties(element: HTMLElement, names: string[]): void {
@@ -115,7 +114,7 @@ function clearProperties(element: HTMLElement, names: string[]): void {
   }
   // Back as written, unless something else changed the style meanwhile.
   const written = document.createElement("div")
-  written.setAttribute("style", before)
+  setAttr(written, "style", before)
   if (written.style.cssText === element.style.cssText)
     setAttr(element, "style", before)
 }
@@ -164,14 +163,20 @@ function hold(list: HTMLElement, entry: HTMLElement): () => void {
     : 0
   const record = { cards: 1, size: `${size + margins}px` }
   held.set(list, record)
-  writeProperty(list, "min-block-size", record.size)
+  holdAt(list, record.size)
   return () => {
     if (margins === 0 || !scroller) return
     const grown = Math.min(margins, scroller.scrollHeight - before)
     if (grown <= 0) return
     record.size = `${size + margins - grown}px`
-    writeProperty(list, "min-block-size", record.size)
+    holdAt(list, record.size)
   }
+}
+
+function holdAt(list: HTMLElement, size: string): void {
+  if (list.style.getPropertyValue("min-block-size") === size) return
+  rememberStyle(list)
+  list.style.setProperty("min-block-size", size)
 }
 
 function letGo(list: HTMLElement): void {
@@ -479,8 +484,7 @@ export class LtTerm extends HostElement {
     settle?.()
     // A patch that rewrote the list's `style` took the height with it.
     const holding = this.list && held.get(this.list)
-    if (this.list && holding)
-      writeProperty(this.list, "min-block-size", holding.size)
+    if (this.list && holding) holdAt(this.list, holding.size)
     this.reposition()
 
     if (!this.outside) {
@@ -692,8 +696,11 @@ export class LtTerm extends HostElement {
       ;({ top, left } = place(anchor, card, true, rtl, gap))
     }
     top = Math.round(top)
-    writeProperty(entry, "--lt-term-top", `${top}px`)
-    writeProperty(entry, "--lt-term-left", `${left}px`)
+    rememberStyle(entry)
+    if (entry.style.getPropertyValue("--lt-term-top") !== `${top}px`)
+      entry.style.setProperty("--lt-term-top", `${top}px`)
+    if (entry.style.getPropertyValue("--lt-term-left") !== `${left}px`)
+      entry.style.setProperty("--lt-term-left", `${left}px`)
   }
 }
 
