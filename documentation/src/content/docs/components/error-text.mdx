@@ -9,10 +9,21 @@ The message shown when a field cannot be submitted as it stands. It belongs righ
 
 ## How to use it
 
+The message is wired to its field. Three things have to agree at the same time: `data-state` for the colour, `aria-invalid` for the screen reader, and `aria-describedby` for the text itself.
+
 <Example recipe
-  styles={["error-text"]} layout="stack" maxWidth="30rem" code={`
-<p class="lt-error-text">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>
-<p class="lt-error-text" data-variant="warning">No fixer on file has this address. Check it before the board writes.</p>
+  styles={["error-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
+<label class="lt-label" for="fixer">Fixer's address</label>
+<input
+  class="lt-input"
+  id="fixer"
+  type="email"
+  data-state="invalid"
+  aria-invalid="true"
+  aria-describedby="fixer-error"
+  value="fixer.relay.example"
+/>
+<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>
 `}>
 <Fragment slot="ts">
 
@@ -56,11 +67,15 @@ import kotlinx.html.*
 import no.lotek.*
 import no.lotek.html.lt
 
-fun FlowContent.errors() {
-    p { lt(Lt.errorText()); +"Enter the fixer's address with an at sign, for example fixer@relay.example." }
-    p { lt(Lt.errorText(variant = ErrorTextVariant.WARNING)); +"No fixer on file has this address. Check it before the board writes." }
+fun FlowContent.fixerField(address: String, invalid: Boolean) {
+    val field = Lt.field(id = "fixer", error = true, invalid = invalid)
+    label { lt(field.label); +"Fixer's address" }
+    input { lt(Lt.input(type = InputType.EMAIL), field.control); value = address }
+    p { lt(Lt.errorText(), field.error); +"Enter the fixer's address with an at sign, for example fixer@relay.example." }
 }
 ```
+
+`Lt.field()` writes the wiring, and hides the message while the field is valid.
 
 </Fragment>
 </Example>
@@ -70,25 +85,23 @@ fun FlowContent.errors() {
 | *(omitted)* | Errors that stop submission |
 | `warning` | Something looks odd, but the user may continue |
 
-## Wired to the field
+[Field](../field/) sets all three when you give it `invalid`. That is why that component exists.
 
-Three things have to agree at the same time: `data-state` for the colour, `aria-invalid` for the screen reader, and `aria-describedby` for the text itself.
+## A warning
+
+A warning does not stop submission, so the field is not invalid: only `aria-describedby` wires the text.
 
 <Example styles={["error-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
-<label class="lt-label" for="fixer">Fixer's address</label>
+<label class="lt-label" for="contact">Fixer's address</label>
 <input
   class="lt-input"
-  id="fixer"
+  id="contact"
   type="email"
-  data-state="invalid"
-  aria-invalid="true"
-  aria-describedby="fixer-error"
-  value="fixer.relay.example"
+  aria-describedby="contact-warning"
+  value="fixer&#64;relay.example"
 />
-<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an at sign.</p>
+<p class="lt-error-text" data-variant="warning" id="contact-warning">No fixer on file has this address. Check it before the board writes.</p>
 `} />
-
-[Field](../field/) sets all three when you give it `invalid`. That is why that component exists.
 
 ## Wording the message
 

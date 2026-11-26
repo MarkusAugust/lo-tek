@@ -2275,9 +2275,11 @@
         {
           "section": "How to use it",
           "recipe": true,
-          "code": "\n<p class=\"lt-error-text\">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>\n<p class=\"lt-error-text\" data-variant=\"warning\">No fixer on file has this address. Check it before the board writes.</p>\n",
+          "code": "\n<label class=\"lt-label\" for=\"fixer\">Fixer's address</label>\n<input\nclass=\"lt-input\"\nid=\"fixer\"\ntype=\"email\"\ndata-state=\"invalid\"\naria-invalid=\"true\"\naria-describedby=\"fixer-error\"\nvalue=\"fixer.relay.example\"\n/>\n<p class=\"lt-error-text\" id=\"fixer-error\">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>\n",
           "styles": [
-            "error-text"
+            "error-text",
+            "label",
+            "input"
           ],
           "layout": "stack",
           "maxWidth": "30rem",
@@ -2297,12 +2299,14 @@
             {
               "lang": "kotlin",
               "meta": null,
-              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\n\nfun FlowContent.errors() {\n    p { lt(Lt.errorText()); +\"Enter the fixer's address with an at sign, for example fixer@relay.example.\" }\n    p { lt(Lt.errorText(variant = ErrorTextVariant.WARNING)); +\"No fixer on file has this address. Check it before the board writes.\" }\n}"
+              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\n\nfun FlowContent.fixerField(address: String, invalid: Boolean) {\n    val field = Lt.field(id = \"fixer\", error = true, invalid = invalid)\n    label { lt(field.label); +\"Fixer's address\" }\n    input { lt(Lt.input(type = InputType.EMAIL), field.control); value = address }\n    p { lt(Lt.errorText(), field.error); +\"Enter the fixer's address with an at sign, for example fixer@relay.example.\" }\n}"
             }
           ],
           "setup": {
             "stylesheets": [
               "tokens.css",
+              "label.css",
+              "input.css",
               "error-text.css"
             ],
             "register": [],
@@ -2310,9 +2314,9 @@
           }
         },
         {
-          "section": "Wired to the field",
+          "section": "A warning",
           "recipe": false,
-          "code": "\n<label class=\"lt-label\" for=\"fixer\">Fixer's address</label>\n<input\nclass=\"lt-input\"\nid=\"fixer\"\ntype=\"email\"\ndata-state=\"invalid\"\naria-invalid=\"true\"\naria-describedby=\"fixer-error\"\nvalue=\"fixer.relay.example\"\n/>\n<p class=\"lt-error-text\" id=\"fixer-error\">Enter the fixer's address with an at sign.</p>\n",
+          "code": "\n<label class=\"lt-label\" for=\"contact\">Fixer's address</label>\n<input\nclass=\"lt-input\"\nid=\"contact\"\ntype=\"email\"\naria-describedby=\"contact-warning\"\nvalue=\"fixer&#64;relay.example\"\n/>\n<p class=\"lt-error-text\" data-variant=\"warning\" id=\"contact-warning\">No fixer on file has this address. Check it before the board writes.</p>\n",
           "styles": [
             "error-text",
             "label",
@@ -2336,6 +2340,9 @@
       ],
       "rest": [],
       "inline": [
+        "data-state",
+        "aria-invalid",
+        "aria-describedby",
         "lt",
         "/react",
         "className",
@@ -2352,12 +2359,11 @@
         "aria-describedby",
         "lo-tek-kotlinx-html",
         "Lt",
+        "Lt.field()",
         "data-variant",
         "warning",
-        "data-state",
-        "aria-invalid",
-        "aria-describedby",
         "invalid",
+        "aria-describedby",
         ".lt-error-text",
         "data-variant",
         "role=\"alert\"",
@@ -3011,9 +3017,11 @@
         {
           "section": "How to use it",
           "recipe": true,
-          "code": "\n<p class=\"lt-help-text\">State the budget in EB. The crew sees the number.</p>\n<p class=\"lt-help-text\" data-variant=\"strong\">The order is binding once a crew takes it.</p>\n<p class=\"lt-help-text\" data-variant=\"success\">The floor plans have been uploaded.</p>\n<p class=\"lt-help-text\" data-variant=\"warning\">The window closes in three days.</p>\n",
+          "code": "\n<label class=\"lt-label\" for=\"budget\">Budget</label>\n<input class=\"lt-input\" id=\"budget\" inputmode=\"numeric\" aria-describedby=\"budget-help\" />\n<p class=\"lt-help-text\" id=\"budget-help\">State the budget in EB. The crew sees the number.</p>\n",
           "styles": [
-            "help-text"
+            "help-text",
+            "label",
+            "input"
           ],
           "layout": "stack",
           "maxWidth": "30rem",
@@ -3038,12 +3046,14 @@
             {
               "lang": "kotlin",
               "meta": null,
-              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\n\nfun FlowContent.hints() {\n    p { lt(Lt.helpText()); +\"State the budget in EB. The crew sees the number.\" }\n    p { lt(Lt.helpText(variant = HelpTextVariant.STRONG)); +\"The order is binding once a crew takes it.\" }\n    p { lt(Lt.helpText(variant = HelpTextVariant.SUCCESS)); +\"The floor plans have been uploaded.\" }\n    p { lt(Lt.helpText(variant = HelpTextVariant.WARNING)); +\"The window closes in three days.\" }\n}"
+              "code": "import kotlinx.html.*\nimport no.lotek.*\nimport no.lotek.html.lt\n\nfun FlowContent.budgetField() {\n    val field = Lt.field(id = \"budget\", help = true)\n    label { lt(field.label); +\"Budget\" }\n    input { lt(Lt.input(type = InputType.TEXT), field.control); attributes[\"inputmode\"] = \"numeric\" }\n    p { lt(Lt.helpText(), field.help); +\"State the budget in EB. The crew sees the number.\" }\n}"
             }
           ],
           "setup": {
             "stylesheets": [
               "tokens.css",
+              "label.css",
+              "input.css",
               "help-text.css"
             ],
             "register": [],
@@ -3051,9 +3061,9 @@
           }
         },
         {
-          "section": "Wired to the field",
+          "section": "The variants",
           "recipe": false,
-          "code": "\n<label class=\"lt-label\" for=\"budget\">Budget</label>\n<input class=\"lt-input\" id=\"budget\" inputmode=\"numeric\" aria-describedby=\"budget-help\" />\n<p class=\"lt-help-text\" id=\"budget-help\">In EB, without the code. The crew sees it.</p>\n",
+          "code": "\n<label class=\"lt-label\" for=\"deadline\">Deadline</label>\n<input class=\"lt-input\" id=\"deadline\" aria-describedby=\"deadline-help\" />\n<p class=\"lt-help-text\" data-variant=\"strong\" id=\"deadline-help\">The order is binding once a crew takes it.</p>\n\n<label class=\"lt-label\" for=\"codename\">Codename</label>\n<input class=\"lt-input\" id=\"codename\" aria-describedby=\"codename-help\" />\n<p class=\"lt-help-text\" data-variant=\"success\" id=\"codename-help\">The codename is free.</p>\n\n<label class=\"lt-label\" for=\"window\">Window</label>\n<input class=\"lt-input\" id=\"window\" aria-describedby=\"window-help\" />\n<p class=\"lt-help-text\" data-variant=\"warning\" id=\"window-help\">The window closes in three days.</p>\n",
           "styles": [
             "help-text",
             "label",
@@ -3077,6 +3087,7 @@
       ],
       "rest": [],
       "inline": [
+        "aria-describedby",
         "lt",
         "/react",
         "className",
@@ -3089,11 +3100,14 @@
         "aria-describedby",
         "lo-tek-kotlinx-html",
         "Lt",
+        "Lt.field()",
+        "id",
+        "aria-describedby",
+        "Lt.helpText(variant = HelpTextVariant.WARNING)",
         "data-variant",
         "strong",
         "success",
         "warning",
-        "aria-describedby",
         "id",
         "aria-describedby",
         ".lt-help-text",

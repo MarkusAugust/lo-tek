@@ -9,12 +9,13 @@ The small text below a field that explains what the system expects. If the text 
 
 ## How to use it
 
+The text is wired to its field with `aria-describedby`. Without it the help text is not read out when the field gets focus.
+
 <Example recipe
-  styles={["help-text"]} layout="stack" maxWidth="30rem" code={`
-<p class="lt-help-text">State the budget in EB. The crew sees the number.</p>
-<p class="lt-help-text" data-variant="strong">The order is binding once a crew takes it.</p>
-<p class="lt-help-text" data-variant="success">The floor plans have been uploaded.</p>
-<p class="lt-help-text" data-variant="warning">The window closes in three days.</p>
+  styles={["help-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
+<label class="lt-label" for="budget">Budget</label>
+<input class="lt-input" id="budget" inputmode="numeric" aria-describedby="budget-help" />
+<p class="lt-help-text" id="budget-help">State the budget in EB. The crew sees the number.</p>
 `}>
 <Fragment slot="ts">
 
@@ -64,13 +65,15 @@ import kotlinx.html.*
 import no.lotek.*
 import no.lotek.html.lt
 
-fun FlowContent.hints() {
-    p { lt(Lt.helpText()); +"State the budget in EB. The crew sees the number." }
-    p { lt(Lt.helpText(variant = HelpTextVariant.STRONG)); +"The order is binding once a crew takes it." }
-    p { lt(Lt.helpText(variant = HelpTextVariant.SUCCESS)); +"The floor plans have been uploaded." }
-    p { lt(Lt.helpText(variant = HelpTextVariant.WARNING)); +"The window closes in three days." }
+fun FlowContent.budgetField() {
+    val field = Lt.field(id = "budget", help = true)
+    label { lt(field.label); +"Budget" }
+    input { lt(Lt.input(type = InputType.TEXT), field.control); attributes["inputmode"] = "numeric" }
+    p { lt(Lt.helpText(), field.help); +"State the budget in EB. The crew sees the number." }
 }
 ```
+
+`Lt.field()` generates the `id` and sets `aria-describedby`. A variant is an argument: `Lt.helpText(variant = HelpTextVariant.WARNING)`.
 
 </Fragment>
 </Example>
@@ -82,17 +85,23 @@ fun FlowContent.hints() {
 | `success` | Confirmation that something went well |
 | `warning` | Something the user should know, but that does not stop submission |
 
-## Wired to the field
+[Field](../field/) generates the `id` and sets `aria-describedby` for you.
 
-Without `aria-describedby` the help text is not read out when the field gets focus.
+## The variants
 
 <Example styles={["help-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
-<label class="lt-label" for="budget">Budget</label>
-<input class="lt-input" id="budget" inputmode="numeric" aria-describedby="budget-help" />
-<p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p>
-`} />
+<label class="lt-label" for="deadline">Deadline</label>
+<input class="lt-input" id="deadline" aria-describedby="deadline-help" />
+<p class="lt-help-text" data-variant="strong" id="deadline-help">The order is binding once a crew takes it.</p>
 
-[Field](../field/) generates the `id` and sets `aria-describedby` for you.
+<label class="lt-label" for="codename">Codename</label>
+<input class="lt-input" id="codename" aria-describedby="codename-help" />
+<p class="lt-help-text" data-variant="success" id="codename-help">The codename is free.</p>
+
+<label class="lt-label" for="window">Window</label>
+<input class="lt-input" id="window" aria-describedby="window-help" />
+<p class="lt-help-text" data-variant="warning" id="window-help">The window closes in three days.</p>
+`} />
 
 ## Classes you can style
 
