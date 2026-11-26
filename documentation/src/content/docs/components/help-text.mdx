@@ -26,7 +26,11 @@ The text is wired to its field with `aria-describedby`. Without it the help text
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<p {...lt.helpText()}>State the budget in EB. The crew sees the number.</p>
+const field = lt.field({ id: "budget", help: true })
+
+<label {...field.label}>Budget</label>
+<input {...lt.input()} {...field.control} inputMode="numeric" />
+<p {...lt.helpText()} {...field.help}>State the budget in EB. The crew sees the number.</p>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.

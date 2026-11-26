@@ -2287,7 +2287,7 @@
             {
               "lang": "tsx",
               "meta": null,
-              "code": "import { lt } from \"@lo-tek/interfaces/react\"\n\n<p {...lt.errorText()}>Enter a codename.</p>"
+              "code": "import { lt } from \"@lo-tek/interfaces/react\"\n\nconst field = lt.field({ id: \"fixer\", error: true, invalid })\n\n<label {...field.label}>Fixer's address</label>\n<input {...lt.input({ type: \"email\" })} {...field.control} />\n<p {...lt.errorText()} {...field.error}>Enter the fixer's address with an at sign, for example fixer@relay.example.</p>"
             },
             {
               "lang": "ts",
@@ -2358,6 +2358,8 @@
         "Lt",
         "Lt.field()",
         "aria-describedby",
+        "lt.field()",
+        "describedBy",
         "data-variant",
         "warning",
         ".lt-error-text",
@@ -3025,7 +3027,7 @@
             {
               "lang": "tsx",
               "meta": null,
-              "code": "import { lt } from \"@lo-tek/interfaces/react\"\n\n<p {...lt.helpText()}>State the budget in EB. The crew sees the number.</p>"
+              "code": "import { lt } from \"@lo-tek/interfaces/react\"\n\nconst field = lt.field({ id: \"budget\", help: true })\n\n<label {...field.label}>Budget</label>\n<input {...lt.input()} {...field.control} inputMode=\"numeric\" />\n<p {...lt.helpText()} {...field.help}>State the budget in EB. The crew sees the number.</p>"
             },
             {
               "lang": "ts",

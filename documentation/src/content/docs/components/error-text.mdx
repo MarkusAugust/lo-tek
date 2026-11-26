@@ -34,7 +34,11 @@ The message is wired to its field. Three things have to agree at the same time: 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<p {...lt.errorText()}>Enter a codename.</p>
+const field = lt.field({ id: "fixer", error: true, invalid })
+
+<label {...field.label}>Fixer's address</label>
+<input {...lt.input({ type: "email" })} {...field.control} />
+<p {...lt.errorText()} {...field.error}>Enter the fixer's address with an at sign, for example fixer@relay.example.</p>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -83,7 +87,7 @@ fun FlowContent.fixerField(address: String = "fixer.relay.example", invalid: Boo
 
 ## The variants
 
-The warning stands alone here, to show the colour. On a page it is wired to its field with `aria-describedby`.
+The warning stands alone here, to show the colour. On a page it is wired to its field with `aria-describedby`. The field is not invalid, so with `lt.field()` you name the id of the warning in `describedBy`.
 
 <Example styles={["error-text"]} layout="stack" maxWidth="30rem" code={`
 <p class="lt-error-text" data-variant="warning">No fixer on file has this address. Check it before the board writes.</p>
