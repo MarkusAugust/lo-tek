@@ -3,7 +3,9 @@
  *
  * A code block for Astro or for JSX that has text on one line and an element
  * on the next reads right in the source and in the tab for plain HTML, and
- * loses the space in the consumer's build: "the death was anact of God".
+ * loses the space in the consumer's build, where JSX's rule for blanks
+ * applies: "the death was anact of God". That is every JSX build, and an
+ * Astro build with `compressHTML` as Astro has it by default.
  * `glued-words.ts` has the rule and says why. This reads every code block
  * for those two in the documentation's pages, the component pages, the
  * patterns and the guides alike, and fails on each place the rule finds.
@@ -59,7 +61,7 @@ for (const path of pages(DOCS)) {
         .join("\n")
       for (const glued of gluedWords(code, language))
         findings.push(
-          `${relative(DOCS, path)}:${at + 1 + glued.line}: the ${name} block reads "${glued.reads}" when it is built. A line break between text and an element is not a space there. Write {" "} at the end of the line, or the two on one line.`,
+          `${relative(DOCS, path)}:${at + 1 + glued.line}: the ${name} block reads "${glued.reads}" where JSX's rule for blanks applies${language === "astro" ? ", which is how Astro builds unless compressHTML is set to true or false" : ""}. A line break between the two is not a space there. Write {" "} at the end of the line, or the two on one line.`,
         )
     }
     at = end

@@ -187,8 +187,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 ### Fixed
 
 - **The Astro recipe for `term` no longer glues "an" to "act of God".**
-  Astro drops a line break between text and an element inside a paragraph,
-  as JSX does, and the recipe had one before `<lt-term>`. The word now
+  From version 7 Astro follows the whitespace rule of JSX unless
+  `compressHTML` says otherwise, and drops a line break between text and
+  an element. The recipe had one before `<lt-term>`. The word now
   stands on the line of the text in the recipes and in the editor snippet
   `lt-term`, which is offered in `.astro` files too. A check in the tests
   of the documentation fails on such a line break in an Astro or JSX
