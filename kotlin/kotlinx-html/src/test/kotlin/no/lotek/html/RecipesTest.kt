@@ -59,8 +59,10 @@ import org.jsoup.nodes.TextNode
  *     since the builder functions give ids to the help text and the like.
  *
  * [assertLotek] then checks the Kotlin page as a whole: every pointer
- * resolves, and every field is wired. The two examples that show a part on
- * its own are checked as fragments, see [PARTS_ON_THEIR_OWN].
+ * resolves, and every field, help text and error text is wired. That holds
+ * for every recipe, the ones for help text and error text included: the
+ * recipe is what the reader pastes, so it is a wired field, and the texts
+ * that stand alone on those pages to show the colours are not recipes.
  */
 class RecipesTest {
     /**
@@ -169,14 +171,6 @@ class RecipesTest {
 
     /** What a script does of the server's job, by [SERVERS_JOB]. */
     internal fun serversJob(script: String): List<String> = code(script).let { c -> SERVERS_JOB.filter { it.first.containsMatchIn(c) }.map { it.second } }
-
-    /**
-     * The pages whose example shows a part on its own, an error text or a help
-     * text without a field, so the page is checked as a fragment, as
-     * `check-rendered.ts` reads the previews. Every other recipe, the wired
-     * fields on the input and label pages included, is checked as a page.
-     */
-    private val PARTS_ON_THEIR_OWN = setOf("error-text", "help-text")
 
     private val WHITESPACE = Regex("\\s+")
     /**
@@ -484,18 +478,8 @@ class RecipesTest {
             // A finding from the check is collected like a difference, so one
             // run shows every page that is wrong.
             try {
-                if (recipe.page in PARTS_ON_THEIR_OWN) {
-                    // The page shows the part alone, and a whole page with it fails
-                    // by design, on that rule and on no other.
-                    assertLotek(page, fragment = true)
-                    val asPage = runCatching { assertLotek(page) }.exceptionOrNull()
-                    assertTrue(
-                        asPage is AssertionError && "[text-not-wired]" in asPage.message.orEmpty() && Regex("""\[(?!text-not-wired)[a-z-]+]""").find(asPage.message.orEmpty()) == null,
-                        "${recipe.page} as a whole page should fail on text-not-wired alone: ${asPage?.message}",
-                    )
-                } else {
-                    assertLotek(page)
-                }
+                // As a whole page, every recipe: none shows a part on its own.
+                assertLotek(page)
             } catch (e: AssertionError) {
                 // Only a finding is collected. Anything else, a core that does
                 // not load, stops the test at once with its stack trace.
@@ -504,7 +488,7 @@ class RecipesTest {
             }
             compared += 1
         }
-        failures += unknownExceptions(PARTS_ON_THEIR_OWN + SERVER_DOES_IT.map { it.page }, recipes.map { it.page }.toSet())
+        failures += unknownExceptions(SERVER_DOES_IT.map { it.page }.toSet(), recipes.map { it.page }.toSet())
         failures += duplicateExemptions(SERVER_DOES_IT)
         if (failures.isNotEmpty()) fail(failures.joinToString("\n\n"))
         // The expected number comes from the pages, not from the list the loop went through.

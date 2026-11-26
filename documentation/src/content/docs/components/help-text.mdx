@@ -9,12 +9,13 @@ The small text below a field that explains what the system expects. If the text 
 
 ## How to use it
 
+The text is wired to its field with `aria-describedby`. Without it the help text is not read out when the field gets focus. [Field](../field/) writes the wiring for you.
+
 <Example recipe
-  styles={["help-text"]} layout="stack" maxWidth="30rem" code={`
-<p class="lt-help-text">State the budget in EB. The crew sees the number.</p>
-<p class="lt-help-text" data-variant="strong">The order is binding once a crew takes it.</p>
-<p class="lt-help-text" data-variant="success">The floor plans have been uploaded.</p>
-<p class="lt-help-text" data-variant="warning">The window closes in three days.</p>
+  styles={["help-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
+<label class="lt-label" for="budget">Budget</label>
+<input class="lt-input" id="budget" type="text" inputmode="numeric" aria-describedby="budget-help" />
+<p class="lt-help-text" id="budget-help">State the budget in EB. The crew sees the number.</p>
 `}>
 <Fragment slot="ts">
 
@@ -25,7 +26,11 @@ The small text below a field that explains what the system expects. If the text 
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<p {...lt.helpText()}>State the budget in EB. The crew sees the number.</p>
+const field = lt.field({ id: "budget", help: true })
+
+<label {...field.label}>Budget</label>
+<input {...lt.input()} {...field.control} inputMode="numeric" />
+<p {...lt.helpText()} {...field.help}>State the budget in EB. The crew sees the number.</p>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -35,7 +40,7 @@ The import is from `/react` here, since the block is JSX. From there the keys ar
 ```ts
 import { lt } from "@lo-tek/interfaces"
 
-const label = document.querySelector<HTMLLabelElement>("#budget-label")
+const label = document.querySelector<HTMLLabelElement>('label[for="budget"]')
 const input = document.querySelector<HTMLInputElement>("#budget")
 const helpText = document.querySelector<HTMLElement>("#budget-help")
 
@@ -62,18 +67,31 @@ On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`
 ```kotlin
 import kotlinx.html.*
 import no.lotek.*
+import no.lotek.InputType
 import no.lotek.html.lt
 
-fun FlowContent.hints() {
-    p { lt(Lt.helpText()); +"State the budget in EB. The crew sees the number." }
-    p { lt(Lt.helpText(variant = HelpTextVariant.STRONG)); +"The order is binding once a crew takes it." }
-    p { lt(Lt.helpText(variant = HelpTextVariant.SUCCESS)); +"The floor plans have been uploaded." }
-    p { lt(Lt.helpText(variant = HelpTextVariant.WARNING)); +"The window closes in three days." }
+fun FlowContent.budgetField() {
+    val field = Lt.field(id = "budget", help = true)
+    label { lt(field.label); +"Budget" }
+    input { lt(Lt.input(type = InputType.TEXT), field.control); attributes["inputmode"] = "numeric" }
+    p { lt(Lt.helpText(), field.help); +"State the budget in EB. The crew sees the number." }
 }
 ```
 
+`Lt.field()` gives the help text its `id` and sets `aria-describedby`. A variant is an argument: `Lt.helpText(variant = HelpTextVariant.WARNING)`.
+
 </Fragment>
 </Example>
+
+## The variants
+
+The texts stand alone here, to show the colours. On a page each one is wired to its field, as above.
+
+<Example styles={["help-text"]} layout="stack" maxWidth="30rem" code={`
+<p class="lt-help-text" data-variant="strong">The order is binding once a crew takes it.</p>
+<p class="lt-help-text" data-variant="success">The floor plans have been uploaded.</p>
+<p class="lt-help-text" data-variant="warning">The window closes in three days.</p>
+`} />
 
 | `data-variant` | Used for |
 | --- | --- |
@@ -81,18 +99,6 @@ fun FlowContent.hints() {
 | `strong` | Full text colour, when the text has to be read before the field is filled in |
 | `success` | Confirmation that something went well |
 | `warning` | Something the user should know, but that does not stop submission |
-
-## Wired to the field
-
-Without `aria-describedby` the help text is not read out when the field gets focus.
-
-<Example styles={["help-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
-<label class="lt-label" for="budget">Budget</label>
-<input class="lt-input" id="budget" inputmode="numeric" aria-describedby="budget-help" />
-<p class="lt-help-text" id="budget-help">In EB, without the code. The crew sees it.</p>
-`} />
-
-[Field](../field/) generates the `id` and sets `aria-describedby` for you.
 
 ## Classes you can style
 

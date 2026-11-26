@@ -9,10 +9,21 @@ The message shown when a field cannot be submitted as it stands. It belongs righ
 
 ## How to use it
 
+The message is wired to its field. Three things have to agree at the same time: `data-state` for the colour, `aria-invalid` for the screen reader, and `aria-describedby` for the text itself. [Field](../field/) sets all three when you give it `invalid`. That is why that component exists.
+
 <Example recipe
-  styles={["error-text"]} layout="stack" maxWidth="30rem" code={`
-<p class="lt-error-text">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>
-<p class="lt-error-text" data-variant="warning">No fixer on file has this address. Check it before the board writes.</p>
+  styles={["error-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
+<label class="lt-label" for="fixer">Fixer's address</label>
+<input
+  class="lt-input"
+  id="fixer"
+  type="email"
+  data-state="invalid"
+  aria-invalid="true"
+  aria-describedby="fixer-error"
+  value="fixer.relay.example"
+/>
+<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an at sign, for example fixer&#64;relay.example.</p>
 `}>
 <Fragment slot="ts">
 
@@ -23,7 +34,11 @@ The message shown when a field cannot be submitted as it stands. It belongs righ
 ```tsx
 import { lt } from "@lo-tek/interfaces/react"
 
-<p {...lt.errorText()}>Enter a codename.</p>
+const field = lt.field({ id: "fixer", error: true, invalid })
+
+<label {...field.label}>Fixer's address</label>
+<input {...lt.input({ type: "email" })} {...field.control} />
+<p {...lt.errorText()} {...field.error}>Enter the fixer's address with an at sign, for example fixer@relay.example.</p>
 ```
 
 The import is from `/react` here, since the block is JSX. From there the keys are `className` and `htmlFor`. In Astro and anything else without React, import `@lo-tek/interfaces` and you get `class` and `for`.
@@ -54,41 +69,34 @@ On a Kotlin or Java server, the same with kotlinx.html and `lo-tek-kotlinx-html`
 ```kotlin
 import kotlinx.html.*
 import no.lotek.*
+import no.lotek.InputType
 import no.lotek.html.lt
 
-fun FlowContent.errors() {
-    p { lt(Lt.errorText()); +"Enter the fixer's address with an at sign, for example fixer@relay.example." }
-    p { lt(Lt.errorText(variant = ErrorTextVariant.WARNING)); +"No fixer on file has this address. Check it before the board writes." }
+fun FlowContent.fixerField(address: String = "fixer.relay.example", invalid: Boolean = true) {
+    val field = Lt.field(id = "fixer", error = true, invalid = invalid)
+    label { lt(field.label); +"Fixer's address" }
+    input { lt(Lt.input(type = InputType.EMAIL), field.control); value = address }
+    p { lt(Lt.errorText(), field.error); +"Enter the fixer's address with an at sign, for example fixer@relay.example." }
 }
 ```
 
+`Lt.field()` writes the wiring, and hides the message while the field is valid.
+
 </Fragment>
 </Example>
+
+## The variants
+
+The warning stands alone here, to show the colour. On a page it is wired to its field with `aria-describedby`. The field is not invalid, so with `lt.field()` you name the id of the warning in `describedBy`.
+
+<Example styles={["error-text"]} layout="stack" maxWidth="30rem" code={`
+<p class="lt-error-text" data-variant="warning">No fixer on file has this address. Check it before the board writes.</p>
+`} />
 
 | `data-variant` | Used for |
 | --- | --- |
 | *(omitted)* | Errors that stop submission |
 | `warning` | Something looks odd, but the user may continue |
-
-## Wired to the field
-
-Three things have to agree at the same time: `data-state` for the colour, `aria-invalid` for the screen reader, and `aria-describedby` for the text itself.
-
-<Example styles={["error-text", "label", "input"]} layout="stack" maxWidth="30rem" code={`
-<label class="lt-label" for="fixer">Fixer's address</label>
-<input
-  class="lt-input"
-  id="fixer"
-  type="email"
-  data-state="invalid"
-  aria-invalid="true"
-  aria-describedby="fixer-error"
-  value="fixer.relay.example"
-/>
-<p class="lt-error-text" id="fixer-error">Enter the fixer's address with an at sign.</p>
-`} />
-
-[Field](../field/) sets all three when you give it `invalid`. That is why that component exists.
 
 ## Wording the message
 
