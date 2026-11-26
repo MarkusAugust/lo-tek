@@ -131,6 +131,59 @@ Something also has to store the choice. This can go anywhere after the group:
 </script>
 ```
 
+### With `<ClientRouter />` in Astro
+
+Astro's `<ClientRouter />` swaps the page without loading it. The script in `<head>` does not run again, `<html>` gets the attributes of the new page, and the buttons of the new page have no listener. Without anything more, the choice is gone at the first link the user follows.
+
+Both scripts of the `localStorage` recipe therefore do their work once more at `astro:after-swap`, which comes before the new page is drawn, and the listener is on the document:
+
+```astro
+<!-- In <head> -->
+<script is:inline>
+  {
+    const applyTheme = () => {
+      const stored = localStorage.getItem("theme")
+      if (stored === "light" || stored === "dark") {
+        document.documentElement.dataset.theme = stored
+      }
+    }
+    applyTheme()
+    // The router gives <html> the attributes of the new page
+    document.addEventListener("astro:after-swap", applyTheme)
+  }
+</script>
+
+<!-- Anywhere after the group -->
+<script>
+  const showChoice = () => {
+    const stored = localStorage.getItem("theme")
+    const chosen = stored === "light" || stored === "dark" ? stored : "auto"
+    for (const button of document.querySelectorAll<HTMLInputElement>(
+      ".lt-theme-control",
+    )) {
+      button.checked = button.value === chosen
+    }
+  }
+  showChoice()
+  // The buttons of the new page come as the server wrote them
+  document.addEventListener("astro:after-swap", showChoice)
+
+  // On the document, so it also reaches the buttons of the next page
+  document.addEventListener("change", (event) => {
+    if (!(event.target instanceof HTMLInputElement)) return
+    if (!event.target.matches(".lt-theme-control")) return
+    localStorage.setItem("theme", event.target.value)
+    // The attribute has to go, or it stands in front of "Follow the
+    // system", which has no theme block to win with.
+    delete document.documentElement.dataset.theme
+  })
+</script>
+```
+
+`is:inline` is what keeps the first script blocking: without it Astro bundles the script and loads it as a module, which does not block. The braces keep `applyTheme` out of the global scope, so nothing fails if the router runs the script once more.
+
+The same two scripts work without the router, where `astro:after-swap` never comes.
+
 ## What the system does not do
 
 - **Storing the choice.** The control switches the theme and remembers nothing. Making it last is the app's job, through a cookie or `localStorage`.
