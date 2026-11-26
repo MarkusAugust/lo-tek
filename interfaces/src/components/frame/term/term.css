@@ -80,6 +80,15 @@
     overscroll-behavior: contain;
   }
 
+  /* The glossary an open card came from. The entries after the card close
+     up where it was, and the browser kept one of them where it stood by
+     scrolling the page, when one of them was the thing it held on to
+     (scroll anchoring). The word then moved away from the pointer. With
+     this the browser holds on to something outside the glossary. */
+  dl:has(> .lt-term__entry:popover-open) {
+    overflow-anchor: none;
+  }
+
   /* `--lt-term-left` is the distance from the left edge of the viewport.
      `inset-inline-start` is the right edge in a right-to-left document, so
      there it is flipped, as on the popover. */

@@ -79,6 +79,169 @@ const detailsOwn = ownership()
 type Shown = "no" | "hover" | "pinned"
 
 /**
+ * What the component has written inline on an element, and the `style`
+ * attribute as it was before, to put back letter for letter. Taking a
+ * property off again leaves the browser's own spelling of the rest, which is
+ * not what the server sent, and loses a value of the server's that the
+ * component wrote over.
+ */
+const inlined = new WeakMap<
+  HTMLElement,
+  {
+    before: string | null
+    /**
+     * Per property, the value asked for and what the browser read back. The
+     * two differ: a length with many digits comes back shorter.
+     */
+    own: Map<string, { asked: string; reads: string }>
+  }
+>()
+
+/** Writes an inline property on the element, and remembers that it did. */
+function inline(element: HTMLElement) {
+  return {
+    setProperty(name: string, value: string): void {
+      let record = inlined.get(element)
+      // Nothing the component wrote is there any more: a patch wrote the
+      // attribute again, and what stands there now is the server's.
+      const stands =
+        record &&
+        [...record.own].some(
+          ([own, { reads }]) => element.style.getPropertyValue(own) === reads,
+        )
+      if (!record || !stands) {
+        record = { before: element.getAttribute("style"), own: new Map() }
+        inlined.set(element, record)
+      }
+      const last = record.own.get(name)
+      if (
+        last?.asked === value &&
+        element.style.getPropertyValue(name) === last.reads
+      )
+        return
+      element.style.setProperty(name, value)
+      record.own.set(name, {
+        asked: value,
+        reads: element.style.getPropertyValue(name),
+      })
+    },
+  }
+}
+
+/** Takes off what the component wrote inline on the element. */
+function restoreInline(element: HTMLElement): void {
+  const record = inlined.get(element)
+  if (!record) return
+  inlined.delete(element)
+  // Back as written, when the component's own writes are the whole
+  // difference. Otherwise something else changed the style meanwhile, and
+  // only the component's properties go.
+  const written = document.createElement("div")
+  if (record.before !== null) setAttr(written, "style", record.before)
+  for (const [name, { asked }] of record.own)
+    written.style.setProperty(name, asked)
+  if (written.style.cssText === element.style.cssText) {
+    setAttr(element, "style", record.before)
+    return
+  }
+  for (const name of record.own.keys()) element.style.removeProperty(name)
+  if (record.before === null && element.getAttribute("style") === "")
+    setAttr(element, "style", null)
+}
+
+/**
+ * The lists that are kept as tall as they were while an entry of theirs is
+ * the card, and how many cards each has open. The entry leaves the flow when
+ * it goes into the top layer. Without this the page got shorter, and a page
+ * scrolled to its end was scrolled by the browser: the word moved away from
+ * the pointer, the card closed, the entry came back, and so on.
+ */
+type Hold = { cards: number; size: string; packed: boolean }
+const held = new WeakMap<HTMLElement, Hold>()
+
+/**
+ * What scrolls when the list gets shorter: the nearest box around it that
+ * has something to scroll, and otherwise the page. A box with `overflow:
+ * hidden` that fits its content scrolls nothing, and gets shorter with the
+ * list.
+ */
+function scrollerOf(element: Element): Element | null {
+  // Up through the tree as it is laid out: into the slot the element is
+  // given to, and out of a shadow root to its host.
+  const above = (at: Element): Element | null => {
+    if (at.assignedSlot) return at.assignedSlot
+    if (at.parentElement) return at.parentElement
+    const root = at.getRootNode()
+    return root instanceof ShadowRoot ? root.host : null
+  }
+  for (let at = above(element); at; at = above(at)) {
+    if (at === document.documentElement) break
+    const overflow = getComputedStyle(at).overflowY
+    if (overflow === "visible" || overflow === "clip") continue
+    if (at.scrollHeight > at.clientHeight) return at
+  }
+  return document.scrollingElement
+}
+
+/**
+ * Keeps the entry's list as tall as it is, and returns what to call when the
+ * entry has left the flow, or `null` for a list that has no height to keep.
+ * In a list that is a block the entries after it still close up where it
+ * was, and the room is left at the end of the list.
+ */
+function hold(list: HTMLElement, entry: HTMLElement): (() => void) | null {
+  const holding = held.get(list)
+  if (holding) {
+    holding.cards += 1
+    return () => {}
+  }
+  const listStyle = getComputedStyle(list)
+  const size = Number.parseFloat(listStyle.blockSize)
+  if (Number.isNaN(size)) return null
+  // A margin of the entry's that collapsed through the list is outside the
+  // list's own height, and goes with the entry too. The list is first held
+  // too tall by the margins, which scrolls nothing, and then let down by
+  // what the page turned out to have grown.
+  const scroller = scrollerOf(list)
+  const before = scroller?.scrollHeight ?? 0
+  const scrolls = scroller !== null && before > scroller.clientHeight
+  const style = getComputedStyle(entry)
+  const margins = scrolls
+    ? Math.max(0, Number.parseFloat(style.marginBlockStart) || 0) +
+      Math.max(0, Number.parseFloat(style.marginBlockEnd) || 0)
+    : 0
+  // A grid or a wrapping flex list shares room it has left between its
+  // rows, and the entries that are left grew into the held height.
+  const packed =
+    /grid|flex/.test(listStyle.display) && listStyle.alignContent === "normal"
+  const record = { cards: 1, size: `${size + margins}px`, packed }
+  held.set(list, record)
+  keep(list, record)
+  return () => {
+    if (margins === 0 || !scroller) return
+    const grown = Math.min(margins, scroller.scrollHeight - before)
+    if (grown <= 0) return
+    record.size = `${size + margins - grown}px`
+    keep(list, record)
+  }
+}
+
+/** Writes the hold on the list, again when a patch has taken it. */
+function keep(list: HTMLElement, holding: Hold): void {
+  inline(list).setProperty("min-block-size", holding.size)
+  if (holding.packed) inline(list).setProperty("align-content", "start")
+}
+
+function letGo(list: HTMLElement): void {
+  const holding = held.get(list)
+  if (!holding) return
+  holding.cards -= 1
+  if (holding.cards > 0) return
+  held.delete(list)
+  restoreInline(list)
+}
+
+/**
  * A word in the text that shows its explanation from a glossary on the same
  * page, in a card by the word.
  *
@@ -89,7 +252,9 @@ type Shown = "no" | "hover" | "pinned"
  * it off again when it closes, so the entry is back in its place in the
  * glossary. Nothing is copied: the text is sent once, the links in it are
  * the real ones, and the component writes no id, since the server wrote the
- * one the link points to.
+ * one the link points to. While the card is open the component keeps the
+ * `<dl>` as tall as it was, with `min-block-size`, so the page is as long
+ * as before and does not scroll.
  *
  * The mouse opens the card after a short rest on the word, and the card stays
  * while the pointer is on the word or in the card. A click, a tap or Enter
@@ -136,6 +301,8 @@ export class LtTerm extends HostElement {
   /** What the component put on the entry, to take off again when it closes. */
   private addedPopover = false
   private addedClass = false
+  /** The list this component keeps as tall as it was while the card is open. */
+  private list?: HTMLElement
 
   /**
    * One observer per document or shadow root, shared by every `<lt-term>`
@@ -350,6 +517,20 @@ export class LtTerm extends HostElement {
     }
     shownBy.set(entry, this)
 
+    // Before `popover` is set: an entry with the attribute that is not open
+    // is not displayed, and has left the flow already.
+    const list = entry.parentElement
+    // A patch moved the open entry to another list: the one it left has
+    // nothing to keep room for.
+    if (this.list && this.list !== list) {
+      letGo(this.list)
+      this.list = undefined
+    }
+    const settle =
+      list && !this.list && !entry.hasAttribute("popover")
+        ? hold(list, entry)
+        : null
+    if (settle && list) this.list = list
     if (!entry.hasAttribute("popover")) {
       setAttr(entry, "popover", "manual")
       this.addedPopover = true
@@ -359,6 +540,10 @@ export class LtTerm extends HostElement {
       this.addedClass = true
     }
     if (!entry.matches(":popover-open")) entry.showPopover()
+    settle?.()
+    // A patch that rewrote the list's `style` took the height with it.
+    const holding = this.list && held.get(this.list)
+    if (this.list && holding) keep(this.list, holding)
     this.reposition()
 
     if (!this.outside) {
@@ -382,6 +567,11 @@ export class LtTerm extends HostElement {
       attributes: true,
       attributeFilter: ["popover", "class", "style", "id"],
     })
+    if (this.list)
+      this.outside.observe(this.list, {
+        attributes: true,
+        attributeFilter: ["style"],
+      })
   }
 
   /** Takes the entry out of the top layer and back to its place in the glossary. */
@@ -391,15 +581,17 @@ export class LtTerm extends HostElement {
     if (shownBy.get(entry) === this) shownBy.delete(entry)
     if (entry.matches(":popover-open")) entry.hidePopover()
     if (this.addedPopover) setAttr(entry, "popover", null)
+    // After `popover` is off and the entry is back in the flow, so the list
+    // is never too short.
+    if (this.list) letGo(this.list)
+    this.list = undefined
     if (this.addedClass && entry.classList.contains(TERM_ENTRY_CLASS)) {
       const rest = [...entry.classList]
         .filter((name) => name !== TERM_ENTRY_CLASS)
         .join(" ")
       setAttr(entry, "class", rest === "" ? null : rest)
     }
-    entry.style.removeProperty("--lt-term-top")
-    entry.style.removeProperty("--lt-term-left")
-    if (entry.getAttribute("style") === "") setAttr(entry, "style", null)
+    restoreInline(entry)
     this.addedPopover = false
     this.addedClass = false
   }
@@ -564,10 +756,8 @@ export class LtTerm extends HostElement {
       ;({ top, left } = place(anchor, card, true, rtl, gap))
     }
     top = Math.round(top)
-    if (entry.style.getPropertyValue("--lt-term-top") !== `${top}px`)
-      entry.style.setProperty("--lt-term-top", `${top}px`)
-    if (entry.style.getPropertyValue("--lt-term-left") !== `${left}px`)
-      entry.style.setProperty("--lt-term-left", `${left}px`)
+    inline(entry).setProperty("--lt-term-top", `${top}px`)
+    inline(entry).setProperty("--lt-term-left", `${left}px`)
   }
 }
 
