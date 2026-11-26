@@ -254,7 +254,7 @@ Below 640 pixels, the `sm` breakpoint, the card is a sheet across the width of t
 
 The sheet is at most 60 % of the window high, and a longer explanation scrolls inside it. A tap outside or on the word closes it. The width is fixed in the stylesheet, since a media query cannot read a variable.
 
-While the card is open, the entry is not in its place in the glossary. The glossary keeps its height meanwhile: the web component sets `min-block-size` on the `<dl>` and takes it off again when the card closes, so the page stays as long as it was and does not scroll, also when it is scrolled to its end. Inside the glossary the entries after the open one close up where it was, and the room is left at the end of the list. Put the glossary after the text that uses it: then nothing above the word moves when the card opens.
+While the card is open, the entry is not in its place in the glossary. The glossary keeps its height meanwhile: the web component sets `min-block-size` on the `<dl>`, and `align-content: start` on one that is a grid or a flex container, and takes them off again when the card closes, so the page stays as long as it was and does not scroll, also when it is scrolled to its end. Inside the glossary the entries after the open one close up where it was, and the room is left at the end of the list. Put the glossary after the text that uses it: then nothing above the word moves when the card opens.
 
 ## Classes you can style
 
@@ -277,7 +277,7 @@ While the card is open, the entry is not in its place in the glossary. The gloss
 | `--lt-term-top` | set by the web component |
 | `--lt-term-left` | set by the web component |
 
-The position is set as `--lt-term-top` and `--lt-term-left` on the entry while the card is open, and removed when it closes. A `style` attribute the server wrote on the entry or on the `<dl>` is back as it was written.
+The position is set as `--lt-term-top` and `--lt-term-left` on the entry while the card is open, and removed when it closes. A `style` attribute the server wrote on the entry or on the `<dl>` is back as it was written, unless something else changed it while the card was open.
 
 See [Customising](../../customising/) for how the variables and the layer work.
 
