@@ -146,15 +146,17 @@ The "Try it" tab is the dialog in action. The other five are the dialog written 
     </dialog>
 
     <script>
-      const dialog = document.getElementById("confirm") as HTMLDialogElement
-
       // showModal() and not commandfor, which does nothing in a browser from
       // before December 2025. This is the one script the recipe needs.
-      document.getElementById("open-confirm")?.addEventListener("click", () => {
-        dialog.showModal()
+      document.addEventListener("click", (event) => {
+        if (!(event.target instanceof Element)) return
+        if (!event.target.closest("#open-confirm")) return
+        document.querySelector<HTMLDialogElement>("#confirm")?.showModal()
       })
     </script>
     ```
+
+    The listener is on the document and finds the button at the click, so the recipe also works with `<ClientRouter />`. Astro runs the script once, and the router swaps the page under it: a listener on the button itself is gone after the first navigation.
 
   </TabItem>
   <TabItem label="Datastar">

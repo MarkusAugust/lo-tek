@@ -186,6 +186,19 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The Astro recipe for `term` no longer glues "an" to "act of God".**
+  From version 7 Astro follows the whitespace rule of JSX unless
+  `compressHTML` says otherwise, and drops a line break between text and
+  an element. The recipe had one before `<lt-term>`. The word now
+  stands on the line of the text in the recipes and in the editor snippet
+  `lt-term`, which is offered in `.astro` files too. A check in the tests
+  of the documentation fails on such a line break in an Astro or JSX
+  recipe.
+- **The Astro recipe for `dialog` opens the dialog after a navigation with
+  `<ClientRouter />`.** Its script put the listener on the button. Astro
+  runs the script once and the router swaps the page under it, so the
+  button did nothing after the first navigation. The listener is now on
+  the document and finds the button at the click, and the page says why.
 - **`<lt-tabs server-controlled>` no longer warns about `data-lt-written`
   in markup that never had it.** When the answer to a selection touched
   some of the tabs and panels and not others, as a new render from React
