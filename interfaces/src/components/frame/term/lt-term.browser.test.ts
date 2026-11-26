@@ -18,7 +18,7 @@ import {
   waitForPaint,
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
-import { datastarPatch, morph } from "../../../testing/update"
+import { datastarPatch, morph, replace } from "../../../testing/update"
 import { defineLtPopover, type LtPopover } from "../popover/lt-popover"
 import { defineLtTerm, LtTerm } from "./lt-term"
 import { term, termWithState } from "./term"
@@ -701,6 +701,324 @@ describe("lt-term", () => {
       // Scrolling to the end of it does not move the page behind.
       expect(getComputedStyle(entry).overscrollBehaviorY).toBe("contain")
     })
+  })
+
+  /*
+   * The card is the entry itself, and while it is open the entry is not in
+   * its place in the glossary. The documentation's advice is a glossary
+   * after the text, and a reader at the end of such a page has the glossary
+   * as the last thing on it. Nothing the reader sees may move when the card
+   * opens or closes: the page is where it was, the word is where it was,
+   * and the page is as long as it was. A page that got shorter under a
+   * reader at its end was scrolled by the browser, and under a resting
+   * mouse the word then left the pointer, the card closed, the word came
+   * back, and the card opened again.
+   */
+  describe("at the end of the page", () => {
+    /** A long text with its two words at the end, and the glossary last. */
+    function endPage(glossary = GLOSSARY, style = ""): void {
+      mount(`
+        ${style}
+        <div style="block-size: 150vh"></div>
+        <p id="text">Datastar keeps
+          <lt-term id="host"><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>
+          in the browser, and a
+          <lt-term id="host-2"><a ${attr(PATCH.word)} id="word-2">patch</a></lt-term>
+          brings new markup.
+        </p>
+        ${glossary}
+      `)
+    }
+
+    /** Scrolls as far as the page goes, and says that it did. */
+    async function toTheEnd() {
+      await paint()
+      window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: "instant",
+      })
+      await paint()
+      const root = document.documentElement
+      expect(window.scrollY, "the page scrolls").toBeGreaterThan(100)
+      expect(
+        Math.abs(root.scrollHeight - root.clientHeight - window.scrollY),
+        "pixels from the end of the page",
+      ).toBeLessThanOrEqual(1)
+    }
+
+    /** What the reader has in front of them, in whole pixels. */
+    const view = (word = "word") => ({
+      scrolled: Math.round(window.scrollY),
+      word: Math.round($(word).getBoundingClientRect().top),
+      pageHeight: document.documentElement.scrollHeight,
+    })
+
+    const WAYS_TO_OPEN = [
+      ["a click", () => userEvent.click($("word"))],
+      [
+        "Enter",
+        async () => {
+          $("word").focus({ preventScroll: true })
+          await userEvent.keyboard("{Enter}")
+        },
+      ],
+    ] as const
+    const WAYS_TO_CLOSE = {
+      "a click": () => userEvent.click($("word")),
+      Enter: () => userEvent.keyboard("{Escape}"),
+    }
+    const SCREENS = [
+      ["a wide screen", 1280, 720],
+      ["a narrow screen, where the card is a sheet", 390, 700],
+    ] as const
+
+    for (const [screen, width, height] of SCREENS)
+      for (const [way, open] of WAYS_TO_OPEN)
+        it(`leaves the page where it is when ${way} opens the card and when it closes, on ${screen}`, async () => {
+          await page.viewport(width, height)
+          endPage()
+          await toTheEnd()
+          const before = view()
+
+          await open()
+          await paint()
+          await waitForPaint()
+          expect($("term-signal").matches(":popover-open")).toBe(true)
+          expect(view(), "with the card open").toEqual(before)
+
+          await WAYS_TO_CLOSE[way]()
+          await paint()
+          await waitForPaint()
+          expect($("term-signal").matches(":popover-open")).toBe(false)
+          expect(view(), "with the card closed again").toEqual(before)
+        })
+
+    it("keeps the card open under a mouse that rests on the word", async () => {
+      endPage()
+      await toTheEnd()
+      await userEvent.hover($("text"), { position: { x: 2, y: 2 } })
+      await rest()
+      const before = view()
+      const said: (string | null)[] = []
+      const watching = new MutationObserver(() =>
+        said.push($("word").getAttribute("aria-expanded")),
+      )
+      watching.observe($("word"), {
+        attributes: true,
+        attributeFilter: ["aria-expanded"],
+      })
+
+      try {
+        await userEvent.hover($("word"))
+        // The 300 ms the card waits, and then long enough for a card that
+        // closes and opens again to have done it several times.
+        await rest(2000)
+        expect(
+          {
+            open: $("term-signal").matches(":popover-open"),
+            said,
+            view: view(),
+          },
+          "what aria-expanded was set to, in order, while the mouse lay still",
+        ).toEqual({ open: true, said: ["true"], view: before })
+      } finally {
+        watching.disconnect()
+        await userEvent.hover(document.body, { position: { x: 1, y: 1 } })
+        await rest()
+      }
+    })
+
+    it("leaves a scrolling container where it is, with the glossary at its end", async () => {
+      mount(`
+        <div id="scroller" tabindex="0" style="block-size: 300px; overflow: auto">
+          <div style="block-size: 600px"></div>
+          <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+          ${GLOSSARY}
+        </div>
+      `)
+      await paint()
+      const scroller = $("scroller")
+      scroller.scrollTop = scroller.scrollHeight
+      await paint()
+      expect(scroller.scrollTop).toBeGreaterThan(100)
+      const inside = () => ({
+        scrolled: Math.round(scroller.scrollTop),
+        word: Math.round($("word").getBoundingClientRect().top),
+        height: scroller.scrollHeight,
+        page: Math.round(window.scrollY),
+      })
+      const before = inside()
+
+      await userEvent.click($("word"))
+      await paint()
+      await waitForPaint()
+      expect($("term-signal").matches(":popover-open")).toBe(true)
+      expect(inside(), "with the card open").toEqual(before)
+
+      await userEvent.keyboard("{Escape}")
+      await paint()
+      await waitForPaint()
+      expect(inside(), "with the card closed again").toEqual(before)
+    })
+
+    it("leaves the page where it is with two cards from one glossary open, as each closes, and the glossary as it was written", async () => {
+      endPage()
+      await toTheEnd()
+      const written = $("glossary").outerHTML
+      const before = view()
+
+      // One pinned, and the other under the mouse: a click on the second
+      // word is a click outside the first card, and closes it.
+      await userEvent.click($("word"))
+      await paint()
+      await userEvent.hover($("word-2"))
+      await rest()
+      expect(
+        ["term-signal", "term-patch"].map((id) =>
+          $(id).matches(":popover-open"),
+        ),
+        "both cards open",
+      ).toEqual([true, true])
+      expect(view(), "with both cards open").toEqual(before)
+
+      await userEvent.hover($("text"), { position: { x: 2, y: 2 } })
+      await rest()
+      expect(
+        ["term-signal", "term-patch"].map((id) =>
+          $(id).matches(":popover-open"),
+        ),
+        "the card the mouse opened is closed",
+      ).toEqual([true, false])
+      expect(view(), "with one card closed").toEqual(before)
+
+      await userEvent.keyboard("{Escape}")
+      await paint()
+      await waitForPaint()
+      expect($("term-signal").matches(":popover-open")).toBe(false)
+      expect(view(), "with both cards closed").toEqual(before)
+      expect($("glossary").outerHTML).toBe(written)
+    })
+
+    it("leaves the page where it is when the entry's margin goes through the glossary", async () => {
+      // The last entry's margin under it is not inside the list's box: it
+      // collapses through a list with no padding or border of its own, and
+      // is part of how long the page is all the same.
+      endPage(
+        GLOSSARY,
+        "<style>#glossary { margin: 0; padding: 0; border: 0 } #glossary > div { margin-block-end: 1rem }</style>",
+      )
+      await toTheEnd()
+      const before = view("word-2")
+
+      await userEvent.click($("word-2"))
+      await paint()
+      await waitForPaint()
+      expect($("term-patch").matches(":popover-open")).toBe(true)
+      expect(view("word-2"), "with the card open").toEqual(before)
+
+      await userEvent.keyboard("{Escape}")
+      await paint()
+      await waitForPaint()
+      expect(view("word-2"), "with the card closed again").toEqual(before)
+    })
+
+    for (const way of ["idiomorph", "Datastar"] as const)
+      it(`is where it was after ${way} has written the glossary again under the open card`, async () => {
+        endPage()
+        await toTheEnd()
+        const before = view()
+        await userEvent.click($("word"))
+        await paint()
+
+        // The glossary as the server sent it: the update takes off
+        // everything else, on the list and on its entries.
+        const sent = document.createElement("div")
+        sent.innerHTML = GLOSSARY.trim()
+        replace(way, "glossary", GLOSSARY)
+        await paint()
+        await waitForPaint()
+        await waitForPaint()
+        expect($("term-signal").matches(":popover-open")).toBe(true)
+        expect(view(), "after the update, with the card open").toEqual(before)
+
+        await userEvent.keyboard("{Escape}")
+        await paint()
+        await waitForPaint()
+        expect(view(), "with the card closed again").toEqual(before)
+        expect($("glossary").outerHTML).toBe(sent.innerHTML)
+      })
+  })
+
+  /*
+   * What holds today and has to go on holding: the entry is out of its
+   * place while the card is open, the entries after it close up, and when
+   * the card closes the glossary is what the server wrote, to the letter.
+   */
+  describe("and the glossary around an open card", () => {
+    it("closes up where the open entry was, and has it back in its place when the card closes", async () => {
+      page1()
+      await paint()
+      const fromList = (id: string) =>
+        Math.round(
+          $(id).getBoundingClientRect().top -
+            $("glossary").getBoundingClientRect().top,
+        )
+      const closed = {
+        signal: fromList("term-signal"),
+        patch: fromList("term-patch"),
+      }
+      expect(closed.patch).toBeGreaterThan(closed.signal)
+
+      await userEvent.click($("word"))
+      await paint()
+      expect($("term-signal").matches(":popover-open")).toBe(true)
+      expect(
+        fromList("term-patch"),
+        "the next entry, where the open one was",
+      ).toBe(closed.signal)
+
+      await userEvent.keyboard("{Escape}")
+      await paint()
+      expect({
+        signal: fromList("term-signal"),
+        patch: fromList("term-patch"),
+      }).toEqual(closed)
+    })
+
+    const LIST_STYLE = "margin-block: 2rem; color: inherit"
+    for (const [whose, entryStyle] of [
+      ["the list's own style", ""],
+      [
+        "the list's and the entry's own styles",
+        ' style="padding-inline-start: 4px"',
+      ],
+    ] as const)
+      it(`leaves the entry and its list exactly as the server wrote them, with ${whose}`, async () => {
+        mount(`
+          <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+          <dl id="glossary" class="notes" style="${LIST_STYLE}" data-kind="glossary">
+            <div ${attr(SIGNAL.entry)}${entryStyle}><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>
+            <div ${attr(PATCH.entry)}><dt>Patch</dt><dd>The markup the server sends back.</dd></div>
+          </dl>
+        `)
+        await paint()
+        const written = $("glossary").outerHTML
+        expect(written).toContain(`${entryStyle}><dt>Signal`)
+
+        for (const close of [
+          () => userEvent.keyboard("{Escape}"),
+          () => userEvent.click($("word")),
+        ]) {
+          await userEvent.click($("word"))
+          await paint()
+          expect($("term-signal").matches(":popover-open")).toBe(true)
+          await close()
+          await paint()
+          await waitForPaint()
+          expect($("glossary").getAttribute("style")).toBe(LIST_STYLE)
+          expect($("glossary").outerHTML).toBe(written)
+        }
+      })
   })
 
   it("marks the word whose card is open", async () => {
