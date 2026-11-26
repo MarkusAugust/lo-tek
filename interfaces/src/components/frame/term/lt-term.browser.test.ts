@@ -1289,6 +1289,135 @@ describe("lt-term", () => {
       expect(opened("term-signal")).toEqual([false])
       expect(lists()).toEqual([from.outerHTML, to.outerHTML])
     })
+
+    it("leaves the list as written after the card closes, whatever fractions of a pixel its entries are", async () => {
+      // Heights and margins the browser does not print back the way it
+      // was given them.
+      const SIZES = [
+        ["20.8px", "21.7px"],
+        ["20.8px", "33.33px"],
+        ["1.3em", "21.7px"],
+        ["1.3em", "33.33px"],
+      ]
+      const left: string[] = []
+      for (const [margin, size] of SIZES)
+        for (const [word, entry] of [
+          [SIGNAL.word, "term-signal"],
+          [PATCH.word, "term-patch"],
+        ] as const) {
+          mount(`
+            <style>#glossary { margin: 0; padding: 0; border: 0 } #glossary dd { margin: 0 } #glossary > div { margin-block-end: ${margin}; block-size: ${size}; overflow: hidden }</style>
+            <div style="block-size: 150vh"></div>
+            <p>Datastar has <lt-term><a ${attr(word)} id="word">a word</a></lt-term> for it.</p>
+            ${GLOSSARY}
+          `)
+          await paint()
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: "instant",
+          })
+          await frames()
+          const written = $("glossary").outerHTML
+
+          await userEvent.click($("word"))
+          await frames()
+          expect(opened(entry)).toEqual([true])
+          await userEvent.keyboard("{Escape}")
+          await frames()
+          expect(opened(entry)).toEqual([false])
+          if ($("glossary").outerHTML !== written)
+            left.push(
+              `margin ${margin}, height ${size}, ${entry}: ${$("glossary").outerHTML.slice(0, $("glossary").outerHTML.indexOf(">") + 1)}`,
+            )
+        }
+      expect(left.join("\n"), "lists that are not as written").toBe("")
+    })
+
+    it("leaves the page where it is when the body is what scrolls", async () => {
+      const page = document.createElement("style")
+      page.textContent = `
+        html { overflow: hidden; block-size: 100% }
+        body { block-size: 100%; overflow: auto; margin: 0 }
+        #glossary { margin: 0; padding: 0; border: 0 }
+        #glossary > div { margin-block-end: 1rem }
+      `
+      document.head.append(page)
+      try {
+        mount(`
+          <div style="block-size: 150vh"></div>
+          <p>A <lt-term><a ${attr(PATCH.word)} id="word">patch</a></lt-term> brings new markup.</p>
+          ${GLOSSARY}
+        `)
+        await paint()
+        const body = document.body
+        body.scrollTop = body.scrollHeight
+        await frames()
+        const view = () => ({
+          scrolled: Math.round(body.scrollTop),
+          word: top("word"),
+          height: body.scrollHeight,
+          window: Math.round(window.scrollY),
+        })
+        const before = view()
+        expect(before.scrolled, "the body scrolls").toBeGreaterThan(100)
+        expect(
+          Math.abs(body.scrollHeight - body.clientHeight - body.scrollTop),
+          "pixels from the end",
+        ).toBeLessThanOrEqual(1)
+
+        await userEvent.click($("word"))
+        await frames()
+        expect(opened("term-patch")).toEqual([true])
+        expect(view(), "with the card open").toEqual(before)
+
+        await userEvent.keyboard("{Escape}")
+        await frames()
+        expect(view(), "with the card closed again").toEqual(before)
+      } finally {
+        page.remove()
+        document.body.scrollTop = 0
+      }
+    })
+
+    it("leaves a scroller in a shadow tree where it is, with the glossary slotted into it", async () => {
+      mount(`
+        <style>#glossary { margin: 0; padding: 0; border: 0 } #glossary > div { margin-block-end: 1rem }</style>
+        <div id="shadow-host">
+          <div style="block-size: 600px"></div>
+          <p>A <lt-term><a ${attr(PATCH.word)} id="word">patch</a></lt-term> brings new markup.</p>
+          ${GLOSSARY}
+        </div>
+      `)
+      const shadow = $("shadow-host").attachShadow({ mode: "open" })
+      shadow.innerHTML = `<div id="scroller" style="overflow: auto; block-size: 300px"><slot></slot></div>`
+      const scroller = shadow.getElementById("scroller") as HTMLElement
+      await paint()
+      scroller.scrollTop = scroller.scrollHeight
+      await frames()
+      const view = () => ({
+        scrolled: Math.round(scroller.scrollTop),
+        word: top("word"),
+        height: scroller.scrollHeight,
+        page: Math.round(window.scrollY),
+      })
+      const before = view()
+      expect(before.scrolled, "the scroller scrolls").toBeGreaterThan(100)
+      expect(
+        Math.abs(
+          scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop,
+        ),
+        "pixels from the end",
+      ).toBeLessThanOrEqual(1)
+
+      await userEvent.click($("word"))
+      await frames()
+      expect(opened("term-patch")).toEqual([true])
+      expect(view(), "with the card open").toEqual(before)
+
+      await userEvent.keyboard("{Escape}")
+      await frames()
+      expect(view(), "with the card closed again").toEqual(before)
+    })
   })
 
   it("marks the word whose card is open", async () => {
