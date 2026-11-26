@@ -50,6 +50,7 @@ const CHILDREN_WITH_DISPLAY = [
   '.lt-pagination span[aria-disabled="true"]',
   '.lt-select[data-picker="styled"] option',
   ".lt-tabs__list a",
+  ':where(lt-field:not(:defined):has(input:not([type="hidden"]), textarea, select)) > label:first-of-type',
 ]
 
 /** The selector list split on commas, but not on those inside parentheses and brackets. */
@@ -145,9 +146,22 @@ describe("hidden", () => {
       <nav class="lt-breadcrumbs"><ol><li id="crumb" hidden>Between</li></ol></nav>
       <ul class="lt-file-upload-list"><li id="file" hidden>attachment.pdf</li></ul>
       <details class="lt-accordion"><summary id="summary" hidden>Question</summary></details>
-      <ul class="lt-tabs__list"><li><a id="tab" href="#attachments" hidden>Attachments</a></li></ul>`
+      <ul class="lt-tabs__list"><li><a id="tab" href="#attachments" hidden>Attachments</a></li></ul>
+      <lt-field><label id="label" for="codename" hidden>Codename</label><input id="codename" /></lt-field>`
 
-    for (const id of ["option", "page", "crumb", "file", "summary", "tab"]) {
+    // The label gets `display` only while `<lt-field>` is not registered,
+    // and nothing in this file registers it.
+    expect(customElements.get("lt-field")).toBeUndefined()
+
+    for (const id of [
+      "option",
+      "page",
+      "crumb",
+      "file",
+      "summary",
+      "tab",
+      "label",
+    ]) {
       const element = document.getElementById(id) as HTMLElement
       expect(getComputedStyle(element).display, id).toBe("none")
     }
