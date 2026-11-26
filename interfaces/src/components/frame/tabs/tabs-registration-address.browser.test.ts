@@ -2,16 +2,23 @@
 
 import { afterEach, describe, expect, it } from "vitest"
 
+import { color } from "../../../testing/color"
+
 import "../../../tokens/tokens.css"
 import "./tabs.css"
 
 /*
- * The tab that looks selected before the component is registered is the
- * one the component selects, wherever the address points. A document has
- * one address and registers an element once, so every case here is a page
- * of its own: a frame loaded with the address in its URL, as a browser
- * loads a page, with the stylesheets of this file, and with the component
- * loaded into it and registered there after the first measurement.
+ * Which tab looks selected before the component is registered, and what
+ * the reader has in front of them before and after. A document has one
+ * address and registers an element once, so every case here is a page of
+ * its own: a frame loaded with the address in its URL, as a browser loads
+ * a page, with the stylesheets of this file, and with the component loaded
+ * into it and registered there after the first measurement.
+ *
+ * One thing holds in every case: before registration no tab looks selected
+ * but the one the component then selects. None may, since a selector
+ * cannot follow a link to its panel and the stylesheet marks a tab only
+ * where it cannot be wrong. A wrong tab, or two, never.
  */
 const COMPONENT = new URL("./lt-tabs.ts", import.meta.url).href
 
@@ -77,39 +84,73 @@ async function load(body: string, hash: string): Promise<Loaded> {
   }
 }
 
-/** A tab list as `tabs()` writes it, with `count` tabs. */
-function tabList(
-  id: string,
-  count: number,
-  inPanel: (index: number) => string = () => "",
+type Options = {
+  id?: string
+  count?: number
+  /** The tabs in the row, by the number of the panel each leads to. */
+  order?: number[]
+  /** What the first `<li>` holds, when that is not a tab. */
+  first?: string
+  /** Attributes on a tab, by the number of its panel. */
+  tab?: Record<number, string>
+  /** Attributes on a panel, by its number. */
+  panel?: Record<number, string>
+  /** Where the panels are: in the element, in a `<div>` in it, or after it. */
+  panels?: "inside" | "wrapped" | "outside"
+  host?: string
+  nav?: boolean
+  inPanel?: (number: number) => string
+}
+
+/** A tab list as `tabs()` writes it, and what a case adds to that. */
+function tabList({
+  id = "t",
+  count = 3,
+  order,
+  first,
+  tab = {},
+  panel = {},
+  panels = "inside",
   host = "",
-): string {
-  const keys = Array.from({ length: count }, (_, index) => index + 1)
+  nav = false,
+  inPanel = () => "",
+}: Options = {}): string {
+  const numbers = Array.from({ length: count }, (_, index) => index + 1)
+  const items = (order ?? numbers)
+    .map(
+      (number) =>
+        `<li><a href="#${id}-p${number}"${tab[number] ?? ""}>Part ${number}</a></li>`,
+    )
+    .join("")
+  const list = `<ul class="lt-tabs__list" aria-label="Parts ${id}">${first ? `<li>${first}</li>` : ""}${items}</ul>`
+  const sections = numbers
+    .map(
+      (number) =>
+        `<section id="${id}-p${number}" class="lt-tabs__panel"${panel[number] ?? ""}><h2>Part ${number}</h2><p>What part ${number} holds.</p>${inPanel(number)}</section>`,
+    )
+    .join("")
   return `
     <lt-tabs id="${id}"${host}>
-      <ul class="lt-tabs__list" aria-label="Parts ${id}">${keys
-        .map((key) => `<li><a href="#${id}-${key}">Part ${key}</a></li>`)
-        .join("")}</ul>
-      ${keys
-        .map(
-          (key, index) =>
-            `<section id="${id}-${key}" class="lt-tabs__panel"><h2 id="${id}-${key}-heading">Part ${key}</h2><p>What part ${key} holds.</p>${inPanel(index)}</section>`,
-        )
-        .join("")}
+      ${nav ? `<nav>${list}</nav>` : list}
+      ${panels === "inside" ? sections : ""}
+      ${panels === "wrapped" ? `<div>${sections}</div>` : ""}
     </lt-tabs>
+    ${panels === "outside" ? sections : ""}
     <p id="after-${id}">The text after ${id}.</p>`
 }
+
+const STRONG = color("--lt-color-neutral-text-strong")
 
 /** What a tab list looks like, and where its parts are in the page. */
 function measure(page: Document, id: string) {
   const view = page.defaultView as Window
   const host = page.getElementById(id) as HTMLElement
-  const own = <T extends Element>(selector: string) =>
-    [...host.querySelectorAll<T>(selector)].filter(
-      (element) => element.closest("lt-tabs") === host,
-    )
-  const links = own<HTMLElement>(".lt-tabs__list a")
-  const panels = own<HTMLElement>(".lt-tabs__panel")
+  // What stands in the row: the tabs, and anything else a first item holds.
+  const row = [
+    ...host.querySelectorAll<HTMLElement>(".lt-tabs__list li > *"),
+  ].filter((element) => element.closest("lt-tabs") === host)
+  const name = (element: Element) =>
+    element.getAttribute("href") ?? `<${element.localName}>`
   const place = (element: Element) => {
     const rect = element.getBoundingClientRect()
     return [
@@ -120,36 +161,50 @@ function measure(page: Document, id: string) {
     ]
   }
   const boxes: Record<string, number[]> = { "lt-tabs": place(host) }
-  for (const [index, link] of links.entries())
-    boxes[`tab ${index + 1}`] = place(link)
+  for (const element of row) boxes[`the tab ${name(element)}`] = place(element)
   const after = page.getElementById(`after-${id}`)
   if (after) boxes["the text after"] = place(after)
+  const styles = row.map((element) => view.getComputedStyle(element))
   return {
     // The weight, the colour and the line under each tab.
-    looks: links.map((link) => {
-      const style = view.getComputedStyle(link)
-      return `${style.fontWeight} ${style.color} ${style.borderBottomColor}`
+    looks: styles.map(
+      (style) =>
+        `${style.fontWeight} ${style.color} ${style.borderBottomColor}`,
+    ),
+    // A tab looks selected when it has any of the three things the
+    // stylesheet gives the selected one: the weight, the colour of text
+    // and not of a link, or a line under it that can be seen.
+    looksSelected: row.flatMap((element, index) => {
+      const style = styles[index]
+      const line = style.borderBottomColor
+      const lined =
+        Number.parseFloat(style.borderBottomWidth) > 0 &&
+        line !== "transparent" &&
+        !/, 0\)$/.test(line)
+      return Number.parseInt(style.fontWeight, 10) >= 600 ||
+        style.color === STRONG ||
+        lined
+        ? [name(element)]
+        : []
     }),
+    // What the component says is selected, once it is registered.
+    selected: row.flatMap((element) =>
+      element.getAttribute("aria-selected") === "true" ? [name(element)] : [],
+    ),
     // The heading, not the panel: a panel hidden with `until-found` keeps
     // its box, and only its content is gone.
-    shown: panels.flatMap((panel, index) =>
-      (panel.firstElementChild as HTMLElement).checkVisibility()
-        ? [index + 1]
-        : [],
+    shown: [...page.querySelectorAll<HTMLElement>(`[id^="${id}-p"]`)].flatMap(
+      (panel) =>
+        panel.matches(".lt-tabs__panel") &&
+        (panel.firstElementChild as HTMLElement).checkVisibility()
+          ? [panel.id]
+          : [],
     ),
     boxes,
   }
 }
 
 type Measured = ReturnType<typeof measure>
-
-/** The tabs that look unlike most of the others: the ones that look selected. */
-function standingOut(looks: string[]): number[] {
-  const counts = new Map<string, number>()
-  for (const look of looks) counts.set(look, (counts.get(look) ?? 0) + 1)
-  const common = [...counts].sort((a, b) => b[1] - a[1])[0][0]
-  return looks.flatMap((look, index) => (look === common ? [] : [index + 1]))
-}
 
 function moved(before: Measured, after: Measured): string[] {
   const sides = ["x", "y", "width", "height"]
@@ -166,8 +221,9 @@ function moved(before: Measured, after: Measured): string[] {
 /** Before and after registration, side by side, for one tab list. */
 function both(before: Measured, after: Measured) {
   return {
-    selectedBefore: standingOut(before.looks),
-    selectedAfter: standingOut(after.looks),
+    looksSelectedBefore: before.looksSelected,
+    selectedAfter: after.selected,
+    looksSelectedAfter: after.looksSelected,
     shownBefore: before.shown,
     shownAfter: after.shown,
     looksTheSame: JSON.stringify(before.looks) === JSON.stringify(after.looks),
@@ -175,80 +231,243 @@ function both(before: Measured, after: Measured) {
   }
 }
 
-const same = (tab: number) => ({
-  selectedBefore: [tab],
-  selectedAfter: [tab],
-  shownBefore: [tab],
-  shownAfter: [tab],
-  looksTheSame: true,
-  moved: [],
-})
+type Seen = ReturnType<typeof both>
 
-async function transition(body: string, hash: string, ids: string[]) {
-  const page = await load(body, hash)
-  const before = ids.map((id) => measure(page.document, id))
-  await page.register()
-  return ids.map((id, index) => both(before[index], measure(page.document, id)))
+type Case = {
+  title: string
+  body: string
+  hash: string
+  /** The tab lists in the page. One, unless they are nested. */
+  ids?: string[]
 }
 
-describe("the tab that looks selected before registration, by the address", () => {
-  it("is the first when the address points to the first panel", async () => {
-    const [tabs] = await transition(tabList("file", 3), "#file-1", ["file"])
-    expect(tabs).toEqual(same(1))
-  })
+/** Loads the case once, however many tests ask about it. */
+function seenIn({ body, hash, ids = ["t"] }: Case): () => Promise<Seen[]> {
+  let seen: Promise<Seen[]> | undefined
+  return () => {
+    seen ??= (async () => {
+      const page = await load(body, hash)
+      const before = ids.map((id) => measure(page.document, id))
+      await page.register()
+      return ids.map((id, index) =>
+        both(before[index], measure(page.document, id)),
+      )
+    })()
+    return seen
+  }
+}
 
-  it("is the third when the address points to something inside the third panel", async () => {
-    const [tabs] = await transition(
-      tabList("file", 3, (index) => `<p id="in-${index + 1}">A note.</p>`),
-      "#in-3",
-      ["file"],
-    )
-    expect(tabs).toEqual(same(3))
-  })
+/** No tab looks selected before registration but the one selected after. */
+function expectNoWrongTab(seen: Seen[]): void {
+  for (const tabs of seen) {
+    expect(
+      tabs.selectedAfter.length,
+      `tabs selected after registration: ${tabs.selectedAfter}`,
+    ).toBeLessThanOrEqual(1)
+    expect(
+      [[], tabs.selectedAfter],
+      `looks selected before registration: [${tabs.looksSelectedBefore}], selected after: [${tabs.selectedAfter}]`,
+    ).toContainEqual(tabs.looksSelectedBefore)
+    // And after registration the look says what the component says.
+    expect(tabs.looksSelectedAfter).toEqual(tabs.selectedAfter)
+  }
+}
 
-  it("is the first under server-controlled, though the address points to the second panel", async () => {
-    const [tabs] = await transition(
-      tabList("file", 3, () => "", " server-controlled"),
-      "#file-2",
-      ["file"],
-    )
-    expect(tabs).toEqual(same(1))
-  })
+function expectSamePanels(seen: Seen[]): void {
+  for (const tabs of seen) {
+    expect(tabs.shownBefore).toEqual(tabs.shownAfter)
+    expect(tabs.shownAfter.length).toBe(1)
+  }
+}
 
-  it("is the first when the address points outside the tabs", async () => {
-    const [tabs] = await transition(
-      `${tabList("file", 3)}<p id="elsewhere">Something else on the page.</p>`,
-      "#elsewhere",
-      ["file"],
-    )
-    expect(tabs).toEqual(same(1))
-  })
+/** The reader sees no change at all: the same tab marked, and nothing moved. */
+function expectNoChange(seen: Seen[]): void {
+  for (const tabs of seen)
+    expect({
+      marked: tabs.looksSelectedBefore,
+      looksTheSame: tabs.looksTheSame,
+      moved: tabs.moved,
+    }).toEqual({ marked: tabs.selectedAfter, looksTheSame: true, moved: [] })
+}
 
-  it("is the second in both when the address points to the second panel of tabs in the second panel", async () => {
-    const [outer, inner] = await transition(
-      tabList("outer", 2, (index) => (index === 1 ? tabList("inner", 2) : "")),
-      "#inner-2",
-      ["outer", "inner"],
-    )
-    expect({ outer, inner }).toEqual({ outer: same(2), inner: same(2) })
-  })
+const NOTE = (number: number) => `<p id="in-${number}">A note.</p>`
+const SERVER_SECOND = {
+  tab: { 2: ' aria-selected="true"' },
+  panel: { 1: " hidden", 3: " hidden" },
+}
 
-  it("is the tenth of ten, the last place the stylesheet has a line for", async () => {
-    const [tabs] = await transition(tabList("file", 10), "#file-10", ["file"])
-    expect(tabs).toEqual(same(10))
-  })
+/* Fully right: the same tab marked before and after, and nothing moves. */
+const RIGHT: Case[] = [
+  { title: "the plain recipe", body: tabList(), hash: "" },
+  {
+    title: "server-controlled with the plain recipe",
+    body: tabList({ host: " server-controlled" }),
+    hash: "",
+  },
+  {
+    title:
+      "server-controlled with the address at the second panel, which it ignores",
+    body: tabList({ host: " server-controlled" }),
+    hash: "#t-p2",
+  },
+  {
+    title: "the address pointing outside the tabs",
+    body: `${tabList()}<p id="elsewhere">Something else on the page.</p>`,
+    hash: "#elsewhere",
+  },
+  {
+    title: "a selection the server wrote with hidden and aria-selected",
+    body: tabList(SERVER_SECOND),
+    hash: "",
+  },
+]
 
-  /*
-   * A known limit. A selector cannot follow a link to its panel, so the
-   * stylesheet finds the tab by its place in the row, one line per place,
-   * and has lines for ten. With the address at the eleventh panel the
-   * panel is right before registration and no tab looks selected, so the
-   * eleventh turns semibold and the row moves when the component is
-   * registered. The test says what should hold, and fails; when it passes,
-   * the limit is gone and `fails` comes off.
-   */
-  it.fails("is the eleventh when the address points to the eleventh panel", async () => {
-    const [tabs] = await transition(tabList("file", 11), "#file-11", ["file"])
-    expect(tabs).toEqual(same(11))
-  })
+/*
+ * The known limit. When the address points into a panel the stylesheet
+ * shows that panel, as the component will, and marks no tab: it cannot
+ * tell which tab leads to the panel. The tab turns semibold and the row
+ * moves when the component is registered. The tests of "no change" say
+ * what should hold, and fail; when one passes, the limit is gone for that
+ * case and `fails` comes off.
+ */
+const ADDRESSED: Case[] = [
+  { title: "the address at the first panel", body: tabList(), hash: "#t-p1" },
+  { title: "the address at the second panel", body: tabList(), hash: "#t-p2" },
+  {
+    title: "the address at something inside the third panel",
+    body: tabList({ inPanel: NOTE }),
+    hash: "#in-3",
+  },
+  {
+    title:
+      "tabs in the second panel of tabs, the address at the inner second panel",
+    body: tabList({
+      id: "outer",
+      count: 2,
+      inPanel: (number) =>
+        number === 2 ? tabList({ id: "inner", count: 2 }) : "",
+    }),
+    hash: "#inner-p2",
+    ids: ["outer", "inner"],
+  },
+  {
+    title: "ten tabs, the address at the tenth panel",
+    body: tabList({ count: 10 }),
+    hash: "#t-p10",
+  },
+  {
+    title: "eleven tabs, the address at the eleventh panel",
+    body: tabList({ count: 11 }),
+    hash: "#t-p11",
+  },
+]
+
+/*
+ * Markup where the first tab in the row is not the tab of the first panel,
+ * or where the server has said something the stylesheet has to read. Here
+ * the one thing asked is that no wrong tab is marked.
+ */
+const OTHERS: Case[] = [
+  {
+    title:
+      "the server's selection of the second tab, with the panels after the element",
+    body: tabList({ ...SERVER_SECOND, panels: "outside" }),
+    hash: "",
+  },
+  {
+    title:
+      "the server's selection of the second tab, with the panels in a div in the element",
+    body: tabList({ ...SERVER_SECOND, panels: "wrapped" }),
+    hash: "",
+  },
+  {
+    title: "aria-selected on the second tab and hidden nowhere",
+    body: tabList({ tab: SERVER_SECOND.tab }),
+    hash: "",
+  },
+  {
+    title: "the tabs in another order than the panels",
+    body: tabList({ order: [3, 1, 2] }),
+    hash: "",
+  },
+  {
+    title:
+      "the tabs in another order than the panels, the address at the third panel",
+    body: tabList({ order: [3, 1, 2] }),
+    hash: "#t-p3",
+  },
+  {
+    title: "a first item that is a link to another page",
+    body: tabList({ first: '<a href="/help">Help</a>' }),
+    hash: "",
+  },
+  {
+    title:
+      "a first item that is a link to another page, the address at the second panel",
+    body: tabList({ first: '<a href="/help">Help</a>' }),
+    hash: "#t-p2",
+  },
+  {
+    title: "a first item that is a span",
+    body: tabList({ first: "<span>Parts</span>" }),
+    hash: "",
+  },
+  {
+    title: "a first item that is a span, the address at the second panel",
+    body: tabList({ first: "<span>Parts</span>" }),
+    hash: "#t-p2",
+  },
+  {
+    title: "a first tab that is disabled",
+    body: tabList({ tab: { 1: ' aria-disabled="true"' } }),
+    hash: "",
+  },
+  {
+    title: "the address at the panel of a tab that is disabled",
+    body: tabList({ tab: { 2: ' aria-disabled="true"' } }),
+    hash: "#t-p2",
+  },
+  {
+    title: "hidden on the first and the third panel and no aria-selected",
+    body: tabList({ panel: SERVER_SECOND.panel }),
+    hash: "",
+  },
+  { title: "the list in a nav", body: tabList({ nav: true }), hash: "" },
+  {
+    title:
+      "the panels in a div in the element, the address at the second panel",
+    body: tabList({ panels: "wrapped" }),
+    hash: "#t-p2",
+  },
+]
+
+describe("the transition from tabs.css to the component, page by page", () => {
+  for (const [cases, kind] of [
+    [RIGHT, "right"],
+    [ADDRESSED, "addressed"],
+    [OTHERS, "other"],
+  ] as const)
+    for (const each of cases)
+      describe(each.title, () => {
+        const seen = seenIn(each)
+
+        it("marks no tab before registration but the one that is selected after it", async () => {
+          expectNoWrongTab(await seen())
+        })
+
+        if (kind !== "other")
+          it("shows the same panel before and after registration", async () => {
+            expectSamePanels(await seen())
+          })
+
+        if (kind === "right")
+          it("marks the same tab before and after registration, and moves nothing", async () => {
+            expectNoChange(await seen())
+          })
+
+        if (kind === "addressed")
+          it.fails("marks the same tab before and after registration, and moves nothing", async () => {
+            expectNoChange(await seen())
+          })
+      })
 })

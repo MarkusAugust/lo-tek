@@ -56,8 +56,21 @@ const CASES = {
       <textarea class="lt-textarea" id="two-note" rows="3"></textarea>
       <input type="checkbox" id="two-box" /> <label for="two-box">Send a copy</label>
     </lt-field>`,
+  // Not a field the component wires: nothing in it is a control.
+  uncontrolled: `<lt-field>
+      <label>Codename</label>
+      <div contenteditable="true" class="control">Molly</div>
+    </lt-field>`,
+  // Nor this: a hidden input does not count as one.
+  hidden: `<lt-field optional>
+      <label>Pick a fixer</label>
+      <input type="hidden" name="fixer" value="7" />
+      <button type="button" class="control">Choose</button>
+    </lt-field>`,
 }
 type Name = keyof typeof CASES
+/** The fields with no control, which the component leaves as they are. */
+const LEFT_ALONE: Name[] = ["uncontrolled", "hidden"]
 
 /*
  * The text that marks a field, which the label has in its `::after`. With
@@ -84,6 +97,22 @@ const MARKED = {
   "neither, a label without a class": `<lt-field>
       <label for="m5">Codename</label>
       <input class="lt-input" id="m5" />
+    </lt-field>`,
+  "optional, and a label with data-required and no value": `<lt-field optional>
+      <label for="m6" data-required>Fixer's address</label>
+      <input class="lt-input" id="m6" type="email" required />
+    </lt-field>`,
+  'optional, and a label with data-required="none"': `<lt-field optional>
+      <label for="m7" data-required="none">Fixer's address</label>
+      <input class="lt-input" id="m7" type="email" required />
+    </lt-field>`,
+  "a label in a div with data-optional": `<lt-field>
+      <div><label for="m8" data-optional>Note for the fixer</label></div>
+      <textarea class="lt-textarea" id="m8" rows="3"></textarea>
+    </lt-field>`,
+  'a label in a div with data-required="symbol"': `<lt-field>
+      <div><label for="m9" data-required="symbol">Fixer's address</label></div>
+      <input class="lt-input" id="m9" type="email" required />
     </lt-field>`,
 }
 type Mark = keyof typeof MARKED
@@ -142,7 +171,7 @@ function measure(name: Name): Record<string, Box> {
     ...(second ? { "the other label": place(second) } : {}),
     "lt-field": place(box.querySelector("lt-field") as Element),
     "the label": place(box.querySelector("label") as Element),
-    "the control": place(box.querySelector("textarea") as Element),
+    "the control": place(box.querySelector("textarea, .control") as Element),
     "the text after": place(box.querySelector(".after") as Element),
   }
 }
@@ -166,6 +195,9 @@ const markerBefore = {} as Record<Mark, string>
 const markerAfter = {} as Record<Mark, string>
 let plainBefore: Record<string, ReturnType<typeof look>>
 let secondBefore: ReturnType<typeof look>
+const aloneBefore = {} as Record<Name, ReturnType<typeof look>>
+const ownLabel = (name: Name) =>
+  document.querySelector(`#case-${name} label`) as Element
 
 beforeAll(async () => {
   expect(customElements.get("lt-field")).toBeUndefined()
@@ -177,7 +209,7 @@ beforeAll(async () => {
           `<div class="case" id="case-${name}">${CASES[name]}<p class="after">The text after the field.</p></div>`,
       )
       .join("")}
-    <div class="case" style="top: 2400px">
+    <div class="case" style="top: 3000px">
       ${marks.map((name, index) => `<div data-mark="${index}">${MARKED[name]}</div>`).join("")}
       ${PLAIN}
     </div>
@@ -190,6 +222,7 @@ beforeAll(async () => {
   await waitForPaint()
   for (const name of names) before[name] = measure(name)
   for (const name of marks) markerBefore[name] = marker(name)
+  for (const name of LEFT_ALONE) aloneBefore[name] = look(ownLabel(name))
   secondBefore = look(document.querySelectorAll("#case-two label")[1])
   plainBefore = {
     text: look(document.getElementById("plain-text") as Element),
@@ -263,10 +296,39 @@ describe("the text that marks a field, before and after registration", () => {
       expect(markerBefore[name]).toBe(markerAfter[name])
     })
 
+  for (const name of marks.slice(5))
+    it(`says the same before the component is registered as after: ${name}`, () => {
+      expect(markerBefore[name]).toBe(markerAfter[name])
+    })
+
   it("says nothing on a label in a field that is neither", () => {
     expect([
       markerBefore["neither, a label without a class"],
       markerAfter["neither, a label without a class"],
+    ]).toEqual(["none", "none"])
+  })
+})
+
+/*
+ * A field with nothing in it that the component counts as a control is
+ * left as it is: the label gets no class. So it has no look to wait for,
+ * and is the browser's before registration too.
+ */
+describe("a field without a control, before and after registration", () => {
+  for (const [name, title] of [
+    ["uncontrolled", "an element the reader can write in"],
+    ["hidden", "a hidden input and a button"],
+  ] as const)
+    it(`leaves the label looking as it did, and moves nothing, with ${title}`, () => {
+      expect(ownLabel(name).classList.contains("lt-label")).toBe(false)
+      expect(look(ownLabel(name))).toEqual(aloneBefore[name])
+      expect(moved(before[name], after[name])).toEqual([])
+    })
+
+  it("never says optional about a field with only a hidden input", () => {
+    expect([
+      aloneBefore.hidden.marker,
+      look(ownLabel("hidden")).marker,
     ]).toEqual(["none", "none"])
   })
 })

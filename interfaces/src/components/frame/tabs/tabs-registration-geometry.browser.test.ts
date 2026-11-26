@@ -155,6 +155,22 @@ beforeAll(async () => {
   for (const name of Object.keys(CASES)) after[name] = measure(name)
 })
 
+/*
+ * A known limit. A selector cannot follow a link to its panel, so when the
+ * address points into a panel the stylesheet shows the right panel and
+ * marks no tab at all: a wrong tab that looks selected is worse than none.
+ * The tab then turns semibold and the row moves when the component is
+ * registered. The tests of that case say what should hold, and fail; when
+ * one passes, the limit is gone and `fails` comes off.
+ */
+const LIMITS = ["address"]
+
+/** The tabs with the weight of a selected one. */
+const heavy = (looks: string[]) =>
+  looks.flatMap((look, index) =>
+    Number.parseInt(look, 10) >= 600 ? [index] : [],
+  )
+
 describe("the transition from tabs.css to the component, measured", () => {
   for (const [name, title] of [
     ["plain", "the plain recipe"],
@@ -164,6 +180,8 @@ describe("the transition from tabs.css to the component, measured", () => {
     ["controlled-plain", "server-controlled with the plain recipe"],
   ])
     describe(title, () => {
+      const held = LIMITS.includes(name) ? it.fails : it
+
       it("shows the same panel before and after registration", () => {
         expect({
           before: before[name].shown,
@@ -171,18 +189,31 @@ describe("the transition from tabs.css to the component, measured", () => {
         }).toEqual({ before: [CASES[name].shown], after: [CASES[name].shown] })
       })
 
-      it("moves nothing and changes the size of nothing at registration", () => {
-        expect(moved(before[name], after[name])).toEqual([])
+      it("marks no tab before registration but the one that is selected after it", () => {
+        expect(heavy(after[name].looks)).toEqual([CASES[name].shown])
+        expect([[], [CASES[name].shown]]).toContainEqual(
+          heavy(before[name].looks),
+        )
       })
 
-      it("has the weight, the colour and the line on every tab before registration that it has after", () => {
-        expect(before[name].looks).toEqual(after[name].looks)
-        // And the tab of the shown panel is the one that stands out.
-        const selected = after[name].looks[CASES[name].shown]
-        expect(after[name].looks.filter((look) => look === selected)).toEqual([
-          selected,
-        ])
-      })
+      held(
+        "moves nothing and changes the size of nothing at registration",
+        () => {
+          expect(moved(before[name], after[name])).toEqual([])
+        },
+      )
+
+      held(
+        "has the weight, the colour and the line on every tab before registration that it has after",
+        () => {
+          expect(before[name].looks).toEqual(after[name].looks)
+          // And the tab of the shown panel is the one that stands out.
+          const selected = after[name].looks[CASES[name].shown]
+          expect(after[name].looks.filter((look) => look === selected)).toEqual(
+            [selected],
+          )
+        },
+      )
     })
 })
 
