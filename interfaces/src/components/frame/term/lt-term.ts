@@ -87,7 +87,14 @@ type Shown = "no" | "hover" | "pinned"
  */
 const inlined = new WeakMap<
   HTMLElement,
-  { before: string | null; own: Map<string, string> }
+  {
+    before: string | null
+    /**
+     * Per property, the value asked for and what the browser read back. The
+     * two differ: a length with many digits comes back shorter.
+     */
+    own: Map<string, { asked: string; reads: string }>
+  }
 >()
 
 /** Writes an inline property on the element, and remembers that it did. */
@@ -100,15 +107,23 @@ function inline(element: HTMLElement) {
       const stands =
         record &&
         [...record.own].some(
-          ([own, written]) => element.style.getPropertyValue(own) === written,
+          ([own, { reads }]) => element.style.getPropertyValue(own) === reads,
         )
       if (!record || !stands) {
         record = { before: element.getAttribute("style"), own: new Map() }
         inlined.set(element, record)
       }
-      record.own.set(name, value)
-      if (element.style.getPropertyValue(name) !== value)
-        element.style.setProperty(name, value)
+      const last = record.own.get(name)
+      if (
+        last?.asked === value &&
+        element.style.getPropertyValue(name) === last.reads
+      )
+        return
+      element.style.setProperty(name, value)
+      record.own.set(name, {
+        asked: value,
+        reads: element.style.getPropertyValue(name),
+      })
     },
   }
 }
@@ -123,7 +138,8 @@ function restoreInline(element: HTMLElement): void {
   // only the component's properties go.
   const written = document.createElement("div")
   if (record.before !== null) setAttr(written, "style", record.before)
-  for (const [name, value] of record.own) written.style.setProperty(name, value)
+  for (const [name, { asked }] of record.own)
+    written.style.setProperty(name, asked)
   if (written.style.cssText === element.style.cssText) {
     setAttr(element, "style", record.before)
     return
@@ -150,13 +166,16 @@ const held = new WeakMap<HTMLElement, Hold>()
  * list.
  */
 function scrollerOf(element: Element): Element | null {
+  // Up through the tree as it is laid out: into the slot the element is
+  // given to, and out of a shadow root to its host.
   const above = (at: Element): Element | null => {
+    if (at.assignedSlot) return at.assignedSlot
     if (at.parentElement) return at.parentElement
     const root = at.getRootNode()
     return root instanceof ShadowRoot ? root.host : null
   }
   for (let at = above(element); at; at = above(at)) {
-    if (at === document.body || at === document.documentElement) break
+    if (at === document.documentElement) break
     const overflow = getComputedStyle(at).overflowY
     if (overflow === "visible" || overflow === "clip") continue
     if (at.scrollHeight > at.clientHeight) return at

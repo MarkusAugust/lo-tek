@@ -192,7 +192,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   under a resting mouse the word moved away, the card closed, the entry
   came back and the card opened again. `<lt-term>` now keeps the `<dl>` as
   tall as it was while a card from it is open, with `min-block-size`, and
-  takes it off when the card closes. The entries after the open one still
+  takes it off when the card closes. On a `<dl>` that is a grid or a flex
+  container it sets `align-content: start` as well, unless the page has set
+  `align-content`, so the entries that are left do not grow into the room. The entries after the open one still
   close up where it was, and the stylesheet sets `overflow-anchor: none` on
   the `<dl>` meanwhile, so the browser does not scroll the page to keep one
   of them in place. A `style` attribute the server wrote on the entry or on
