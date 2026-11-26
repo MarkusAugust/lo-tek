@@ -1021,6 +1021,276 @@ describe("lt-term", () => {
       })
   })
 
+  /*
+   * The same promise in glossaries laid out in other ways: nothing the
+   * reader sees moves, the entries that are left are not reshaped, and
+   * what the server wrote comes back to the letter. Each is stated by what
+   * the reader has in front of them, not by how the page is kept still.
+   */
+  describe("and glossaries laid out in other ways", () => {
+    const MORPH = term({ id: "term-morph" })
+    const top = (id: string) => Math.round($(id).getBoundingClientRect().top)
+    const opened = (...ids: string[]) =>
+      ids.map((id) => $(id).matches(":popover-open"))
+    const frames = async () => {
+      await paint()
+      await waitForPaint()
+      await waitForPaint()
+    }
+
+    /**
+     * A long glossary first, the text with its two words after it, and
+     * more page after that: scrolled so entries of the glossary fill the
+     * window above the words, which stand 500 pixels down.
+     */
+    async function glossaryAbove() {
+      const more = Array.from(
+        { length: 38 },
+        (_, index) =>
+          `<div id="term-more-${index}"><dt>Term ${index}</dt><dd>What term ${index} means.</dd></div>`,
+      ).join("")
+      mount(`
+        <dl id="glossary">
+          <div ${attr(SIGNAL.entry)}><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>
+          <div ${attr(PATCH.entry)}><dt>Patch</dt><dd>The markup the server sends back.</dd></div>
+          ${more}
+        </dl>
+        <p id="text">Datastar keeps
+          <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>
+          in the browser, and a
+          <lt-term><a ${attr(PATCH.word)} id="word-2">patch</a></lt-term>
+          brings new markup.
+        </p>
+        <div style="block-size: 200vh"></div>
+      `)
+      await paint()
+      window.scrollBy({ top: top("word") - 500, behavior: "instant" })
+      await frames()
+      expect(top("word")).toBe(500)
+      const list = $("glossary").getBoundingClientRect()
+      expect(
+        [list.top < 0, list.bottom > 300],
+        "entries of the glossary fill the window above the words",
+      ).toEqual([true, true])
+    }
+
+    it("leaves the word where it is with the glossary above it in view, as the card opens and closes", async () => {
+      await glossaryAbove()
+      const before = { word: top("word"), word2: top("word-2") }
+      const now = () => ({ word: top("word"), word2: top("word-2") })
+
+      await userEvent.click($("word"))
+      await frames()
+      expect(opened("term-signal")).toEqual([true])
+      expect(now(), "with the card open").toEqual(before)
+
+      await userEvent.keyboard("{Escape}")
+      await frames()
+      expect(opened("term-signal")).toEqual([false])
+      expect(now(), "with the card closed again").toEqual(before)
+    })
+
+    it("keeps a second card open under a resting mouse, with the glossary above the words in view", async () => {
+      await glossaryAbove()
+      const before = { word: top("word"), word2: top("word-2") }
+      await userEvent.click($("word"))
+      await frames()
+      const said: (string | null)[] = []
+      const watching = new MutationObserver(() =>
+        said.push($("word-2").getAttribute("aria-expanded")),
+      )
+      watching.observe($("word-2"), {
+        attributes: true,
+        attributeFilter: ["aria-expanded"],
+      })
+
+      try {
+        await userEvent.hover($("word-2"))
+        await rest(2000)
+        expect(
+          {
+            open: opened("term-signal", "term-patch"),
+            said,
+            words: { word: top("word"), word2: top("word-2") },
+          },
+          "the cards, what aria-expanded was set to on the second word, and where the words are",
+        ).toEqual({ open: [true, true], said: ["true"], words: before })
+      } finally {
+        watching.disconnect()
+        await userEvent.hover(document.body, { position: { x: 1, y: 1 } })
+        await rest()
+      }
+    })
+
+    for (const overflow of ["hidden", "auto"])
+      it(`leaves the page where it is when the glossary is in a box with overflow: ${overflow} that does not scroll`, async () => {
+        // The entries' margins go through the list and stop in the box
+        // around it, which is as tall as what it holds.
+        mount(`
+          <style>#glossary { margin: 0; padding: 0; border: 0 } #glossary > div { margin-block-end: 24px }</style>
+          <div style="block-size: 150vh"></div>
+          <p>A <lt-term><a ${attr(PATCH.word)} id="word">patch</a></lt-term> brings new markup.</p>
+          <div id="box" style="overflow: ${overflow}">${GLOSSARY}</div>
+        `)
+        await paint()
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "instant",
+        })
+        await frames()
+        const box = $("box")
+        expect(box.scrollHeight, "the box does not scroll").toBe(
+          box.clientHeight,
+        )
+        const view = () => ({
+          scrolled: Math.round(window.scrollY),
+          word: top("word"),
+          pageHeight: document.documentElement.scrollHeight,
+          box: Math.round(box.getBoundingClientRect().height),
+          boxScrolled: box.scrollTop,
+        })
+        const before = view()
+        expect(before.scrolled).toBeGreaterThan(100)
+
+        await userEvent.click($("word"))
+        await frames()
+        expect(opened("term-patch")).toEqual([true])
+        expect(view(), "with the card open").toEqual(before)
+
+        await userEvent.keyboard("{Escape}")
+        await frames()
+        expect(view(), "with the card closed again").toEqual(before)
+      })
+
+    it("gives back a style on the list and on the entry that sets what the component may set itself", async () => {
+      const LIST = "min-block-size: 20rem; color: inherit"
+      const ENTRY = "min-block-size: 3rem;color:inherit"
+      mount(`
+        <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+        <dl id="glossary" style="${LIST}">
+          <div ${attr(SIGNAL.entry)} style="${ENTRY}"><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>
+          <div ${attr(PATCH.entry)}><dt>Patch</dt><dd>The markup the server sends back.</dd></div>
+        </dl>
+      `)
+      await paint()
+      const height = () => $("glossary").getBoundingClientRect().height
+      const written = $("glossary").outerHTML
+      const before = height()
+      expect(before).toBeGreaterThanOrEqual(320)
+
+      await userEvent.click($("word"))
+      await frames()
+      expect(opened("term-signal")).toEqual([true])
+      expect(height(), "the list's height with the card open").toBe(before)
+
+      await userEvent.keyboard("{Escape}")
+      await frames()
+      expect({
+        list: $("glossary").getAttribute("style"),
+        entry: $("term-signal").getAttribute("style"),
+        height: height(),
+      }).toEqual({ list: LIST, entry: ENTRY, height: before })
+      expect($("glossary").outerHTML).toBe(written)
+    })
+
+    for (const [layout, list, entry] of [
+      ["a grid", "display: grid; gap: 8px", ""],
+      [
+        "a row that wraps",
+        "display: flex; flex-flow: row wrap; gap: 8px",
+        "flex: 0 0 100%; box-sizing: border-box;",
+      ],
+    ] as const)
+      it(`leaves the entries that are left as tall as they were in a glossary that is ${layout}, and the page where it is`, async () => {
+        mount(`
+          <style>#glossary { margin: 0; ${list} } #glossary > div { ${entry} border: 1px solid; padding: 4px } #glossary dd { margin: 0 }</style>
+          <div style="block-size: 150vh"></div>
+          <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+          <dl id="glossary">
+            <div ${attr(SIGNAL.entry)}><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>
+            <div ${attr(PATCH.entry)}><dt>Patch</dt><dd>The markup the server sends back.</dd></div>
+            <div ${attr(MORPH.entry)}><dt>Morph</dt><dd>Changing the page into the new markup.</dd></div>
+          </dl>
+        `)
+        await paint()
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "instant",
+        })
+        await frames()
+        const heights = () =>
+          ["term-patch", "term-morph"].map((id) =>
+            Math.round($(id).getBoundingClientRect().height),
+          )
+        const view = () => ({
+          scrolled: Math.round(window.scrollY),
+          word: top("word"),
+          pageHeight: document.documentElement.scrollHeight,
+        })
+        const before = { heights: heights(), view: view() }
+        expect(before.view.scrolled).toBeGreaterThan(100)
+
+        await userEvent.click($("word"))
+        await frames()
+        expect(opened("term-signal")).toEqual([true])
+        expect(
+          { heights: heights(), view: view() },
+          "with the card open",
+        ).toEqual(before)
+
+        await userEvent.keyboard("{Escape}")
+        await frames()
+        expect(
+          { heights: heights(), view: view() },
+          "with the card closed again",
+        ).toEqual(before)
+      })
+
+    it("leaves nothing on a list its open entry was moved out of", async () => {
+      const markup = `
+        <dl id="glossary">
+          <div ${attr(SIGNAL.entry)}><dt>Signal</dt><dd>A value Datastar keeps in the browser.</dd></div>
+          <div ${attr(PATCH.entry)}><dt>Patch</dt><dd>The markup the server sends back.</dd></div>
+        </dl>
+        <dl id="other">
+          <div ${attr(MORPH.entry)}><dt>Morph</dt><dd>Changing the page into the new markup.</dd></div>
+        </dl>
+      `
+      mount(`
+        <p>Datastar keeps <lt-term><a ${attr(SIGNAL.word)} id="word">signals</a></lt-term>.</p>
+        ${markup}
+      `)
+      await paint()
+      // The two lists as the page has them once the entry is moved, made
+      // from the same markup beside the page.
+      const beside = document.createElement("div")
+      beside.innerHTML = markup
+      const [from, to] = [...beside.querySelectorAll("dl")]
+      to.append(from.querySelector("#term-signal") as Element)
+      const lists = () => [$("glossary").outerHTML, $("other").outerHTML]
+
+      await userEvent.click($("word"))
+      await frames()
+      expect(opened("term-signal")).toEqual([true])
+
+      $("other").append($("term-signal"))
+      await frames()
+      expect(
+        {
+          open: opened("term-signal"),
+          expanded: $("word").getAttribute("aria-expanded"),
+          left: $("glossary").outerHTML,
+        },
+        "the card, and the list the entry left",
+      ).toEqual({ open: [true], expanded: "true", left: from.outerHTML })
+
+      await userEvent.keyboard("{Escape}")
+      await frames()
+      expect(opened("term-signal")).toEqual([false])
+      expect(lists()).toEqual([from.outerHTML, to.outerHTML])
+    })
+  })
+
   it("marks the word whose card is open", async () => {
     page1()
     await paint()
