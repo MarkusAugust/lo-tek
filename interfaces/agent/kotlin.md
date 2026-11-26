@@ -100,7 +100,7 @@ $content
 """
 ```
 
-`lotek.css` is 114 kB, 15 kB compressed, has every component, and is nearly
+`lotek.css` is 116 kB, 15 kB compressed, has every component, and is nearly
 always the right choice. If you want only the stylesheets the pages use,
 `tokens.css` defines all the variables, and all the other stylesheets build on
 it. It must be loaded, and comes first out of habit: the order between it and

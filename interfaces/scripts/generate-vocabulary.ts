@@ -573,6 +573,15 @@ const TOKEN_PAGE = {
  */
 const SHOWN_IN_A_STATE = [":popover-open"]
 
+/**
+ * A rule for an element that is not registered yet shows a text only until
+ * the script arrives, where the web component is about to write what another
+ * rule then shows the same text for: `(optional)` on the first label in an
+ * `<lt-field>` without `lt-label`. The selector for that stands in the same
+ * rule and is the one that places the text, and this one is left out.
+ */
+const BEFORE_REGISTRATION = /:not\(:defined\)/
+
 /** The pseudo-classes a text rule may otherwise have: they say where, not when. */
 const STRUCTURAL = [":not(", ":has("]
 
@@ -620,6 +629,14 @@ function textsInCss(
           .matchAll(/:[\w-]+\(?/g),
       ].map((m) => m[0])
       if (classes.some((c) => SHOWN_IN_A_STATE.includes(c))) continue
+      // Only beside a selector that places the text. A rule with nothing
+      // else goes on to the checks below, and stops the generator there.
+      const selectorList = splitOutside(selectors, /,/)
+      if (
+        BEFORE_REGISTRATION.test(selector) &&
+        selectorList.some((other) => !BEFORE_REGISTRATION.test(other))
+      )
+        continue
       const unknown = classes.find((c) => !STRUCTURAL.includes(c))
       if (unknown) {
         throw new Error(

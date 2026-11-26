@@ -36,6 +36,8 @@ const CHILDREN = [
   ".lt-pagination *",
   ".lt-select option",
   ".lt-tabs__list a",
+  // The label `label.css` styles in a field that is not registered yet.
+  "lt-field > label",
 ]
 
 const sections: Record<string, string[]> = {}

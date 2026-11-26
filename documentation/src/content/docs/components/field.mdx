@@ -301,6 +301,8 @@ Both use the same function underneath, so the contract cannot drift apart. The o
 </lt-field>
 ```
 
+The component sets `lt-label` on a label that lacks it. Until it is registered, `label.css` gives the first `<label>` directly in an `<lt-field>` with a control the same look, and writes the marker for `optional`, so nothing moves when the script arrives. A label that is further in, or outside the element and connected with `for`, gets the look only at registration: write `lt-label` on that one yourself.
+
 ## Why the wiring is hard
 
 A field with help text and an error text needs five connections that must all be right at once:

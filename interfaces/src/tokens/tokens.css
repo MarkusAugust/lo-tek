@@ -565,7 +565,8 @@
     .lt-file-upload-list li,
     .lt-pagination *,
     .lt-select option,
-    .lt-tabs__list a
+    .lt-tabs__list a,
+    lt-field > label
   )[hidden]:not([hidden="until-found" i]) {
     /* biome-ignore lint/complexity/noImportantStyles: `hidden` must win over the component's `display`, as the browser itself does */
     display: none !important;

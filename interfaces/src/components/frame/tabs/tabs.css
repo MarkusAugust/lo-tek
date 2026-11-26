@@ -53,9 +53,60 @@
       border-block-end-color: var(--lt-color-accent-border);
     }
 
+    /* Until the component is registered no tab says it is selected, and the
+       tab the component is going to select looked like the rest. When it was
+       registered that tab turned semibold and wider, and the tabs after it
+       moved. So the first tab has the look from the start, when it is the
+       one the component selects: the markup is as the plain recipe writes
+       it, with no `hidden` and no `aria-selected` from the server, the
+       address points to none of the panels, the list stands directly in
+       the element and has no roles from the server, and the first item in
+       it is a tab that is not disabled. The list directly in the element,
+       so that a rule for an outer tab list does not reach one inside it.
+       Everywhere else no tab has the look until the component is
+       registered: a selector cannot follow a link to its panel, and a wrong
+       tab that looks selected is worse than none. */
+    lt-tabs:not(:defined):has(.lt-tabs__panel):not(
+        :has(
+          .lt-tabs__panel[hidden],
+          .lt-tabs__panel:target,
+          .lt-tabs__panel :target,
+          .lt-tabs__list [aria-selected="true"],
+          .lt-tabs__list [role]
+        )
+      ) > .lt-tabs__list
+      > li:first-child
+      > a[href^="#"]:not([href="#"], [aria-disabled="true"]),
+    lt-tabs:not(:defined)[server-controlled]:has(.lt-tabs__panel):not(
+        :has(
+          .lt-tabs__panel[hidden],
+          .lt-tabs__list [aria-selected="true"],
+          .lt-tabs__list [role]
+        )
+      )
+      > .lt-tabs__list
+      > li:first-child
+      > a[href^="#"]:not([href="#"], [aria-disabled="true"]) {
+      color: var(--lt-color-neutral-text-strong);
+      font-weight: var(--lt-font-weight-semibold);
+      border-block-end-color: var(--lt-color-accent-border);
+    }
+
     .lt-tabs__list a[aria-disabled="true"] {
       color: var(--lt-color-disabled-text);
       cursor: not-allowed;
+    }
+
+    /* The panel keeps the margin of its last child inside itself. Otherwise
+       that margin went out through the component when nothing stood after the
+       panel, and stayed inside it when a panel hidden with `until-found` did:
+       the content after the component moved when the component was
+       registered, and when the last tab was selected. Not a panel with
+       `hidden`, which the browser's stylesheet takes away with `display`.
+       Without JavaScript the panels follow one another, and are left as
+       they were. */
+    .lt-tabs__panel:not([hidden]) {
+      display: flow-root;
     }
 
     /* Markup written without a builder function comes without `hidden` on the panels,
@@ -123,6 +174,35 @@
     .lt-tabs__list a[aria-selected="true"] {
       border-block-end-color: Highlight;
       color: Highlight;
+    }
+
+    /* The first tab before the component is registered, as above. */
+    @media (scripting: enabled) {
+      lt-tabs:not(:defined):has(.lt-tabs__panel):not(
+          :has(
+            .lt-tabs__panel[hidden],
+            .lt-tabs__panel:target,
+            .lt-tabs__panel :target,
+            .lt-tabs__list [aria-selected="true"],
+            .lt-tabs__list [role]
+          )
+        )
+        > .lt-tabs__list
+        > li:first-child
+        > a[href^="#"]:not([href="#"], [aria-disabled="true"]),
+      lt-tabs:not(:defined)[server-controlled]:has(.lt-tabs__panel):not(
+          :has(
+            .lt-tabs__panel[hidden],
+            .lt-tabs__list [aria-selected="true"],
+            .lt-tabs__list [role]
+          )
+        )
+        > .lt-tabs__list
+        > li:first-child
+        > a[href^="#"]:not([href="#"], [aria-disabled="true"]) {
+        border-block-end-color: Highlight;
+        color: Highlight;
+      }
     }
   }
 }
