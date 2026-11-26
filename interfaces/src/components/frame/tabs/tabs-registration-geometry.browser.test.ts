@@ -159,11 +159,30 @@ beforeAll(async () => {
  * A known limit. A selector cannot follow a link to its panel, so when the
  * address points into a panel the stylesheet shows the right panel and
  * marks no tab at all: a wrong tab that looks selected is worse than none.
- * The tab then turns semibold and the row moves when the component is
- * registered. The tests of that case say what should hold, and fail; when
- * one passes, the limit is gone and `fails` comes off.
+ * The tab then turns semibold when the component is registered. The test
+ * of the look says what should hold, and fails; when it passes, the limit
+ * is gone and `fails` comes off.
+ *
+ * What that does to the row is the font's to say: where the semibold face
+ * is wider the tab grows and the tabs after it move along, and where the
+ * machine has no wider face nothing moves at all. So the test of what
+ * moves asks neither. It leaves out the two things the limit can cause,
+ * the width of that tab and where the tabs after it start, and holds
+ * everything else still: the element, the list, the other tabs, the shown
+ * panel and the text after.
  */
 const LIMITS = ["address"]
+
+/** The changes the known limit can cause in a case, as `moved` words them. */
+function fromTheLimit(name: string): (change: string) => boolean {
+  if (!LIMITS.includes(name)) return () => false
+  const selected = CASES[name].shown
+  const allowed = [
+    `the tab ${WORDS[selected]}: width `,
+    ...WORDS.slice(selected + 1).map((word) => `the tab ${word}: x `),
+  ]
+  return (change) => allowed.some((start) => change.startsWith(start))
+}
 
 /** The tabs with the weight of a selected one. */
 const heavy = (looks: string[]) =>
@@ -196,10 +215,15 @@ describe("the transition from tabs.css to the component, measured", () => {
         )
       })
 
-      held(
-        "moves nothing and changes the size of nothing at registration",
+      it(
+        LIMITS.includes(name)
+          ? "moves nothing at registration but the tab that turns semibold and the tabs after it"
+          : "moves nothing and changes the size of nothing at registration",
         () => {
-          expect(moved(before[name], after[name])).toEqual([])
+          const limit = fromTheLimit(name)
+          expect(
+            moved(before[name], after[name]).filter((change) => !limit(change)),
+          ).toEqual([])
         },
       )
 

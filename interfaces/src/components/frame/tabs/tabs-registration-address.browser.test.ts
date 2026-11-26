@@ -325,10 +325,11 @@ const RIGHT: Case[] = [
 /*
  * The known limit. When the address points into a panel the stylesheet
  * shows that panel, as the component will, and marks no tab: it cannot
- * tell which tab leads to the panel. The tab turns semibold and the row
- * moves when the component is registered. The tests of "no change" say
- * what should hold, and fail; when one passes, the limit is gone for that
- * case and `fails` comes off.
+ * tell which tab leads to the panel. The tab turns semibold when the
+ * component is registered, and where the font's semibold face is wider
+ * the row moves. The tests of "no change" say what should hold, and fail
+ * on the tab that is not marked, whatever the font; when one passes, the
+ * limit is gone for that case and `fails` comes off.
  */
 const ADDRESSED: Case[] = [
   { title: "the address at the first panel", body: tabList(), hash: "#t-p1" },
@@ -463,6 +464,16 @@ describe("the transition from tabs.css to the component, page by page", () => {
         if (kind === "right")
           it("marks the same tab before and after registration, and moves nothing", async () => {
             expectNoChange(await seen())
+          })
+
+        if (kind === "addressed")
+          it("moves nothing at registration outside the row of tabs", async () => {
+            // In the row the tab that turns semibold may grow and push
+            // the tabs after it, or not: that is the font's to say.
+            for (const tabs of await seen())
+              expect(
+                tabs.moved.filter((change) => !change.startsWith("the tab ")),
+              ).toEqual([])
           })
 
         if (kind === "addressed")
