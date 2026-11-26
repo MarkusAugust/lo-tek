@@ -296,10 +296,26 @@ describe("the text that marks a field, before and after registration", () => {
       expect(markerBefore[name]).toBe(markerAfter[name])
     })
 
+  /*
+   * The known limit of the labels above: the stylesheet reaches only the
+   * first `<label>` that is a child of `<lt-field>`. A label in a `<div>`
+   * without `lt-label` has no marker until the component gives it the
+   * class, so the documentation says to write the class on it. The tests
+   * say what should hold, and fail; when one passes, the limit is gone and
+   * `fails` comes off.
+   */
+  const WRAPPED: Mark[] = [
+    "a label in a div with data-optional",
+    'a label in a div with data-required="symbol"',
+  ]
+
   for (const name of marks.slice(5))
-    it(`says the same before the component is registered as after: ${name}`, () => {
-      expect(markerBefore[name]).toBe(markerAfter[name])
-    })
+    (WRAPPED.includes(name) ? it.fails : it)(
+      `says the same before the component is registered as after: ${name}`,
+      () => {
+        expect(markerBefore[name]).toBe(markerAfter[name])
+      },
+    )
 
   it("says nothing on a label in a field that is neither", () => {
     expect([
