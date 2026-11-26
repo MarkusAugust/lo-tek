@@ -186,13 +186,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
-- **The examples for `help-text` and `error-text` are wired to a field.**
+- **The recipes for `help-text` and `error-text` are wired to a field.**
   The first example on each page showed the texts alone, and pasted into
-  a page they gave the warning of `lotek check` that the text is not
-  wired to any field. Every example on the two pages now has its field,
-  with `aria-describedby`, and the Kotlin tabs use `Lt.field()`. A check
-  in the tests of the documentation holds every example and every block
-  of HTML on the pages to what `lotek check` says about a page.
+  a page it gave the warning of `lotek check` that the text is not wired
+  to any field. The recipe is now a field with its text, with
+  `aria-describedby`, in HTML and in Kotlin with `Lt.field()`. The
+  variants are still shown alone, in an example of their own that says
+  so. A check in the tests of the documentation holds every example and
+  every block of HTML in the tabs to what `lotek check` says about a
+  page.
 - **The page on choosing a theme has a recipe for Astro's
   `<ClientRouter />`.** With the router and the `localStorage` recipe, the
   choice was gone at the first link the user followed: the script in
