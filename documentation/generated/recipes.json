@@ -2122,7 +2122,7 @@
             {
               "lang": "astro",
               "meta": null,
-              "code": "---\nimport { lt } from \"@lo-tek/interfaces\"\n\nimport \"@lo-tek/interfaces/tokens.css\"\nimport \"@lo-tek/interfaces/error-summary.css\"\n\nconst { errors } = Astro.props\nconst box = lt.errorSummary({ count: errors.length, id: \"errors\" })\n---\n\n<lt-error-summary {...box.host}>\n  <h2 {...box.title}>The form has {errors.length} errors</h2>\n  <ul {...lt.list()}>\n    {errors.map((e) => <li><a href={`#${e.id}`}>{e.message}</a></li>)}\n  </ul>\n</lt-error-summary>\n\n<script>\n  import { defineLtErrorSummary } from \"@lo-tek/interfaces/error-summary\"\n  defineLtErrorSummary()\n</script>"
+              "code": "---\nimport { lt } from \"@lo-tek/interfaces\"\n\nimport \"@lo-tek/interfaces/tokens.css\"\nimport \"@lo-tek/interfaces/error-summary.css\"\n\ninterface Props {\n  errors: { id: string; message: string }[]\n}\n\nconst { errors } = Astro.props\nconst box = lt.errorSummary({ count: errors.length, id: \"errors\" })\n---\n\n<lt-error-summary {...box.host}>\n  <h2 {...box.title}>The form has {errors.length} errors</h2>\n  <ul {...lt.list()}>\n    {errors.map((e) => <li><a href={`#${e.id}`}>{e.message}</a></li>)}\n  </ul>\n</lt-error-summary>\n\n<script>\n  import { defineLtErrorSummary } from \"@lo-tek/interfaces/error-summary\"\n  defineLtErrorSummary()\n</script>"
             }
           ],
           "setup": {
@@ -6663,7 +6663,7 @@
             {
               "lang": "astro",
               "meta": null,
-              "code": "---\nimport { lt } from \"@lo-tek/interfaces\"\nimport \"@lo-tek/interfaces/tokens.css\"\nimport \"@lo-tek/interfaces/toast.css\"\n\n// Put the container in the page layout, so it exists on every page\n\nconst toasts = lt.toast()\n\n---\n\n<slot />\n\n<lt-toast id=\"messages\" {...toasts.host}></lt-toast>\n\n<script>\n  import { defineLtToast } from \"@lo-tek/interfaces/toast\"\n  defineLtToast()\n\n  // Make the queue available to the islands on the page\n  window.notify = (text, options) =>\n    document.getElementById(\"messages\").show(text, options)\n</script>"
+              "code": "---\nimport { lt } from \"@lo-tek/interfaces\"\nimport \"@lo-tek/interfaces/tokens.css\"\nimport \"@lo-tek/interfaces/toast.css\"\n\n// Put the container in the page layout, so it exists on every page\n\nconst toasts = lt.toast()\n\n---\n\n<slot />\n\n<lt-toast id=\"messages\" {...toasts.host}></lt-toast>\n\n<script>\n  import {\n    defineLtToast,\n    type LtToast,\n    type ShowOptions,\n  } from \"@lo-tek/interfaces/toast\"\n  defineLtToast()\n\n  declare global {\n    interface Window {\n      notify: (text: string, options?: ShowOptions) => void\n    }\n  }\n\n  // Make the queue available to the islands on the page\n  window.notify = (text, options) => {\n    document.querySelector<LtToast>(\"#messages\")?.show(text, options)\n  }\n</script>"
             }
           ],
           "setup": {

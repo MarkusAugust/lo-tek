@@ -193,7 +193,7 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   as an `<lt-toast>`, and the errors came from untyped props. The recipes
   now declare what they use. `astro build` does not check types, so the
   pages built all along. A check in the tests of the documentation runs
-  `astro check` on every Astro recipe.
+  `astro check` on every Astro recipe on its pages.
 - **The Astro recipe for `term` no longer glues "an" to "act of God".**
   From version 7 Astro follows the whitespace rule of JSX unless
   `compressHTML` says otherwise, and drops a line break between text and
