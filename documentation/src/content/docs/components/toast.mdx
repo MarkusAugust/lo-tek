@@ -155,16 +155,29 @@ The container is added once, and the messages come from your code. That is the d
     <lt-toast id="messages" {...toasts.host}></lt-toast>
 
     <script>
-      import { defineLtToast } from "@lo-tek/interfaces/toast"
+      import {
+        defineLtToast,
+        type LtToast,
+        type ShowOptions,
+      } from "@lo-tek/interfaces/toast"
       defineLtToast()
 
+      declare global {
+        interface Window {
+          notify: (text: string, options?: ShowOptions) => void
+        }
+      }
+
       // Make the queue available to the islands on the page
-      window.notify = (text, options) =>
-        document.getElementById("messages").show(text, options)
+      window.notify = (text, options) => {
+        document.querySelector<LtToast>("#messages")?.show(text, options)
+      }
     </script>
     ```
 
     The container is empty from the server, and is filled only by code running in the browser. It therefore costs nothing on a page that does not use it.
+
+    `astro check` reads the declaration of `window.notify` from the script. If you check an island with `tsc`, move the `declare global` block to `src/env.d.ts` with the import of `ShowOptions`, and both see it.
   </TabItem>
   <TabItem label="Datastar">
     ```html
