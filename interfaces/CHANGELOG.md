@@ -189,18 +189,26 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 - **Tabs do not move when the component is registered.** Until then no tab
   said it was selected, and the one the component selects turned semibold
   and wider at registration, which moved the tabs after it. `tabs.css` now
-  gives that tab the selected look from the start: the first, or the one
-  whose panel the address points to, among the first ten tabs. The content
-  after `<lt-tabs>` moved 16px as well, when the panel ended in a margin: a
-  panel that is shown is now `display: flow-root` and keeps the margin of
-  its last child, so what follows stands the same distance below every
-  tab. It stood 16px closer under the last tab.
+  gives the first tab the selected look from the start, when the markup is
+  the plain recipe and the address points to no panel. In other cases, such
+  as an address that points to a panel, the tab still changes at
+  registration.
+- **The content after `<lt-tabs>` stands the same distance below every
+  tab.** With JavaScript, a panel that is shown is now `display: flow-root`
+  and keeps the margin of its last child. That margin went out through the
+  component in some states and not in others: the content after moved 16px
+  at registration, and stood 16px closer under the last tab than under the
+  rest. With `hidden` written without a value, as the React entry point
+  does, it stood 16px closer under every tab, and now stands as far below
+  as elsewhere. A panel also contains a float in it now. Set `display` on
+  `.lt-tabs__panel` yourself to have it otherwise.
 - **A label without `lt-label` in `<lt-field>` does not move when the
   component is registered.** The component sets the class, and the label
   grew by 3px then. `label.css` gives the first `<label>` directly in an
-  `<lt-field>` that is not registered yet the look of `.lt-label`, and
-  writes the marker for `optional` on the element, which also appeared
-  only at registration.
+  `<lt-field>` that has a control and is not registered yet the look of
+  `.lt-label`, and writes the marker for `optional` on the element, which
+  also appeared only at registration. A label further in, or outside the
+  element, still needs the class in the markup.
 - **Opening a term's card no longer scrolls a page that is scrolled to its
   end.** The card is the glossary entry itself, and it leaves the flow when
   it opens. The page got shorter by the entry, the browser scrolled it, and

@@ -4,9 +4,14 @@
      then grew and moved what stood under it. Only the first label directly
      in the element, which is the one the component takes: a label further
      in may belong to something else, such as a checkbox in the help text.
-     `:where()` keeps the weight of the selector under `.lt-label`. */
+     And only in a field with a control, since the component leaves a field
+     without one alone. `:where()` keeps the element and its conditions out
+     of the selector's weight, which is that of `label:first-of-type`. */
   .lt-label,
-  :where(lt-field:not(:defined)) > label:first-of-type {
+  :where(
+      lt-field:not(:defined):has(input:not([type="hidden"]), textarea, select)
+    )
+    > label:first-of-type {
     display: block;
     font-family: inherit;
     font-size: var(--lt-font-size-s);
@@ -16,14 +21,19 @@
   }
 
   .lt-label[data-required]::after,
-  :where(lt-field:not(:defined)) > label:first-of-type[data-required]::after {
+  :where(
+      lt-field:not(:defined):has(input:not([type="hidden"]), textarea, select)
+    )
+    > label:first-of-type[data-required]::after {
     content: var(--lt-label-required-symbol, " *");
     color: var(--lt-color-danger-text);
     font-weight: var(--lt-font-weight-bold);
   }
 
   .lt-label[data-required="text"]::after,
-  :where(lt-field:not(:defined))
+  :where(
+      lt-field:not(:defined):has(input:not([type="hidden"]), textarea, select)
+    )
     > label:first-of-type[data-required="text"]::after {
     /* Keep the fallback ASCII. A stylesheet without `@charset` inherits the
        page's encoding, and a non-ASCII fallback came out garbled when the
@@ -38,12 +48,26 @@
   /* Not when the field is also marked required: the builder function picks
      required, and hand-written markup with both must give the same result.
      The colour is not `disabled-text`: the text is not disabled, and that
-     colour gave 4.37:1. */
+     colour gave 4.37:1. The last selector is `optional` on a field that is
+     not registered yet, where the component is going to write
+     `data-optional`. It takes only `symbol` and `text` as a marker for
+     required. */
   .lt-label[data-optional]:not([data-required])::after,
-  :where(lt-field:not(:defined))
-    label[data-optional]:not([data-required])::after,
-  :where(lt-field:not(:defined)[optional])
-    > label:first-of-type:not([data-required])::after {
+  :where(
+      lt-field:not(:defined):has(input:not([type="hidden"]), textarea, select)
+    )
+    > label:first-of-type[data-optional]:not([data-required])::after,
+  :where(
+      lt-field:not(:defined)[optional]:has(
+        input:not([type="hidden"]),
+        textarea,
+        select
+      )
+    )
+    > label:first-of-type:not(
+      [data-required="symbol"],
+      [data-required="text"]
+    )::after {
     content: var(--lt-label-optional-text, " (optional)");
     color: var(--lt-color-neutral-text-subtle);
     font-weight: var(--lt-font-weight-regular);

@@ -478,6 +478,8 @@ The empty message in the suggestion field has a similar rule, and it also applie
 
 The tab rule in `tabs.css` sits behind `@media (scripting: enabled)`, and shows one panel until the component is registered, the one the component is going to select: the server's `hidden` applies when it exists, otherwise the panel the address points to (`:target`, or the panel containing it), otherwise the first. Under `server-controlled` the address does not select, and the first visible one is shown. It only reaches the panels inside `<lt-tabs>`: if a panel is outside, the server must write `hidden` on it itself. And it cannot connect `aria-selected` on a tab to its panel, so markup with `aria-selected` from the server must also have `hidden` on the other panels. See [the tabs page](/components/tabs/#before-the-component-is-registered).
 
+`tabs.css` also gives the first tab the selected look until the component is registered, when the markup is the plain recipe and the address points to no panel. And `label.css` gives the first `<label>` directly in an `<lt-field>` with a control the look of `.lt-label`, and the marker for `optional`, since the component sets the class and the marker only when it is registered. See [the field page](/components/field/).
+
 The rules are mentioned here because `:not(:defined)` is easy to mistake for a bug when you read the CSS.
 
 ## Components that create their own content

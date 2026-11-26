@@ -305,9 +305,9 @@ The panels are on the page before `defineLtTabs()` has run. The plain `lt.tabs()
 - Otherwise the panel the address points to, or the panel with that inside it. That is also where a link in the row leads when the component is never registered.
 - Otherwise the first.
 
-The tab of that panel looks selected from the start too, so the tabs do not move when it turns semibold. A stylesheet cannot follow a link to its panel, so when the address points to a panel the tab is found by its place in the row, and that reaches the first ten tabs. From the eleventh on, a tab the address points to looks selected only once the component is registered.
+The first tab looks selected from the start too when it is the one the component selects, so the tabs do not move when it turns semibold. That holds for the plain recipe: no `hidden` and no `aria-selected` from the server, an address that points to none of the panels, and a first item in the list that is a tab and not disabled. In every other case no tab looks selected until the component is registered, and the selected tab gets a little wider then. A stylesheet cannot follow a link to its panel, and the panels can be in another order than the tabs, so it does not guess.
 
-A panel keeps the margin of its last child inside itself, so the content after the tabs stands the same distance below whichever tab is selected, and before the component is registered.
+With JavaScript a panel that is shown is `display: flow-root`: it keeps the margin of its last child inside itself, so the content after the tabs stands the same distance below whichever tab is selected, and before the component is registered. It also means the panel contains a float in it and does not flow round one beside it.
 
 Under `server-controlled` the address does not select, and the first visible panel is shown. The rule only reaches the panels inside `<lt-tabs>`: a panel outside must have `hidden` from the server. And it cannot connect `aria-selected` on a tab to its panel, so markup with `aria-selected`, as from the React entry point, must also have `hidden` on the panels that are not selected. The React entry point writes both.
 

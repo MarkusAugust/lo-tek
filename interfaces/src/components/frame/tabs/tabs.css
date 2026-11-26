@@ -56,143 +56,29 @@
     /* Until the component is registered no tab says it is selected, and the
        tab the component is going to select looked like the rest. When it was
        registered that tab turned semibold and wider, and the tabs after it
-       moved. So the stylesheet picks the same tab as the component, as it
-       does for the panels further down: the first, or the one whose panel
-       the address points to. A selector cannot follow a link to its panel,
-       so that one is found by its place in the row, one line per place, for
-       the first ten tabs. When the server wrote `hidden` it wrote
-       `aria-selected` too, and the rule above applies. */
-    lt-tabs:not(:defined):not(:has(> .lt-tabs__panel[hidden])):not(
-        :has(> .lt-tabs__panel:target, > .lt-tabs__panel :target)
-      ) > .lt-tabs__list
+       moved. So the first tab has the look from the start, when it is the
+       one the component selects: the markup is as the plain recipe writes
+       it, with no `hidden` and no `aria-selected` from the server, the
+       address points to none of the panels, and the first item in the list
+       is a tab that is not disabled. Everywhere else no tab has the look
+       until the component is registered: a selector cannot follow a link to
+       its panel, and a wrong tab that looks selected is worse than none. */
+    lt-tabs:not(:defined):has(.lt-tabs__panel):not(
+        :has(
+          .lt-tabs__panel[hidden],
+          .lt-tabs__panel:target,
+          .lt-tabs__panel :target,
+          .lt-tabs__list [aria-selected="true"]
+        )
+      ) .lt-tabs__list
       > li:first-child
-      > a,
-    lt-tabs:not(:defined)[server-controlled]:not(
-        :has(> .lt-tabs__panel[hidden])
+      > a[href^="#"]:not([aria-disabled="true"]),
+    lt-tabs:not(:defined)[server-controlled]:has(.lt-tabs__panel):not(
+        :has(.lt-tabs__panel[hidden], .lt-tabs__list [aria-selected="true"])
       )
-      > .lt-tabs__list
+      .lt-tabs__list
       > li:first-child
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(1 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(1)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(1 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(1)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(2 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(2)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(2 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(2)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(3 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(3)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(3 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(3)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(4 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(4)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(4 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(4)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(5 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(5)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(5 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(5)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(6 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(6)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(6 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(6)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(7 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(7)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(7 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(7)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(8 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(8)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(8 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(8)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(9 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(9)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(9 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(9)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(10 of .lt-tabs__panel):target)
-      > .lt-tabs__list
-      > li:nth-child(10)
-      > a,
-    lt-tabs:not(:defined):not([server-controlled]):not(
-        :has(> .lt-tabs__panel[hidden])
-      ):has(> .lt-tabs__panel:nth-child(10 of .lt-tabs__panel) :target)
-      > .lt-tabs__list
-      > li:nth-child(10)
-      > a {
+      > a[href^="#"]:not([aria-disabled="true"]) {
       color: var(--lt-color-neutral-text-strong);
       font-weight: var(--lt-font-weight-semibold);
       border-block-end-color: var(--lt-color-accent-border);
@@ -282,140 +168,25 @@
       color: Highlight;
     }
 
-    /* The tab the component is going to select, as above. */
+    /* The first tab before the component is registered, as above. */
     @media (scripting: enabled) {
-      lt-tabs:not(:defined):not(:has(> .lt-tabs__panel[hidden])):not(
-          :has(> .lt-tabs__panel:target, > .lt-tabs__panel :target)
+      lt-tabs:not(:defined):has(.lt-tabs__panel):not(
+          :has(
+            .lt-tabs__panel[hidden],
+            .lt-tabs__panel:target,
+            .lt-tabs__panel :target,
+            .lt-tabs__list [aria-selected="true"]
+          )
         )
-        > .lt-tabs__list
+        .lt-tabs__list
         > li:first-child
-        > a,
-      lt-tabs:not(:defined)[server-controlled]:not(
-          :has(> .lt-tabs__panel[hidden])
+        > a[href^="#"]:not([aria-disabled="true"]),
+      lt-tabs:not(:defined)[server-controlled]:has(.lt-tabs__panel):not(
+          :has(.lt-tabs__panel[hidden], .lt-tabs__list [aria-selected="true"])
         )
-        > .lt-tabs__list
+        .lt-tabs__list
         > li:first-child
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(1 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(1)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(1 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(1)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(2 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(2)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(2 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(2)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(3 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(3)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(3 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(3)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(4 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(4)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(4 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(4)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(5 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(5)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(5 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(5)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(6 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(6)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(6 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(6)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(7 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(7)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(7 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(7)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(8 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(8)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(8 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(8)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(9 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(9)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(9 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(9)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(10 of .lt-tabs__panel):target)
-        > .lt-tabs__list
-        > li:nth-child(10)
-        > a,
-      lt-tabs:not(:defined):not([server-controlled]):not(
-          :has(> .lt-tabs__panel[hidden])
-        ):has(> .lt-tabs__panel:nth-child(10 of .lt-tabs__panel) :target)
-        > .lt-tabs__list
-        > li:nth-child(10)
-        > a {
+        > a[href^="#"]:not([aria-disabled="true"]) {
         border-block-end-color: Highlight;
         color: Highlight;
       }
