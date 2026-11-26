@@ -186,6 +186,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The picker button of a date or time field shows focus.** In Chromium
+  the browser's picker button is a tab stop of its own, after the parts of
+  the value, in `.lt-input` with `data-variant` `date`, `time` or
+  `datetime-local`. It was hidden with `opacity: 0`, and its focus ring
+  with it, so nothing showed where the keyboard was. The button now keeps
+  its ring, in the colour of the focus ring, round the icon. In a
+  right-to-left field the button stands on the icon, on the left; it stood
+  on the right, where a click on the icon did not reach it.
+
 - **`<lt-error-summary>` has focus after htmx has swapped the form.** When
   the form was sent with Enter from a field, the box took focus as it
   arrived, and htmx then put focus back in the new field with the same id,
