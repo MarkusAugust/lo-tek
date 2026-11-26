@@ -186,6 +186,16 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **Opening a term's card no longer scrolls a page that is scrolled to its
+  end.** The card is the glossary entry itself, and it leaves the flow when
+  it opens. The page got shorter by the entry, the browser scrolled it, and
+  under a resting mouse the word moved away, the card closed, the entry
+  came back and the card opened again. `<lt-term>` now keeps the `<dl>` as
+  tall as it was while a card from it is open, with `min-block-size`, and
+  takes it off when the card closes. The entries after the open one still
+  close up where it was. A `style` attribute the server wrote on the entry
+  or on the `<dl>` is also put back letter for letter when the card closes;
+  the entry's came back with the browser's spelling.
 - **The picker button of a date or time field shows focus.** In Chromium
   the browser's picker button is a tab stop of its own, after the parts of
   the value, in `.lt-input` with `data-variant` `date`, `time` or

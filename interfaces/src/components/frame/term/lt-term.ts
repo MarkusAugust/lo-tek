@@ -78,6 +78,111 @@ const detailsOwn = ownership()
 
 type Shown = "no" | "hover" | "pinned"
 
+/** The inline properties the component writes, on the entry and on its list. */
+const OWN_PROPERTIES = ["--lt-term-top", "--lt-term-left", "min-block-size"]
+
+/**
+ * The `style` attribute as it was before the component wrote to it, to put
+ * back letter for letter. Taking a property off again leaves the browser's
+ * own spelling of the rest, which is not what the server sent.
+ */
+const styleBefore = new WeakMap<HTMLElement, string | null>()
+
+function carriesOwn(element: HTMLElement): boolean {
+  return OWN_PROPERTIES.some(
+    (name) => element.style.getPropertyValue(name) !== "",
+  )
+}
+
+function writeProperty(element: HTMLElement, name: string, value: string) {
+  if (element.style.getPropertyValue(name) === value) return
+  // Nothing of the component's is there: the attribute is the server's, as
+  // written or as a patch just rewrote it.
+  if (!carriesOwn(element))
+    styleBefore.set(element, element.getAttribute("style"))
+  element.style.setProperty(name, value)
+}
+
+function clearProperties(element: HTMLElement, names: string[]): void {
+  for (const name of names) element.style.removeProperty(name)
+  if (carriesOwn(element)) return
+  const before = styleBefore.get(element)
+  styleBefore.delete(element)
+  if (before === undefined) return
+  if (before === null) {
+    if (element.getAttribute("style") === "") setAttr(element, "style", null)
+    return
+  }
+  // Back as written, unless something else changed the style meanwhile.
+  const written = document.createElement("div")
+  written.setAttribute("style", before)
+  if (written.style.cssText === element.style.cssText)
+    setAttr(element, "style", before)
+}
+
+/**
+ * The lists that are kept as tall as they were while an entry of theirs is
+ * the card, and how many cards each has open. The entry leaves the flow when
+ * it goes into the top layer. Without this the page got shorter, and a page
+ * scrolled to its end was scrolled by the browser: the word moved away from
+ * the pointer, the card closed, the entry came back, and so on.
+ */
+const held = new WeakMap<HTMLElement, { cards: number; size: string }>()
+
+function scrollerOf(element: Element): Element | null {
+  for (let at = element.parentElement; at; at = at.parentElement) {
+    const overflow = getComputedStyle(at).overflowY
+    if (overflow !== "visible" && overflow !== "clip") return at
+  }
+  return document.scrollingElement
+}
+
+/**
+ * Keeps the entry's list as tall as it is, and returns what to call when the
+ * entry has left the flow. The entries after it still close up where it was;
+ * the room is left at the end of the list.
+ */
+function hold(list: HTMLElement, entry: HTMLElement): () => void {
+  const holding = held.get(list)
+  if (holding) {
+    holding.cards += 1
+    return () => {}
+  }
+  const size = Number.parseFloat(getComputedStyle(list).blockSize)
+  if (Number.isNaN(size)) return () => {}
+  // A margin of the entry's that collapsed through the list is outside the
+  // list's own height, and goes with the entry too. The list is first held
+  // too tall by the margins, which scrolls nothing, and then let down by
+  // what the page turned out to have grown.
+  const scroller = scrollerOf(list)
+  const before = scroller?.scrollHeight ?? 0
+  const scrolls = scroller !== null && before > scroller.clientHeight
+  const style = getComputedStyle(entry)
+  const margins = scrolls
+    ? Math.max(0, Number.parseFloat(style.marginBlockStart) || 0) +
+      Math.max(0, Number.parseFloat(style.marginBlockEnd) || 0)
+    : 0
+  const record = { cards: 1, size: `${size + margins}px` }
+  held.set(list, record)
+  writeProperty(list, "min-block-size", record.size)
+  return () => {
+    if (margins === 0 || !scroller) return
+    const grown = Math.min(margins, scroller.scrollHeight - before)
+    if (grown <= 0) return
+    record.size = `${size + margins - grown}px`
+    writeProperty(list, "min-block-size", record.size)
+  }
+}
+
+function letGo(list: HTMLElement): void {
+  const holding = held.get(list)
+  if (!holding) return
+  holding.cards -= 1
+  if (holding.cards > 0) return
+  held.delete(list)
+  clearProperties(list, ["min-block-size"])
+}
+
 /**
  * A word in the text that shows its explanation from a glossary on the same
  * page, in a card by the word.
@@ -89,7 +194,9 @@ type Shown = "no" | "hover" | "pinned"
  * it off again when it closes, so the entry is back in its place in the
  * glossary. Nothing is copied: the text is sent once, the links in it are
  * the real ones, and the component writes no id, since the server wrote the
- * one the link points to.
+ * one the link points to. While the card is open the component keeps the
+ * `<dl>` as tall as it was, with `min-block-size`, so the page is as long
+ * as before and does not scroll.
  *
  * The mouse opens the card after a short rest on the word, and the card stays
  * while the pointer is on the word or in the card. A click, a tap or Enter
@@ -136,6 +243,8 @@ export class LtTerm extends HostElement {
   /** What the component put on the entry, to take off again when it closes. */
   private addedPopover = false
   private addedClass = false
+  /** The list this component keeps as tall as it was while the card is open. */
+  private list?: HTMLElement
 
   /**
    * One observer per document or shadow root, shared by every `<lt-term>`
@@ -350,6 +459,14 @@ export class LtTerm extends HostElement {
     }
     shownBy.set(entry, this)
 
+    // Before `popover` is set: an entry with the attribute that is not open
+    // is not displayed, and has left the flow already.
+    const list = entry.parentElement
+    const settle =
+      list && !this.list && !entry.hasAttribute("popover")
+        ? hold(list, entry)
+        : undefined
+    if (settle && list) this.list = list
     if (!entry.hasAttribute("popover")) {
       setAttr(entry, "popover", "manual")
       this.addedPopover = true
@@ -359,6 +476,11 @@ export class LtTerm extends HostElement {
       this.addedClass = true
     }
     if (!entry.matches(":popover-open")) entry.showPopover()
+    settle?.()
+    // A patch that rewrote the list's `style` took the height with it.
+    const holding = this.list && held.get(this.list)
+    if (this.list && holding)
+      writeProperty(this.list, "min-block-size", holding.size)
     this.reposition()
 
     if (!this.outside) {
@@ -382,6 +504,11 @@ export class LtTerm extends HostElement {
       attributes: true,
       attributeFilter: ["popover", "class", "style", "id"],
     })
+    if (this.list)
+      this.outside.observe(this.list, {
+        attributes: true,
+        attributeFilter: ["style"],
+      })
   }
 
   /** Takes the entry out of the top layer and back to its place in the glossary. */
@@ -390,6 +517,9 @@ export class LtTerm extends HostElement {
     entry.removeEventListener("pointerleave", this.handleCardLeave)
     if (shownBy.get(entry) === this) shownBy.delete(entry)
     if (entry.matches(":popover-open")) entry.hidePopover()
+    // After the entry is back in the flow, so the list is never too short.
+    if (this.list) letGo(this.list)
+    this.list = undefined
     if (this.addedPopover) setAttr(entry, "popover", null)
     if (this.addedClass && entry.classList.contains(TERM_ENTRY_CLASS)) {
       const rest = [...entry.classList]
@@ -397,9 +527,7 @@ export class LtTerm extends HostElement {
         .join(" ")
       setAttr(entry, "class", rest === "" ? null : rest)
     }
-    entry.style.removeProperty("--lt-term-top")
-    entry.style.removeProperty("--lt-term-left")
-    if (entry.getAttribute("style") === "") setAttr(entry, "style", null)
+    clearProperties(entry, ["--lt-term-top", "--lt-term-left"])
     this.addedPopover = false
     this.addedClass = false
   }
@@ -564,10 +692,8 @@ export class LtTerm extends HostElement {
       ;({ top, left } = place(anchor, card, true, rtl, gap))
     }
     top = Math.round(top)
-    if (entry.style.getPropertyValue("--lt-term-top") !== `${top}px`)
-      entry.style.setProperty("--lt-term-top", `${top}px`)
-    if (entry.style.getPropertyValue("--lt-term-left") !== `${left}px`)
-      entry.style.setProperty("--lt-term-left", `${left}px`)
+    writeProperty(entry, "--lt-term-top", `${top}px`)
+    writeProperty(entry, "--lt-term-left", `${left}px`)
   }
 }
 
