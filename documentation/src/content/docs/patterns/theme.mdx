@@ -135,20 +135,22 @@ Something also has to store the choice. This can go anywhere after the group:
 
 Astro's `<ClientRouter />` swaps the page without loading it. The script in `<head>` does not run again, `<html>` gets the attributes of the new page, and the buttons of the new page have no listener. Without anything more, the choice is gone at the first link the user follows.
 
-Both scripts therefore do their work once more at `astro:after-swap`, which comes before the new page is drawn, and the listener is on the document:
+Both scripts of the `localStorage` recipe therefore do their work once more at `astro:after-swap`, which comes before the new page is drawn, and the listener is on the document:
 
 ```astro
 <!-- In <head> -->
 <script is:inline>
-  const applyTheme = () => {
-    const stored = localStorage.getItem("theme")
-    if (stored === "light" || stored === "dark") {
-      document.documentElement.dataset.theme = stored
+  {
+    const applyTheme = () => {
+      const stored = localStorage.getItem("theme")
+      if (stored === "light" || stored === "dark") {
+        document.documentElement.dataset.theme = stored
+      }
     }
+    applyTheme()
+    // The router gives <html> the attributes of the new page
+    document.addEventListener("astro:after-swap", applyTheme)
   }
-  applyTheme()
-  // The router gives <html> the attributes of the new page
-  document.addEventListener("astro:after-swap", applyTheme)
 </script>
 
 <!-- Anywhere after the group -->
@@ -177,6 +179,8 @@ Both scripts therefore do their work once more at `astro:after-swap`, which come
   })
 </script>
 ```
+
+`is:inline` is what keeps the first script blocking: without it Astro bundles the script and loads it as a module, which does not block. The braces keep `applyTheme` out of the global scope, so nothing fails if the router runs the script once more.
 
 The same two scripts work without the router, where `astro:after-swap` never comes.
 
