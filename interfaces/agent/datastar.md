@@ -52,7 +52,7 @@ they stand. With Datastar first, the answer to a request at load can reach a
 web component before it is registered, and a `data-on` that calls one of its
 methods throws. Never `async` on either.
 
-`lotek.css` is 114 kB, 15 kB compressed, and has all the components. If you
+`lotek.css` is 124 kB, 15 kB compressed, and has all the components. If you
 want only what you use, `tokens.css` defines all the variables, and all the
 other stylesheets build on it. It must be loaded, and comes first out of
 habit: the order between it and the others does not matter.
