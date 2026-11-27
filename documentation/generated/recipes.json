@@ -5840,7 +5840,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<div class=\"lt-table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Appraisal\">\n  <table class=\"lt-table\">…</table>\n</div>",
+          "code": "<div class=\"lt-table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Appraisal\">\n  <table class=\"lt-table\">\n    <caption>Appraisal LR-2079-0112</caption>\n    …\n  </table>\n</div>",
           "section": "Wide tables"
         }
       ],
@@ -8990,7 +8990,7 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<div class=\"lt-table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Free floors\">\n  <table class=\"lt-table\" data-variant=\"striped\">…</table>\n</div>",
+          "code": "<div class=\"lt-table-scroll\" tabindex=\"0\" role=\"region\" aria-label=\"Free floors\">\n  <table class=\"lt-table\" data-variant=\"striped\">\n    <caption class=\"lt-sr-only\">Free floors that match the search</caption>\n    …\n  </table>\n</div>",
           "section": "The table"
         },
         {
