@@ -186,6 +186,12 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The list of `<lt-suggestion>` stays under the field when an update
+  takes its `style`.** The list and the "No matches" message are placed
+  with inline variables, and a server writes them without. A morph that
+  changed nothing else left them in the corner of the window until the
+  page was scrolled or resized, with and without `server-controlled`.
+  The component now watches `style` and places them again.
 - **`lotek check` gives the advice that fits a text nothing points at.**
   The message for a help text or an error text that is not wired to a
   field ended with the advice for a label: write `for` on the label and

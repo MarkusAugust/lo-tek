@@ -142,6 +142,9 @@ export class LtSuggestion extends HostElement {
       "autocomplete",
       "aria-autocomplete",
       "class",
+      // The position of the list and the message is written inline, and an
+      // update from the server writes them without it.
+      "style",
       // A field without a role is `input:not([type='hidden'])`.
       "type",
       // The highlight is found again by its text and its code.
@@ -418,16 +421,31 @@ export class LtSuggestion extends HostElement {
   }
 
   private place(shown: HTMLElement, top: number, field: DOMRect): void {
-    shown.style.setProperty("--lt-suggestion-top", `${Math.round(top)}px`)
-    shown.style.setProperty(
-      "--lt-suggestion-left",
-      `${Math.round(field.left)}px`,
+    // Written only when it differs: `style` is watched, and a write of what
+    // is already there would call the component again for nothing.
+    // Each name stands in its own `setProperty`: that is where the manifest
+    // reads which variables the component sets, and are not the theme's.
+    const differs = (name: string, value: string) =>
+      shown.style.getPropertyValue(name) !== value
+    const [above, start, width] = [top, field.left, field.width].map(
+      (pixels) => `${Math.round(pixels)}px`,
     )
-    shown.style.setProperty(
-      "--lt-suggestion-width",
-      `${Math.round(field.width)}px`,
-    )
+    if (differs("--lt-suggestion-top", above))
+      shown.style.setProperty("--lt-suggestion-top", above)
+    if (differs("--lt-suggestion-left", start))
+      shown.style.setProperty("--lt-suggestion-left", start)
+    if (differs("--lt-suggestion-width", width))
+      shown.style.setProperty("--lt-suggestion-width", width)
+    // WebKit reports the removal of `style` only when the attribute was
+    // read after the last write through the style object, and it stops
+    // making a read whose answer nobody uses: in a loop it then missed
+    // 19812 removals of 20000, where Chromium missed none. So the answer is
+    // kept, or the component would not hear that the position was taken.
+    this.placed.set(shown, shown.getAttribute("style"))
   }
+
+  /** The `style` each placed element was left with. Only `place()` writes it. */
+  private readonly placed = new WeakMap<HTMLElement, string | null>()
 
   /**
    * Names the list from the label, when the markup arrived without a name.

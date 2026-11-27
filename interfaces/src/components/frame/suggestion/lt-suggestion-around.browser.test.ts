@@ -21,6 +21,7 @@ import { page, userEvent } from "vitest/browser"
 
 import { mount, waitForPaint } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
+import { morph } from "../../../testing/update"
 import { defineLtSuggestion, type LtSuggestion } from "./lt-suggestion"
 import { suggestion } from "./suggestion"
 
@@ -1016,4 +1017,181 @@ describe("the message that nothing matches is placed like the open list", () => 
       ).toBe(true)
     }
   })
+})
+
+/*
+ * The open list and the message are placed by the component, with values it
+ * writes in `style` on each of them. A server never writes that attribute,
+ * so an update with the server's markup takes it off, and a morph takes off
+ * everything the new markup lacks. The list must be back under the field
+ * when the component has settled, and not in the corner of the window,
+ * where the stylesheet puts it with nothing to go by. It is measured by
+ * where its box is, not by what is written on it.
+ */
+describe("the open list and the message stay under the field when an update takes their style", () => {
+  beforeAll(() => {
+    defineLtSuggestion()
+  })
+
+  const HOSTS = {
+    "the component decides": "",
+    "server-controlled": " server-controlled",
+  }
+
+  /** The field with the list open, as the user's typing or the server's answer opens it. */
+  async function opened(host: string, way: keyof typeof WAYS, text: string) {
+    mount(
+      fieldBetween(WAYS[way]).replace(
+        "<lt-suggestion",
+        `<lt-suggestion${host}`,
+      ),
+    )
+    await paint()
+    await searchFor(parts().input, text)
+    await waitForPaint()
+  }
+
+  /** What is wrong with where `shown` stands, measured against the field. */
+  function astray(shown: HTMLElement, name: string): string[] {
+    const { input } = parts()
+    const [box, field] = [shown, input].map((e) => e.getBoundingClientRect())
+    const faults: string[] = []
+    if (!isShown(shown)) return [`${name} is not shown`]
+    if (Math.abs(box.left - field.left) > 1)
+      faults.push(
+        `${name} starts at ${Math.round(box.left)}, and the field at ${Math.round(field.left)}`,
+      )
+    if (Math.abs(box.width - field.width) > 1)
+      faults.push(
+        `${name} is ${Math.round(box.width)} wide, and the field ${Math.round(field.width)}`,
+      )
+    if (box.top < field.bottom - 1 || box.top > field.bottom + 16)
+      faults.push(
+        `${name} starts at ${Math.round(box.top)} down the window, and the field ends at ${Math.round(field.bottom)}`,
+      )
+    return faults
+  }
+
+  /** The ways an update takes `style` off an element and changes nothing else. */
+  const TAKEN = {
+    "the attribute is removed": (element: HTMLElement) =>
+      element.removeAttribute("style"),
+    // The element as it stands, written as a server writes it: without
+    // `style`. The morph then has that one attribute to take off.
+    "a morph writes the element without it": (element: HTMLElement) => {
+      const clone = element.cloneNode(true) as HTMLElement
+      clone.removeAttribute("style")
+      morph(element, clone.outerHTML)
+    },
+  }
+
+  async function settled() {
+    await paint()
+    await waitForPaint()
+    await waitForPaint()
+  }
+
+  for (const [control, host] of Object.entries(HOSTS))
+    for (const [how, take] of Object.entries(TAKEN)) {
+      it(`has the list under the field after ${how}, when ${control}`, async () => {
+        await opened(host, "the component filters", "e")
+        const { list } = parts()
+        expect(astray(list, "the list").join("; "), "before the update").toBe(
+          "",
+        )
+        const before = place(list)
+
+        take(list)
+        await settled()
+
+        expect(astray(list, "the list").join("; ")).toBe("")
+        expect(place(list)).toEqual(before)
+      })
+
+      for (const way of Object.keys(WAYS) as Array<keyof typeof WAYS>)
+        it(`has the message under the field after ${how}, when ${control} and ${way}`, async () => {
+          await opened(host, way, "xyz")
+          const { empty } = parts()
+          expect(
+            astray(empty, "the message").join("; "),
+            "before the update",
+          ).toBe("")
+          const before = place(empty)
+
+          take(empty)
+          await settled()
+
+          expect(astray(empty, "the message").join("; ")).toBe("")
+          expect(place(empty)).toEqual(before)
+        })
+
+      it(`has the list and the message in their places after ${how} on both, when ${control}`, async () => {
+        await opened(host, "the component filters", "xyz")
+        const { list, empty } = parts()
+        const before = [place(list), place(empty)]
+
+        take(list)
+        take(empty)
+        await settled()
+
+        expect(astray(empty, "the message").join("; ")).toBe("")
+        expect([place(list), place(empty)]).toEqual(before)
+      })
+    }
+
+  it("has the list under the field after a morph of the whole field with the markup the server first sent", async () => {
+    // Without `server-controlled` the component puts back what it had
+    // opened, and the list is then open again where it was.
+    const markup = fieldBetween(WAYS["the component filters"])
+    const sent = /<lt-suggestion[\s\S]*<\/lt-suggestion>/.exec(markup)?.[0]
+    mount(markup)
+    await paint()
+    await searchFor(parts().input, "e")
+    await waitForPaint()
+    const before = place(parts().list)
+
+    morph(parts().host, sent ?? "")
+    await settled()
+
+    expect(astray(parts().list, "the list").join("; ")).toBe("")
+    expect(place(parts().list)).toEqual(before)
+  })
+
+  /*
+   * Placing writes `style`, and the component must not take its own
+   * writing for an update: with nothing changing on the page, nothing is
+   * written, frame after frame, and after an update has taken the style
+   * the writing stops when the list is back in its place.
+   */
+  for (const [control, host] of Object.entries(HOSTS))
+    it(`writes nothing on the list or the message while nothing changes, when ${control}`, async () => {
+      await opened(host, "the component filters", "xyz")
+      const { list, empty } = parts()
+      let writes = 0
+      const watching = new MutationObserver((records) => {
+        writes += records.length
+      })
+      const frames = async (count: number) => {
+        for (let i = 0; i < count; i++) await waitForPaint()
+        writes += watching.takeRecords().length
+      }
+      try {
+        for (const element of [list, empty])
+          watching.observe(element, { attributes: true })
+        await frames(10)
+        expect(writes, "writes with nothing changing").toBe(0)
+
+        list.removeAttribute("style")
+        empty.removeAttribute("style")
+        await frames(10)
+        // The two removals, and what it takes to put three values back on
+        // each. Not a write for every frame.
+        expect(writes, "writes while it settles").toBeLessThanOrEqual(20)
+        writes = 0
+        await frames(10)
+        expect(writes, "writes after it has settled").toBe(0)
+      } finally {
+        watching.disconnect()
+      }
+    })
 })
