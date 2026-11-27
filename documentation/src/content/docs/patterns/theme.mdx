@@ -134,6 +134,11 @@ Something also has to store the choice. This can go anywhere after the group:
   showChoice()
   // Back can bring the buttons as they were left, with the old choice
   window.addEventListener("pageshow", showChoice)
+  // When it loads the page again, Chrome sets the buttons back right after
+  // DOMContentLoaded. This comes before the next frame is drawn.
+  document.addEventListener("DOMContentLoaded", () => {
+    requestAnimationFrame(showChoice)
+  })
 
   for (const button of buttons) {
     button.addEventListener("change", () => {
@@ -146,7 +151,7 @@ Something also has to store the choice. This can go anywhere after the group:
 </script>
 ```
 
-Both scripts do their work once more at `pageshow`, because of Back. The browser can bring the page back as the user left it, without running its scripts again, or load it again and then set the buttons as they were. Either way the page would show the choice it had when the user left it, not the one made since.
+Both scripts do their work once more at `pageshow`, because of Back. The browser can bring the page back as the user left it, without running its scripts again, or load it again and then set the buttons as they were. Either way the page would show the choice it had when the user left it, not the one made since. Chrome sets the buttons back long before `pageshow`, right after `DOMContentLoaded`, so the second script also shows the choice in the first frame after that.
 
 ### With `<ClientRouter />` in Astro
 
@@ -190,6 +195,11 @@ Both scripts of the `localStorage` recipe therefore do their work at `astro:afte
   document.addEventListener("astro:after-swap", showChoice)
   // Back can bring the buttons as they were left, with the old choice
   window.addEventListener("pageshow", showChoice)
+  // When it loads the page again, Chrome sets the buttons back right after
+  // DOMContentLoaded. This comes before the next frame is drawn.
+  document.addEventListener("DOMContentLoaded", () => {
+    requestAnimationFrame(showChoice)
+  })
 
   // On the document, so it also reaches the buttons of the next page
   document.addEventListener("change", (event) => {
