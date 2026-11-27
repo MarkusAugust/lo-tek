@@ -56,6 +56,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Added
 
+- **`hearStyleTaken()` in `@lo-tek/interfaces/host-element`**, which a
+  component calls after it has written inline style on an element it
+  watches, so that WebKit reports it when the attribute is taken off.
 - **The generator suggests colours to go with an accent.**
   `suggestPalettes(recipe)` from `@lo-tek/interfaces/theme`, and
   `Lotek.suggestPalettes` in Kotlin, give five palettes, Near, Opposite,
@@ -187,12 +190,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 ### Fixed
 
 - **The panel of `<lt-popover>` and the card of `<lt-term>` stay in place
-  in Safari when `style` is taken off them.** Both are placed with inline
+  in WebKit when `style` is taken off them.** Both are placed with inline
   variables, and both put them back when an update takes `style`. In
   WebKit a `removeAttribute("style")` from a script was never reported to
   them: the panel went to the top of the window, the card too, and the
   glossary lost the height the component held for it. An update that
-  morphs the element was heard all along.
+  morphs the element was heard all along. After such a removal, closing
+  the card also no longer leaves an empty `style=""` behind.
 - **The list of `<lt-suggestion>` stays under the field when an update
   takes its `style`.** The list and the "No matches" message are placed
   with inline variables, and a server writes them without. A morph that
