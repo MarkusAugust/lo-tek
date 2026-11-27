@@ -603,7 +603,11 @@ fn check_attribute(
             if name == "hidden" && equals(value, "until-found") {
                 return None;
             }
-            if !value.is_empty() && lowercase(value) != a.name {
+            // `true`, in lowercase and nothing else, is what Astro writes for
+            // `optional={true}` on a custom element, and it turns the
+            // attribute on, as meant. `True` is how a Python template prints a
+            // boolean it writes as text, and stays a finding.
+            if !value.is_empty() && lowercase(value) != a.name && !equals(value, "true") {
                 let v = lossy(value);
                 return Some(findings(
                     "boolean-with-value",

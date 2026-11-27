@@ -338,6 +338,77 @@ const cases: Case[] = [
     mentions: ["boolean", 'disabled="false" means the same as disabled'],
     severity: "warning",
   },
+  /*
+   * `="true"` on a boolean attribute of a LO-TEK element is the attribute
+   * turned on, and says what it does. A framework writes it so: Astro
+   * renders `optional={true}` on a custom element as `optional="true"`.
+   * In small letters only, which is what it writes. `True` is how a
+   * template in the Python family prints a boolean, and there the value is
+   * written as text and will be `False` the next time.
+   */
+  {
+    name: 'a boolean attribute of an element written optional="true" is on, and fine',
+    html: `<lt-field optional="true"><label>N <input></label></lt-field>`,
+    count: 0,
+  },
+  {
+    name: 'several boolean attributes with "true" on one element, and on another element',
+    html: `<lt-field optional="true" disabled="true"><label>N <input></label></lt-field><lt-popover open="true"></lt-popover>`,
+    count: 0,
+  },
+  // Every other value still turns it on and reads as if it did not.
+  ...[
+    "false",
+    "FALSE",
+    "True",
+    "TRUE",
+    "tRue",
+    " true",
+    "true ",
+    "truee",
+    "1",
+    "0",
+    "yes",
+    "no",
+    "on",
+  ].map(
+    (value): Case => ({
+      name: `a boolean attribute of an element with "${value}" is still reported`,
+      html: `<lt-field optional="${value}"><label>N <input></label></lt-field>`,
+      count: 1,
+      rule: "boolean-with-value",
+      severity: "warning",
+      mentions: [
+        "optional is a boolean attribute",
+        `optional="${value}" means the same as optional`,
+      ],
+      fixed: `<lt-field><label>N <input></label></lt-field>`,
+      fixTitle: "Remove optional",
+    }),
+  ),
+  // A flag on a class is not written that way by anything: `data-*` given
+  // as true is written bare. There "true" is a value like any other.
+  ...["true", "false"].map(
+    (value): Case => ({
+      name: `a flag on a class with "${value}" is still reported`,
+      html: `<label class="lt-label" data-optional="${value}">N</label>`,
+      count: 1,
+      rule: "boolean-with-value",
+      severity: "warning",
+      mentions: [
+        "data-optional is a flag on label",
+        `data-optional="${value}" means the same as data-optional`,
+      ],
+    }),
+  ),
+  {
+    name: "a text template that writes the value of a boolean attribute is still reported",
+    html: `<lt-popover open="{{ .Open }}"></lt-popover>`,
+    count: 1,
+    rule: "boolean-with-value",
+    mentions: ["the template writes the value as text"],
+    noFix: true,
+  },
   {
     name: "a boolean attribute with its own name or an empty value is fine",
     html: `<lt-field disabled="disabled" optional=""><label>N <input></label></lt-field>`,

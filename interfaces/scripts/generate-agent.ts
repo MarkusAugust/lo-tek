@@ -1242,7 +1242,14 @@ import "@lo-tek/interfaces/field.css"
 \`customElements\` exists only in the browser, so the registration cannot be
 in the frontmatter. A \`<script>\` in the template is all it takes: the
 components are ordinary web components, and need neither an Astro
-integration nor a \`client:\` directive.`,
+integration nor a \`client:\` directive.
+
+On a web component, Astro writes a boolean attribute given as an expression
+with its value. \`optional={true}\` becomes \`optional="true"\`, which turns
+it on. \`optional={false}\` becomes \`optional="false"\`, which turns it on
+too. Write \`optional={isOptional || undefined}\`: Astro leaves out an
+attribute that is \`undefined\`. \`lotek check\` accepts \`="true"\` and
+warns about \`="false"\`.`,
     pitfalls: [
       STYLES_MISSING,
       NO_DEFINE,
