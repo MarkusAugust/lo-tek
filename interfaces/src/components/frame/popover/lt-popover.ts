@@ -2,6 +2,7 @@ import {
   addClass,
   defineElement,
   HostElement,
+  hearStyleTaken,
   isServerControlled,
   place,
   SERVER_CONTROLLED,
@@ -528,6 +529,7 @@ export class LtPopover extends HostElement {
 
     this.panel.style.setProperty("--lt-popover-top", `${top}px`)
     this.panel.style.setProperty("--lt-popover-left", `${left}px`)
+    hearStyleTaken(this.panel)
   }
 
   private emit(open: boolean): void {

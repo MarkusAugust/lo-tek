@@ -1420,6 +1420,133 @@ describe("lt-term", () => {
     })
   })
 
+  /*
+   * While the card is open the component has written in `style` on two
+   * elements: where the card stands, on the entry, and how tall the list
+   * is held, on the `<dl>`. A server never writes either, so an update
+   * with the server's markup takes them off. The card must be back by its
+   * word and the list as tall as it was when the component has settled.
+   * Both are measured by their boxes, and nothing here reads the attribute
+   * before it is taken: one browser tells the component of the removal only
+   * when the attribute has been read since it was last written, and a test
+   * that looks first would do that reading for the component.
+   */
+  describe("and an update that takes what the component wrote in style", () => {
+    const box = (element: Element) => {
+      const { left, top, width, height } = element.getBoundingClientRect()
+      return [left, top, width, height].map((n) => Math.round(n * 10) / 10)
+    }
+    /** The card, the list and the entry after the open one, as the reader has them. */
+    const seen = () => ({
+      card: box($("term-signal")),
+      list: box($("glossary")),
+      next: box($("term-patch")),
+      open: $("term-signal").matches(":popover-open"),
+    })
+    /** What is wrong with where the card stands, measured against its word. */
+    function astray(): string[] {
+      const [card, word] = [$("term-signal"), $("word")].map((e) =>
+        e.getBoundingClientRect(),
+      )
+      if (!$("term-signal").matches(":popover-open"))
+        return ["the card is not open"]
+      const faults: string[] = []
+      if (card.top < word.bottom - 1 || card.top - word.bottom > 16)
+        faults.push(
+          `the card starts at ${Math.round(card.top)} down the window, and the word ends at ${Math.round(word.bottom)}`,
+        )
+      if (card.right < word.left || card.left > word.right)
+        faults.push(
+          `the card, from ${Math.round(card.left)} to ${Math.round(card.right)}, is not by the word, from ${Math.round(word.left)} to ${Math.round(word.right)}`,
+        )
+      return faults
+    }
+    async function open() {
+      page1()
+      await paint()
+      const closed = box($("glossary"))
+      await userEvent.click($("word"))
+      await paint()
+      await waitForPaint()
+      expect(astray().join("; "), "before the update").toBe("")
+      expect(
+        box($("glossary"))[3],
+        "the list is as tall with the card open as it was",
+      ).toBe(closed[3])
+    }
+    async function settled() {
+      await paint()
+      await waitForPaint()
+      await waitForPaint()
+    }
+
+    for (const [what, id] of [
+      ["the card", "term-signal"],
+      ["the list", "glossary"],
+    ] as const)
+      it(`has the card by its word and the list as tall as it was after style is removed from ${what}`, async () => {
+        await open()
+        const before = seen()
+
+        $(id).removeAttribute("style")
+        await settled()
+
+        expect(astray().join("; ")).toBe("")
+        expect(seen()).toEqual(before)
+      })
+
+    it("has them so after style is removed from both at once", async () => {
+      await open()
+      const before = seen()
+
+      $("term-signal").removeAttribute("style")
+      $("glossary").removeAttribute("style")
+      await settled()
+
+      expect(astray().join("; ")).toBe("")
+      expect(seen()).toEqual(before)
+    })
+
+    it("has them so after a morph writes the glossary as the server sent it", async () => {
+      await open()
+      const before = seen()
+
+      morph($("glossary"), GLOSSARY.trim())
+      await settled()
+
+      expect(astray().join("; ")).toBe("")
+      expect(seen()).toEqual(before)
+    })
+
+    it("writes nothing on the card or the list while nothing changes", async () => {
+      await open()
+      let writes = 0
+      const watching = new MutationObserver(() => {})
+      const frames = async (count: number) => {
+        for (let i = 0; i < count; i++) await waitForPaint()
+        writes += watching.takeRecords().length
+      }
+      try {
+        // Without the old value: an observer that asks for it makes the
+        // browser read the attribute, which is the component's to do.
+        for (const id of ["term-signal", "glossary"])
+          watching.observe($(id), { attributes: true })
+        await frames(10)
+        expect(writes, "writes with nothing changing").toBe(0)
+
+        $("term-signal").removeAttribute("style")
+        $("glossary").removeAttribute("style")
+        await frames(10)
+        expect(writes, "writes while it settles").toBeLessThanOrEqual(20)
+        writes = 0
+        await frames(10)
+        expect(writes, "writes after it has settled").toBe(0)
+      } finally {
+        watching.disconnect()
+      }
+    })
+  })
+
   it("marks the word whose card is open", async () => {
     page1()
     await paint()
