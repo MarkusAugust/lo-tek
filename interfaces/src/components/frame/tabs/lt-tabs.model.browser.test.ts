@@ -56,22 +56,30 @@ import { tabs, tabsWithState } from "./tabs"
 import "../../../tokens/tokens.css"
 import "./tabs.css"
 
-/** The tab list in the "Plain HTML" recipe, without its scripts. */
+/**
+ * The id the server updates the tab list by. The recipe has none, since the
+ * component needs none: it is the server that names what it sends again.
+ */
+const HOST_ID = "claim-parts"
+
+/** The tab list in the "Plain HTML" recipe, without its scripts, with that id. */
 const RECIPE = (() => {
   const block = blocks(recipePage("tabs"), {
     tab: "Plain HTML",
     lang: "html",
   }).find((b) => b.includes("<lt-tabs"))
   if (!block) throw new Error("no recipe with <lt-tabs> on the page")
-  return block.replace(/<script[\s\S]*?<\/script>/g, "")
+  if (!block.includes("<lt-tabs>"))
+    throw new Error("the recipe's <lt-tabs> is not a bare tag to put an id on")
+  return block
+    .replace(/<script[\s\S]*?<\/script>/g, "")
+    .replace("<lt-tabs>", `<lt-tabs id="${HOST_ID}">`)
 })()
 
 /** The recipe's host: what the server sends again, by its id. */
 const HOST = RECIPE.match(/<lt-tabs[\s\S]*?<\/lt-tabs>/)?.[0]
 if (!HOST) throw new Error("no <lt-tabs> in the recipe")
 const HOST_TAG = HOST.match(/^<lt-tabs[^>]*>/)?.[0] ?? ""
-const HOST_ID = HOST_TAG.match(/\sid="([^"]+)"/)?.[1]
-if (!HOST_ID) throw new Error("the recipe's tab list has no id to update it by")
 
 /** `text` with `from` replaced, which must be there: a recipe that changed would otherwise test nothing. */
 function swap(text: string, from: string | RegExp, to: string): string {
@@ -484,7 +492,7 @@ let expectation: Expectation = {
   context: INITIAL,
 }
 
-const host = () => document.getElementById(HOST_ID as string)
+const host = () => document.getElementById(HOST_ID)
 /** The links in this row, hidden ones included. */
 const rowLinks = () => [
   ...(host()?.querySelectorAll<HTMLAnchorElement>(".lt-tabs__list a") ?? []),
@@ -834,7 +842,7 @@ async function apply(step: Step): Promise<void> {
     if (step.way === "innerHTML") {
       const h = host()
       if (h) h.innerHTML = INFO[step.send].inner
-    } else replace(step.way, HOST_ID as string, html)
+    } else replace(step.way, HOST_ID, html)
     return
   }
   if (step.user === "first panel by script") {

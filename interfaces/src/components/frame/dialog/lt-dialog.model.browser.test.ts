@@ -74,15 +74,33 @@ const blocks = (tab: string) =>
   tabBlocks(recipePage("dialog"), { tab: tab, lang: "html" })
 
 /*
- * The region the Datastar recipe sends, without the requests on its buttons:
- * the server's answer to them is a version sent, which the steps below
- * already do, and a real `@post` would go to the test server.
+ * The region the Datastar recipe sends, without its requests: the server's
+ * answer to them is a version sent, which the steps below already do, and a
+ * real `@post` would go to the test server.
  */
-const HOST = swap(
+const WIRED = swap(
   blocks("Datastar")
     .find((b) => b.includes("<lt-dialog"))
     ?.match(/<lt-dialog[\s\S]*?<\/lt-dialog>/)?.[0] ?? "",
-  /\s+data-on:click="[^"]*"/g,
+  /\s+data-on:(?:click|cancel)="[^"]*"/g,
+  "",
+)
+/*
+ * The recipe names the dialog itself: the title has the class and an id, and
+ * the dialog points at it. The versions below start from the same region
+ * without that wiring, a bare heading the component names the dialog from,
+ * and `builder` puts the wiring back the way `lt.dialog()` writes it.
+ */
+const WIRED_HEADING = WIRED.match(
+  /<h2 class="lt-dialog__title" id="([^"]+)">([^<]+)<\/h2>/,
+)
+if (!WIRED_HEADING || !WIRED.includes(` aria-labelledby="${WIRED_HEADING[1]}"`))
+  throw new Error(
+    "the recipe's dialog does not point at a title with the class and an id",
+  )
+const HOST = swap(
+  swap(WIRED, WIRED_HEADING[0], `<h2>${WIRED_HEADING[2]}</h2>`),
+  ` aria-labelledby="${WIRED_HEADING[1]}"`,
   "",
 )
 const HOST_TAG = HOST.match(/^<lt-dialog[^>]*>/)?.[0] ?? ""
@@ -94,7 +112,7 @@ const BODY = HOST.match(/<div class="lt-dialog__body">([\s\S]*?)<\/div>/)
 const VALUES = [...HOST.matchAll(/<button[^>]*\svalue="([^"]+)"/g)].map(
   (m) => m[1],
 )
-// The recipe must be what the versions below change: a host and a dialog the
+// The region must be what the versions below change: a host and a dialog the
 // server opens, a bare heading outside the body, and buttons with a value.
 if (
   !/\sopen[\s>]/.test(HOST_TAG) ||
@@ -128,8 +146,8 @@ const controlled = (html: string) =>
 const withDialog = (html: string, extra: string) =>
   swap(html, DIALOG_TAG, DIALOG_TAG.replace(/>$/, ` ${extra}>`))
 
-/** The id the server writes on its title, in the versions that name one. */
-const TITLE_ID = "confirm-title"
+/** The id the server writes on its title, in the versions that name one: the recipe's. */
+const TITLE_ID = WIRED_HEADING[1]
 const LABEL = "Confirm the cancellation"
 const BODY_HEADING = "Attachments"
 const CHANGED_TITLE = "Cancel job 222-0481 before a crew takes it?"
@@ -162,12 +180,13 @@ const builder = (open: boolean) => {
 
 /** What the server can send. The host's attributes and the content are both in it. */
 const VERSIONS: Record<string, string> = {
-  // The recipe: open on both, a bare heading the component names it from.
+  // Open on both, a bare heading the component names it from.
   open: HOST,
   closed: closedHost(HOST),
   controlledOpen: controlled(HOST),
   controlledClosed: controlled(closedHost(HOST)),
-  // The whole wiring from the server: the component has nothing to write.
+  // The whole wiring from the server, as in the recipe: the component has
+  // nothing to write.
   builder: builder(false),
   builderOpen: builder(true),
   // The server's `aria-label` wins, and the heading is not the title.
