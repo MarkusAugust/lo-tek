@@ -100,10 +100,17 @@ A fully static site has no server that can read the cookie. Then `localStorage` 
 ```html
 <!-- In <head>, without defer, before the page is drawn -->
 <script>
-  const stored = localStorage.getItem("theme")
-  if (stored === "light" || stored === "dark") {
-    document.documentElement.dataset.theme = stored
+  const applyTheme = () => {
+    const stored = localStorage.getItem("theme")
+    if (stored === "light" || stored === "dark") {
+      document.documentElement.dataset.theme = stored
+    } else {
+      delete document.documentElement.dataset.theme
+    }
   }
+  applyTheme()
+  // Back can bring the page as it was left, with the old choice
+  window.addEventListener("pageshow", applyTheme)
 </script>
 ```
 
@@ -115,12 +122,20 @@ Something also has to store the choice. This can go anywhere after the group:
 
 ```html
 <script type="module">
-  const stored = localStorage.getItem("theme")
-  const chosen = stored === "light" || stored === "dark" ? stored : "auto"
+  const buttons = document.querySelectorAll(".lt-theme-control")
 
-  for (const button of document.querySelectorAll(".lt-theme-control")) {
-    button.checked = button.value === chosen
+  const showChoice = () => {
+    const stored = localStorage.getItem("theme")
+    const chosen = stored === "light" || stored === "dark" ? stored : "auto"
+    for (const button of buttons) {
+      button.checked = button.value === chosen
+    }
+  }
+  showChoice()
+  // Back can bring the buttons as they were left, with the old choice
+  window.addEventListener("pageshow", showChoice)
 
+  for (const button of buttons) {
     button.addEventListener("change", () => {
       localStorage.setItem("theme", button.value)
       // The attribute from the script in <head> has to go, or it stands in
@@ -131,11 +146,13 @@ Something also has to store the choice. This can go anywhere after the group:
 </script>
 ```
 
+Both scripts do their work once more at `pageshow`, because of Back. The browser can bring the page back as the user left it, without running its scripts again, or load it again and then set the buttons as they were. Either way the page would show the choice it had when the user left it, not the one made since.
+
 ### With `<ClientRouter />` in Astro
 
 Astro's `<ClientRouter />` swaps the page without loading it. The script in `<head>` does not run again, `<html>` gets the attributes of the new page, and the buttons of the new page have no listener. Without anything more, the choice is gone at the first link the user follows.
 
-Both scripts of the `localStorage` recipe therefore do their work once more at `astro:after-swap`, which comes before the new page is drawn, and the listener is on the document:
+Both scripts of the `localStorage` recipe therefore do their work at `astro:after-swap` too, which comes before the new page is drawn, and the listener is on the document:
 
 ```astro
 <!-- In <head> -->
@@ -145,11 +162,15 @@ Both scripts of the `localStorage` recipe therefore do their work once more at `
       const stored = localStorage.getItem("theme")
       if (stored === "light" || stored === "dark") {
         document.documentElement.dataset.theme = stored
+      } else {
+        delete document.documentElement.dataset.theme
       }
     }
     applyTheme()
     // The router gives <html> the attributes of the new page
     document.addEventListener("astro:after-swap", applyTheme)
+    // Back can bring the page as it was left, with the old choice
+    window.addEventListener("pageshow", applyTheme)
   }
 </script>
 
@@ -167,6 +188,8 @@ Both scripts of the `localStorage` recipe therefore do their work once more at `
   showChoice()
   // The buttons of the new page come as the server wrote them
   document.addEventListener("astro:after-swap", showChoice)
+  // Back can bring the buttons as they were left, with the old choice
+  window.addEventListener("pageshow", showChoice)
 
   // On the document, so it also reaches the buttons of the next page
   document.addEventListener("change", (event) => {

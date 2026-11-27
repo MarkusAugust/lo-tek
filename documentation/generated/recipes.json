@@ -9104,19 +9104,19 @@
         {
           "lang": "html",
           "meta": null,
-          "code": "<!-- In <head>, without defer, before the page is drawn -->\n<script>\n  const stored = localStorage.getItem(\"theme\")\n  if (stored === \"light\" || stored === \"dark\") {\n    document.documentElement.dataset.theme = stored\n  }\n</script>",
+          "code": "<!-- In <head>, without defer, before the page is drawn -->\n<script>\n  const applyTheme = () => {\n    const stored = localStorage.getItem(\"theme\")\n    if (stored === \"light\" || stored === \"dark\") {\n      document.documentElement.dataset.theme = stored\n    } else {\n      delete document.documentElement.dataset.theme\n    }\n  }\n  applyTheme()\n  // Back can bring the page as it was left, with the old choice\n  window.addEventListener(\"pageshow\", applyTheme)\n</script>",
           "section": "Making it last"
         },
         {
           "lang": "html",
           "meta": null,
-          "code": "<script type=\"module\">\n  const stored = localStorage.getItem(\"theme\")\n  const chosen = stored === \"light\" || stored === \"dark\" ? stored : \"auto\"\n\n  for (const button of document.querySelectorAll(\".lt-theme-control\")) {\n    button.checked = button.value === chosen\n\n    button.addEventListener(\"change\", () => {\n      localStorage.setItem(\"theme\", button.value)\n      // The attribute from the script in <head> has to go, or it stands in\n      // front of \"Follow the system\", which has no theme block to win with.\n      delete document.documentElement.dataset.theme\n    })\n  }\n</script>",
+          "code": "<script type=\"module\">\n  const buttons = document.querySelectorAll(\".lt-theme-control\")\n\n  const showChoice = () => {\n    const stored = localStorage.getItem(\"theme\")\n    const chosen = stored === \"light\" || stored === \"dark\" ? stored : \"auto\"\n    for (const button of buttons) {\n      button.checked = button.value === chosen\n    }\n  }\n  showChoice()\n  // Back can bring the buttons as they were left, with the old choice\n  window.addEventListener(\"pageshow\", showChoice)\n\n  for (const button of buttons) {\n    button.addEventListener(\"change\", () => {\n      localStorage.setItem(\"theme\", button.value)\n      // The attribute from the script in <head> has to go, or it stands in\n      // front of \"Follow the system\", which has no theme block to win with.\n      delete document.documentElement.dataset.theme\n    })\n  }\n</script>",
           "section": "Making it last"
         },
         {
           "lang": "astro",
           "meta": null,
-          "code": "<!-- In <head> -->\n<script is:inline>\n  {\n    const applyTheme = () => {\n      const stored = localStorage.getItem(\"theme\")\n      if (stored === \"light\" || stored === \"dark\") {\n        document.documentElement.dataset.theme = stored\n      }\n    }\n    applyTheme()\n    // The router gives <html> the attributes of the new page\n    document.addEventListener(\"astro:after-swap\", applyTheme)\n  }\n</script>\n\n<!-- Anywhere after the group -->\n<script>\n  const showChoice = () => {\n    const stored = localStorage.getItem(\"theme\")\n    const chosen = stored === \"light\" || stored === \"dark\" ? stored : \"auto\"\n    for (const button of document.querySelectorAll<HTMLInputElement>(\n      \".lt-theme-control\",\n    )) {\n      button.checked = button.value === chosen\n    }\n  }\n  showChoice()\n  // The buttons of the new page come as the server wrote them\n  document.addEventListener(\"astro:after-swap\", showChoice)\n\n  // On the document, so it also reaches the buttons of the next page\n  document.addEventListener(\"change\", (event) => {\n    if (!(event.target instanceof HTMLInputElement)) return\n    if (!event.target.matches(\".lt-theme-control\")) return\n    localStorage.setItem(\"theme\", event.target.value)\n    // The attribute has to go, or it stands in front of \"Follow the\n    // system\", which has no theme block to win with.\n    delete document.documentElement.dataset.theme\n  })\n</script>",
+          "code": "<!-- In <head> -->\n<script is:inline>\n  {\n    const applyTheme = () => {\n      const stored = localStorage.getItem(\"theme\")\n      if (stored === \"light\" || stored === \"dark\") {\n        document.documentElement.dataset.theme = stored\n      } else {\n        delete document.documentElement.dataset.theme\n      }\n    }\n    applyTheme()\n    // The router gives <html> the attributes of the new page\n    document.addEventListener(\"astro:after-swap\", applyTheme)\n    // Back can bring the page as it was left, with the old choice\n    window.addEventListener(\"pageshow\", applyTheme)\n  }\n</script>\n\n<!-- Anywhere after the group -->\n<script>\n  const showChoice = () => {\n    const stored = localStorage.getItem(\"theme\")\n    const chosen = stored === \"light\" || stored === \"dark\" ? stored : \"auto\"\n    for (const button of document.querySelectorAll<HTMLInputElement>(\n      \".lt-theme-control\",\n    )) {\n      button.checked = button.value === chosen\n    }\n  }\n  showChoice()\n  // The buttons of the new page come as the server wrote them\n  document.addEventListener(\"astro:after-swap\", showChoice)\n  // Back can bring the buttons as they were left, with the old choice\n  window.addEventListener(\"pageshow\", showChoice)\n\n  // On the document, so it also reaches the buttons of the next page\n  document.addEventListener(\"change\", (event) => {\n    if (!(event.target instanceof HTMLInputElement)) return\n    if (!event.target.matches(\".lt-theme-control\")) return\n    localStorage.setItem(\"theme\", event.target.value)\n    // The attribute has to go, or it stands in front of \"Follow the\n    // system\", which has no theme block to win with.\n    delete document.documentElement.dataset.theme\n  })\n</script>",
           "section": "Making it last"
         }
       ],
@@ -9165,6 +9165,7 @@
         "data-theme",
         "<body>",
         "defer",
+        "pageshow",
         "<ClientRouter />",
         "<ClientRouter />",
         "<head>",

@@ -186,6 +186,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The `localStorage` recipe for the theme shows the right choice after
+  Back.** Chrome brings a page back as the user left it, or loads it again
+  and sets the radio buttons as they were. With a choice made on another
+  page in between, the page came back in the old theme, with the old
+  button checked, while the new choice was the one stored. Both scripts of
+  the recipe, and of the one for `<ClientRouter />`, now do their work
+  again at `pageshow`.
 - **The recipes for `help-text` and `error-text` are wired to a field.**
   The first example on each page showed the texts alone, and pasted into
   a page it gave the warning of `lotek check` that the text is not wired
