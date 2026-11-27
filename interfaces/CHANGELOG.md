@@ -186,6 +186,14 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **`lotek check` gives the advice that fits a text nothing points at.**
+  The message for a help text or an error text that is not wired to a
+  field ended with the advice for a label: write `for` on the label and
+  `id` on the field. It now says to write the text's id in
+  `aria-describedby` on the field, or to put both in `<lt-field>`, and
+  names `help: true` or `error: true` in `lt.field()`. An
+  `aria-describedby` or `aria-labelledby` that points at an id that does
+  not exist had the same advice for a label, and now has one of its own.
 - **The `localStorage` recipe for the theme shows the right choice after
   Back.** Chrome brings a page back as the user left it, or loads it again
   and sets the radio buttons as they were. With a choice made on another

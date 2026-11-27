@@ -897,8 +897,29 @@ cases.push(
     count: 2,
     page: true,
     severity: "error",
-    mentions: ["for=", '"e-mail"', "the label", "lt.field({ id })"],
+    mentions: [
+      "for=",
+      '"e-mail"',
+      "the label",
+      "Write for on the label and id on the field",
+      "lt.field({ id })",
+    ],
+    // The advice for a label, not the one for a text nothing points at.
+    notMentions: ["aria-describedby on the field"],
     covers: "e-mail",
+  },
+  {
+    name: "page: for points at a text, and the advice is the one for a label",
+    html: `<label class="lt-label" for="a-help">A</label><input class="lt-input" id="a" aria-label="A" aria-describedby="a-help"><p class="lt-help-text" id="a-help">Help</p>`,
+    count: 1,
+    page: true,
+    severity: "error",
+    mentions: [
+      "points at a <p>",
+      "Write for on the label and id on the field",
+      "lt.field({ id })",
+    ],
+    notMentions: ["help: true"],
   },
   {
     name: "page: one of several ids in aria-describedby does not exist",
@@ -909,7 +930,13 @@ cases.push(
     count: 1,
     page: true,
     severity: "error",
-    mentions: ['"email-error"', "the description"],
+    // Not the advice for a label: the id is one a text should have.
+    mentions: [
+      '"email-error"',
+      "The screen reader loses the description.",
+      "Write that id on the text that describes the field, or take it out of aria-describedby.",
+    ],
+    notMentions: ["for on the label", "lt.field("],
     covers: "email-error",
   },
   {
@@ -917,7 +944,12 @@ cases.push(
     html: `<input class="lt-input" id="sok" aria-labelledby="sok-tittel">`,
     count: 1,
     page: true,
-    mentions: ["aria-labelledby", "the name"],
+    mentions: [
+      "aria-labelledby",
+      "The screen reader loses the name.",
+      "Write that id on the element that names this one, or take it out of aria-labelledby.",
+    ],
+    notMentions: ["for on the label", "lt.field("],
   },
   {
     name: "page: aria-controls gets no recipe about the field",
@@ -925,7 +957,7 @@ cases.push(
     count: 1,
     page: true,
     mentions: ["aria-controls", '"menu"'],
-    notMentions: ["lt.field("],
+    notMentions: ["lt.field(", "for on the label", "Write that id"],
   },
   {
     name: "page: an id that appears twice",
@@ -976,20 +1008,99 @@ cases.push(
     page: true,
     mentions: ['"x"'],
   },
+  /*
+   * A text no field points at. The advice is for a text and its field, an
+   * id and `aria-describedby` or `<lt-field>` around the two, and not the
+   * advice for a label. It has two endings: a text without an id is told
+   * to write one, and a text that has one is told where to write it.
+   */
   {
     name: "page: a help text without an id",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text">Help</p>`,
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text">Text</p>`,
     count: 1,
     page: true,
     severity: "warning",
-    mentions: ["The help text", "has no id"],
+    rule: "text-not-wired",
+    mentions: [
+      "The help text",
+      "has no id",
+      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>",
+      "which wires them in the browser",
+      "lt.field({ id, help: true })",
+      "Lt.field(id = ..., help = true)",
+    ],
+    notMentions: [
+      "for on the label",
+      "error: true",
+      "error = true",
+      "Write that id",
+    ],
+  },
+  {
+    name: "page: a help text with an id nothing points at",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text" id="a-help">Text</p>`,
+    count: 1,
+    page: true,
+    severity: "warning",
+    rule: "text-not-wired",
+    mentions: [
+      "The help text",
+      '"a-help"',
+      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>",
+      "which wires them in the browser",
+      "lt.field({ id, help: true })",
+      "Lt.field(id = ..., help = true)",
+    ],
+    notMentions: [
+      "for on the label",
+      "error: true",
+      "error = true",
+      "Write an id on the text",
+    ],
+  },
+  {
+    name: "page: an error text without an id",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text">Text</p>`,
+    count: 1,
+    page: true,
+    severity: "warning",
+    rule: "text-not-wired",
+    mentions: [
+      "The error text",
+      "has no id",
+      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>",
+      "which wires them in the browser",
+      "lt.field({ id, error: true })",
+      "Lt.field(id = ..., error = true)",
+    ],
+    notMentions: [
+      "for on the label",
+      "help: true",
+      "help = true",
+      "Write that id",
+    ],
   },
   {
     name: "page: a visible error text nothing points at",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-error">Error</p>`,
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-error">Text</p>`,
     count: 1,
     page: true,
-    mentions: ["The error text", '"a-error"'],
+    severity: "warning",
+    rule: "text-not-wired",
+    mentions: [
+      "The error text",
+      '"a-error"',
+      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>",
+      "which wires them in the browser",
+      "lt.field({ id, error: true })",
+      "Lt.field(id = ..., error = true)",
+    ],
+    notMentions: [
+      "for on the label",
+      "help: true",
+      "help = true",
+      "Write an id on the text",
+    ],
   },
   {
     name: "page: a hidden error text needs no wiring",

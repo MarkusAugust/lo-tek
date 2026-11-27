@@ -31,7 +31,7 @@
       "end": 116,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "aria-describedby=\"budget-help nowhere\" points at the id \"nowhere\", which does not exist on the page. The screen reader loses the description. Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it."
+      "message": "aria-describedby=\"budget-help nowhere\" points at the id \"nowhere\", which does not exist on the page. The screen reader loses the description. Write that id on the text that describes the field, or take it out of aria-describedby."
     },
     {
       "start": 194,
