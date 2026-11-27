@@ -124,48 +124,63 @@ export class LtSuggestion extends HostElement {
     ...COUNT_ATTRIBUTES,
   ] as const
 
-  private readonly watch = watcher(() => this.sync(), {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: [
-      "hidden",
-      "aria-expanded",
-      "aria-selected",
-      "aria-activedescendant",
-      // The wiring the web component fills in when the markup arrived without it.
-      "role",
-      "tabindex",
-      "id",
-      "for",
-      "aria-controls",
-      "autocomplete",
-      "aria-autocomplete",
-      "class",
-      // A field without a role is `input:not([type='hidden'])`.
-      "type",
-      // The highlight is found again by its text and its code.
-      "data-value",
-      // The value field's `value` is an attribute, and a morph can write
-      // the server's empty value over the code the user chose.
-      "value",
-      // `form` on the field picks which form the reset belongs to.
-      "form",
-      // A field that becomes `readonly` or `disabled` must close the list.
-      "readonly",
-      "disabled",
-      "aria-disabled",
-      // The list sits in the top layer, and so does the empty message. A
-      // morph that removes `popover` closes the popover, and the web
-      // component sets it back.
-      "popover",
-      // While the answer is on its way the empty message is not shown.
-      "aria-busy",
-      // The list's name, from the label.
-      "aria-labelledby",
-      "aria-label",
-    ],
-  })
+  private readonly watch = watcher(
+    (records) => {
+      // `style` is watched for the position only. A change of style alone
+      // changes nothing `sync()` reads, and the component's own writes while
+      // the page scrolls come here too: placing again is all there is to do.
+      const onlyStyle = records.every(
+        (r) => r.type === "attributes" && r.attributeName === "style",
+      )
+      if (onlyStyle) this.reposition()
+      else this.sync()
+    },
+    {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: [
+        "hidden",
+        "aria-expanded",
+        "aria-selected",
+        "aria-activedescendant",
+        // The wiring the web component fills in when the markup arrived without it.
+        "role",
+        "tabindex",
+        "id",
+        "for",
+        "aria-controls",
+        "autocomplete",
+        "aria-autocomplete",
+        "class",
+        // The position of the list and the message is written inline, and an
+        // update from the server writes them without it.
+        "style",
+        // A field without a role is `input:not([type='hidden'])`.
+        "type",
+        // The highlight is found again by its text and its code.
+        "data-value",
+        // The value field's `value` is an attribute, and a morph can write
+        // the server's empty value over the code the user chose.
+        "value",
+        // `form` on the field picks which form the reset belongs to.
+        "form",
+        // A field that becomes `readonly` or `disabled` must close the list.
+        "readonly",
+        "disabled",
+        "aria-disabled",
+        // The list sits in the top layer, and so does the empty message. A
+        // morph that removes `popover` closes the popover, and the web
+        // component sets it back.
+        "popover",
+        // While the answer is on its way the empty message is not shown.
+        "aria-busy",
+        // The list's name, from the label.
+        "aria-labelledby",
+        "aria-label",
+      ],
+    },
+  )
   private control?: HTMLInputElement
   private list?: HTMLElement
   private empty?: HTMLElement
@@ -418,16 +433,32 @@ export class LtSuggestion extends HostElement {
   }
 
   private place(shown: HTMLElement, top: number, field: DOMRect): void {
-    shown.style.setProperty("--lt-suggestion-top", `${Math.round(top)}px`)
-    shown.style.setProperty(
-      "--lt-suggestion-left",
-      `${Math.round(field.left)}px`,
+    // Written only when it differs, so placing what is already in place
+    // leaves `style`, which is watched, alone.
+    // Each name stands in its own `setProperty`: that is where the manifest
+    // reads which variables the component sets, and are not the theme's.
+    const differs = (name: string, value: string) =>
+      shown.style.getPropertyValue(name) !== value
+    const [above, start, width] = [top, field.left, field.width].map(
+      (pixels) => `${Math.round(pixels)}px`,
     )
-    shown.style.setProperty(
-      "--lt-suggestion-width",
-      `${Math.round(field.width)}px`,
-    )
+    if (differs("--lt-suggestion-top", above))
+      shown.style.setProperty("--lt-suggestion-top", above)
+    if (differs("--lt-suggestion-left", start))
+      shown.style.setProperty("--lt-suggestion-left", start)
+    if (differs("--lt-suggestion-width", width))
+      shown.style.setProperty("--lt-suggestion-width", width)
+    // WebKit does not report the removal of a `style` attribute that only
+    // exists through the style object: one nothing has read as an attribute.
+    // Reading it here makes it one, but WebKit stops making a read whose
+    // answer nobody uses, so the answer is kept. A morph reads the
+    // attributes before it takes one off and is heard either way; this is
+    // for a bare `removeAttribute("style")`. Chromium reports both.
+    this.placed.set(shown, shown.getAttribute("style"))
   }
+
+  /** The `style` each placed element was left with. Only `place()` writes it. */
+  private readonly placed = new WeakMap<HTMLElement, string | null>()
 
   /**
    * Names the list from the label, when the markup arrived without a name.
