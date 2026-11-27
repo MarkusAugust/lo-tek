@@ -189,6 +189,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The cookie recipe for the theme says what Back does, and has a
+  script for it.** After a change of theme, Back showed a page in the
+  theme it had, two pages back in Chromium and in WebKit: one reads the
+  page from its cache, the other sets the radio buttons back as they
+  were. The page now says so, and shows a script that reads the cookie at
+  `pageshow` for those who want it right. The recipe still works without
+  JavaScript.
 - **The panel of `<lt-popover>` and the card of `<lt-term>` stay in place
   in WebKit when `style` is taken off them.** Both are placed with inline
   variables, and both put them back when an update takes `style`. In
