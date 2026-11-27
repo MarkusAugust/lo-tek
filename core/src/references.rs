@@ -506,10 +506,16 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                             "{name}=\"{}\" points at the id \"{}\", which does not exist on the page. The screen reader loses {loses}.{}",
                             lossy(v),
                             lossy(target),
-                            // The advice is about a field, not what
-                            // aria-controls controls, and the space only
-                            // comes with it.
-                            if *name == "aria-controls" { String::new() } else { format!(" {HOW}") }
+                            // The advice follows the attribute: only for
+                            // is about a label, and what aria-controls
+                            // controls is not a field. The space only
+                            // comes with the advice.
+                            match *name {
+                                "for" => format!(" {HOW}"),
+                                "aria-describedby" => " Write that id on the text that describes this element, or take it out of aria-describedby.".into(),
+                                "aria-labelledby" => " Write that id on the element that names this one, or take it out of aria-labelledby.".into(),
+                                _ => String::new(),
+                            }
                         ),
                     )),
                     Some(&found) => {
@@ -564,10 +570,23 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             continue;
         }
 
+        // The name of the text, and what the builder takes to wire it. An
+        // error text is only wired when the field is invalid, and a warning
+        // is no error: neither <lt-field> nor `error` is for it.
+        let variant = value(node, "data-variant")
+            .and_then(|a| a.value.as_deref())
+            .unwrap_or(&[]);
         let kind = if has_class(node, |c| equals(c, "lt-error-text")) {
-            Some("The error text")
+            if equals(variant, "warning") {
+                Some(("The error text", None))
+            } else {
+                Some((
+                    "The error text",
+                    Some(("error: true, invalid: true", "error = true, invalid = true")),
+                ))
+            }
         } else if has_class(node, |c| equals(c, "lt-help-text")) {
-            Some("The help text")
+            Some(("The help text", Some(("help: true", "help = true"))))
         } else {
             None
         };
@@ -576,7 +595,7 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             .unwrap_or(&[]);
         let live =
             equals(role, "status") || equals(role, "alert") || value(node, "aria-live").is_some();
-        if let Some(kind) = kind {
+        if let Some((kind, options)) = kind {
             if !live && !is_hidden(&nodes, n) {
                 let id = non_empty(node, "id");
                 if id.is_none_or(|id| !described_by.contains(&decode(id))) {
@@ -587,13 +606,25 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                         ),
                         None => "it has no id, so no aria-describedby can point at it. ".into(),
                     };
+                    let write = match id {
+                        Some(_) => "Write that id in aria-describedby on the field",
+                        None => "Write an id on the text and the same id in aria-describedby on the field",
+                    };
+                    let how = match options {
+                        Some((typescript, kotlin)) => format!(
+                            "{write}, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({{ id, {typescript} }}) or Lt.field(id = ..., {kotlin}) writes both the id and aria-describedby."
+                        ),
+                        None => format!(
+                            "{write}. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field()."
+                        ),
+                    };
                     out.push(findings(
                     "text-not-wired",
                         node.name_start,
                         node.name_end,
                         Severity::Warning,
                         LINK,
-                        format!("{kind} is not wired to any field: {middle}A screen reader does not announce it together with the field. {HOW}"),
+                        format!("{kind} is not wired to any field: {middle}A screen reader does not announce it together with the field. {how}"),
                     ));
                 }
             }
