@@ -134,7 +134,8 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 ### Changed
 
 - **`lotek check` accepts `="true"` on a boolean attribute of a
-  web component.** Astro writes `optional={true}` on `<lt-field>` as
+  web component,** and so do the editors, which run the same check.
+  Astro writes `optional` and `optional={true}` on `<lt-field>` as
   `optional="true"`, which turns the attribute on, as meant, and the
   check warned about it. Only `true` in lowercase is accepted. `="false"`
   still gives the warning, since it turns the attribute on, and so does

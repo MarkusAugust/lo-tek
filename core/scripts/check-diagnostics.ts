@@ -386,8 +386,10 @@ const cases: Case[] = [
       fixTitle: "Remove optional",
     }),
   ),
-  // A flag on a class is not written that way by anything: `data-*` given
-  // as true is written bare. There "true" is a value like any other.
+  // A flag on a class is as it was. The builder functions write it with an
+  // empty value, which Astro writes bare. `data-optional={true}` written by
+  // hand in Astro does come out as `data-optional="true"`, and is still
+  // reported: there "true" is a value like any other.
   ...["true", "false"].map(
     (value): Case => ({
       name: `a flag on a class with "${value}" is still reported`,

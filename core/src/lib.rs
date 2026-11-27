@@ -1272,8 +1272,10 @@ mod tests {
             );
             assert!(found[0].fix.is_some(), "{html}");
         }
-        // A flag on a class is written bare by everything, so there "true"
-        // is a value like any other.
+        // A flag on a class is as it was. The builder functions write it
+        // with an empty value, which Astro writes bare. `data-optional={true}`
+        // written by hand in Astro does come out as `="true"`, and is still
+        // reported: there "true" is a value like any other.
         let found = markup(r#"<label class="lt-label" data-optional="true">Navn</label>"#);
         assert_eq!(found.len(), 1, "{found:?}");
         assert!(
