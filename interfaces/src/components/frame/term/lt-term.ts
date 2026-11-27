@@ -2,6 +2,7 @@ import {
   addClass,
   defineElement,
   HostElement,
+  hearStyleTaken,
   ownership,
   ownParts,
   place,
@@ -124,6 +125,7 @@ function inline(element: HTMLElement) {
         asked: value,
         reads: element.style.getPropertyValue(name),
       })
+      hearStyleTaken(element)
     },
   }
 }

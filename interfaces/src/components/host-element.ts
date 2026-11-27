@@ -168,6 +168,24 @@ function isRegistered(element: CustomElementConstructor): boolean {
   return customElements.getName(element) !== null
 }
 
+/** The `style` attribute as it stood after a component last wrote inline. */
+const styleRead = new WeakMap<Element, string | null>()
+
+/**
+ * Makes sure the component hears it when the `style` it just wrote inline is
+ * taken off the element. Called after the writes.
+ *
+ * WebKit does not report the removal of a `style` attribute that only exists
+ * through the style object: one nothing has read as an attribute. Reading it
+ * makes it one, but WebKit stops making a read whose answer nobody uses, so
+ * the answer is kept here. A morph reads the attributes before it takes one
+ * off and is heard either way; this is for a bare `removeAttribute("style")`.
+ * Chromium reports both.
+ */
+export function hearStyleTaken(element: Element): void {
+  styleRead.set(element, element.getAttribute("style"))
+}
+
 /**
  * Sets an attribute, but only when the value actually differs.
  *

@@ -186,6 +186,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **The panel of `<lt-popover>` and the card of `<lt-term>` stay in place
+  in Safari when `style` is taken off them.** Both are placed with inline
+  variables, and both put them back when an update takes `style`. In
+  WebKit a `removeAttribute("style")` from a script was never reported to
+  them: the panel went to the top of the window, the card too, and the
+  glossary lost the height the component held for it. An update that
+  morphs the element was heard all along.
 - **The list of `<lt-suggestion>` stays under the field when an update
   takes its `style`.** The list and the "No matches" message are placed
   with inline variables, and a server writes them without. A morph that

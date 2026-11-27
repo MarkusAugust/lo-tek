@@ -5,6 +5,7 @@ import {
   defineElement,
   derivedParts,
   HostElement,
+  hearStyleTaken,
   isServerControlled,
   languageOf,
   ownership,
@@ -448,17 +449,8 @@ export class LtSuggestion extends HostElement {
       shown.style.setProperty("--lt-suggestion-left", start)
     if (differs("--lt-suggestion-width", width))
       shown.style.setProperty("--lt-suggestion-width", width)
-    // WebKit does not report the removal of a `style` attribute that only
-    // exists through the style object: one nothing has read as an attribute.
-    // Reading it here makes it one, but WebKit stops making a read whose
-    // answer nobody uses, so the answer is kept. A morph reads the
-    // attributes before it takes one off and is heard either way; this is
-    // for a bare `removeAttribute("style")`. Chromium reports both.
-    this.placed.set(shown, shown.getAttribute("style"))
+    hearStyleTaken(shown)
   }
-
-  /** The `style` each placed element was left with. Only `place()` writes it. */
-  private readonly placed = new WeakMap<HTMLElement, string | null>()
 
   /**
    * Names the list from the label, when the markup arrived without a name.

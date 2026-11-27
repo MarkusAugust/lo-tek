@@ -9,7 +9,7 @@ import {
   waitForPaint,
 } from "../../../testing/a11y"
 import { attr } from "../../../testing/markup"
-import { datastarPatch } from "../../../testing/update"
+import { datastarPatch, morph } from "../../../testing/update"
 import { defineLtPopover, type LtPopover } from "./lt-popover"
 import { popover, popoverPlacements } from "./popover"
 
@@ -936,5 +936,137 @@ describe("lt-popover when the app and the server both open and close it", () => 
     await paint()
 
     expect(trigger.getAttribute("aria-expanded")).toBe("false")
+  })
+})
+
+/*
+ * The open panel is placed by the component, with values it writes in
+ * `style` on the panel. A server never writes that attribute, so an update
+ * with the server's markup takes it off. The panel must be back by its
+ * button when the component has settled, and not where the stylesheet puts
+ * it with nothing to go by. It is measured by where its box is against the
+ * button's, and nothing here reads the attribute before it is taken: one
+ * browser tells the component of the removal only when the attribute has
+ * been read since it was last written, and a test that looks first would
+ * do that reading for the component.
+ */
+describe("the open panel stays by its button when an update takes its style", () => {
+  beforeAll(() => {
+    defineLtPopover()
+  })
+
+  const built = popover({ id: "by-button" })
+  async function opened(placement: string) {
+    mount(`
+      <div style="padding: 12rem 16rem">
+        <lt-popover placement="${placement}" ${attr(built.host)}>
+          <button ${attr(built.trigger)} class="lt-button" id="by-button-trigger">Breaker actions</button>
+          <ul ${attr(built.panel)}><li>Mark returned</li><li>Retire the breaker</li></ul>
+        </lt-popover>
+      </div>
+    `)
+    await paint()
+    const trigger = document.getElementById("by-button-trigger") as HTMLElement
+    trigger.click()
+    await paint()
+    await waitForPaint()
+    return {
+      trigger,
+      panel: document.getElementById("by-button") as HTMLElement,
+    }
+  }
+
+  const box = (element: Element) => {
+    const { left, top, width, height } = element.getBoundingClientRect()
+    return [left, top, width, height].map((n) => Math.round(n * 10) / 10)
+  }
+
+  /** What is wrong with where the panel stands, measured against its button. */
+  function astray(panel: HTMLElement, trigger: HTMLElement, placement: string) {
+    const [p, t] = [panel, trigger].map((e) => e.getBoundingClientRect())
+    const faults: string[] = []
+    if (!panel.matches(":popover-open")) return ["the panel is not open"]
+    const [side, edge] = placement.split("-")
+    const gap = side === "bottom" ? p.top - t.bottom : t.top - p.bottom
+    if (gap < -1 || gap > 16)
+      faults.push(
+        `the panel, from ${Math.round(p.top)} to ${Math.round(p.bottom)}, does not stand ${side === "bottom" ? "under" : "over"} the button, from ${Math.round(t.top)} to ${Math.round(t.bottom)}`,
+      )
+    // By the button's own edge, give or take what the panel's border and
+    // the rounding of the two make of it.
+    const apart = edge === "start" ? p.left - t.left : p.right - t.right
+    if (Math.abs(apart) > 6)
+      faults.push(
+        `the panel's ${edge} edge is ${Math.round(apart)} from the button's`,
+      )
+    return faults
+  }
+
+  /** The ways an update takes `style` off the panel and changes nothing else. */
+  const TAKEN = {
+    "the attribute is removed": (panel: HTMLElement) =>
+      panel.removeAttribute("style"),
+    // The panel as it stands, written as a server writes it: without
+    // `style`. The morph then has that one attribute to take off.
+    "a morph writes the panel without it": (panel: HTMLElement) => {
+      const clone = panel.cloneNode(true) as HTMLElement
+      clone.removeAttribute("style")
+      morph(panel, clone.outerHTML)
+    },
+  }
+
+  async function settled() {
+    await paint()
+    await waitForPaint()
+    await waitForPaint()
+  }
+
+  for (const placement of popoverPlacements)
+    for (const [how, take] of Object.entries(TAKEN))
+      it(`has the panel by its button after ${how}, placed ${placement}`, async () => {
+        const { trigger, panel } = await opened(placement)
+        expect(
+          astray(panel, trigger, placement).join("; "),
+          "before the update",
+        ).toBe("")
+        const before = box(panel)
+
+        take(panel)
+        await settled()
+
+        expect(astray(panel, trigger, placement).join("; ")).toBe("")
+        expect(box(panel)).toEqual(before)
+      })
+
+  /*
+   * Placing writes `style`, and the component must not take its own
+   * writing for an update: with nothing changing nothing is written, and
+   * after an update has taken the style the writing stops when the panel
+   * is back in its place.
+   */
+  it("writes nothing on the panel while nothing changes", async () => {
+    const { panel } = await opened("bottom-start")
+    let writes = 0
+    const watching = new MutationObserver(() => {})
+    const frames = async (count: number) => {
+      for (let i = 0; i < count; i++) await waitForPaint()
+      writes += watching.takeRecords().length
+    }
+    try {
+      // Without the old value: an observer that asks for it makes the
+      // browser read the attribute, which is the component's to do.
+      watching.observe(panel, { attributes: true })
+      await frames(10)
+      expect(writes, "writes with nothing changing").toBe(0)
+
+      panel.removeAttribute("style")
+      await frames(10)
+      expect(writes, "writes while it settles").toBeLessThanOrEqual(10)
+      writes = 0
+      await frames(10)
+      expect(writes, "writes after it has settled").toBe(0)
+    } finally {
+      watching.disconnect()
+    }
   })
 })
