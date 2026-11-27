@@ -24,8 +24,9 @@
  * dialog closes is the browser's memory, not the page's, so the element that
  * had focus when the dialog opened is part of the context.
  *
- * The page is the Datastar recipe from the component page, with the button
- * that opens the dialog in the "Plain HTML" recipe next to it, standing in
+ * The page is the region of the Datastar recipe from the component page,
+ * without the wiring of its title, which a version puts back. The button
+ * that opens the dialog in the "Plain HTML" recipe is next to it, standing in
  * for the button that asks the server to open it. The component is the real
  * one, and so are Datastar and idiomorph.
  */
@@ -85,6 +86,12 @@ const WIRED = swap(
   /\s+data-on:(?:click|cancel)="[^"]*"/g,
   "",
 )
+// Nothing of Datastar's may be left: it is loaded, and would act on it.
+if (
+  /\sdata-(?!variant=)/.test(WIRED) ||
+  /@(?:get|post|put|patch|delete)\(/.test(WIRED)
+)
+  throw new Error("the recipe has a data- attribute the test does not take off")
 /*
  * The recipe names the dialog itself: the title has the class and an id, and
  * the dialog points at it. The versions below start from the same region
@@ -177,6 +184,15 @@ const builder = (open: boolean) => {
     `<h2 ${attr(box.title)}>${TITLE}</h2>`,
   )
 }
+
+// The builder writes what the recipe shows, so `builderOpen` is the recipe.
+const parsed = (html: string) => {
+  const template = document.createElement("template")
+  template.innerHTML = html
+  return template.content.firstElementChild
+}
+if (canonical(parsed(builder(true))) !== canonical(parsed(WIRED)))
+  throw new Error("the recipe's region is not what lt.dialog() writes")
 
 /** What the server can send. The host's attributes and the content are both in it. */
 const VERSIONS: Record<string, string> = {
@@ -366,6 +382,8 @@ const STATE_STEPS = pick(STEPS, [
   ...["open", "closed", "builderOpen", "label"].map((v) => `${v} by idiomorph`),
   "open by outerHTML",
   "closed by outerHTML",
+  // The recipe as a region the component has not seen: a first connection.
+  "builderOpen by outerHTML",
   "content by innerHTML",
   "closed by innerHTML",
   "click opener",
@@ -1057,6 +1075,11 @@ function violations(
  * posted later; the component removes `open` from the host only there. So
  * a dialog that lost `open` is waited for until its `close` has come, it is
  * open again (the component put the attribute back), or it is gone.
+ *
+ * The wait is by the clock and not by a count of rounds: on a busy machine
+ * `close` came after ten rounds of messages, and the step was read with the
+ * host still open over a closed dialog. A `close` that has not come within
+ * the second is left to the invariants to report.
  */
 const pending = new Set<HTMLDialogElement>()
 const watcher = new MutationObserver((records) => {
@@ -1088,9 +1111,12 @@ const mover = new MutationObserver((records) => {
 async function settleDialog(): Promise<void> {
   await settle()
   await settle()
-  for (let round = 0; round < 10; round++) {
+  const deadline = performance.now() + 1000
+  for (;;) {
     for (const d of pending) if (d.open || !d.isConnected) pending.delete(d)
     if (pending.size === 0) return
+    if (performance.now() > deadline) break
+    await new Promise((resolve) => setTimeout(resolve, 5))
     await settle()
   }
   pending.clear()

@@ -60,7 +60,7 @@ import "./tabs.css"
  * The id the server updates the tab list by. The recipe has none, since the
  * component needs none: it is the server that names what it sends again.
  */
-const HOST_ID = "claim-parts"
+const HOST_ID = "claim-tabs"
 
 /** The tab list in the "Plain HTML" recipe, without its scripts, with that id. */
 const RECIPE = (() => {
