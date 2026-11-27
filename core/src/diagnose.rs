@@ -912,8 +912,9 @@ fn check_classes(
             if takes.flag {
                 // The style sheet only asks whether the flag is there, so
                 // `="false"` turns it on. The same as for a boolean attribute
-                // on an element.
-                if lowercase(value) != a.name {
+                // on an element, `true` in lowercase included: Astro writes
+                // `data-optional={true}` that way.
+                if lowercase(value) != a.name && !equals(value, "true") {
                     let name = lossy(&a.name);
                     let v = lossy(value);
                     findings.push(Finding {

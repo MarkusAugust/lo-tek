@@ -1272,17 +1272,36 @@ mod tests {
             );
             assert!(found[0].fix.is_some(), "{html}");
         }
-        // A flag on a class is as it was. The builder functions write it
-        // with an empty value, which Astro writes bare. `data-optional={true}`
-        // written by hand in Astro does come out as `="true"`, and is still
-        // reported: there "true" is a value like any other.
-        let found = markup(r#"<label class="lt-label" data-optional="true">Navn</label>"#);
-        assert_eq!(found.len(), 1, "{found:?}");
-        assert!(
-            found[0].message.contains("flag on label"),
-            "{}",
-            found[0].message
-        );
+        // A flag on a class takes the same, see
+        // `a_flag_on_a_class_takes_true_and_nothing_else`.
+    }
+
+    #[test]
+    fn a_flag_on_a_class_takes_true_and_nothing_else() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        // `data-optional={true}` written by hand in Astro comes out as
+        // `="true"`, and is the flag turned on. In small letters only.
+        for html in [
+            r#"<label class="lt-label" data-optional="true">Navn</label>"#,
+            r#"<article class="lt-card" data-interactive="true">Krav</article>"#,
+        ] {
+            let found = markup(html);
+            assert!(found.is_empty(), "{html}: {found:?}");
+        }
+        for value in [
+            "false", "FALSE", "True", "TRUE", "tRue", " true", "true ", "truee", "1", "yes",
+        ] {
+            let html = format!(r#"<label class="lt-label" data-optional="{value}">Navn</label>"#);
+            let found = markup(&html);
+            assert_eq!(found.len(), 1, "{html}: {found:?}");
+            assert_eq!(found[0].rule, "boolean-with-value");
+            assert!(
+                found[0].message.contains("flag on label"),
+                "{}",
+                found[0].message
+            );
+            assert!(found[0].fix.is_some(), "{html}");
+        }
     }
 
     #[test]

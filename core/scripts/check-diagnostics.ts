@@ -386,11 +386,42 @@ const cases: Case[] = [
       fixTitle: "Remove optional",
     }),
   ),
-  // A flag on a class is as it was. The builder functions write it with an
-  // empty value, which Astro writes bare. `data-optional={true}` written by
-  // hand in Astro does come out as `data-optional="true"`, and is still
-  // reported: there "true" is a value like any other.
-  ...["true", "false"].map(
+  /*
+   * A flag on a class takes the same: `="true"` in small letters is the
+   * flag turned on, and nothing else is. `data-optional={true}` written by
+   * hand in Astro comes out as `data-optional="true"`; the builder
+   * functions write an empty value, which comes out bare. Every other
+   * value still turns the flag on and reads as if it did not.
+   */
+  ...[
+    ['<label class="lt-label" data-optional="true">N</label>', "label"],
+    [
+      '<article class="lt-card" data-interactive="true">Claim</article>',
+      "card",
+    ],
+    [
+      '<table class="lt-table" data-hoverable="true"><caption>Jobs</caption><tbody><tr><td>1</td></tr></tbody></table>',
+      "table",
+    ],
+  ].map(
+    ([html, on]): Case => ({
+      name: `a flag on a class written "true" is on, and fine, on ${on}`,
+      html,
+      count: 0,
+    }),
+  ),
+  ...[
+    "false",
+    "FALSE",
+    "True",
+    "TRUE",
+    "tRue",
+    " true",
+    "true ",
+    "truee",
+    "1",
+    "yes",
+  ].map(
     (value): Case => ({
       name: `a flag on a class with "${value}" is still reported`,
       html: `<label class="lt-label" data-optional="${value}">N</label>`,
@@ -401,8 +432,25 @@ const cases: Case[] = [
         "data-optional is a flag on label",
         `data-optional="${value}" means the same as data-optional`,
       ],
+      fixed: `<label class="lt-label">N</label>`,
+      fixTitle: "Remove data-optional",
     }),
   ),
+  {
+    name: 'a flag on another class with "false" is still reported',
+    html: `<article class="lt-card" data-interactive="false">Claim</article>`,
+    count: 1,
+    rule: "boolean-with-value",
+    mentions: ["data-interactive is a flag on card"],
+    fixed: `<article class="lt-card">Claim</article>`,
+  },
+  {
+    name: "a text template that writes the value of a flag on a class is still reported",
+    html: `<label class="lt-label" data-optional="{{ .Optional }}">N</label>`,
+    count: 1,
+    rule: "boolean-with-value",
+    mentions: ["flag on label"],
+  },
   {
     name: "a text template that writes the value of a boolean attribute is still reported",
     html: `<lt-popover open="{{ .Open }}"></lt-popover>`,

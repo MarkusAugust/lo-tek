@@ -1,24 +1,6 @@
 {
   "markup": [
     {
-      "start": 25,
-      "end": 48,
-      "severity": "warning",
-      "link": "https://lo-tek.sobernetics.no/components/card/",
-      "message": "data-interactive is a flag on card: it is either there or not. data-interactive=\"true\" means the same as data-interactive. Remove it to turn it off.",
-      "fix": {
-        "title": "Remove data-interactive",
-        "edits": [
-          {
-            "start": 24,
-            "end": 48,
-            "text": ""
-          }
-        ],
-        "preferred": true
-      }
-    },
-    {
       "start": 111,
       "end": 130,
       "severity": "warning",
@@ -30,6 +12,24 @@
           {
             "start": 110,
             "end": 130,
+            "text": ""
+          }
+        ],
+        "preferred": true
+      }
+    },
+    {
+      "start": 242,
+      "end": 265,
+      "severity": "warning",
+      "link": "https://lo-tek.sobernetics.no/components/card/",
+      "message": "data-interactive is a flag on card: it is either there or not. data-interactive=\"True\" means the same as data-interactive. Remove it to turn it off.",
+      "fix": {
+        "title": "Remove data-interactive",
+        "edits": [
+          {
+            "start": 241,
+            "end": 265,
             "text": ""
           }
         ],
@@ -39,24 +39,6 @@
   ],
   "page": [
     {
-      "start": 25,
-      "end": 48,
-      "severity": "warning",
-      "link": "https://lo-tek.sobernetics.no/components/card/",
-      "message": "data-interactive is a flag on card: it is either there or not. data-interactive=\"true\" means the same as data-interactive. Remove it to turn it off.",
-      "fix": {
-        "title": "Remove data-interactive",
-        "edits": [
-          {
-            "start": 24,
-            "end": 48,
-            "text": ""
-          }
-        ],
-        "preferred": true
-      }
-    },
-    {
       "start": 111,
       "end": 130,
       "severity": "warning",
@@ -68,6 +50,24 @@
           {
             "start": 110,
             "end": 130,
+            "text": ""
+          }
+        ],
+        "preferred": true
+      }
+    },
+    {
+      "start": 242,
+      "end": 265,
+      "severity": "warning",
+      "link": "https://lo-tek.sobernetics.no/components/card/",
+      "message": "data-interactive is a flag on card: it is either there or not. data-interactive=\"True\" means the same as data-interactive. Remove it to turn it off.",
+      "fix": {
+        "title": "Remove data-interactive",
+        "edits": [
+          {
+            "start": 241,
+            "end": 265,
             "text": ""
           }
         ],

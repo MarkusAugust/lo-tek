@@ -134,15 +134,15 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 ### Changed
 
 - **`lotek check` accepts `="true"` on a boolean attribute of a
-  web component,** and so do the editors, which run the same check.
-  Astro writes `optional` and `optional={true}` on `<lt-field>` as
-  `optional="true"`, which turns the attribute on, as meant, and the
-  check warned about it. Only `true` in lowercase is accepted. `="false"`
-  still gives the warning, since it turns the attribute on, and so does
-  `="True"`, which is how a template in Python prints a boolean it writes
-  as text. A flag on a class, such as `data-optional`, is as before. The
-  Astro section of the frameworks page and the rulebook for Astro say
-  how to write an attribute that can be off.
+  web component and on a flag of a class,** and so do the editors, which
+  run the same check. Astro writes `optional` and `optional={true}` on
+  `<lt-field>` as `optional="true"`, and `data-optional={true}` on a
+  label as `data-optional="true"`. Both turn it on, as meant, and the
+  check warned about them. Only `true` in lowercase is accepted.
+  `="false"` still gives the warning, since it turns it on too, and so
+  does `="True"`, which is how a template in Python prints a boolean it
+  writes as text. The Astro section of the frameworks page and the
+  rulebook for Astro say how to write an attribute that can be off.
 - **A message in `<lt-toast>` ends with `dismiss()`, `clear()` or its
   timer, not with `remove()` on the element.** The component puts back a
   message of its own that is taken out of the region, so that an update

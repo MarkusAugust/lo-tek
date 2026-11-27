@@ -383,7 +383,9 @@ and `optional={true}` both become `optional="true"`, which turns it on.
 `optional={isOptional || undefined}`: Astro leaves out an attribute that is
 `undefined`. On the rendered page, `lotek check` accepts `="true"` and warns
 about `="false"`. In the `.astro` file it does not read what an expression
-gives.
+gives. A flag on a class is written the same way: `data-optional={true}` on a
+label becomes `data-optional="true"`, and the check takes it the same. The
+builder functions write the flag so that it comes out bare.
 
 ## Known pitfalls
 
