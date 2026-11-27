@@ -981,24 +981,30 @@ describe("the open panel stays by its button when an update takes its style", ()
     return [left, top, width, height].map((n) => Math.round(n * 10) / 10)
   }
 
-  /** What is wrong with where the panel stands, measured against its button. */
+  /**
+   * What is wrong with where the panel stands, in what no machine decides:
+   * it is on the side of the button it was asked for, it reaches in over
+   * the button's width, and it is not in the corner of the window, where
+   * the stylesheet puts it with nothing to go by. Not which edge it lines
+   * up with: the component moves a panel in from the edge of the window,
+   * and how far depends on how wide the fonts of the machine make it. The
+   * exact place is held by comparing with where the panel was.
+   */
   function astray(panel: HTMLElement, trigger: HTMLElement, placement: string) {
     const [p, t] = [panel, trigger].map((e) => e.getBoundingClientRect())
     const faults: string[] = []
     if (!panel.matches(":popover-open")) return ["the panel is not open"]
-    const [side, edge] = placement.split("-")
-    const gap = side === "bottom" ? p.top - t.bottom : t.top - p.bottom
-    if (gap < -1 || gap > 16)
+    const below = placement.startsWith("bottom")
+    if (below ? p.top < t.bottom - 1 : p.bottom > t.top + 1)
       faults.push(
-        `the panel, from ${Math.round(p.top)} to ${Math.round(p.bottom)}, does not stand ${side === "bottom" ? "under" : "over"} the button, from ${Math.round(t.top)} to ${Math.round(t.bottom)}`,
+        `the panel, from ${Math.round(p.top)} to ${Math.round(p.bottom)}, does not stand ${below ? "under" : "over"} the button, from ${Math.round(t.top)} to ${Math.round(t.bottom)}`,
       )
-    // By the button's own edge, give or take what the panel's border and
-    // the rounding of the two make of it.
-    const apart = edge === "start" ? p.left - t.left : p.right - t.right
-    if (Math.abs(apart) > 6)
+    if (p.right <= t.left || p.left >= t.right)
       faults.push(
-        `the panel's ${edge} edge is ${Math.round(apart)} from the button's`,
+        `the panel, from ${Math.round(p.left)} to ${Math.round(p.right)}, is not by the button, from ${Math.round(t.left)} to ${Math.round(t.right)}`,
       )
+    if (p.left < 1 && p.top < 1)
+      faults.push("the panel is in the corner of the window")
     return faults
   }
 
