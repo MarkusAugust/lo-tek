@@ -192,7 +192,9 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
   page in between, the page came back in the old theme, with the old
   button checked, while the new choice was the one stored. Both scripts of
   the recipe, and of the one for `<ClientRouter />`, now do their work
-  again at `pageshow`.
+  again at `pageshow`. The script in `<head>` also removes `data-theme`
+  from `<html>` when no theme is stored, so a `data-theme` written in the
+  markup no longer stands when the user has chosen nothing.
 - **The recipes for `help-text` and `error-text` are wired to a field.**
   The first example on each page showed the texts alone, and pasted into
   a page it gave the warning of `lotek check` that the text is not wired
