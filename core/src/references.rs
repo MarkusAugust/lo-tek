@@ -512,7 +512,7 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                             // comes with the advice.
                             match *name {
                                 "for" => format!(" {HOW}"),
-                                "aria-describedby" => " Write that id on the text that describes the field, or take it out of aria-describedby.".into(),
+                                "aria-describedby" => " Write that id on the text that describes this element, or take it out of aria-describedby.".into(),
                                 "aria-labelledby" => " Write that id on the element that names this one, or take it out of aria-labelledby.".into(),
                                 _ => String::new(),
                             }
@@ -570,11 +570,23 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             continue;
         }
 
-        // The name of the text, and the option of the builder that wires it.
+        // The name of the text, and what the builder takes to wire it. An
+        // error text is only wired when the field is invalid, and a warning
+        // is no error: neither <lt-field> nor `error` is for it.
+        let variant = value(node, "data-variant")
+            .and_then(|a| a.value.as_deref())
+            .unwrap_or(&[]);
         let kind = if has_class(node, |c| equals(c, "lt-error-text")) {
-            Some(("The error text", "error"))
+            if equals(variant, "warning") {
+                Some(("The error text", None))
+            } else {
+                Some((
+                    "The error text",
+                    Some(("error: true, invalid: true", "error = true, invalid = true")),
+                ))
+            }
         } else if has_class(node, |c| equals(c, "lt-help-text")) {
-            Some(("The help text", "help"))
+            Some(("The help text", Some(("help: true", "help = true"))))
         } else {
             None
         };
@@ -583,7 +595,7 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             .unwrap_or(&[]);
         let live =
             equals(role, "status") || equals(role, "alert") || value(node, "aria-live").is_some();
-        if let Some((kind, option)) = kind {
+        if let Some((kind, options)) = kind {
             if !live && !is_hidden(&nodes, n) {
                 let id = non_empty(node, "id");
                 if id.is_none_or(|id| !described_by.contains(&decode(id))) {
@@ -598,13 +610,21 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                         Some(_) => "Write that id in aria-describedby on the field",
                         None => "Write an id on the text and the same id in aria-describedby on the field",
                     };
+                    let how = match options {
+                        Some((typescript, kotlin)) => format!(
+                            "{write}, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({{ id, {typescript} }}) or Lt.field(id = ..., {kotlin}) writes both the id and aria-describedby."
+                        ),
+                        None => format!(
+                            "{write}. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field()."
+                        ),
+                    };
                     out.push(findings(
                     "text-not-wired",
                         node.name_start,
                         node.name_end,
                         Severity::Warning,
                         LINK,
-                        format!("{kind} is not wired to any field: {middle}A screen reader does not announce it together with the field. {write}, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({{ id, {option}: true }}) or Lt.field(id = ..., {option} = true) does it."),
+                        format!("{kind} is not wired to any field: {middle}A screen reader does not announce it together with the field. {how}"),
                     ));
                 }
             }

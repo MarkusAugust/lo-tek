@@ -934,10 +934,24 @@ cases.push(
     mentions: [
       '"email-error"',
       "The screen reader loses the description.",
-      "Write that id on the text that describes the field, or take it out of aria-describedby.",
+      "Write that id on the text that describes this element, or take it out of aria-describedby.",
     ],
-    notMentions: ["for on the label", "lt.field("],
+    notMentions: ["for on the label", "lt.field(", "describes the field"],
     covers: "email-error",
+  },
+  {
+    name: "page: aria-describedby on something that is no field points at an id that does not exist",
+    html: `<table class="lt-table" aria-describedby="note"><caption>Jobs</caption><tbody><tr><td>222-0479</td></tr></tbody></table>`,
+    count: 1,
+    page: true,
+    severity: "error",
+    rule: "id-not-found",
+    mentions: [
+      '"note"',
+      "The screen reader loses the description.",
+      "Write that id on the text that describes this element, or take it out of aria-describedby.",
+    ],
+    notMentions: ["for on the label", "lt.field(", "the field"],
   },
   {
     name: "page: aria-labelledby points at an id that does not exist",
@@ -1009,10 +1023,18 @@ cases.push(
     mentions: ['"x"'],
   },
   /*
-   * A text no field points at. The advice is for a text and its field, an
-   * id and `aria-describedby` or `<lt-field>` around the two, and not the
-   * advice for a label. It has two endings: a text without an id is told
-   * to write one, and a text that has one is told where to write it.
+   * A text no field points at. The advice is for a text and its field, and
+   * not the advice for a label. It says what is true for the text it is on:
+   *
+   *   - a text without an id is told to write one, and a text that has one
+   *     is told where to write it;
+   *   - the builder function is said to write the id and `aria-describedby`,
+   *     and for an error text that is with `invalid`, since the builder
+   *     hides an error text and leaves it out of `aria-describedby` until
+   *     the field is invalid;
+   *   - a warning is not an error on the field: `<lt-field>` would mark the
+   *     field invalid for it, and `error` is not what it is. Its id is named
+   *     in `describedBy`.
    */
   {
     name: "page: a help text without an id",
@@ -1022,39 +1044,37 @@ cases.push(
     severity: "warning",
     rule: "text-not-wired",
     mentions: [
-      "The help text",
+      "The help text is not wired to any field",
       "has no id",
-      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>",
-      "which wires them in the browser",
-      "lt.field({ id, help: true })",
-      "Lt.field(id = ..., help = true)",
+      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, help: true }) or Lt.field(id = ..., help = true) writes both the id and aria-describedby.",
     ],
     notMentions: [
       "for on the label",
       "error: true",
       "error = true",
+      "does it",
+      "describedBy",
       "Write that id",
     ],
   },
   {
     name: "page: a help text with an id nothing points at",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text" id="a-help">Text</p>`,
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text" id="a-text">Text</p>`,
     count: 1,
     page: true,
     severity: "warning",
     rule: "text-not-wired",
     mentions: [
-      "The help text",
-      '"a-help"',
-      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>",
-      "which wires them in the browser",
-      "lt.field({ id, help: true })",
-      "Lt.field(id = ..., help = true)",
+      "The help text is not wired to any field",
+      '"a-text"',
+      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, help: true }) or Lt.field(id = ..., help = true) writes both the id and aria-describedby.",
     ],
     notMentions: [
       "for on the label",
       "error: true",
       "error = true",
+      "does it",
+      "describedBy",
       "Write an id on the text",
     ],
   },
@@ -1066,39 +1086,85 @@ cases.push(
     severity: "warning",
     rule: "text-not-wired",
     mentions: [
-      "The error text",
+      "The error text is not wired to any field",
       "has no id",
-      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>",
-      "which wires them in the browser",
-      "lt.field({ id, error: true })",
-      "Lt.field(id = ..., error = true)",
+      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, error: true, invalid: true }) or Lt.field(id = ..., error = true, invalid = true) writes both the id and aria-describedby.",
     ],
     notMentions: [
       "for on the label",
       "help: true",
       "help = true",
+      "does it",
+      "describedBy",
+      "lt.field({ id, error: true })",
       "Write that id",
     ],
   },
   {
-    name: "page: a visible error text nothing points at",
-    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-error">Text</p>`,
+    name: "page: an error text with an id nothing points at",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" id="a-text">Text</p>`,
     count: 1,
     page: true,
     severity: "warning",
     rule: "text-not-wired",
     mentions: [
-      "The error text",
-      '"a-error"',
-      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>",
-      "which wires them in the browser",
-      "lt.field({ id, error: true })",
-      "Lt.field(id = ..., error = true)",
+      "The error text is not wired to any field",
+      '"a-text"',
+      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, error: true, invalid: true }) or Lt.field(id = ..., error = true, invalid = true) writes both the id and aria-describedby.",
     ],
     notMentions: [
       "for on the label",
       "help: true",
       "help = true",
+      "does it",
+      "describedBy",
+      "lt.field({ id, error: true })",
+      "Write an id on the text",
+    ],
+  },
+  {
+    name: "page: a warning without an id",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" data-variant="warning">Text</p>`,
+    count: 1,
+    page: true,
+    severity: "warning",
+    rule: "text-not-wired",
+    mentions: [
+      "The error text is not wired to any field",
+      "has no id",
+      "Write an id on the text and the same id in aria-describedby on the field. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field().",
+    ],
+    notMentions: [
+      "for on the label",
+      "<lt-field>",
+      "error: true",
+      "error = true",
+      "help: true",
+      "does it",
+      "writes both",
+      "Write that id",
+    ],
+  },
+  {
+    name: "page: a warning with an id nothing points at",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" data-variant="warning" id="a-text">Text</p>`,
+    count: 1,
+    page: true,
+    severity: "warning",
+    rule: "text-not-wired",
+    mentions: [
+      "The error text is not wired to any field",
+      '"a-text"',
+      "Write that id in aria-describedby on the field. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field().",
+    ],
+    notMentions: [
+      "for on the label",
+      "<lt-field>",
+      "error: true",
+      "error = true",
+      "help: true",
+      "does it",
+      "writes both",
       "Write an id on the text",
     ],
   },
