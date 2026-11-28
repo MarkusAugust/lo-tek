@@ -331,6 +331,20 @@ const field = lt.field({ id: "fixer", required: "symbol", help: true, error: tru
 
 If you use React, import from `@lo-tek/interfaces/react`, which gives `className` and `htmlFor` instead of the HTML names.
 
+### A warning
+
+A warning is an error text with the variant `warning`. It is read out with the field, and the field is not invalid because of it. `warning: true` gives it an id and names that id in `aria-describedby`, after the help text and the error text:
+
+```tsx
+const field = lt.field({ id: "budget", warning: true })
+
+<label {...field.label}>Budget</label>
+<input {...lt.input()} {...field.control} />
+<p {...lt.errorText({ variant: "warning" })} {...field.warning}>Above what this fixer usually takes.</p>
+```
+
+Turn `warning` on only when you render the warning: the function names its id whenever the option is on. In Kotlin it is `Lt.field(id = "budget", warning = true)`.
+
 **`id` is required.** In React it comes from `useId()`. Otherwise the field's own name is usually the obvious choice. If you know for certain that the markup is rendered once, as on an Astro page, you can call `createFieldId()`, which you get from both `@lo-tek/interfaces` and `@lo-tek/interfaces/react`.
 
 The reason is that an id generated on its own is random: two runs give two different ones. If the same field is rendered on a server and then in the browser, `for` and `aria-describedby` point to something other than what is there, and React reports a hydration mismatch.
@@ -356,9 +370,9 @@ If the component cannot find its parts, it warns in the console. An `<lt-field>`
 Every time the content or the attributes change, it finds the `<label>` and the first control among its own parts and:
 
 1. Sets `label[for]` to the control's `id` when the control has one, and the label is not around the control. The control never gets an id from the component.
-2. Gives the help text and the error text an `id` when needed.
-3. Sets `aria-describedby` on the control: the help text always, and the error text as well when it is visible. A hidden error text should not be announced.
-4. Sets `aria-invalid="true"` on the control when the error text is visible, meaning it has text and is without `hidden` and without `display: none`. `data-show` in Datastar and `data-text` in a container that is empty therefore also work.
+2. Gives the help text, the error text and a warning an `id` when needed.
+3. Sets `aria-describedby` on the control: the help text always, and the error text and a warning as well when they are visible. A hidden text should not be announced.
+4. Sets `aria-invalid="true"` on the control when the error text is visible, meaning it has text and is without `hidden` and without `display: none`. `data-show` in Datastar and `data-text` in a container that is empty therefore also work. A warning, an error text with `data-variant="warning"`, does not make the field invalid.
 5. Sets `data-optional` on the label when `<lt-field>` has `optional`.
 
 The error text can be in the markup all the time with `hidden`, or be rendered by the template only when the field is invalid. The component never touches `hidden` on it.

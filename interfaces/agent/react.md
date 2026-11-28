@@ -270,7 +270,9 @@ Three rules apply to all of them:
    field has a name without JavaScript too. The component wires the help text
    and the error text with `aria-describedby` and `aria-invalid`, and never
    writes an id on the control, so the id is yours, from `useId()`. The field
-   is invalid when the error text is there without `hidden`.
+   is invalid when the error text is there without `hidden`. A warning, an
+   error text with `data-variant="warning"`, is wired too, and the field is
+   not invalid because of it.
 
 | Element | Category | Stylesheet | Registration | Attributes | Events | Classes inside |
 | --- | --- | --- | --- | --- | --- | --- |

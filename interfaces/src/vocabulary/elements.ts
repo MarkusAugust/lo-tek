@@ -43,8 +43,15 @@ export const elements: Elements = {
         "optional": true
       },
       "error": {
-        "selector": ".lt-error-text",
+        "selector": ".lt-error-text:not([data-variant='warning'])",
         "description": "The error text, which is shown and read out when the field is invalid.",
+        "content": "text",
+        "unique": true,
+        "optional": true
+      },
+      "warning": {
+        "selector": ".lt-error-text[data-variant='warning']",
+        "description": "A warning: an error text with `data-variant=\"warning\"`. It is read out with the control while it shows, and the field is not invalid because of it.",
         "content": "text",
         "unique": true,
         "optional": true

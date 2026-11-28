@@ -2358,8 +2358,9 @@
         "Lt",
         "Lt.field()",
         "aria-describedby",
+        "warning: true",
         "lt.field()",
-        "describedBy",
+        "<lt-field>",
         "data-variant",
         "warning",
         ".lt-error-text",
@@ -2527,6 +2528,12 @@
           "meta": null,
           "code": "const field = lt.field({ id: \"fixer\", required: \"symbol\", help: true, error: true, invalid })\n\n<label {...field.label}>Fixer's address</label>\n<input {...lt.input({ type: \"email\" })} {...field.control} />\n<p {...lt.helpText()} {...field.help}>The board writes to the fixer, never to the crew.</p>\n<p {...lt.errorText()} {...field.error}>Enter the fixer's address, for example fixer@relay.example.</p>",
           "section": "As a function"
+        },
+        {
+          "lang": "tsx",
+          "meta": null,
+          "code": "const field = lt.field({ id: \"budget\", warning: true })\n\n<label {...field.label}>Budget</label>\n<input {...lt.input()} {...field.control} />\n<p {...lt.errorText({ variant: \"warning\" })} {...field.warning}>Above what this fixer usually takes.</p>",
+          "section": "As a function"
         }
       ],
       "inline": [
@@ -2596,6 +2603,11 @@
         "@lo-tek/interfaces/react",
         "className",
         "htmlFor",
+        "warning",
+        "warning: true",
+        "aria-describedby",
+        "warning",
+        "Lt.field(id = \"budget\", warning = true)",
         "id",
         "useId()",
         "createFieldId()",
@@ -2626,6 +2638,7 @@
         "display: none",
         "data-show",
         "data-text",
+        "data-variant=\"warning\"",
         "data-optional",
         "<lt-field>",
         "optional",

@@ -63,6 +63,13 @@ export const field: ComponentDoc = {
       unique: true,
       optional: true,
     },
+    warning: {
+      description:
+        'A warning: an error text with `data-variant="warning"`. It is read out with the control while it shows, and the field is not invalid because of it.',
+      content: "text",
+      unique: true,
+      optional: true,
+    },
   }),
   anatomies: {
     field: {
@@ -83,6 +90,11 @@ export const field: ComponentDoc = {
           description: "What is wrong.",
           content: "text",
           example: "Enter an email address.",
+        },
+        warning: {
+          description: "What to look at again. The field is not wrong.",
+          content: "text",
+          example: "This address has bounced before.",
         },
         "option-value": {
           description:
@@ -110,6 +122,9 @@ export const field: ComponentDoc = {
         },
         errorId: {
           tool: "Left out: the id of the error text is made from the field's.",
+        },
+        warningId: {
+          tool: "Left out: the id of the warning is made from the field's.",
         },
         describedBy: {
           tool: "Left out: the help and error texts are wired by the field.",
@@ -179,6 +194,14 @@ export const field: ComponentDoc = {
               when: "error",
               children: [{ hole: "error" }],
             },
+            {
+              // A warning is an error text of the variant warning.
+              tag: "p",
+              from: ["errorText", "field.warning"],
+              options: { errorText: { variant: "warning" } },
+              when: "warning",
+              children: [{ hole: "warning" }],
+            },
           ],
         },
       ],
@@ -190,6 +213,7 @@ export const field: ComponentDoc = {
       control: { element: LT_FIELD_TAG, part: "control" },
       help: { element: LT_FIELD_TAG, part: "help" },
       error: { element: LT_FIELD_TAG, part: "error" },
+      warning: { element: LT_FIELD_TAG, part: "warning" },
     },
   },
 }

@@ -156,6 +156,11 @@ export const suggestion: ComponentDoc = {
           content: "text",
           example: "Choose a breaker from the list.",
         },
+        warning: {
+          description: "What to look at again. The field is not wrong.",
+          content: "text",
+          example: "This breaker is booked until Friday.",
+        },
       },
       options: {
         id: { hole: "control" },
@@ -216,6 +221,14 @@ export const suggestion: ComponentDoc = {
               when: "error",
               children: [{ hole: "error" }],
             },
+            {
+              // A warning is an error text of the variant warning.
+              tag: "p",
+              from: ["errorText", "suggestion.warning"],
+              options: { errorText: { variant: "warning" } },
+              when: "warning",
+              children: [{ hole: "warning" }],
+            },
           ],
         },
       ],
@@ -230,10 +243,12 @@ export const suggestion: ComponentDoc = {
       empty: { element: LT_SUGGESTION_TAG, part: "empty" },
       status: { element: LT_SUGGESTION_TAG, part: "status" },
       value: { element: LT_SUGGESTION_TAG, part: "value" },
-      // The help text and the error text of a suggestion field are those of
-      // the field around it, which `<lt-suggestion>` does not read.
+      // The help text, the error text and the warning of a suggestion field
+      // are those of the field around it, which `<lt-suggestion>` does not
+      // read.
       help: null,
       error: null,
+      warning: null,
     },
   },
 }
