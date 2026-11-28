@@ -18,7 +18,8 @@ class TagsOfTest : TestCase() {
     private val expected: Map<String, List<String>?> =
         mapOf(
             ".lt-dialog__body" to null,
-            ".lt-error-text" to null,
+            ".lt-error-text:not([data-variant='warning'])" to null,
+            ".lt-error-text[data-variant='warning']" to null,
             ".lt-help-text" to null,
             ".lt-session-timeout__count" to null,
             ".lt-session-timeout__text" to null,

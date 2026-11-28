@@ -175,6 +175,7 @@ export const suggestion = ({
     }),
     help: computed.help,
     error: computed.error,
+    warning: computed.warning,
     state: computed.state,
   }
 }

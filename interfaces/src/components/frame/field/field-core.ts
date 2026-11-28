@@ -45,10 +45,17 @@ export type FieldOptions = {
   help?: boolean
   /** The field has an error text. It is hidden until the field is invalid. */
   error?: boolean
+  /**
+   * The field has a warning: an error text with the variant `warning`. It is
+   * read out with the control, and the field is not invalid because of it.
+   */
+  warning?: boolean
   /** A separate id for the help text. Derived from `id` if left out. */
   helpId?: string
   /** A separate id for the error text. Derived from `id` if left out. */
   errorId?: string
+  /** A separate id for the warning. Derived from `id` if left out. */
+  warningId?: string
   /** Marks the label as required. */
   required?: RequiredMarker
   /** Marks the label as optional. */
@@ -78,6 +85,7 @@ export type FieldAttributes = {
   }
   help: { id: string }
   error: { id: string; hidden?: true }
+  warning: { id: string }
   /** The state the control should have, for `input()`, `textarea()` and `select()`. */
   state: FieldState
 }
@@ -109,6 +117,7 @@ export function computeFieldAttributes(options: FieldOptions): FieldAttributes {
     id: givenId,
     help = false,
     error = false,
+    warning = false,
     required,
     optional,
     invalid = false,
@@ -120,6 +129,7 @@ export function computeFieldAttributes(options: FieldOptions): FieldAttributes {
   const id = idOrFallback("lt.field()", givenId)
   const helpId = options.helpId ?? `${id}-help`
   const errorId = options.errorId ?? `${id}-error`
+  const warningId = options.warningId ?? `${id}-warning`
 
   return {
     label: attributes({
@@ -134,6 +144,7 @@ export function computeFieldAttributes(options: FieldOptions): FieldAttributes {
       "aria-describedby": joinDescribedBy([
         help && helpId,
         invalid && error && errorId,
+        warning && warningId,
         ...describedBy,
       ]),
       "aria-invalid": invalid ? ("true" as const) : undefined,
@@ -149,6 +160,7 @@ export function computeFieldAttributes(options: FieldOptions): FieldAttributes {
       id: errorId,
       hidden: invalid ? undefined : (true as const),
     }),
+    warning: attributes({ id: warningId }),
     state: invalid ? "invalid" : "default",
   }
 }

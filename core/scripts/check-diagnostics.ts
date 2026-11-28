@@ -215,6 +215,39 @@ const cases: Case[] = [
     mentions: ['"help"'],
     coversAt: 90,
   },
+  /*
+   * An error text and a warning are two parts of a field, told apart by
+   * `data-variant`. One of each is a field as it should be. Two of the
+   * same is one too many: the component uses the first.
+   */
+  {
+    name: "a field with an error text and a warning has one of each part",
+    html: `<lt-field><label for="a">A</label><input id="a"><p class="lt-error-text" hidden>Wrong</p><p class="lt-error-text" data-variant="warning">Much</p></lt-field>`,
+    count: 0,
+  },
+  {
+    name: "a field with a warning before its error text has one of each part",
+    html: `<lt-field><label for="a">A</label><input id="a"><p class="lt-error-text" data-variant="warning">Much</p><p class="lt-error-text" hidden>Wrong</p></lt-field>`,
+    count: 0,
+  },
+  {
+    name: "a field with two warnings",
+    html: `<lt-field><label for="a">A</label><input id="a"><p class="lt-error-text" data-variant="warning">Much</p><p class="lt-error-text" data-variant="warning">Very much</p></lt-field>`,
+    count: 1,
+    rule: "part-repeated",
+    mentions: ['<lt-field> has the part "warning" more than once'],
+    notMentions: ['the part "error"'],
+    severity: "warning",
+  },
+  {
+    name: "a field with two error texts, and a warning beside them",
+    html: `<lt-field><label for="a">A</label><input id="a"><p class="lt-error-text" hidden>Wrong</p><p class="lt-error-text" hidden>Also wrong</p><p class="lt-error-text" data-variant="warning">Much</p></lt-field>`,
+    count: 1,
+    rule: "part-repeated",
+    mentions: ['<lt-field> has the part "error" more than once'],
+    notMentions: ['the part "warning"'],
+    severity: "warning",
+  },
   {
     name: "a class with two of a part that must appear once",
     html: `<table class="lt-table"><caption>A</caption><caption>B</caption><thead></thead><tbody></tbody></table>`,
@@ -1153,9 +1186,9 @@ cases.push(
    *     and for an error text that is with `invalid`, since the builder
    *     hides an error text and leaves it out of `aria-describedby` until
    *     the field is invalid;
-   *   - a warning is not an error on the field: `<lt-field>` would mark the
-   *     field invalid for it, and `error` is not what it is. Its id is named
-   *     in `describedBy`.
+   *   - a warning is not an error on the field, and has an option of its
+   *     own: `warning`, which names it whenever it is there and says nothing
+   *     of the field being invalid. `<lt-field>` wires it the same way.
    */
   {
     name: "page: a help text without an id",
@@ -1253,16 +1286,16 @@ cases.push(
     mentions: [
       "The error text is not wired to any field",
       "has no id",
-      "Write an id on the text and the same id in aria-describedby on the field. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field().",
+      "Write an id on the text and the same id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, warning: true }) or Lt.field(id = ..., warning = true) writes both the id and aria-describedby.",
     ],
     notMentions: [
       "for on the label",
-      "<lt-field>",
+      "describedBy",
       "error: true",
       "error = true",
+      "invalid",
       "help: true",
       "does it",
-      "writes both",
       "Write that id",
     ],
   },
@@ -1276,16 +1309,16 @@ cases.push(
     mentions: [
       "The error text is not wired to any field",
       '"a-text"',
-      "Write that id in aria-describedby on the field. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field().",
+      "Write that id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, warning: true }) or Lt.field(id = ..., warning = true) writes both the id and aria-describedby.",
     ],
     notMentions: [
       "for on the label",
-      "<lt-field>",
+      "describedBy",
       "error: true",
       "error = true",
+      "invalid",
       "help: true",
       "does it",
-      "writes both",
       "Write an id on the text",
     ],
   },

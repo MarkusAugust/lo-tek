@@ -272,7 +272,9 @@ Three rules apply to all of them:
    the error text with `aria-describedby` and `aria-invalid`, and never writes
    an id on the control: an id the server did not send makes an update from
    the server replace the field, with the focus and what the user has typed.
-   The field is invalid when the error text is there without `hidden`.
+   The field is invalid when the error text is there without `hidden`. A
+   warning, an error text with `data-variant="warning"`, is wired too, and the
+   field is not invalid because of it.
 
 | Element | Category | Stylesheet | Registration | Attributes | Events | Classes inside |
 | --- | --- | --- | --- | --- | --- | --- |

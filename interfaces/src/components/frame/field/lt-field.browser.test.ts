@@ -1139,3 +1139,406 @@ describe("lt-field does not read its own echo from the label", () => {
     expect(input.getAttribute("aria-describedby")).toBe(help.id)
   })
 })
+
+/*
+ * A warning is an error text with `data-variant="warning"`. It says
+ * something about the value without the field being wrong: the screen
+ * reader hears it with the field, as it hears the help text, and the
+ * field is not invalid because of it. What makes a field invalid is an
+ * error text that is shown, or the server's own word.
+ */
+describe("lt-field with a warning", () => {
+  beforeAll(() => {
+    defineLtField()
+  })
+
+  beforeEach(() => {
+    document.body.innerHTML = ""
+  })
+
+  /** A field with a help text, an error text and a warning, each as the case says. */
+  function field(parts: {
+    error?: string
+    warning?: string
+    control?: string
+    order?: "error first" | "warning first"
+  }) {
+    const error =
+      parts.error === undefined
+        ? ""
+        : `<p class="lt-error-text" id="budget-error"${parts.error}>Enter the budget in EB.</p>`
+    const warning =
+      parts.warning === undefined
+        ? ""
+        : `<p class="lt-error-text" data-variant="warning"${parts.warning}>This is more than the crew has taken before.</p>`
+    return `
+      <lt-field id="budget-field">
+        <label for="budget">Budget</label>
+        <input id="budget" class="lt-input"${parts.control ?? ""} />
+        <p class="lt-help-text" id="budget-help">In EB, without spaces.</p>
+        ${parts.order === "warning first" ? warning + error : error + warning}
+      </lt-field>`
+  }
+  const input = () => document.getElementById("budget") as HTMLInputElement
+  const warningText = () =>
+    document.querySelector(
+      '.lt-error-text[data-variant="warning"]',
+    ) as HTMLElement
+  /** What the screen reader is told about the field. */
+  const told = () => ({
+    describedBy: input().getAttribute("aria-describedby"),
+    invalid: input().getAttribute("aria-invalid"),
+    state: input().getAttribute("data-state"),
+  })
+
+  it("gives a visible warning an id and names it in aria-describedby, and the field is not invalid", async () => {
+    mount(field({ warning: "" }))
+    await waitForPaint()
+
+    const id = warningText().id
+    expect(id, "the warning has an id").not.toBe("")
+    expect(told()).toEqual({
+      describedBy: `budget-help ${id}`,
+      invalid: null,
+      state: null,
+    })
+  })
+
+  it("keeps the id the server wrote on the warning", async () => {
+    mount(field({ warning: ' id="over-budget"' }))
+    await waitForPaint()
+
+    expect(warningText().id).toBe("over-budget")
+    expect(told()).toEqual({
+      describedBy: "budget-help over-budget",
+      invalid: null,
+      state: null,
+    })
+  })
+
+  for (const [how, written] of [
+    ["hidden", ' id="over-budget" hidden'],
+    ["display: none in its style", ' id="over-budget" style="display: none"'],
+    ["a class that hides it", ' id="over-budget" class="gone"'],
+  ] as const)
+    it(`leaves a warning with ${how} out of aria-describedby`, async () => {
+      mount(
+        `<style>.gone { display: none }</style>${field({
+          warning: written.replace(' class="gone"', ""),
+        })}`,
+      )
+      if (written.includes("gone")) warningText().classList.add("gone")
+      await waitForPaint()
+
+      expect(told()).toEqual({
+        describedBy: "budget-help",
+        invalid: null,
+        state: null,
+      })
+    })
+
+  it("leaves a warning without text out of aria-describedby", async () => {
+    mount(field({ warning: ' id="over-budget"' }))
+    warningText().textContent = "  "
+    await waitForPaint()
+
+    expect(told()).toEqual({
+      describedBy: "budget-help",
+      invalid: null,
+      state: null,
+    })
+  })
+
+  it("names a warning that comes to be shown, and takes it out when it is hidden again", async () => {
+    mount(field({ warning: ' id="over-budget" hidden' }))
+    await waitForPaint()
+    expect(told().describedBy).toBe("budget-help")
+
+    warningText().hidden = false
+    await waitForPaint()
+    expect(told()).toEqual({
+      describedBy: "budget-help over-budget",
+      invalid: null,
+      state: null,
+    })
+
+    warningText().hidden = true
+    await waitForPaint()
+    expect(told()).toEqual({
+      describedBy: "budget-help",
+      invalid: null,
+      state: null,
+    })
+  })
+
+  for (const order of ["error first", "warning first"] as const) {
+    it(`is valid with a warning shown and an error text hidden, ${order} in the markup`, async () => {
+      mount(field({ error: " hidden", warning: ' id="over-budget"', order }))
+      await waitForPaint()
+
+      expect(told()).toEqual({
+        describedBy: "budget-help over-budget",
+        invalid: null,
+        state: null,
+      })
+    })
+
+    it(`is invalid by the error text alone, and names the help text, the error text and the warning in that order, ${order} in the markup`, async () => {
+      mount(field({ error: "", warning: ' id="over-budget"', order }))
+      await waitForPaint()
+
+      expect(told()).toEqual({
+        describedBy: "budget-help budget-error over-budget",
+        invalid: "true",
+        state: "invalid",
+      })
+    })
+
+    it(`is invalid with an error text shown and a warning hidden, ${order} in the markup`, async () => {
+      mount(field({ error: "", warning: ' id="over-budget" hidden', order }))
+      await waitForPaint()
+
+      expect(told()).toEqual({
+        describedBy: "budget-help budget-error",
+        invalid: "true",
+        state: "invalid",
+      })
+    })
+  }
+
+  it("takes an error text with another variant than warning as an error", async () => {
+    mount(field({ error: ' data-variant="strong"' }))
+    await waitForPaint()
+
+    expect(told()).toEqual({
+      describedBy: "budget-help budget-error",
+      invalid: "true",
+      state: "invalid",
+    })
+  })
+
+  it("leaves the field invalid when the server says so, with only a warning shown", async () => {
+    mount(
+      field({
+        warning: ' id="over-budget"',
+        control: ' aria-invalid="true"',
+      }),
+    )
+    await waitForPaint()
+
+    expect(told()).toMatchObject({
+      describedBy: "budget-help over-budget",
+      invalid: "true",
+    })
+  })
+
+  it("follows data-variant when it is taken off the warning and put back", async () => {
+    mount(field({ warning: ' id="over-budget"' }))
+    await waitForPaint()
+    expect(told().invalid, "a warning to begin with").toBeNull()
+
+    // The same element is an error text now, and it is shown.
+    warningText().removeAttribute("data-variant")
+    await waitForPaint()
+    expect(told(), "as an error text").toEqual({
+      describedBy: "budget-help over-budget",
+      invalid: "true",
+      state: "invalid",
+    })
+
+    document
+      .getElementById("over-budget")
+      ?.setAttribute("data-variant", "warning")
+    await waitForPaint()
+    expect(told(), "as a warning again").toEqual({
+      describedBy: "budget-help over-budget",
+      invalid: null,
+      state: null,
+    })
+  })
+
+  for (const way of REPLACEMENTS)
+    it(`follows an update by ${way} that writes an error text where the warning was, and a warning again`, async () => {
+      const asWarning = field({ warning: ' id="budget-note"' }).trim()
+      const asError = asWarning.replace(' data-variant="warning"', "")
+      mount(asWarning)
+      await waitForPaint()
+      expect(told().invalid, "a warning to begin with").toBeNull()
+
+      replace(way, "budget-field", asError)
+      await waitForPaint()
+      await waitForPaint()
+      expect(told(), "after the error text arrived").toEqual({
+        describedBy: "budget-help budget-note",
+        invalid: "true",
+        state: "invalid",
+      })
+
+      replace(way, "budget-field", asWarning)
+      await waitForPaint()
+      await waitForPaint()
+      expect(told(), "after the warning came back").toEqual({
+        describedBy: "budget-help budget-note",
+        invalid: null,
+        state: null,
+      })
+    })
+
+  // The ways that keep the field's own element: one that writes a new
+  // element has a new component, which has nothing to remember.
+  for (const way of ["Datastar", "idiomorph"] as const)
+    it(`gives the warning the same id and names it again after an update by ${way} that has neither`, async () => {
+      // The server writes no id on the warning and no aria-describedby:
+      // the component gave both, and gives the same again.
+      const sent = field({ warning: "" })
+        .replace(' id="budget-help"', "")
+        .trim()
+      mount(sent)
+      await waitForPaint()
+      const id = warningText().id
+      const before = told()
+      expect(id).not.toBe("")
+      expect(before.describedBy?.split(" ")).toContain(id)
+
+      replace(way, "budget-field", sent)
+      await waitForPaint()
+      await waitForPaint()
+
+      expect(warningText().id).toBe(id)
+      expect(told()).toEqual(before)
+    })
+
+  it("keeps an id of the server's own in aria-describedby beside the warning", async () => {
+    mount(
+      `${field({
+        warning: ' id="over-budget"',
+        control: ' aria-describedby="terms"',
+      })}<p id="terms">The terms of the job.</p>`,
+    )
+    await waitForPaint()
+
+    expect(told()).toEqual({
+      describedBy: "budget-help over-budget terms",
+      invalid: null,
+      state: null,
+    })
+  })
+
+  it("has no accessibility violations with a warning shown", async () => {
+    mount(
+      field({ warning: ' id="over-budget"' }).replace(
+        '<label for="budget">',
+        '<label class="lt-label" for="budget">',
+      ),
+    )
+    await waitForPaint()
+    await expectNoAccessibilityViolations()
+  })
+
+  /*
+   * A text that changes kind in place, and a new text of the kind it was.
+   * The component gave the first one an id when it had none, and the new
+   * one needs an id as well: its own. Two elements with one id is a page
+   * where `aria-describedby` reaches only the first of them.
+   */
+  describe("when a text changes kind and a new one of the old kind arrives", () => {
+    /** A field with one text, an error text or a warning, without an id. */
+    function fieldWith(first: "error" | "warning") {
+      return `
+        <lt-field id="budget-field">
+          <label for="budget">Budget</label>
+          <input id="budget" class="lt-input" />
+          <p class="lt-error-text" data-first${first === "warning" ? ' data-variant="warning"' : ""}>The first text.</p>
+        </lt-field>`
+    }
+    const first = () => document.querySelector("[data-first]") as HTMLElement
+    const second = () => document.querySelector("[data-second]") as HTMLElement
+    /** The ids that stand on more than one element in the document. */
+    const twice = () => {
+      const ids = [...document.querySelectorAll("[id]")].map((e) => e.id)
+      return [...new Set(ids.filter((id, at) => ids.indexOf(id) !== at))]
+    }
+    const named = () =>
+      (input().getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean)
+
+    for (const [from, to] of [
+      ["error", "warning"],
+      ["warning", "error"],
+    ] as const)
+      it(`gives each text an id of its own when the ${from} becomes a ${to} and a new ${from} is added`, async () => {
+        mount(fieldWith(from))
+        await waitForPaint()
+        const firstId = first().id
+        expect(firstId, "the first text got an id").not.toBe("")
+
+        // The same element, as the other kind.
+        if (to === "warning") first().setAttribute("data-variant", "warning")
+        else first().removeAttribute("data-variant")
+        await waitForPaint()
+
+        // And a new text of the kind the first one was, without an id.
+        first().insertAdjacentHTML(
+          "afterend",
+          `<p class="lt-error-text" data-second${from === "warning" ? ' data-variant="warning"' : ""}>The second text.</p>`,
+        )
+        await waitForPaint()
+        await waitForPaint()
+
+        const ids = [first().id, second().id]
+        expect(ids[0], "the first text has an id").not.toBe("")
+        expect(ids[1], "the second text has an id").not.toBe("")
+        expect(ids[1], "the two texts have the same id").not.toBe(ids[0])
+        expect(twice(), "ids on more than one element").toEqual([])
+        // Both are shown, so both are named, each once.
+        expect(
+          named()
+            .filter((id) => ids.includes(id))
+            .sort(),
+        ).toEqual([...ids].sort())
+        // An error text is shown either way: the first one or the new one.
+        expect(input().getAttribute("aria-invalid")).toBe("true")
+        expect(input().getAttribute("data-state")).toBe("invalid")
+
+        // With the error text hidden, the field is valid and only the
+        // warning is named.
+        const [error, warning] =
+          to === "warning" ? [second(), first()] : [first(), second()]
+        error.hidden = true
+        await waitForPaint()
+        expect(input().hasAttribute("aria-invalid")).toBe(false)
+        expect(named()).toEqual([warning.id])
+        expect(twice()).toEqual([])
+      })
+
+    for (const way of ["Datastar", "idiomorph"] as const)
+      it(`gives the error text and the warning each its own id back after an update by ${way} that has neither`, async () => {
+        // Neither text has an id from the server, and no aria-describedby:
+        // the component made both, and makes the same two again.
+        const sent = `
+          <lt-field id="budget-field">
+            <label for="budget">Budget</label>
+            <input id="budget" class="lt-input" />
+            <p class="lt-error-text" data-first>Enter the budget in EB.</p>
+            <p class="lt-error-text" data-variant="warning" data-second>This is more than the crew has taken before.</p>
+          </lt-field>`.trim()
+        mount(sent)
+        await waitForPaint()
+        const before = { error: first().id, warning: second().id }
+        expect(before.error).not.toBe("")
+        expect(before.warning).not.toBe("")
+        expect(before.warning).not.toBe(before.error)
+        const namedBefore = named()
+        expect(namedBefore).toEqual([before.error, before.warning])
+
+        replace(way, "budget-field", sent)
+        await waitForPaint()
+        await waitForPaint()
+
+        expect({ error: first().id, warning: second().id }).toEqual(before)
+        expect(named()).toEqual(namedBefore)
+        expect(twice()).toEqual([])
+      })
+  })
+})

@@ -1399,6 +1399,67 @@ mod tests {
     }
 
     #[test]
+    fn a_warning_nothing_points_at_is_told_of_the_field_and_its_own_option() {
+        let page = |html: &str| diagnose_page(&utf16(html), &manifest::for_tests());
+        const BUILDER: &str = "If the code that renders the markup can call a builder function, lt.field({ id, warning: true }) or Lt.field(id = ..., warning = true) writes both the id and aria-describedby.";
+        for (attributes, write) in [
+            (
+                "",
+                "Write an id on the text and the same id in aria-describedby on the field",
+            ),
+            (
+                r#" id="a-text""#,
+                "Write that id in aria-describedby on the field",
+            ),
+        ] {
+            let html = format!(
+                r#"<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text" data-variant="warning"{attributes}>Text</p>"#
+            );
+            let found = page(&html);
+            assert_eq!(found.len(), 1, "{html}: {found:?}");
+            assert_eq!(found[0].rule, "text-not-wired");
+            let ends = format!(
+                "{write}, or put the field and the text in <lt-field>, which wires them in the browser. {BUILDER}"
+            );
+            assert!(found[0].message.ends_with(&ends), "{}", found[0].message);
+            assert!(
+                !found[0].message.contains("describedBy"),
+                "{}",
+                found[0].message
+            );
+        }
+    }
+
+    #[test]
+    fn an_error_text_and_a_warning_are_two_parts_of_a_field() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        const ERROR: &str = r#"<p class="lt-error-text" hidden>Wrong</p>"#;
+        const WARNING: &str = r#"<p class="lt-error-text" data-variant="warning">Much</p>"#;
+        let field = |texts: &str| {
+            format!(r#"<lt-field><label for="a">A</label><input id="a">{texts}</lt-field>"#)
+        };
+        for texts in [format!("{ERROR}{WARNING}"), format!("{WARNING}{ERROR}")] {
+            let found = markup(&field(&texts));
+            assert!(found.is_empty(), "{texts}: {found:?}");
+        }
+        for (texts, part) in [
+            (format!("{WARNING}{WARNING}"), "warning"),
+            (format!("{ERROR}{ERROR}{WARNING}"), "error"),
+        ] {
+            let found = markup(&field(&texts));
+            assert_eq!(found.len(), 1, "{texts}: {found:?}");
+            assert_eq!(found[0].rule, "part-repeated");
+            assert!(
+                found[0]
+                    .message
+                    .contains(&format!("the part \"{part}\" more than once")),
+                "{}",
+                found[0].message
+            );
+        }
+    }
+
+    #[test]
     fn a_missing_id_gives_a_message_without_trailing_space() {
         for (attribute, ends) in [
             ("for", "Lt.field(id = ...) does it."),

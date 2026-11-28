@@ -27,7 +27,10 @@ export const LT_FIELD_PARTS = {
   label: "label",
   control: "input:not([type='hidden']), textarea, select",
   help: `.${HELP_TEXT_CLASS}`,
-  error: `.${ERROR_TEXT_CLASS}`,
+  // A warning is an error text too, and it is the variant that tells them
+  // apart, not the order they stand in.
+  error: `.${ERROR_TEXT_CLASS}:not([data-variant='warning'])`,
+  warning: `.${ERROR_TEXT_CLASS}[data-variant='warning']`,
 } as const
 
 const CONTROL_SELECTOR = LT_FIELD_PARTS.control
@@ -64,6 +67,8 @@ const DERIVED_ATTRIBUTES = [
   "hidden",
   // `data-show` in Datastar hides the error text with `display: none`.
   "style",
+  // What makes an error text a warning.
+  "data-variant",
   // The control is `input:not([type='hidden'])`.
   "type",
 ]
@@ -112,7 +117,7 @@ export class LtField extends HostElement {
         (r) =>
           r.type === "attributes" &&
           r.attributeName === "style" &&
-          !(r.target as Element).matches?.(LT_FIELD_PARTS.error),
+          !(r.target as Element).matches?.(`.${ERROR_TEXT_CLASS}`),
       )
       if (!onlyForeignStyle) this.sync()
     },
@@ -134,6 +139,7 @@ export class LtField extends HostElement {
    */
   private lastHelpId?: string
   private lastErrorId?: string
+  private lastWarningId?: string
   private readonly managedIds = new Set<string>()
   /**
    * What the component wrote on the control and the label, and the server's
@@ -348,6 +354,7 @@ export class LtField extends HostElement {
     >(CONTROL_SELECTOR)
     const help = this.ownPart<HTMLElement>(LT_FIELD_PARTS.help)
     const error = this.ownPart<HTMLElement>(LT_FIELD_PARTS.error)
+    const warning = this.ownPart<HTMLElement>(LT_FIELD_PARTS.warning)
 
     if (!control) {
       warnAboutMarkup(
@@ -462,11 +469,23 @@ export class LtField extends HostElement {
      * reader in the middle of announcing would follow a reference that
      * changed under it. The memory is not a parallel copy of the state: if
      * the id is in the markup, that is the one that applies.
+     *
+     * A remembered id another element carries is not given again. An error
+     * text that a script turns into a warning keeps its id, and the next
+     * error text would otherwise get the same one.
      */
+    const root = this.getRootNode() as Document | ShadowRoot
+    const free = (id: string | undefined, text: HTMLElement) => {
+      const holder = id ? root.getElementById?.(id) : null
+      return holder === null || holder === undefined || holder === text
+        ? id
+        : undefined
+    }
     if (help) {
       if (help.id) this.lastHelpId = help.id
       else {
-        this.lastHelpId ??= uniqueId("lt-field-help")
+        this.lastHelpId =
+          free(this.lastHelpId, help) ?? uniqueId("lt-field-help")
         setAttr(help, "id", this.lastHelpId)
       }
       this.managedIds.add(help.id)
@@ -474,10 +493,20 @@ export class LtField extends HostElement {
     if (error) {
       if (error.id) this.lastErrorId = error.id
       else {
-        this.lastErrorId ??= uniqueId("lt-field-error")
+        this.lastErrorId =
+          free(this.lastErrorId, error) ?? uniqueId("lt-field-error")
         setAttr(error, "id", this.lastErrorId)
       }
       this.managedIds.add(error.id)
+    }
+    if (warning) {
+      if (warning.id) this.lastWarningId = warning.id
+      else {
+        this.lastWarningId =
+          free(this.lastWarningId, warning) ?? uniqueId("lt-field-warning")
+        setAttr(warning, "id", this.lastWarningId)
+      }
+      this.managedIds.add(warning.id)
     }
 
     // The markers are also read from the markup. If the server wrote them
@@ -526,12 +555,16 @@ export class LtField extends HostElement {
     // invalid, and client code toggles `hidden`, or `display: none` as
     // `data-show` in Datastar does. An empty error text says nothing, such as
     // a container that `data-text` fills.
-    const errorShown =
-      error !== null &&
-      !error.hasAttribute("hidden") &&
-      (error.textContent ?? "").trim() !== "" &&
+    const shown = (text: HTMLElement | null) =>
+      text !== null &&
+      !text.hasAttribute("hidden") &&
+      (text.textContent ?? "").trim() !== "" &&
       // Last, since it forces a style computation.
-      getComputedStyle(error).display !== "none"
+      getComputedStyle(text).display !== "none"
+    const errorShown = shown(error)
+    // A warning is read out with the control like the error text, and only
+    // while it shows. It says nothing about whether the field is invalid.
+    const warningShown = shown(warning)
     const invalid = serverInvalid || errorShown
     const disabled = this.hasAttribute("disabled") || server.disabled
 
@@ -550,10 +583,10 @@ export class LtField extends HostElement {
      * server moves the help text out of the field and keeps the id, it is the
      * server's.
      */
-    const root = this.getRootNode() as Document | ShadowRoot
     const managedNow = (id: string) =>
       id === help?.id ||
       id === error?.id ||
+      id === warning?.id ||
       (this.managedIds.has(id) && !root.getElementById?.(id))
     const serverExtras = (server.describedBy ?? "")
       .split(/\s+/)
@@ -569,8 +602,10 @@ export class LtField extends HostElement {
       // invalid while the message is hidden, the reference must not point to
       // something hidden.
       error: errorShown,
+      warning: warningShown,
       helpId: help?.id,
       errorId: error?.id,
+      warningId: warning?.id,
       required: marker === "symbol" || marker === "text" ? marker : undefined,
       optional: this.hasAttribute("optional") || serverLabel.optional,
       invalid,

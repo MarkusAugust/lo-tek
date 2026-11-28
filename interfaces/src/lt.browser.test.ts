@@ -138,6 +138,94 @@ describe("lt.field", () => {
     expect(field.control["aria-describedby"]).toBe("email-help terms")
   })
 
+  /*
+   * A warning says something about the value without the field being wrong.
+   * It is wired to the control as the help text is: named in
+   * `aria-describedby` whenever the caller says there is one, with nothing
+   * about the field being invalid.
+   */
+  it("gives the warning an id and names it in aria-describedby, and the field is not invalid", () => {
+    const field = lt.field({ id: "budget", warning: true })
+
+    expect(field.warning).toEqual({ id: "budget-warning" })
+    expect(field.control["aria-describedby"]).toBe("budget-warning")
+    expect(field.control["aria-invalid"]).toBeUndefined()
+    expect(field.control["data-state"]).toBeUndefined()
+    expect(field.state).toBe("default")
+    // The warning is not hidden by the builder: the caller renders it when
+    // there is one, as with the help text.
+    expect("hidden" in field.warning).toBe(false)
+    // And passed on to the control, the state says nothing of an error.
+    const control = lt.input({ state: field.state })
+    expect("aria-invalid" in control).toBe(false)
+    expect("data-state" in control).toBe(false)
+  })
+
+  it("takes another id for the warning", () => {
+    const field = lt.field({
+      id: "budget",
+      warning: true,
+      warningId: "over-budget",
+    })
+
+    expect(field.warning).toEqual({ id: "over-budget" })
+    expect(field.control["aria-describedby"]).toBe("over-budget")
+  })
+
+  it("names the help text, the error text and the warning in that order, before the caller's own", () => {
+    const field = lt.field({
+      id: "budget",
+      help: true,
+      error: true,
+      invalid: true,
+      warning: true,
+      describedBy: ["terms"],
+    })
+
+    expect(field.control["aria-describedby"]).toBe(
+      "budget-help budget-error budget-warning terms",
+    )
+    // Invalid because of the error, which the caller said, and shown.
+    expect(field.control["aria-invalid"]).toBe("true")
+    expect(field.control["data-state"]).toBe("invalid")
+    expect(field.state).toBe("invalid")
+    expect(field.error.hidden).toBeUndefined()
+    expect(field.warning).toEqual({ id: "budget-warning" })
+  })
+
+  it("leaves a field with a warning and an error text that is not shown valid", () => {
+    const field = lt.field({
+      id: "budget",
+      help: true,
+      error: true,
+      warning: true,
+    })
+
+    expect(field.control["aria-describedby"]).toBe("budget-help budget-warning")
+    expect(field.control["aria-invalid"]).toBeUndefined()
+    expect(field.state).toBe("default")
+    expect(field.error.hidden).toBe(true)
+  })
+
+  it("names no warning when there is none, and still says what its id would be", () => {
+    const without = lt.field({ id: "budget", help: true })
+    const off = lt.field({ id: "budget", help: true, warning: false })
+
+    for (const field of [without, off]) {
+      expect(field.control["aria-describedby"]).toBe("budget-help")
+      // As the help text and the error text: the part is there to spread.
+      expect(field.warning).toEqual({ id: "budget-warning" })
+    }
+    expect(Object.keys(without).sort()).toEqual([
+      "control",
+      "error",
+      "help",
+      "label",
+      "state",
+      "warning",
+    ])
+  })
+
   it("requires an id in the type", () => {
     /*
      * The requirement is a type, and a type can only be held in place by the

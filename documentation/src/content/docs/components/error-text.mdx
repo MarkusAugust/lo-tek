@@ -87,7 +87,7 @@ fun FlowContent.fixerField(address: String = "fixer.relay.example", invalid: Boo
 
 ## The variants
 
-The warning stands alone here, to show the colour. On a page it is wired to its field with `aria-describedby`. The field is not invalid, so with `lt.field()` you name the id of the warning in `describedBy`.
+The warning stands alone here, to show the colour. On a page it is wired to its field with `aria-describedby`, and the field is not invalid because of it. `warning: true` in `lt.field()` and `<lt-field>` both wire it that way, see [Field](../field/#a-warning).
 
 <Example styles={["error-text"]} layout="stack" maxWidth="30rem" code={`
 <p class="lt-error-text" data-variant="warning">No fixer on file has this address. Check it before the board writes.</p>
