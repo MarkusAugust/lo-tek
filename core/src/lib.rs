@@ -1399,6 +1399,129 @@ mod tests {
     }
 
     #[test]
+    fn for_on_an_output_gets_the_advice_for_an_output() {
+        let page = |html: &str| diagnose_page(&utf16(html), &manifest::for_tests());
+        let found = page(r#"<output for="a b">1</output>"#);
+        assert_eq!(found.len(), 2, "{found:?}");
+        assert_eq!(
+            found[0].message,
+            r#"for="a b" points at the id "a", which does not exist on the page. The <output> is then not tied to the field it shows the result of. Write that id on the field, or take it out of for."#
+        );
+        // On a label it is still the advice for a label.
+        let found = page(r#"<label class="lt-label" for="gone">A</label>"#);
+        assert!(
+            found
+                .iter()
+                .any(|f| f.rule == "id-not-found" && f.message.contains("Write for on the label")),
+            "{found:?}"
+        );
+    }
+
+    #[test]
+    fn a_text_is_wired_only_by_a_field() {
+        let page = |html: &str| diagnose_page(&utf16(html), &manifest::for_tests());
+        const NOTE: &str = r#"<p class="lt-help-text" id="note">Prices in EB.</p>"#;
+        for other in [
+            r#"<table class="lt-table" aria-describedby="note"><caption>Jobs</caption><tbody><tr><td>1</td></tr></tbody></table>"#,
+            r#"<div aria-describedby="note">Jobs</div>"#,
+            r#"<input type="hidden" name="n" aria-describedby="note">"#,
+        ] {
+            let found = page(&format!("{NOTE}{other}"));
+            assert_eq!(
+                found.iter().filter(|f| f.rule == "text-not-wired").count(),
+                1,
+                "{other}: {found:?}"
+            );
+        }
+        let mut fields = vec![
+            r#"<input class="lt-input" aria-label="A" aria-describedby="note">"#.to_string(),
+            r#"<select aria-label="A" aria-describedby="note"><option>One</option></select>"#.into(),
+            r#"<textarea aria-label="A" aria-describedby="note"></textarea>"#.into(),
+            r#"<button class="lt-button" aria-describedby="note">Save</button>"#.into(),
+            r#"<fieldset class="lt-fieldset" aria-describedby="note"><legend class="lt-legend">Delivery</legend></fieldset>"#.into(),
+        ];
+        for role in [
+            "combobox",
+            "textbox",
+            "searchbox",
+            "spinbutton",
+            "slider",
+            "listbox",
+            "radiogroup",
+            "checkbox",
+            "switch",
+            "radio",
+            "group",
+        ] {
+            fields.push(format!(
+                r#"<div role="{role}" aria-label="A" aria-describedby="note"></div>"#
+            ));
+        }
+        for field in fields {
+            let found = page(&format!("{NOTE}{field}"));
+            assert!(
+                found.iter().all(|f| f.rule != "text-not-wired"),
+                "{field}: {found:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_duplicate_id_says_what_points_at_it() {
+        let page = |html: &str| diagnose_page(&utf16(html), &manifest::for_tests());
+        const FIELD: &str = "https://lo-tek.sobernetics.no/components/field/";
+        const GENERAL: &str = "https://lo-tek.sobernetics.no/markup-and-behaviour/";
+        for (html, says, link) in [
+            (
+                r#"<div id="dup"></div><span id="dup"></span>"#,
+                r#"id="dup" appears more than once on the page. Anything that points at it reaches the first one. Every id must be unique."#,
+                GENERAL,
+            ),
+            (
+                r#"<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p id="a">Again</p>"#,
+                r#"id="a" appears more than once on the page. for points at the first of them. Every id must be unique."#,
+                FIELD,
+            ),
+            (
+                r#"<h2 id="t">Jobs</h2><section aria-labelledby="t"><p>Open jobs.</p></section><h2 id="t">Again</h2>"#,
+                r#"id="t" appears more than once on the page. aria-labelledby points at the first of them. Every id must be unique."#,
+                GENERAL,
+            ),
+            (
+                r##"<button class="lt-button" aria-controls="menu">Menu</button><ul id="menu"><li>One</li></ul><a href="#menu">To the menu</a><div id="menu"></div>"##,
+                r##"id="menu" appears more than once on the page. aria-controls and a link to "#menu" point at the first of them. Every id must be unique."##,
+                GENERAL,
+            ),
+        ] {
+            let found: Vec<_> = page(html)
+                .into_iter()
+                .filter(|f| f.rule == "duplicate-id")
+                .collect();
+            assert_eq!(found.len(), 1, "{html}: {found:?}");
+            assert_eq!(found[0].message, says, "{html}");
+            assert_eq!(found[0].link, link, "{html}");
+        }
+    }
+
+    #[test]
+    fn an_error_text_without_text_is_not_reported() {
+        let page = |html: &str| diagnose_page(&utf16(html), &manifest::for_tests());
+        const FIELD: &str =
+            r#"<label class="lt-label" for="a">A</label><input class="lt-input" id="a">"#;
+        for text in [
+            r#"<p class="lt-error-text"></p>"#,
+            "<p class=\"lt-error-text\">  \n </p>",
+            r#"<p class="lt-error-text" data-variant="warning"></p>"#,
+        ] {
+            let found = page(&format!("{FIELD}{text}"));
+            assert!(found.is_empty(), "{text}: {found:?}");
+        }
+        let found = page(&format!(r#"{FIELD}<p class="lt-help-text"></p>"#));
+        assert_eq!(found.len(), 1, "{found:?}");
+        assert_eq!(found[0].rule, "text-not-wired");
+    }
+
+    #[test]
     fn a_missing_id_gives_a_message_without_trailing_space() {
         for (attribute, ends) in [
             ("for", "Lt.field(id = ...) does it."),

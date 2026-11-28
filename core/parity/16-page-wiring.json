@@ -50,6 +50,13 @@
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
       "message": "The error text is not wired to any field: it has no id, so no aria-describedby can point at it. A screen reader does not announce it together with the field. Write an id on the text and the same id in aria-describedby on the field. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field()."
+    },
+    {
+      "start": 444,
+      "end": 445,
+      "severity": "warning",
+      "link": "https://lo-tek.sobernetics.no/components/field/",
+      "message": "The help text is not wired to any field: its id \"jobs-note\" is not in aria-describedby on any field. A screen reader does not announce it together with the field. Write that id in aria-describedby on the field, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({ id, help: true }) or Lt.field(id = ..., help = true) writes both the id and aria-describedby."
     }
   ]
 }

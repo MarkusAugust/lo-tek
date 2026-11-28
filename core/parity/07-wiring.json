@@ -38,7 +38,21 @@
       "end": 205,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "id=\"budget-help\" appears more than once on the page. for and aria-describedby then point at the first element, and the wiring to this one is broken. Every id must be unique."
+      "message": "id=\"budget-help\" appears more than once on the page. aria-describedby points at the first of them. Every id must be unique."
+    },
+    {
+      "start": 238,
+      "end": 248,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/components/field/",
+      "message": "for=\"total-from\" points at the id \"total-from\", which does not exist on the page. The <output> is then not tied to the field it shows the result of. Write that id on the field, or take it out of for."
+    },
+    {
+      "start": 293,
+      "end": 297,
+      "severity": "error",
+      "link": "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+      "message": "id=\"lone\" appears more than once on the page. Anything that points at it reaches the first one. Every id must be unique."
     }
   ]
 }
