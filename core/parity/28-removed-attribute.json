@@ -5,7 +5,7 @@
       "end": 17,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "invalid has been removed from <lt-field>. The field is invalid when the error text, .lt-error-text, is visible, or when the server has written aria-invalid on the control. In Datastar: data-attr:hidden=\"!$invalid\" on the error text.",
+      "message": "invalid has been removed from <lt-field>. The field is invalid when an error text, a .lt-error-text without data-variant=\"warning\", is visible, or when the server has written aria-invalid on the control. In Datastar: data-attr:hidden=\"!$invalid\" on the error text.",
       "fix": {
         "title": "Remove invalid",
         "edits": [
@@ -61,7 +61,7 @@
       "end": 17,
       "severity": "warning",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "invalid has been removed from <lt-field>. The field is invalid when the error text, .lt-error-text, is visible, or when the server has written aria-invalid on the control. In Datastar: data-attr:hidden=\"!$invalid\" on the error text.",
+      "message": "invalid has been removed from <lt-field>. The field is invalid when an error text, a .lt-error-text without data-variant=\"warning\", is visible, or when the server has written aria-invalid on the control. In Datastar: data-attr:hidden=\"!$invalid\" on the error text.",
       "fix": {
         "title": "Remove invalid",
         "edits": [

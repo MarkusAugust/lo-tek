@@ -58,7 +58,7 @@ export const elements: Elements = {
       }
     },
     "removed": {
-      "invalid": "The field is invalid when the error text, a `.lt-error-text` that is not a warning, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
+      "invalid": "The field is invalid when an error text, a `.lt-error-text` without `data-variant=\"warning\"`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
       "required-marker": "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
       "control-id": "Write `id` on the control and `for` on the label in the template. The component never writes an id on the control."
     }
