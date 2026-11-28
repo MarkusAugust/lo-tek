@@ -128,22 +128,26 @@ internal object Handwritten {
         id: String,
         help: Boolean? = null,
         error: Boolean? = null,
+        warning: Boolean? = null,
         helpId: String? = null,
         errorId: String? = null,
+        warningId: String? = null,
         required: RequiredMarker? = null,
         optional: Boolean? = null,
         invalid: Boolean? = null,
         disabled: Boolean? = null,
         describedBy: List<String>? = null,
-    ): FieldParts = computeField("field", id, help, error, helpId, errorId, required, optional, invalid, disabled, describedBy)
+    ): FieldParts = computeField("field", id, help, error, warning, helpId, errorId, warningId, required, optional, invalid, disabled, describedBy)
 
     private fun computeField(
         builder: String,
         givenId: String,
         help: Boolean?,
         error: Boolean?,
+        warning: Boolean?,
         givenHelpId: String?,
         givenErrorId: String?,
+        givenWarningId: String?,
         required: RequiredMarker?,
         optional: Boolean?,
         invalid: Boolean?,
@@ -153,6 +157,7 @@ internal object Handwritten {
         val id = requireId(builder, givenId)
         val helpId = givenHelpId ?: "$id-help"
         val errorId = givenErrorId ?: "$id-error"
+        val warningId = givenWarningId ?: "$id-warning"
         val isInvalid = invalid == true
 
         val label = linkedMapOf("class" to "lt-label", "for" to id)
@@ -165,6 +170,8 @@ internal object Handwritten {
             listOf(
                 if (help == true) helpId else null,
                 if (isInvalid && error == true) errorId else null,
+                // A warning is read out with the control, and the field is not invalid because of it.
+                if (warning == true) warningId else null,
             ) + describedBy.orEmpty(),
         )?.let { control["aria-describedby"] = it }
         if (isInvalid) {
@@ -181,6 +188,7 @@ internal object Handwritten {
             control = Attributes(control),
             help = Attributes(mapOf("id" to helpId)),
             error = Attributes(errorAttributes),
+            warning = Attributes(mapOf("id" to warningId)),
             state = if (isInvalid) FieldState.INVALID else FieldState.DEFAULT,
         )
     }
@@ -193,8 +201,10 @@ internal object Handwritten {
         required: RequiredMarker? = null,
         optional: Boolean? = null,
         help: Boolean? = null,
+        warning: Boolean? = null,
         helpId: String? = null,
         errorId: String? = null,
+        warningId: String? = null,
         describedBy: List<String>? = null,
         id: String,
         keys: List<String>? = null,
@@ -202,7 +212,7 @@ internal object Handwritten {
         open: Boolean? = null,
         pending: Boolean? = null,
     ): SuggestionParts {
-        val field = computeField("suggestion", id, help, error, helpId, errorId, required, optional, invalid, disabled, describedBy)
+        val field = computeField("suggestion", id, help, error, warning, helpId, errorId, warningId, required, optional, invalid, disabled, describedBy)
         val optionKeys = requireKeys("suggestion", keys ?: emptyList())
         val n = optionKeys.size.toDouble()
         val active = activeIndex?.toDouble() ?: -1.0
@@ -265,6 +275,7 @@ internal object Handwritten {
             value = Attributes(mapOf("class" to "lt-suggestion__value", "type" to "hidden")),
             help = field.help,
             error = field.error,
+            warning = field.warning,
             state = field.state,
         )
     }

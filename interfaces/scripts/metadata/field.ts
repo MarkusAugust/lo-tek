@@ -16,7 +16,7 @@ export const field: ComponentDoc = {
   element: element<typeof LtField>(
     LT_FIELD_TAG,
     "field",
-    "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
+    "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`; a warning, an error text with the variant `warning`, is wired too and does not make it invalid. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
     {
       disabled: flag("The control is disabled."),
       optional: flag("The field is optional, and the label says so."),
@@ -27,7 +27,7 @@ export const field: ComponentDoc = {
     {},
     {
       invalid:
-        'The field is invalid when the error text, `.lt-error-text`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden="!$invalid"` on the error text.',
+        'The field is invalid when an error text, a `.lt-error-text` without `data-variant="warning"`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden="!$invalid"` on the error text.',
       "required-marker":
         "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
       "control-id":
@@ -63,6 +63,13 @@ export const field: ComponentDoc = {
       unique: true,
       optional: true,
     },
+    warning: {
+      description:
+        'A warning: an error text with `data-variant="warning"`. It is read out with the control while it shows, and the field is not invalid because of it.',
+      content: "text",
+      unique: true,
+      optional: true,
+    },
   }),
   anatomies: {
     field: {
@@ -83,6 +90,11 @@ export const field: ComponentDoc = {
           description: "What is wrong.",
           content: "text",
           example: "Enter an email address.",
+        },
+        warning: {
+          description: "What to look at again. The field is not wrong.",
+          content: "text",
+          example: "This address has bounced before.",
         },
         "option-value": {
           description:
@@ -110,6 +122,9 @@ export const field: ComponentDoc = {
         },
         errorId: {
           tool: "Left out: the id of the error text is made from the field's.",
+        },
+        warningId: {
+          tool: "Left out: the id of the warning is made from the field's.",
         },
         describedBy: {
           tool: "Left out: the help and error texts are wired by the field.",
@@ -179,6 +194,14 @@ export const field: ComponentDoc = {
               when: "error",
               children: [{ hole: "error" }],
             },
+            {
+              // A warning is an error text of the variant warning.
+              tag: "p",
+              from: ["errorText", "field.warning"],
+              options: { errorText: { variant: "warning" } },
+              when: "warning",
+              children: [{ hole: "warning" }],
+            },
           ],
         },
       ],
@@ -190,6 +213,7 @@ export const field: ComponentDoc = {
       control: { element: LT_FIELD_TAG, part: "control" },
       help: { element: LT_FIELD_TAG, part: "help" },
       error: { element: LT_FIELD_TAG, part: "error" },
+      warning: { element: LT_FIELD_TAG, part: "warning" },
     },
   },
 }

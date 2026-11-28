@@ -395,7 +395,8 @@ const ruleThree = (recipe: Recipe) =>
    never writes an id on the control: an id the server did not send makes an
    update from the server replace the field, with the focus and what the user
    has typed. The field is invalid when the error text is there without
-   \`hidden\`.`
+   \`hidden\`. A warning, an error text with \`data-variant="warning"\`, is wired
+   too, and the field is not invalid because of it.`
     : `**You write the markup, the component adds the behaviour.** \`<lt-field>\`
    does not create your label or your control. You write \`${recipe.name === "react" ? "htmlFor" : "for"}\` on the label
    and \`id\` on the control, or wrap the control in a \`<label>\`, so the field
@@ -406,7 +407,8 @@ const ruleThree = (recipe: Recipe) =>
        ? ", so the id is yours, from `useId()`"
        : ": an id the server did not send makes an update from the server replace the field, with the focus and what the user has typed"
 }. The field is invalid when the error text is there without
-   \`hidden\`.`
+   \`hidden\`. A warning, an error text with \`data-variant="warning"\`, is wired
+   too, and the field is not invalid because of it.`
 
 const webComponents = (recipe: Recipe) => `## 4. Web components
 

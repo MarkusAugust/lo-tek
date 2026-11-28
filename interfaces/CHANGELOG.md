@@ -56,6 +56,13 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Added
 
+- **A warning in a field.** `lt.field({ id, warning: true })` gives a new
+  part, `field.warning`, with the id `<id>-warning`, and names that id in
+  `aria-describedby` after the help text and the error text. It writes no
+  `aria-invalid`. `warningId` gives the warning another id. `Lt.field()`
+  in Kotlin has the same two options, and `lt.suggestion()` and
+  `Lt.suggestion()` take them too, since they take what a field takes.
+  `<lt-field>` has the part `warning`, and the manifest lists it.
 - **`hearStyleTaken()` in `@lo-tek/interfaces/host-element`**, which a
   component calls after it has written inline style on an element it
   watches, so that WebKit reports it when the attribute is taken off.
@@ -136,6 +143,17 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Changed
 
+- **A warning in `<lt-field>` no longer makes the field invalid.** An
+  error text with `data-variant="warning"` counted as the field's error
+  text: when it showed, the control got `aria-invalid="true"` and the
+  colour of an invalid field. The component now tells the two apart by
+  the variant. A visible warning is given an id and named in
+  `aria-describedby`, and only an error text of another variant, or the
+  server's own `aria-invalid`, makes the field invalid. A field can have
+  one of each. `lotek check` follows: a field with an error text and a
+  warning is no longer reported as having the part "error" twice, and a
+  warning that nothing points at is told to use `<lt-field>` or
+  `warning: true`.
 - **`lotek check` accepts `="true"` on a boolean attribute of a
   web component and on a flag of a class,** and so do the editors, which
   run the same check. Astro writes `optional` and `optional={true}` on

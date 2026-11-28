@@ -384,8 +384,8 @@ class ManifestReaderTest {
         assertTrue(defaults > 0, "No option had a default, so that branch of the reader is untested.")
         assertEquals(
             listOf(
-                "dialog.titleId", "errorSummary.id", "errorSummary.titleId", "field.errorId", "field.helpId", "field.id", "popover.id",
-                "sessionTimeout.titleId", "suggestion.errorId", "suggestion.helpId", "suggestion.id", "suggestion.keys", "tabs.id", "tabs.keys", "term.id",
+                "dialog.titleId", "errorSummary.id", "errorSummary.titleId", "field.errorId", "field.helpId", "field.id", "field.warningId", "popover.id",
+                "sessionTimeout.titleId", "suggestion.errorId", "suggestion.helpId", "suggestion.id", "suggestion.keys", "suggestion.warningId", "tabs.id", "tabs.keys", "term.id",
             ),
             stable.sorted(),
             "the options that are an id which must be the same on every render",

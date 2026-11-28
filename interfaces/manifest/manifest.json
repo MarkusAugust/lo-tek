@@ -50,7 +50,7 @@
   "elements": {
     "lt-field": {
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
+      "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`; a warning, an error text with the variant `warning`, is wired too and does not make it invalid. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
       "attributes": {
         "disabled": {
           "type": "flag",
@@ -89,21 +89,29 @@
           "optional": true
         },
         "error": {
-          "selector": ".lt-error-text",
+          "selector": ".lt-error-text:not([data-variant='warning'])",
           "description": "The error text, which is shown and read out when the field is invalid.",
+          "content": "text",
+          "unique": true,
+          "optional": true
+        },
+        "warning": {
+          "selector": ".lt-error-text[data-variant='warning']",
+          "description": "A warning: an error text with `data-variant=\"warning\"`. It is read out with the control while it shows, and the field is not invalid because of it.",
           "content": "text",
           "unique": true,
           "optional": true
         }
       },
       "removed": {
-        "invalid": "The field is invalid when the error text, `.lt-error-text`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
+        "invalid": "The field is invalid when an error text, a `.lt-error-text` without `data-variant=\"warning\"`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
         "required-marker": "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
         "control-id": "Write `id` on the control and `for` on the label in the template. The component never writes an id on the control."
       },
       "generatedIds": [
         "lt-field-error",
-        "lt-field-help"
+        "lt-field-help",
+        "lt-field-warning"
       ]
     },
     "lt-tabs": {
@@ -4225,6 +4233,14 @@
           "description": "The field has an error text. It is hidden until the field is invalid."
         },
         {
+          "name": "warning",
+          "required": false,
+          "type": {
+            "kind": "flag"
+          },
+          "description": "The field has a warning: an error text with the variant `warning`. It is read out with the control, and the field is not invalid because of it."
+        },
+        {
           "name": "helpId",
           "required": false,
           "type": {
@@ -4240,6 +4256,15 @@
             "kind": "text"
           },
           "description": "A separate id for the error text. Derived from `id` if left out.",
+          "stableId": true
+        },
+        {
+          "name": "warningId",
+          "required": false,
+          "type": {
+            "kind": "text"
+          },
+          "description": "A separate id for the warning. Derived from `id` if left out.",
           "stableId": true
         },
         {
@@ -4302,6 +4327,9 @@
           "error": {
             "kind": "attributes"
           },
+          "warning": {
+            "kind": "attributes"
+          },
           "state": {
             "kind": "values",
             "values": [
@@ -4329,6 +4357,10 @@
         "error": {
           "element": "lt-field",
           "part": "error"
+        },
+        "warning": {
+          "element": "lt-field",
+          "part": "warning"
         }
       },
       "anatomy": {
@@ -4356,6 +4388,11 @@
             "description": "What is wrong.",
             "content": "text",
             "example": "Enter an email address."
+          },
+          "warning": {
+            "description": "What to look at again. The field is not wrong.",
+            "content": "text",
+            "example": "This address has bounced before."
           },
           "option-value": {
             "description": "What an option sends. Without it, the option sends its text.",
@@ -4390,6 +4427,9 @@
           },
           "errorId": {
             "tool": "Left out: the id of the error text is made from the field's."
+          },
+          "warningId": {
+            "tool": "Left out: the id of the warning is made from the field's."
           },
           "describedBy": {
             "tool": "Left out: the help and error texts are wired by the field."
@@ -4519,6 +4559,24 @@
                 "children": [
                   {
                     "hole": "error"
+                  }
+                ]
+              },
+              {
+                "tag": "p",
+                "from": [
+                  "errorText",
+                  "field.warning"
+                ],
+                "options": {
+                  "errorText": {
+                    "variant": "warning"
+                  }
+                },
+                "when": "warning",
+                "children": [
+                  {
+                    "hole": "warning"
                   }
                 ]
               }
@@ -7141,6 +7199,14 @@
       "description": "The attributes for a field with a suggestion list.\n\nThe server writes both the field and the list. The web component filters, handles the arrow keys and keeps `aria-activedescendant` in sync. It renders nothing: it used to create the whole field itself, and then there was nothing to fill in before the script had run.\n\nNo preserve list. The attributes that change while the user types are set by the web component, and it sets them back when a patch strips them. If something else has already filtered, set `prefiltered` on `<lt-suggestion>`, and the web component leaves both the options and the empty message alone. If the server should also decide whether the list is expanded and which option is highlighted, set `server-controlled` as well.",
       "options": [
         {
+          "name": "warning",
+          "required": false,
+          "type": {
+            "kind": "flag"
+          },
+          "description": "The field has a warning: an error text with the variant `warning`. It is read out with the control, and the field is not invalid because of it."
+        },
+        {
           "name": "invalid",
           "required": false,
           "type": {
@@ -7208,6 +7274,15 @@
             "kind": "text"
           },
           "description": "A separate id for the error text. Derived from `id` if left out.",
+          "stableId": true
+        },
+        {
+          "name": "warningId",
+          "required": false,
+          "type": {
+            "kind": "text"
+          },
+          "description": "A separate id for the warning. Derived from `id` if left out.",
           "stableId": true
         },
         {
@@ -7294,6 +7369,9 @@
           "error": {
             "kind": "attributes"
           },
+          "warning": {
+            "kind": "attributes"
+          },
           "state": {
             "kind": "values",
             "values": [
@@ -7373,6 +7451,11 @@
             "description": "What is wrong.",
             "content": "text",
             "example": "Choose a breaker from the list."
+          },
+          "warning": {
+            "description": "What to look at again. The field is not wrong.",
+            "content": "text",
+            "example": "This breaker is booked until Friday."
           }
         },
         "options": {
@@ -7493,6 +7576,24 @@
                 "children": [
                   {
                     "hole": "error"
+                  }
+                ]
+              },
+              {
+                "tag": "p",
+                "from": [
+                  "errorText",
+                  "suggestion.warning"
+                ],
+                "options": {
+                  "errorText": {
+                    "variant": "warning"
+                  }
+                },
+                "when": "warning",
+                "children": [
+                  {
+                    "hole": "warning"
                   }
                 ]
               }

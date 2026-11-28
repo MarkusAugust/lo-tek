@@ -708,22 +708,23 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
         }
 
         // The name of the text, and what the builder takes to wire it. An
-        // error text is only wired when the field is invalid, and a warning
-        // is no error: neither <lt-field> nor `error` is for it.
+        // error text is only wired when the field is invalid. A warning is an
+        // error text of its own variant, wired while it shows.
         let variant = value(node, "data-variant")
             .and_then(|a| a.value.as_deref())
             .unwrap_or(&[]);
         let kind = if has_class(node, |c| equals(c, "lt-error-text")) {
             if equals(variant, "warning") {
-                Some(("The error text", None))
+                Some(("The error text", "warning: true", "warning = true"))
             } else {
                 Some((
                     "The error text",
-                    Some(("error: true, invalid: true", "error = true, invalid = true")),
+                    "error: true, invalid: true",
+                    "error = true, invalid = true",
                 ))
             }
         } else if has_class(node, |c| equals(c, "lt-help-text")) {
-            Some(("The help text", Some(("help: true", "help = true"))))
+            Some(("The help text", "help: true", "help = true"))
         } else {
             None
         };
@@ -735,7 +736,7 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
         // An error text without text says nothing yet, and <lt-field> does
         // not wire it either, as a container that data-text fills later.
         let silent = has_class(node, |c| equals(c, "lt-error-text")) && !has_text[n];
-        if let Some((kind, options)) = kind {
+        if let Some((kind, typescript, kotlin)) = kind {
             if !live && !silent && !is_hidden(&nodes, n) {
                 let id = non_empty(node, "id");
                 if id.is_none_or(|id| !described_by.contains(&decode(id))) {
@@ -750,14 +751,9 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                         Some(_) => "Write that id in aria-describedby on the field",
                         None => "Write an id on the text and the same id in aria-describedby on the field",
                     };
-                    let how = match options {
-                        Some((typescript, kotlin)) => format!(
-                            "{write}, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({{ id, {typescript} }}) or Lt.field(id = ..., {kotlin}) writes both the id and aria-describedby."
-                        ),
-                        None => format!(
-                            "{write}. If the code that renders the markup can call a builder function, name the id in describedBy in lt.field() or Lt.field()."
-                        ),
-                    };
+                    let how = format!(
+                        "{write}, or put the field and the text in <lt-field>, which wires them in the browser. If the code that renders the markup can call a builder function, lt.field({{ id, {typescript} }}) or Lt.field(id = ..., {kotlin}) writes both the id and aria-describedby."
+                    );
                     out.push(findings(
                     "text-not-wired",
                         node.name_start,
