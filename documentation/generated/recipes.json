@@ -9117,6 +9117,12 @@
         {
           "lang": "html",
           "meta": null,
+          "code": "<script>\n  {\n    const showStored = () => {\n      const stored = document.cookie.match(/(?:^|; )theme=([^;]*)/)?.[1]\n      const theme = stored === \"light\" || stored === \"dark\" ? stored : undefined\n      if (theme) document.documentElement.dataset.theme = theme\n      else delete document.documentElement.dataset.theme\n      for (const button of document.querySelectorAll(\".lt-theme-control\")) {\n        button.checked = button.value === (theme ?? \"auto\")\n      }\n    }\n    // Only Back and Forward can bring a page with the old choice. On any\n    // other load the server has written the stored one.\n    const [navigation] = performance.getEntriesByType(\"navigation\")\n    if (navigation?.type === \"back_forward\") {\n      showStored()\n      // Chrome sets the buttons back right after DOMContentLoaded. This\n      // comes before the next frame is drawn.\n      document.addEventListener(\"DOMContentLoaded\", () => {\n        requestAnimationFrame(showStored)\n      })\n    }\n    // The page as the user left it, brought back without a load\n    window.addEventListener(\"pageshow\", (event) => {\n      if (event.persisted) showStored()\n    })\n  }\n</script>",
+          "section": "Making it last"
+        },
+        {
+          "lang": "html",
+          "meta": null,
           "code": "<!-- In <head>, without defer, before the page is drawn -->\n<script>\n  const applyTheme = () => {\n    const stored = localStorage.getItem(\"theme\")\n    if (stored === \"light\" || stored === \"dark\") {\n      document.documentElement.dataset.theme = stored\n    } else {\n      delete document.documentElement.dataset.theme\n    }\n  }\n  applyTheme()\n  // Back can bring the page as it was left, with the old choice\n  window.addEventListener(\"pageshow\", applyTheme)\n</script>",
           "section": "Making it last"
         },
@@ -9170,6 +9176,7 @@
         "data-theme",
         "data-theme=\"auto\"",
         "checked",
+        "HttpOnly",
         "localStorage",
         "<head>",
         "auto",

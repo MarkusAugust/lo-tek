@@ -93,6 +93,41 @@ Allow-list the two values. A cookie comes from the client, so it can contain any
 
 At the same time, set `checked` on the button that matches the cookie, so the group shows the stored choice.
 
+After a change, Back can show a page in the theme it had. The browser brings the page back as the user left it, reads it from its cache, or sets the buttons back as they were, and the choice the page shows is then the old one, until the page is loaded again. If that matters, this script puts it right. It goes after the group, it is the only JavaScript in the recipe, and the recipe works without it:
+
+```html
+<script>
+  {
+    const showStored = () => {
+      const stored = document.cookie.match(/(?:^|; )theme=([^;]*)/)?.[1]
+      const theme = stored === "light" || stored === "dark" ? stored : undefined
+      if (theme) document.documentElement.dataset.theme = theme
+      else delete document.documentElement.dataset.theme
+      for (const button of document.querySelectorAll(".lt-theme-control")) {
+        button.checked = button.value === (theme ?? "auto")
+      }
+    }
+    // Only Back and Forward can bring a page with the old choice. On any
+    // other load the server has written the stored one.
+    const [navigation] = performance.getEntriesByType("navigation")
+    if (navigation?.type === "back_forward") {
+      showStored()
+      // Chrome sets the buttons back right after DOMContentLoaded. This
+      // comes before the next frame is drawn.
+      document.addEventListener("DOMContentLoaded", () => {
+        requestAnimationFrame(showStored)
+      })
+    }
+    // The page as the user left it, brought back without a load
+    window.addEventListener("pageshow", (event) => {
+      if (event.persisted) showStored()
+    })
+  }
+</script>
+```
+
+The script does nothing on an ordinary load, where the server has written the stored choice. It reads the cookie, so the cookie cannot be `HttpOnly`: the script would then find no choice, and show a page that Back brings without one.
+
 ### localStorage on a static site
 
 A fully static site has no server that can read the cookie. Then `localStorage` is the only thing that lasts, and the script has to be **blocking in `<head>`**, before the page is drawn:
