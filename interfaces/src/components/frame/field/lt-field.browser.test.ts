@@ -1434,4 +1434,111 @@ describe("lt-field with a warning", () => {
     await waitForPaint()
     await expectNoAccessibilityViolations()
   })
+
+  /*
+   * A text that changes kind in place, and a new text of the kind it was.
+   * The component gave the first one an id when it had none, and the new
+   * one needs an id as well: its own. Two elements with one id is a page
+   * where `aria-describedby` reaches only the first of them.
+   */
+  describe("when a text changes kind and a new one of the old kind arrives", () => {
+    /** A field with one text, an error text or a warning, without an id. */
+    function fieldWith(first: "error" | "warning") {
+      return `
+        <lt-field id="budget-field">
+          <label for="budget">Budget</label>
+          <input id="budget" class="lt-input" />
+          <p class="lt-error-text" data-first${first === "warning" ? ' data-variant="warning"' : ""}>The first text.</p>
+        </lt-field>`
+    }
+    const first = () => document.querySelector("[data-first]") as HTMLElement
+    const second = () => document.querySelector("[data-second]") as HTMLElement
+    /** The ids that stand on more than one element in the document. */
+    const twice = () => {
+      const ids = [...document.querySelectorAll("[id]")].map((e) => e.id)
+      return [...new Set(ids.filter((id, at) => ids.indexOf(id) !== at))]
+    }
+    const named = () =>
+      (input().getAttribute("aria-describedby") ?? "")
+        .split(/\s+/)
+        .filter(Boolean)
+
+    for (const [from, to] of [
+      ["error", "warning"],
+      ["warning", "error"],
+    ] as const)
+      it(`gives each text an id of its own when the ${from} becomes a ${to} and a new ${from} is added`, async () => {
+        mount(fieldWith(from))
+        await waitForPaint()
+        const firstId = first().id
+        expect(firstId, "the first text got an id").not.toBe("")
+
+        // The same element, as the other kind.
+        if (to === "warning") first().setAttribute("data-variant", "warning")
+        else first().removeAttribute("data-variant")
+        await waitForPaint()
+
+        // And a new text of the kind the first one was, without an id.
+        first().insertAdjacentHTML(
+          "afterend",
+          `<p class="lt-error-text" data-second${from === "warning" ? ' data-variant="warning"' : ""}>The second text.</p>`,
+        )
+        await waitForPaint()
+        await waitForPaint()
+
+        const ids = [first().id, second().id]
+        expect(ids[0], "the first text has an id").not.toBe("")
+        expect(ids[1], "the second text has an id").not.toBe("")
+        expect(ids[1], "the two texts have the same id").not.toBe(ids[0])
+        expect(twice(), "ids on more than one element").toEqual([])
+        // Both are shown, so both are named, each once.
+        expect(
+          named()
+            .filter((id) => ids.includes(id))
+            .sort(),
+        ).toEqual([...ids].sort())
+        // An error text is shown either way: the first one or the new one.
+        expect(input().getAttribute("aria-invalid")).toBe("true")
+        expect(input().getAttribute("data-state")).toBe("invalid")
+
+        // With the error text hidden, the field is valid and only the
+        // warning is named.
+        const [error, warning] =
+          to === "warning" ? [second(), first()] : [first(), second()]
+        error.hidden = true
+        await waitForPaint()
+        expect(input().hasAttribute("aria-invalid")).toBe(false)
+        expect(named()).toEqual([warning.id])
+        expect(twice()).toEqual([])
+      })
+
+    for (const way of ["Datastar", "idiomorph"] as const)
+      it(`gives the error text and the warning each its own id back after an update by ${way} that has neither`, async () => {
+        // Neither text has an id from the server, and no aria-describedby:
+        // the component made both, and makes the same two again.
+        const sent = `
+          <lt-field id="budget-field">
+            <label for="budget">Budget</label>
+            <input id="budget" class="lt-input" />
+            <p class="lt-error-text" data-first>Enter the budget in EB.</p>
+            <p class="lt-error-text" data-variant="warning" data-second>This is more than the crew has taken before.</p>
+          </lt-field>`.trim()
+        mount(sent)
+        await waitForPaint()
+        const before = { error: first().id, warning: second().id }
+        expect(before.error).not.toBe("")
+        expect(before.warning).not.toBe("")
+        expect(before.warning).not.toBe(before.error)
+        const namedBefore = named()
+        expect(namedBefore).toEqual([before.error, before.warning])
+
+        replace(way, "budget-field", sent)
+        await waitForPaint()
+        await waitForPaint()
+
+        expect({ error: first().id, warning: second().id }).toEqual(before)
+        expect(named()).toEqual(namedBefore)
+        expect(twice()).toEqual([])
+      })
+  })
 })

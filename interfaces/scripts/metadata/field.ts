@@ -16,7 +16,7 @@ export const field: ComponentDoc = {
   element: element<typeof LtField>(
     LT_FIELD_TAG,
     "field",
-    "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
+    "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`; a warning, an error text with the variant `warning`, is wired too and does not make it invalid. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
     {
       disabled: flag("The control is disabled."),
       optional: flag("The field is optional, and the label says so."),
@@ -27,7 +27,7 @@ export const field: ComponentDoc = {
     {},
     {
       invalid:
-        'The field is invalid when the error text, `.lt-error-text`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden="!$invalid"` on the error text.',
+        'The field is invalid when the error text, a `.lt-error-text` that is not a warning, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden="!$invalid"` on the error text.',
       "required-marker":
         "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
       "control-id":

@@ -469,11 +469,23 @@ export class LtField extends HostElement {
      * reader in the middle of announcing would follow a reference that
      * changed under it. The memory is not a parallel copy of the state: if
      * the id is in the markup, that is the one that applies.
+     *
+     * A remembered id another element carries is not given again. An error
+     * text that a script turns into a warning keeps its id, and the next
+     * error text would otherwise get the same one.
      */
+    const root = this.getRootNode() as Document | ShadowRoot
+    const free = (id: string | undefined, text: HTMLElement) => {
+      const holder = id ? root.getElementById?.(id) : null
+      return holder === null || holder === undefined || holder === text
+        ? id
+        : undefined
+    }
     if (help) {
       if (help.id) this.lastHelpId = help.id
       else {
-        this.lastHelpId ??= uniqueId("lt-field-help")
+        this.lastHelpId =
+          free(this.lastHelpId, help) ?? uniqueId("lt-field-help")
         setAttr(help, "id", this.lastHelpId)
       }
       this.managedIds.add(help.id)
@@ -481,7 +493,8 @@ export class LtField extends HostElement {
     if (error) {
       if (error.id) this.lastErrorId = error.id
       else {
-        this.lastErrorId ??= uniqueId("lt-field-error")
+        this.lastErrorId =
+          free(this.lastErrorId, error) ?? uniqueId("lt-field-error")
         setAttr(error, "id", this.lastErrorId)
       }
       this.managedIds.add(error.id)
@@ -489,7 +502,8 @@ export class LtField extends HostElement {
     if (warning) {
       if (warning.id) this.lastWarningId = warning.id
       else {
-        this.lastWarningId ??= uniqueId("lt-field-warning")
+        this.lastWarningId =
+          free(this.lastWarningId, warning) ?? uniqueId("lt-field-warning")
         setAttr(warning, "id", this.lastWarningId)
       }
       this.managedIds.add(warning.id)
@@ -569,7 +583,6 @@ export class LtField extends HostElement {
      * server moves the help text out of the field and keeps the id, it is the
      * server's.
      */
-    const root = this.getRootNode() as Document | ShadowRoot
     const managedNow = (id: string) =>
       id === help?.id ||
       id === error?.id ||

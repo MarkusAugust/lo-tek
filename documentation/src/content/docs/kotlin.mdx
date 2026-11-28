@@ -61,7 +61,7 @@ The allowed values are `enum`s, so `ButtonVariant.SECUNDARY` is a compile error,
 
 The result is an `Attributes`, which is an ordinary `Map<String, String>`. It can be given to any template engine. Without a template engine, `toHtml()` writes it out with the values escaped, and `+` combines two sets.
 
-The builder functions that give several sets give a data class with one field per set. `Lt.field` wires the label, control, help text and error text:
+The builder functions that give several sets give a data class with one field per set. `Lt.field` wires the label, control, help text, error text and a warning:
 
 ```kotlin
 val field = Lt.field(id = "fixer", required = RequiredMarker.TEXT, help = true, error = true, invalid = invalid)

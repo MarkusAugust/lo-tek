@@ -4,7 +4,7 @@ import type { Elements } from "./types.js"
 export const elements: Elements = {
   "lt-field": {
     "link": "https://lo-tek.sobernetics.no/components/field/",
-    "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
+    "description": "Wires label, field, help text and error text together: sets `aria-describedby` and `aria-invalid` on the control and an id on the help text and the error text. Never writes an id on the control: the template writes `for` and `id`, or wraps the field in the label. The field is invalid when the error text is there without `hidden`; a warning, an error text with the variant `warning`, is wired too and does not make it invalid. Exists for markup from code that cannot call a builder function. When it can, in TypeScript, Kotlin or Java, use `lt.field()` or `Lt.field()` instead.",
     "attributes": {
       "disabled": {
         "type": "flag",
@@ -58,7 +58,7 @@ export const elements: Elements = {
       }
     },
     "removed": {
-      "invalid": "The field is invalid when the error text, `.lt-error-text`, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
+      "invalid": "The field is invalid when the error text, a `.lt-error-text` that is not a warning, is visible, or when the server has written `aria-invalid` on the control. In Datastar: `data-attr:hidden=\"!$invalid\"` on the error text.",
       "required-marker": "The required marker is `data-required` on `<label>`, and then shows without JavaScript too.",
       "control-id": "Write `id` on the control and `for` on the label in the template. The component never writes an id on the control."
     }

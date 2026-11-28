@@ -331,6 +331,12 @@ const field = lt.field({ id: "fixer", required: "symbol", help: true, error: tru
 
 If you use React, import from `@lo-tek/interfaces/react`, which gives `className` and `htmlFor` instead of the HTML names.
 
+**`id` is required.** In React it comes from `useId()`. Otherwise the field's own name is usually the obvious choice. If you know for certain that the markup is rendered once, as on an Astro page, you can call `createFieldId()`, which you get from both `@lo-tek/interfaces` and `@lo-tek/interfaces/react`.
+
+The reason is that an id generated on its own is random: two runs give two different ones. If the same field is rendered on a server and then in the browser, `for` and `aria-describedby` point to something other than what is there, and React reports a hydration mismatch.
+
+If you write JavaScript without types, you see no type. Then the function creates an id anyway, and warns in the console, so the field works while you fix it.
+
 ### A warning
 
 A warning is an error text with the variant `warning`. It is read out with the field, and the field is not invalid because of it. `warning: true` gives it an id and names that id in `aria-describedby`, after the help text and the error text:
@@ -343,13 +349,9 @@ const field = lt.field({ id: "budget", warning: true })
 <p {...lt.errorText({ variant: "warning" })} {...field.warning}>Above what this fixer usually takes.</p>
 ```
 
-Turn `warning` on only when you render the warning: the function names its id whenever the option is on. In Kotlin it is `Lt.field(id = "budget", warning = true)`.
+Turn `warning` on only when the warning is rendered and shown: the function names its id whenever the option is on, and a screen reader reads a text it is pointed at even when the text is hidden. A warning that the browser shows and hides belongs in `<lt-field>`, which names it only while it shows. In Kotlin it is `Lt.field(id = "budget", warning = true)`.
 
-**`id` is required.** In React it comes from `useId()`. Otherwise the field's own name is usually the obvious choice. If you know for certain that the markup is rendered once, as on an Astro page, you can call `createFieldId()`, which you get from both `@lo-tek/interfaces` and `@lo-tek/interfaces/react`.
-
-The reason is that an id generated on its own is random: two runs give two different ones. If the same field is rendered on a server and then in the browser, `for` and `aria-describedby` point to something other than what is there, and React reports a hydration mismatch.
-
-If you write JavaScript without types, you see no type. Then the function creates an id anyway, and warns in the console, so the field works while you fix it.
+The warning is read out when the field gets focus. One that appears while the user is in the field is not announced.
 
 ## As an element
 
@@ -377,7 +379,7 @@ Every time the content or the attributes change, it finds the `<label>` and the 
 
 The error text can be in the markup all the time with `hidden`, or be rendered by the template only when the field is invalid. The component never touches `hidden` on it.
 
-The component requires two class names from you: `lt-help-text` on the help text and `lt-error-text` on the error text. It finds the control by tag name, `<input>`, `<textarea>` or `<select>`, and a `type="hidden"` does not count as a control. It finds the label as a `<label>` inside the element, or as a `<label for>` outside that points to the control's `id`. If the control has no `id`, and the label is not around it, the component warns: the field then has no name without JavaScript. If the control has an `id`, the component writes `for` from it, and warns in the console when the label pointed to a different id: without JavaScript the field would then have had no label. Write `for` in the template too; that is what gives the field a name before the script runs.
+The component requires two class names from you: `lt-help-text` on the help text and `lt-error-text` on the error text. A warning is `lt-error-text` with `data-variant="warning"`. It finds the control by tag name, `<input>`, `<textarea>` or `<select>`, and a `type="hidden"` does not count as a control. It finds the label as a `<label>` inside the element, or as a `<label for>` outside that points to the control's `id`. If the control has no `id`, and the label is not around it, the component warns: the field then has no name without JavaScript. If the control has an `id`, the component writes `for` from it, and warns in the console when the label pointed to a different id: without JavaScript the field would then have had no label. Write `for` in the template too; that is what gives the field a name before the script runs.
 
 The parts are only those that belong to this field. If one `<lt-field>` is inside another, like a search field in a popover inside the field, the outer field sees only the control, label, help text and error text that belong to it, and the inner field likewise.
 
