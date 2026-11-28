@@ -336,7 +336,9 @@ Repair depends on one thing: that the morph keeps the elements. The tab selectio
 is tied to the link itself, and the text the user typed is in the field itself.
 If the element is replaced, it is gone, and no component can bring it back.
 
-The morph recognises an element by its id, and so do `for`, `aria-describedby`, `aria-labelledby`, `aria-controls` and a link to `#…`: each finds the first element with it. An id must therefore be unique on the page, and `lotek check` reports one that is not. An element without an id is kept. An
+The morph recognises an element by its id, and so do `for`, `aria-describedby`, `aria-labelledby`, `aria-controls` and a link to `#…`: each finds the first element with it. An id must therefore be unique on the page. `lotek check` reports a duplicate on a rendered page or an address, not in a template, where the id can come from another file.
+
+An element without an id is kept. An
 element with an id the server did not send is replaced. Neither Datastar nor
 idiomorph documents what happens to an element without an id; this is what
 `update.browser.test.ts` checks against Datastar 1.0.4 and idiomorph 0.8.0, in

@@ -26,8 +26,8 @@ const POINTERS: [&str; 5] = [
     "href",
 ];
 
-/// The roles of an element that takes a value or a choice, and so can be
-/// described like a field.
+/// The roles of a field, a button or a group of them, which a help text or an
+/// error text can describe.
 const FIELD_ROLES: &[&str] = &[
     "combobox",
     "textbox",
@@ -39,18 +39,30 @@ const FIELD_ROLES: &[&str] = &[
     "checkbox",
     "switch",
     "radio",
+    "menuitemcheckbox",
+    "menuitemradio",
+    "button",
     "group",
 ];
 
 /// Whether the element is a field a help text or an error text can describe:
-/// a control, a button, a fieldset, or an element with a role that takes a
-/// value or a choice.
+/// a control, a button, a fieldset, an editable element, or an element with
+/// the role of a field, a button or a group of them.
 fn is_field(node: &Node) -> bool {
     match node.name.as_str() {
         "input" => !value(node, "type")
             .and_then(|a| a.value.as_deref())
             .is_some_and(|t| equals(&lowercase(t), "hidden")),
         "select" | "textarea" | "button" | "fieldset" => true,
+        // An editable element is a text field, with or without a role.
+        _ if value(node, "contenteditable").is_some_and(|a| {
+            !a.value
+                .as_deref()
+                .is_some_and(|v| equals(&lowercase(v), "false"))
+        }) =>
+        {
+            true
+        }
         _ => value(node, "role")
             .and_then(|a| a.value.as_deref())
             .is_some_and(|role| {
@@ -516,7 +528,9 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
     let mut has_text = vec![false; nodes.len()];
     for item in &items {
         if let Item::Text { parent, start, end } = *item {
-            let blank = page[start..end]
+            // Read as the browser reads it: `&nbsp;` is a space, as
+            // `textContent.trim()` in <lt-field> sees it.
+            let blank = decode(&page[start..end])
                 .iter()
                 .all(|&c| char::from_u32(u32::from(c)).is_some_and(char::is_whitespace));
             if !blank {
@@ -552,7 +566,12 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                 }
             }
         }
-        if let Some(v) = value(node, "href").and_then(|a| a.value.as_deref()) {
+        // A link is an <a> or an <area>. <use href> in SVG is not one.
+        let link = node.name == "a" || node.name == "area";
+        if let Some(v) = value(node, "href")
+            .and_then(|a| a.value.as_deref())
+            .filter(|_| link)
+        {
             if starts_at(v, 0, "#") && v.len() > 1 {
                 pointed.entry(fragment(&v[1..])).or_default()[4] = true;
             }
@@ -576,9 +595,9 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             .collect();
         let middle = match names.len() {
             0 => "Anything that points at it reaches the first one.".to_string(),
-            1 => format!("{} points at the first of them.", names[0]),
+            1 => format!("On this page, {} points at the first of them.", names[0]),
             n => format!(
-                "{} and {} point at the first of them.",
+                "On this page, {} and {} point at the first of them.",
                 names[..n - 1].join(", "),
                 names[n - 1]
             ),

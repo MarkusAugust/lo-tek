@@ -1425,6 +1425,8 @@ mod tests {
             r#"<table class="lt-table" aria-describedby="note"><caption>Jobs</caption><tbody><tr><td>1</td></tr></tbody></table>"#,
             r#"<div aria-describedby="note">Jobs</div>"#,
             r#"<input type="hidden" name="n" aria-describedby="note">"#,
+            r#"<form aria-describedby="note"><input class="lt-input" aria-label="A"></form>"#,
+            r#"<div contenteditable="false" aria-describedby="note">Jobs</div>"#,
         ] {
             let found = page(&format!("{NOTE}{other}"));
             assert_eq!(
@@ -1440,7 +1442,11 @@ mod tests {
             r#"<button class="lt-button" aria-describedby="note">Save</button>"#.into(),
             r#"<fieldset class="lt-fieldset" aria-describedby="note"><legend class="lt-legend">Delivery</legend></fieldset>"#.into(),
         ];
+        fields.push(r#"<div role="button" tabindex="0" aria-describedby="note">Save</div>"#.into());
+        fields.push(r#"<div contenteditable aria-label="A" aria-describedby="note"></div>"#.into());
         for role in [
+            "menuitemcheckbox",
+            "menuitemradio",
             "combobox",
             "textbox",
             "searchbox",
@@ -1479,17 +1485,22 @@ mod tests {
             ),
             (
                 r#"<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p id="a">Again</p>"#,
-                r#"id="a" appears more than once on the page. for points at the first of them. Every id must be unique."#,
+                r#"id="a" appears more than once on the page. On this page, for points at the first of them. Every id must be unique."#,
                 FIELD,
             ),
             (
                 r#"<h2 id="t">Jobs</h2><section aria-labelledby="t"><p>Open jobs.</p></section><h2 id="t">Again</h2>"#,
-                r#"id="t" appears more than once on the page. aria-labelledby points at the first of them. Every id must be unique."#,
+                r#"id="t" appears more than once on the page. On this page, aria-labelledby points at the first of them. Every id must be unique."#,
                 GENERAL,
             ),
             (
                 r##"<button class="lt-button" aria-controls="menu">Menu</button><ul id="menu"><li>One</li></ul><a href="#menu">To the menu</a><div id="menu"></div>"##,
-                r##"id="menu" appears more than once on the page. aria-controls and a link to "#menu" point at the first of them. Every id must be unique."##,
+                r##"id="menu" appears more than once on the page. On this page, aria-controls and a link to "#menu" point at the first of them. Every id must be unique."##,
+                GENERAL,
+            ),
+            (
+                r##"<svg aria-hidden="true"><symbol id="i"><path d="M0 0"/></symbol><symbol id="i"><path d="M1 1"/></symbol><use href="#i"/></svg>"##,
+                r#"id="i" appears more than once on the page. Anything that points at it reaches the first one. Every id must be unique."#,
                 GENERAL,
             ),
         ] {
@@ -1512,10 +1523,18 @@ mod tests {
             r#"<p class="lt-error-text"></p>"#,
             "<p class=\"lt-error-text\">  \n </p>",
             r#"<p class="lt-error-text" data-variant="warning"></p>"#,
+            // Blanks written as character references, as `textContent` reads them.
+            r#"<p class="lt-error-text">&nbsp;</p>"#,
+            r#"<p class="lt-error-text">&#160;</p>"#,
+            r#"<p class="lt-error-text">&#x20;</p>"#,
+            r#"<p class="lt-error-text">&#32;</p>"#,
+            "<p class=\"lt-error-text\">\u{a0}</p>",
         ] {
             let found = page(&format!("{FIELD}{text}"));
             assert!(found.is_empty(), "{text}: {found:?}");
         }
+        let found = page(&format!(r#"{FIELD}<p class="lt-error-text">&amp;</p>"#));
+        assert_eq!(found.len(), 1, "{found:?}");
         let found = page(&format!(r#"{FIELD}<p class="lt-help-text"></p>"#));
         assert_eq!(found.len(), 1, "{found:?}");
         assert_eq!(found[0].rule, "text-not-wired");

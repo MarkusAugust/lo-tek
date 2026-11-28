@@ -38,7 +38,7 @@
       "end": 205,
       "severity": "error",
       "link": "https://lo-tek.sobernetics.no/components/field/",
-      "message": "id=\"budget-help\" appears more than once on the page. aria-describedby points at the first of them. Every id must be unique."
+      "message": "id=\"budget-help\" appears more than once on the page. On this page, aria-describedby points at the first of them. Every id must be unique."
     },
     {
       "start": 238,
