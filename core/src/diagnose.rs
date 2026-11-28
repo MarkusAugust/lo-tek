@@ -603,7 +603,11 @@ fn check_attribute(
             if name == "hidden" && equals(value, "until-found") {
                 return None;
             }
-            if !value.is_empty() && lowercase(value) != a.name {
+            // `true`, in lowercase and nothing else, is what Astro writes for
+            // `optional={true}` on a custom element, and it turns the
+            // attribute on, as meant. `True` is how a Python template prints a
+            // boolean it writes as text, and stays a finding.
+            if !value.is_empty() && lowercase(value) != a.name && !equals(value, "true") {
                 let v = lossy(value);
                 return Some(findings(
                     "boolean-with-value",
@@ -908,8 +912,9 @@ fn check_classes(
             if takes.flag {
                 // The style sheet only asks whether the flag is there, so
                 // `="false"` turns it on. The same as for a boolean attribute
-                // on an element.
-                if lowercase(value) != a.name {
+                // on an element, `true` in lowercase included: Astro writes
+                // `data-optional={true}` that way.
+                if lowercase(value) != a.name && !equals(value, "true") {
                     let name = lossy(&a.name);
                     let v = lossy(value);
                     findings.push(Finding {

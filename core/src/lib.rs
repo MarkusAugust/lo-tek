@@ -1248,6 +1248,63 @@ mod tests {
     }
 
     #[test]
+    fn true_on_a_boolean_attribute_of_an_element_is_the_attribute_on() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        // As a framework writes a boolean it is given as true on a custom
+        // element: in small letters, and nothing else.
+        let html = r#"<lt-popover open="true"></lt-popover>"#;
+        let found = markup(html);
+        assert!(found.is_empty(), "{html}: {found:?}");
+        // Every other value turns it on too, and reads as if it did not.
+        // `True` is how a template in the Python family prints a boolean,
+        // and a space is not trimmed away.
+        for value in [
+            "false", "FALSE", "True", "TRUE", "tRue", " true", "true ", "truee", "1", "yes",
+        ] {
+            let html = format!(r#"<lt-popover open="{value}"></lt-popover>"#);
+            let found = markup(&html);
+            assert_eq!(found.len(), 1, "{html}: {found:?}");
+            assert_eq!(found[0].rule, "boolean-with-value");
+            assert!(
+                found[0].message.contains("open is a boolean attribute"),
+                "{}",
+                found[0].message
+            );
+            assert!(found[0].fix.is_some(), "{html}");
+        }
+        // A flag on a class takes the same, see
+        // `a_flag_on_a_class_takes_true_and_nothing_else`.
+    }
+
+    #[test]
+    fn a_flag_on_a_class_takes_true_and_nothing_else() {
+        let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
+        // `data-optional={true}` written by hand in Astro comes out as
+        // `="true"`, and is the flag turned on. In small letters only.
+        for html in [
+            r#"<label class="lt-label" data-optional="true">Navn</label>"#,
+            r#"<article class="lt-card" data-interactive="true">Krav</article>"#,
+        ] {
+            let found = markup(html);
+            assert!(found.is_empty(), "{html}: {found:?}");
+        }
+        for value in [
+            "false", "FALSE", "True", "TRUE", "tRue", " true", "true ", "truee", "1", "yes",
+        ] {
+            let html = format!(r#"<label class="lt-label" data-optional="{value}">Navn</label>"#);
+            let found = markup(&html);
+            assert_eq!(found.len(), 1, "{html}: {found:?}");
+            assert_eq!(found[0].rule, "boolean-with-value");
+            assert!(
+                found[0].message.contains("flag on label"),
+                "{}",
+                found[0].message
+            );
+            assert!(found[0].fix.is_some(), "{html}");
+        }
+    }
+
+    #[test]
     fn a_flag_on_a_class_takes_no_value() {
         let markup = |html: &str| diagnose_markup(&utf16(html), &manifest::for_tests());
         assert!(markup(r#"<label class="lt-label" data-optional>Navn</label>"#).is_empty());
