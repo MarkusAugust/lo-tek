@@ -1127,13 +1127,123 @@ cases.push(
     mentions: ["aria-controls", '"menu"'],
     notMentions: ["lt.field(", "for on the label", "Write that id"],
   },
+  /*
+   * `for` on an `<output>` names the fields its result is worked out from.
+   * It is not a label, and the advice for one is not for it.
+   */
+  {
+    name: "page: for on an output points at an id that does not exist",
+    html: `<output for="a b">1</output>`,
+    count: 2,
+    page: true,
+    severity: "error",
+    rule: "id-not-found",
+    mentions: [
+      'for="a b" points at the id "a", which does not exist on the page. The <output> is then not tied to the field it shows the result of. Write that id on the field, or take it out of for.',
+    ],
+    notMentions: ["label", "lt.field(", "Lt.field(", "screen reader loses"],
+  },
+  {
+    name: "page: for on an output at fields that are there is fine",
+    html: `<input class="lt-input" id="a" aria-label="A"><input class="lt-input" id="b" aria-label="B"><output for="a b">1</output>`,
+    count: 0,
+    page: true,
+  },
+  /*
+   * An id twice on a page: what points at it reaches the first. The message
+   * says what on this page does, and links to the field only when what
+   * points at it is the wiring of a field.
+   */
+  {
+    name: "page: an id twice that aria-describedby points at",
+    html: `${LABELLED}<p id="email-help">Again</p>`,
+    count: 1,
+    page: true,
+    rule: "duplicate-id",
+    mentions: [
+      'id="email-help" appears more than once on the page. On this page, aria-describedby points at the first of them. Every id must be unique.',
+    ],
+    link: "https://lo-tek.sobernetics.no/components/field/",
+  },
+  {
+    name: "page: an id twice that nothing points at",
+    html: `<div id="dup"></div><span id="dup"></span>`,
+    count: 1,
+    page: true,
+    severity: "error",
+    rule: "duplicate-id",
+    mentions: [
+      'id="dup" appears more than once on the page. Anything that points at it reaches the first one. Every id must be unique.',
+    ],
+    notMentions: ["for and aria-describedby", "wiring", "points at the first"],
+    link: "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+  },
+  {
+    name: "page: an id twice that aria-labelledby points at",
+    html: `<h2 id="t">Jobs</h2><section aria-labelledby="t"><p>Open jobs.</p></section><h2 id="t">Again</h2>`,
+    count: 1,
+    page: true,
+    rule: "duplicate-id",
+    mentions: [
+      'id="t" appears more than once on the page. On this page, aria-labelledby points at the first of them. Every id must be unique.',
+    ],
+    link: "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+  },
+  {
+    name: "page: an id twice that aria-controls and a link point at",
+    html: `<button class="lt-button" aria-controls="menu">Menu</button><ul id="menu"><li>One</li></ul><a href="#menu">To the menu</a><div id="menu"></div>`,
+    count: 1,
+    page: true,
+    rule: "duplicate-id",
+    mentions: [
+      'id="menu" appears more than once on the page. On this page, aria-controls and a link to "#menu" point at the first of them. Every id must be unique.',
+    ],
+    link: "https://lo-tek.sobernetics.no/markup-and-behaviour/",
+  },
+  {
+    name: "page: an id twice that for, aria-describedby and a link point at",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a" aria-describedby="a-help"><p class="lt-help-text" id="a-help">Help</p><a href="#a-help">The help</a><output for="a-help">1</output><span id="a-help"></span>`,
+    count: 1,
+    page: true,
+    rule: "duplicate-id",
+    mentions: [
+      'id="a-help" appears more than once on the page. On this page, for, aria-describedby and a link to "#a-help" point at the first of them. Every id must be unique.',
+    ],
+    link: "https://lo-tek.sobernetics.no/components/field/",
+  },
+  {
+    name: "page: an id twice in an SVG sprite that use points at is no link",
+    html: `<svg aria-hidden="true"><symbol id="i"><path d="M0 0"/></symbol><symbol id="i"><path d="M1 1"/></symbol><use href="#i"/></svg>`,
+    count: 1,
+    page: true,
+    rule: "duplicate-id",
+    mentions: [
+      'id="i" appears more than once on the page. Anything that points at it reaches the first one. Every id must be unique.',
+    ],
+    notMentions: ["a link"],
+  },
+  {
+    name: "page: an id twice that an area of an image map points at",
+    html: `<img src="map.png" alt="Map" usemap="#m"><map name="m"><area href="#zone" alt="Zone" shape="rect" coords="0,0,1,1"></map><div id="zone"></div><div id="zone"></div>`,
+    count: 1,
+    page: true,
+    rule: "duplicate-id",
+    mentions: [
+      'id="zone" appears more than once on the page. On this page, a link to "#zone" points at the first of them. Every id must be unique.',
+    ],
+  },
   {
     name: "page: an id that appears twice",
     html: `${LABELLED}<p id="email">Again</p>`,
     count: 1,
     page: true,
     severity: "error",
-    mentions: ['id="email"', "more than once"],
+    rule: "duplicate-id",
+    mentions: [
+      'id="email" appears more than once on the page. On this page, for points at the first of them. Every id must be unique.',
+    ],
+    notMentions: ["aria-describedby", "wiring"],
+    link: "https://lo-tek.sobernetics.no/components/field/",
     covers: "email",
   },
   {
@@ -1321,6 +1431,168 @@ cases.push(
       "does it",
       "Write an id on the text",
     ],
+  },
+  /*
+   * A text counts as wired when aria-describedby on a field names it: an
+   * element a value is written in or chosen with, a button, or a group of
+   * them. A table or a section that names it does not tie it to a field.
+   */
+  ...[
+    [
+      "a table",
+      `<table class="lt-table" aria-describedby="note"><caption>Jobs</caption><tbody><tr><td>1</td></tr></tbody></table>`,
+    ],
+    ["a div", `<div aria-describedby="note">Jobs</div>`],
+    [
+      "an input of type hidden",
+      `<input type="hidden" name="n" aria-describedby="note">`,
+    ],
+  ].map(
+    ([what, html]): Case => ({
+      name: `page: a help text only ${what} names is not wired`,
+      html: `<p class="lt-help-text" id="note">Prices in EB.</p>${html}`,
+      count: 1,
+      page: true,
+      rule: "text-not-wired",
+      mentions: ['its id "note" is not in aria-describedby on any field'],
+    }),
+  ),
+  ...[
+    [
+      "an input",
+      `<input class="lt-input" aria-label="A" aria-describedby="note">`,
+    ],
+    [
+      "a select",
+      `<select aria-label="A" aria-describedby="note"><option>One</option></select>`,
+    ],
+    [
+      "a textarea",
+      `<textarea aria-label="A" aria-describedby="note"></textarea>`,
+    ],
+    [
+      "a button",
+      `<button class="lt-button" aria-describedby="note">Save</button>`,
+    ],
+    [
+      "a fieldset",
+      `<fieldset class="lt-fieldset" aria-describedby="note"><legend class="lt-legend">Delivery</legend></fieldset>`,
+    ],
+    ...[
+      "combobox",
+      "textbox",
+      "searchbox",
+      "spinbutton",
+      "slider",
+      "listbox",
+      "radiogroup",
+      "checkbox",
+      "switch",
+      "radio",
+      "group",
+    ].map((role) => [
+      `an element with role="${role}"`,
+      `<div role="${role}" aria-label="A" aria-describedby="note"></div>`,
+    ]),
+  ].map(
+    ([what, html]): Case => ({
+      name: `page: a help text ${what} names is wired`,
+      html: `<p class="lt-help-text" id="note">Prices in EB.</p>${html}`,
+      count: 0,
+      page: true,
+      rule: "text-not-wired",
+    }),
+  ),
+  // What else is a field: a widget a value is written in, or one pressed.
+  ...[
+    [
+      "a div with role=button",
+      `<div role="button" tabindex="0" aria-describedby="note">Save</div>`,
+    ],
+    [
+      "a contenteditable div",
+      `<div contenteditable aria-label="A" aria-describedby="note"></div>`,
+    ],
+    [
+      'a div with contenteditable="true"',
+      `<div contenteditable="true" aria-label="A" aria-describedby="note"></div>`,
+    ],
+    [
+      "a menu item with a check",
+      `<div role="menuitemcheckbox" aria-checked="false" aria-describedby="note">Bold</div>`,
+    ],
+    [
+      "a menu item with a radio",
+      `<div role="menuitemradio" aria-checked="false" aria-describedby="note">Large</div>`,
+    ],
+  ].map(
+    ([what, html]): Case => ({
+      name: `page: a help text ${what} names is wired`,
+      html: `<p class="lt-help-text" id="note">Prices in EB.</p>${html}`,
+      count: 0,
+      page: true,
+    }),
+  ),
+  ...[
+    [
+      "a form",
+      `<form aria-describedby="note"><input class="lt-input" aria-label="A"></form>`,
+    ],
+    [
+      'a div with contenteditable="false"',
+      `<div contenteditable="false" aria-describedby="note">Jobs</div>`,
+    ],
+  ].map(
+    ([what, html]): Case => ({
+      name: `page: a help text only ${what} names is not wired`,
+      html: `<p class="lt-help-text" id="note">Prices in EB.</p>${html}`,
+      count: 1,
+      page: true,
+      rule: "text-not-wired",
+      mentions: ['its id "note" is not in aria-describedby on any field'],
+    }),
+  ),
+  /*
+   * An error text with no text is not shown as one: `<lt-field>` passes
+   * over it, and so does the check. A help text with no text is still a
+   * help text nothing names.
+   */
+  ...[
+    ["an error text", `<p class="lt-error-text"></p>`],
+    ["an error text of blanks", `<p class="lt-error-text">  \n </p>`],
+    ["a warning", `<p class="lt-error-text" data-variant="warning"></p>`],
+    // Blanks written as character references are blanks too.
+    ...["&nbsp;", "&#160;", "&#x20;", "&#32;", "&nbsp; &#xA0;"].map((blank) => [
+      `an error text of ${blank}`,
+      `<p class="lt-error-text">${blank}</p>`,
+    ]),
+    [
+      "an error text of a literal no-break space",
+      `<p class="lt-error-text">\u00a0</p>`,
+    ],
+  ].map(
+    ([what, html]): Case => ({
+      name: `page: ${what} without text is not reported`,
+      html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a">${html}`,
+      count: 0,
+      page: true,
+    }),
+  ),
+  {
+    name: "page: an error text of &amp; alone is text, and still reported",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-error-text">&amp;</p>`,
+    count: 1,
+    page: true,
+    rule: "text-not-wired",
+    mentions: ["The error text is not wired"],
+  },
+  {
+    name: "page: a help text without text is still reported",
+    html: `<label class="lt-label" for="a">A</label><input class="lt-input" id="a"><p class="lt-help-text"></p>`,
+    count: 1,
+    page: true,
+    rule: "text-not-wired",
+    mentions: ["The help text is not wired"],
   },
   {
     name: "page: a hidden error text needs no wiring",

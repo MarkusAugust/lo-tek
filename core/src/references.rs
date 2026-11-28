@@ -14,6 +14,64 @@ use crate::types::*;
 
 const LINK: &str = "https://lo-tek.sobernetics.no/components/field/";
 const SUMMARY_LINK: &str = "https://lo-tek.sobernetics.no/components/error-summary/";
+const IDS_LINK: &str = "https://lo-tek.sobernetics.no/markup-and-behaviour/";
+
+/// What can point at an id, in the order a message names them. A link is
+/// `href="#…"`, and the last.
+const POINTERS: [&str; 5] = [
+    "for",
+    "aria-describedby",
+    "aria-labelledby",
+    "aria-controls",
+    "href",
+];
+
+/// The roles of a field, a button or a group of them, which a help text or an
+/// error text can describe.
+const FIELD_ROLES: &[&str] = &[
+    "combobox",
+    "textbox",
+    "searchbox",
+    "spinbutton",
+    "slider",
+    "listbox",
+    "radiogroup",
+    "checkbox",
+    "switch",
+    "radio",
+    "menuitemcheckbox",
+    "menuitemradio",
+    "button",
+    "group",
+];
+
+/// Whether the element is a field a help text or an error text can describe:
+/// a control, a button, a fieldset, an editable element, or an element with
+/// the role of a field, a button or a group of them.
+fn is_field(node: &Node) -> bool {
+    match node.name.as_str() {
+        "input" => !value(node, "type")
+            .and_then(|a| a.value.as_deref())
+            .is_some_and(|t| equals(&lowercase(t), "hidden")),
+        "select" | "textarea" | "button" | "fieldset" => true,
+        // An editable element is a text field, with or without a role.
+        _ if value(node, "contenteditable").is_some_and(|a| {
+            !a.value
+                .as_deref()
+                .is_some_and(|v| equals(&lowercase(v), "false"))
+        }) =>
+        {
+            true
+        }
+        _ => value(node, "role")
+            .and_then(|a| a.value.as_deref())
+            .is_some_and(|role| {
+                words(role)
+                    .into_iter()
+                    .any(|(_, r)| FIELD_ROLES.iter().any(|f| equals(&lowercase(r), f)))
+            }),
+    }
+}
 
 const HOW: &str = "Write for on the label and id on the field in the template, or put the label around the field. If the code that renders the markup can call a builder function, lt.field({ id }) or Lt.field(id = ...) does it.";
 
@@ -455,10 +513,38 @@ fn findings(
 /// `page` is the page as [`page_source`] reads it. `diagnose_page` already
 /// has it, and does not make it again for every call.
 pub fn check_references(page: &[u16]) -> Vec<Finding> {
-    let nodes = tree(page);
+    let (nodes, items) = walk(page);
     let mut out = Vec::new();
     let mut ids: HashMap<Utf16, usize> = HashMap::new();
+    // The ids a field names in aria-describedby. Only a field: a help text a
+    // table points at is read with the table, not with any field.
     let mut described_by: HashSet<Utf16> = HashSet::new();
+    // What on the page points at each id, in the order of POINTERS.
+    let mut pointed: HashMap<Utf16, [bool; 5]> = HashMap::new();
+    // The ids that stand on more than one element: where the value starts,
+    // and the id as written.
+    let mut doubles: Vec<(usize, Utf16)> = Vec::new();
+    // Whether an element has text of its own or in its children.
+    let mut has_text = vec![false; nodes.len()];
+    for item in &items {
+        if let Item::Text { parent, start, end } = *item {
+            // Read as the browser reads it: `&nbsp;` is a space, as
+            // `textContent.trim()` in <lt-field> sees it.
+            let blank = decode(&page[start..end])
+                .iter()
+                .all(|&c| char::from_u32(u32::from(c)).is_some_and(char::is_whitespace));
+            if !blank {
+                let mut at = parent;
+                while let Some(p) = at {
+                    if has_text[p] {
+                        break;
+                    }
+                    has_text[p] = true;
+                    at = nodes[p].parent;
+                }
+            }
+        }
+    }
 
     for (n, node) in nodes.iter().enumerate() {
         if let Some(id) = value(node, "id").filter(|a| a.non_empty_value().is_some()) {
@@ -467,24 +553,67 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             if let std::collections::hash_map::Entry::Vacant(ledig) = ids.entry(decoded) {
                 ledig.insert(n);
             } else {
-                out.push(findings(
-                    "duplicate-id",
-                    id.value_start,
-                    id.value_start + v.len(),
-                    Severity::Error,
-                    LINK,
-                    format!(
-                        "id=\"{}\" appears more than once on the page. for and aria-describedby then point at the first element, and the wiring to this one is broken. Every id must be unique.",
-                        lossy(v)
-                    ),
-                ));
+                doubles.push((id.value_start, v.clone()));
             }
         }
-        if let Some(v) = value(node, "aria-describedby").and_then(|a| a.value.as_deref()) {
-            for (_, part) in words(&decode(v)) {
-                described_by.insert(part.to_vec());
+        for (kind, name) in POINTERS.iter().enumerate().take(4) {
+            if let Some(v) = value(node, name).and_then(|a| a.value.as_deref()) {
+                for (_, part) in words(&decode(v)) {
+                    pointed.entry(part.to_vec()).or_default()[kind] = true;
+                    if *name == "aria-describedby" && is_field(node) {
+                        described_by.insert(part.to_vec());
+                    }
+                }
             }
         }
+        // A link is an <a> or an <area>. <use href> in SVG is not one.
+        let link = node.name == "a" || node.name == "area";
+        if let Some(v) = value(node, "href")
+            .and_then(|a| a.value.as_deref())
+            .filter(|_| link)
+        {
+            if starts_at(v, 0, "#") && v.len() > 1 {
+                pointed.entry(fragment(&v[1..])).or_default()[4] = true;
+            }
+        }
+    }
+
+    for (start, v) in doubles {
+        let id = lossy(&v);
+        let by = pointed.get(&decode(&v)).copied().unwrap_or_default();
+        let names: Vec<String> = POINTERS
+            .iter()
+            .zip(by)
+            .filter(|(_, on)| *on)
+            .map(|(name, _)| {
+                if *name == "href" {
+                    format!("a link to \"#{id}\"")
+                } else {
+                    (*name).to_string()
+                }
+            })
+            .collect();
+        let middle = match names.len() {
+            0 => "Anything that points at it reaches the first one.".to_string(),
+            1 => format!("On this page, {} points at the first of them.", names[0]),
+            n => format!(
+                "On this page, {} and {} point at the first of them.",
+                names[..n - 1].join(", "),
+                names[n - 1]
+            ),
+        };
+        // The field page only when it is a field's wiring that is broken.
+        let link = if by[0] || by[1] { LINK } else { IDS_LINK };
+        out.push(findings(
+            "duplicate-id",
+            start,
+            start + v.len(),
+            Severity::Error,
+            link,
+            format!(
+                "id=\"{id}\" appears more than once on the page. {middle} Every id must be unique."
+            ),
+        ));
     }
 
     for (n, node) in nodes.iter().enumerate() {
@@ -503,14 +632,22 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
                         Severity::Error,
                         LINK,
                         format!(
-                            "{name}=\"{}\" points at the id \"{}\", which does not exist on the page. The screen reader loses {loses}.{}",
+                            "{name}=\"{}\" points at the id \"{}\", which does not exist on the page. {}.{}",
                             lossy(v),
                             lossy(target),
+                            // for on an <output> names what its result is
+                            // worked out from; there is no label to lose.
+                            if *name == "for" && node.name == "output" {
+                                "The <output> is then not tied to the field it shows the result of".to_string()
+                            } else {
+                                format!("The screen reader loses {loses}")
+                            },
                             // The advice follows the attribute: only for
                             // is about a label, and what aria-controls
                             // controls is not a field. The space only
                             // comes with the advice.
                             match *name {
+                                "for" if node.name == "output" => " Write that id on the field, or take it out of for.".into(),
                                 "for" => format!(" {HOW}"),
                                 "aria-describedby" => " Write that id on the text that describes this element, or take it out of aria-describedby.".into(),
                                 "aria-labelledby" => " Write that id on the element that names this one, or take it out of aria-labelledby.".into(),
@@ -596,8 +733,11 @@ pub fn check_references(page: &[u16]) -> Vec<Finding> {
             .unwrap_or(&[]);
         let live =
             equals(role, "status") || equals(role, "alert") || value(node, "aria-live").is_some();
+        // An error text without text says nothing yet, and <lt-field> does
+        // not wire it either, as a container that data-text fills later.
+        let silent = has_class(node, |c| equals(c, "lt-error-text")) && !has_text[n];
         if let Some((kind, typescript, kotlin)) = kind {
-            if !live && !is_hidden(&nodes, n) {
+            if !live && !silent && !is_hidden(&nodes, n) {
                 let id = non_empty(node, "id");
                 if id.is_none_or(|id| !described_by.contains(&decode(id))) {
                     let middle = match id {

@@ -217,6 +217,20 @@ including 0.36.0 were written in Norwegian, and list them under "Brytende".
 
 ### Fixed
 
+- **Four messages of `lotek check` say what fits what was found.**
+  - A help text or an error text counts as wired only when a field names
+    it in `aria-describedby`: a control, a button, a fieldset, an
+    editable element, or an element with the role of a field, a button or
+    a group of them. A text that only a table points at was passed; it now
+    gets `text-not-wired`.
+  - An error text with no text, or only spaces such as `&nbsp;`, gives no
+    `text-not-wired`, as `<lt-field>` does not wire it either.
+  - `for` on an `<output>` at an id that does not exist says that the
+    `<output>` is not tied to its field, and gives no advice for a label.
+  - A duplicated id names what on the page points at it, and links to the
+    field page only when `for` or `aria-describedby` does. It said that
+    `for` and `aria-describedby` pointed at the first element, whatever
+    did.
 - **The cookie recipe for the theme says what Back does, and has a
   script for it.** After a change of theme, Back shows a page that was
   fetched before the change in the theme it had, in Chromium and in
