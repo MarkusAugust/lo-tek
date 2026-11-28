@@ -68,6 +68,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       only-presentation: ${{ steps.files.outputs.only-presentation }}
+      frame: ${{ steps.files.outputs.frame }}
 
     steps:
       # The pull request's merge commit and its first parent, the base it was
@@ -77,12 +78,14 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Only the presentation?
+      - name: Only the presentation? A frame component?
         id: files
         env:
           EVENT: ${{ github.event_name }}
         run: |
           only=false
+          # Anything it cannot compare counts as touching a frame component.
+          frame=true
           if [ "$EVENT" = pull_request ] && git cat-file -e "HEAD^1^{commit}" 2>/dev/null; then
             # Both sides of a rename, so a file moved into presentation/
             # still counts where it came from, and names unquoted.
@@ -93,9 +96,19 @@ jobs:
             if [ -n "$changed" ] && ! grep -qv '^presentation/' <<<"$changed"; then
               only=true
             fi
+            # What the model tests read: the frame components, what they
+            # share, the search and its helpers, the configuration, and the
+            # recipes on the components' pages with the script that extracts
+            # them. A recipe that changed shape broke two of them unseen.
+            frame=false
+            if grep -qE '^(interfaces/src/components/frame/|interfaces/src/components/host-element\.ts$|interfaces/src/testing/|interfaces/vitest(\.model)?\.config\.ts$|interfaces/scripts/(extract-)?recipes\.ts$|documentation/src/content/docs/components/(dialog|error-summary|field|popover|session-timeout|suggestion|tabs|term)\.mdx$)' <<<"$changed"; then
+              frame=true
+            fi
           fi
           echo "only-presentation=$only" >> "$GITHUB_OUTPUT"
+          echo "frame=$frame" >> "$GITHUB_OUTPUT"
           echo "Only the presentation changed: $only"
+          echo "A frame component or what its model tests read changed: $frame"
 
   # The two checks that read the presentation, when nothing else changed.
   # Neither needs an install: they read files and ask git.
@@ -324,6 +337,53 @@ jobs:
       # documentation follows the code.
       - name: Documentation
         run: bun run test:docs
+
+  # The model tests: every order of server updates and user actions to a
+  # fixed depth, for each frame component (`interfaces/vitest.model.config.ts`).
+  # They are slow, so they run only when a pull request changes what they
+  # read, and always on master and by hand. Two of them stood broken for weeks
+  # while nothing ran them.
+  model:
+    name: Model tests
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.frame != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # The same image as `check`, for the same three browsers.
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
+
+    steps:
+      # As in `check`: a C linker, unzip and Rust, and a home folder Firefox
+      # will start in as root.
+      - name: Container tools
+        run: |
+          export HOME=/root
+          echo "HOME=/root" >> "$GITHUB_ENV"
+          apt-get update
+          apt-get install --yes --no-install-recommends gcc libc6-dev unzip
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain none
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - uses: actions/checkout@v7
+
+      - name: Trust the checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Builds the core the components check with, then runs the search.
+      - name: Model tests
+        run: bun run test:model
 
   # The CLI and the language server on Windows, where paths, drives and
   # processes behave differently. The host opens every drive for the WASI

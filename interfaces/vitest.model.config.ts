@@ -6,10 +6,11 @@ import base from "./vitest.config"
  * user actions to a fixed depth, for each frame component
  * (`*.model.browser.test.ts`, on the search in `src/testing/model.ts`).
  *
- * Not in `bun run test`, `bun run check` or CI. They search for bugs nobody
- * has thought of, rather than guard what is known, and took the check from
- * nine minutes to sixteen. They are run before a pull request that touches a
- * frame component, `host-element.ts` or the search:
+ * Not in `bun run test` or `bun run check`. They search for bugs nobody has
+ * thought of, rather than guard what is known, and took the check from nine
+ * minutes to sixteen. CI runs them in the job "Model tests" when a pull
+ * request changes what they read, and they are run by hand before such a
+ * pull request: a frame component, `host-element.ts` or the search:
  *
  *     bun run test:model
  *

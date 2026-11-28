@@ -78,11 +78,14 @@ The model tests, one `*.model.browser.test.ts` per frame component, try
 every order of server updates and user actions to depth 3, in all three
 browsers, and check the accessibility tree and the component's promises
 after each step (`interfaces/src/testing/model.ts`). They are not in
-`bun run check` or CI: they search for bugs nobody has thought of, rather
-than guard what is known, and took the check from nine minutes to sixteen.
-Run them before a pull request that touches a frame component,
-`interfaces/src/components/host-element.ts` or the search; they took nine minutes on an M-series Mac
-that was busy with other work. A bug they find gets a scenario test of its own in the
+`bun run check`: they search for bugs nobody has thought of, rather than
+guard what is known, and took the check from nine minutes to sixteen. CI
+runs them in a job of their own, "Model tests", on a pull request that
+changes a frame component, `interfaces/src/components/host-element.ts`, the
+search and its helpers in `interfaces/src/testing/`, the configuration, or
+the recipes on a frame component's page, and always on `master`. Run them
+yourself before such a pull request; they took nine minutes on an M-series
+Mac that was busy with other work. A bug they find gets a scenario test of its own in the
 component's ordinary test file, which CI keeps.
 
 The browsers are installed once:
